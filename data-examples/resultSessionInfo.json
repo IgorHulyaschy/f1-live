@@ -1,0 +1,30 @@
+{
+  "Meeting": {
+    "Key": 1274,
+    "Name": "Las Vegas Grand Prix",
+    "OfficialName": "FORMULA 1 HEINEKEN LAS VEGAS GRAND PRIX 2025",
+    "Location": "Las Vegas",
+    "Number": 22,
+    "Country": {
+      "Key": 19,
+      "Code": "USA",
+      "Name": "United States"
+    },
+    "Circuit": {
+      "Key": 152,
+      "ShortName": "Las Vegas"
+    }
+  },
+  "SessionStatus": "Finalised",
+  "ArchiveStatus": {
+    "Status": "Complete"
+  },
+  "Key": 9858,
+  "Type": "Race",
+  "Name": "Race",
+  "StartDate": "2025-11-22T20:00:00",
+  "EndDate": "2025-11-22T22:00:00",
+  "GmtOffset": "-08:00:00",
+  "Path": "2025/2025-11-22_Las_Vegas_Grand_Prix/2025-11-22_Race/",
+  "_kf": true
+}

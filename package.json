@@ -1,0 +1,38 @@
+{
+  "name": "f1-typescript",
+  "version": "1.0.0",
+  "description": "F1 TypeScript Project",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "typecheck": "tsc --noEmit",
+    "migrations:generate": "drizzle-kit generate"
+  },
+  "keywords": [
+    "f1",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@types/node": "^22.10.1",
+    "@types/ws": "^8.18.1",
+    "drizzle-kit": "^0.31.7",
+    "eslint": "^9.15.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.16.0"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.44.7",
+    "pg": "^8.16.3",
+    "ulid": "^3.0.1",
+    "ws": "^8.18.3"
+  }
+}

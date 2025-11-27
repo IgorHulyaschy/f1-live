@@ -1,0 +1,452 @@
+{
+  "Messages": [
+    {
+      "Utc": "2025-11-23T03:20:00",
+      "Lap": 1,
+      "Category": "Flag",
+      "Flag": "GREEN",
+      "Scope": "Track",
+      "Message": "GREEN LIGHT - PIT EXIT OPEN"
+    },
+    {
+      "Utc": "2025-11-23T03:30:00",
+      "Lap": 1,
+      "Category": "Other",
+      "Message": "PIT EXIT CLOSED"
+    },
+    {
+      "Utc": "2025-11-23T03:31:42",
+      "Lap": 1,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: INCIDENT INVOLVING CAR 4 (NOR) NOTED - FAILING TO FOLLOW RACE DIRECTORS INSTRUCTIONS - MAXIMUM DELTA TIME"
+    },
+    {
+      "Utc": "2025-11-23T03:32:21",
+      "Lap": 1,
+      "Category": "Flag",
+      "Flag": "DOUBLE YELLOW",
+      "Scope": "Sector",
+      "Sector": 3,
+      "Message": "DOUBLE YELLOW IN TRACK SECTOR 3"
+    },
+    {
+      "Utc": "2025-11-23T03:32:22",
+      "Lap": 1,
+      "Category": "Other",
+      "Message": "DRS DISABLED IN ZONE 1"
+    },
+    {
+      "Utc": "2025-11-23T03:33:28",
+      "Lap": 1,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: INCIDENT INVOLVING CAR 4 (NOR) WILL BE INVESTIGATED AFTER THE RACE - FAILING TO FOLLOW RACE DIRECTORS INSTRUCTIONS - MAXIMUM DELTA TIME"
+    },
+    {
+      "Utc": "2025-11-23T03:34:08",
+      "Lap": 1,
+      "Category": "Other",
+      "Message": "DRS ENABLED IN ZONE 1"
+    },
+    {
+      "Utc": "2025-11-23T03:34:08",
+      "Lap": 1,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Sector",
+      "Sector": 3,
+      "Message": "CLEAR IN TRACK SECTOR 3"
+    },
+    {
+      "Utc": "2025-11-23T03:45:15",
+      "Lap": 1,
+      "Category": "Other",
+      "Message": "RISK OF RAIN FOR F1 RACE IS 10 %"
+    },
+    {
+      "Utc": "2025-11-23T03:50:44",
+      "Lap": 1,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: INCIDENT INVOLVING CAR 4 (NOR) NO FURTHER ACTION - FAILING TO FOLLOW RACE DIRECTORS INSTRUCTIONS - MAXIMUM DELTA TIME"
+    },
+    {
+      "Utc": "2025-11-23T03:57:06",
+      "Lap": 1,
+      "Category": "Drs",
+      "Status": "DISABLED",
+      "Message": "DRS DISABLED"
+    },
+    {
+      "Utc": "2025-11-23T04:04:09",
+      "Lap": 1,
+      "Category": "Flag",
+      "Flag": "GREEN",
+      "Scope": "Track",
+      "Message": "GREEN LIGHT - PIT EXIT OPEN"
+    },
+    {
+      "Utc": "2025-11-23T04:04:21",
+      "Lap": 1,
+      "Category": "Flag",
+      "Flag": "YELLOW",
+      "Scope": "Sector",
+      "Sector": 2,
+      "Message": "YELLOW IN TRACK SECTOR 2"
+    },
+    {
+      "Utc": "2025-11-23T04:04:22",
+      "Lap": 1,
+      "Category": "Flag",
+      "Flag": "DOUBLE YELLOW",
+      "Scope": "Sector",
+      "Sector": 2,
+      "Message": "DOUBLE YELLOW IN TRACK SECTOR 2"
+    },
+    {
+      "Utc": "2025-11-23T04:04:34",
+      "Lap": 1,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Sector",
+      "Sector": 2,
+      "Message": "CLEAR IN TRACK SECTOR 2"
+    },
+    {
+      "Utc": "2025-11-23T04:04:35",
+      "Lap": 1,
+      "Category": "Other",
+      "Message": "TRACK SURFACE SLIPPERY IN TRACK SECTOR 3"
+    },
+    {
+      "Utc": "2025-11-23T04:04:39",
+      "Lap": 1,
+      "Category": "Other",
+      "Message": "TRACK SURFACE SLIPPERY IN TRACK SECTOR 4"
+    },
+    {
+      "Utc": "2025-11-23T04:04:48",
+      "Lap": 1,
+      "Category": "Other",
+      "Message": "TRACK SURFACE SLIPPERY IN TRACK SECTOR 2"
+    },
+    {
+      "Utc": "2025-11-23T04:05:33",
+      "Lap": 1,
+      "Category": "Flag",
+      "Flag": "DOUBLE YELLOW",
+      "Scope": "Sector",
+      "Sector": 2,
+      "Message": "DOUBLE YELLOW IN TRACK SECTOR 2"
+    },
+    {
+      "Utc": "2025-11-23T04:05:35",
+      "Lap": 1,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Sector",
+      "Sector": 4,
+      "Message": "CLEAR IN TRACK SECTOR 4"
+    },
+    {
+      "Utc": "2025-11-23T04:05:49",
+      "Lap": 1,
+      "Category": "Drs",
+      "Status": "ENABLED",
+      "Message": "DRS ENABLED"
+    },
+    {
+      "Utc": "2025-11-23T04:05:51",
+      "Lap": 2,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Sector",
+      "Sector": 2,
+      "Message": "CLEAR IN TRACK SECTOR 2"
+    },
+    {
+      "Utc": "2025-11-23T04:06:00",
+      "Lap": 2,
+      "Category": "Flag",
+      "Flag": "DOUBLE YELLOW",
+      "Scope": "Sector",
+      "Sector": 2,
+      "Message": "DOUBLE YELLOW IN TRACK SECTOR 2"
+    },
+    {
+      "Utc": "2025-11-23T04:07:08",
+      "Lap": 2,
+      "Category": "SafetyCar",
+      "Status": "DEPLOYED",
+      "Mode": "VIRTUAL SAFETY CAR",
+      "Message": "VIRTUAL SAFETY CAR DEPLOYED"
+    },
+    {
+      "Utc": "2025-11-23T04:07:08",
+      "Lap": 2,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Sector",
+      "Sector": 3,
+      "Message": "CLEAR IN TRACK SECTOR 3"
+    },
+    {
+      "Utc": "2025-11-23T04:07:18",
+      "Lap": 2,
+      "Category": "Flag",
+      "Flag": "DOUBLE YELLOW",
+      "Scope": "Sector",
+      "Sector": 3,
+      "Message": "DOUBLE YELLOW IN TRACK SECTOR 3"
+    },
+    {
+      "Utc": "2025-11-23T04:09:21",
+      "Lap": 3,
+      "Category": "Other",
+      "Message": "TURN 1 INCIDENT INVOLVING CARS 81 (PIA) AND 30 (LAW) NOTED - CAUSING A COLLISION"
+    },
+    {
+      "Utc": "2025-11-23T04:09:36",
+      "Lap": 3,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: TURN 1 INCIDENT INVOLVING CARS 81 (PIA) AND 30 (LAW) UNDER INVESTIGATION - CAUSING A COLLISION"
+    },
+    {
+      "Utc": "2025-11-23T04:09:50",
+      "Lap": 3,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Sector",
+      "Sector": 2,
+      "Message": "CLEAR IN TRACK SECTOR 2"
+    },
+    {
+      "Utc": "2025-11-23T04:09:51",
+      "Lap": 3,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Sector",
+      "Sector": 3,
+      "Message": "CLEAR IN TRACK SECTOR 3"
+    },
+    {
+      "Utc": "2025-11-23T04:09:53",
+      "Lap": 4,
+      "Category": "SafetyCar",
+      "Status": "ENDING",
+      "Mode": "VIRTUAL SAFETY CAR",
+      "Message": "VIRTUAL SAFETY CAR ENDING"
+    },
+    {
+      "Utc": "2025-11-23T04:10:06",
+      "Lap": 4,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Track",
+      "Message": "TRACK CLEAR"
+    },
+    {
+      "Utc": "2025-11-23T04:10:08",
+      "Lap": 4,
+      "Category": "Drs",
+      "Status": "ENABLED",
+      "Message": "DRS ENABLED"
+    },
+    {
+      "Utc": "2025-11-23T04:10:27",
+      "Lap": 4,
+      "Category": "Other",
+      "Message": "TURN 1 INCIDENT INVOLVING CARS 5 (BOR), 43 (COL) AND 18 (STR) NOTED - CAUSING A COLLISION"
+    },
+    {
+      "Utc": "2025-11-23T04:11:51",
+      "Lap": 5,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: TURN 1 INCIDENT INVOLVING CARS 5 (BOR) AND 18 (STR) UNDER INVESTIGATION - CAUSING A COLLISION"
+    },
+    {
+      "Utc": "2025-11-23T04:15:58",
+      "Lap": 7,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: TURN 1 INCIDENT INVOLVING CARS 81 (PIA) AND 30 (LAW) NO FURTHER ACTION - CAUSING A COLLISION"
+    },
+    {
+      "Utc": "2025-11-23T04:18:11",
+      "Lap": 9,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: TURN 1 INCIDENT INVOLVING CARS 5 (BOR) AND 18 (STR) WILL BE INVESTIGATED AFTER THE RACE - CAUSING A COLLISION"
+    },
+    {
+      "Utc": "2025-11-23T04:19:02",
+      "Lap": 9,
+      "Category": "Other",
+      "Message": "INCIDENT INVOLVING CAR 12 (ANT) NOTED - FALSE START - MOVING BEFORE SIGNAL"
+    },
+    {
+      "Utc": "2025-11-23T04:20:33",
+      "Lap": 10,
+      "Category": "Other",
+      "Message": "INCIDENT INVOLVING CAR 23 (ALB) NOTED - STARTING PROCEDURE INFRINGEMENT"
+    },
+    {
+      "Utc": "2025-11-23T04:22:21",
+      "Lap": 11,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: INCIDENT INVOLVING CAR 12 (ANT) UNDER INVESTIGATION - FALSE START - MOVING BEFORE SIGNAL"
+    },
+    {
+      "Utc": "2025-11-23T04:27:28",
+      "Lap": 14,
+      "Category": "Other",
+      "Message": "TRACK SURFACE SLIPPERY IN TRACK SECTOR 17"
+    },
+    {
+      "Utc": "2025-11-23T04:28:12",
+      "Lap": 15,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: 5 SECOND TIME PENALTY FOR CAR 12 (ANT) - FALSE START - MOVING BEFORE SIGNAL"
+    },
+    {
+      "Utc": "2025-11-23T04:29:05",
+      "Lap": 15,
+      "Category": "Other",
+      "Message": "TURN 14 INCIDENT INVOLVING CARS 23 (ALB) AND 44 (HAM) NOTED - CAUSING A COLLISION"
+    },
+    {
+      "Utc": "2025-11-23T04:29:40",
+      "Lap": 16,
+      "Category": "SafetyCar",
+      "Status": "DEPLOYED",
+      "Mode": "VIRTUAL SAFETY CAR",
+      "Message": "VIRTUAL SAFETY CAR DEPLOYED"
+    },
+    {
+      "Utc": "2025-11-23T04:29:40",
+      "Lap": 16,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Sector",
+      "Sector": 17,
+      "Message": "CLEAR IN TRACK SECTOR 17"
+    },
+    {
+      "Utc": "2025-11-23T04:30:05",
+      "Lap": 16,
+      "Category": "Flag",
+      "Flag": "DOUBLE YELLOW",
+      "Scope": "Sector",
+      "Sector": 17,
+      "Message": "DOUBLE YELLOW IN TRACK SECTOR 17"
+    },
+    {
+      "Utc": "2025-11-23T04:30:40",
+      "Lap": 16,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Sector",
+      "Sector": 17,
+      "Message": "CLEAR IN TRACK SECTOR 17"
+    },
+    {
+      "Utc": "2025-11-23T04:30:43",
+      "Lap": 16,
+      "Category": "SafetyCar",
+      "Status": "ENDING",
+      "Mode": "VIRTUAL SAFETY CAR",
+      "Message": "VIRTUAL SAFETY CAR ENDING"
+    },
+    {
+      "Utc": "2025-11-23T04:30:49",
+      "Lap": 16,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: TURN 14 INCIDENT INVOLVING CARS 23 (ALB) AND 44 (HAM) UNDER INVESTIGATION - CAUSING A COLLISION"
+    },
+    {
+      "Utc": "2025-11-23T04:30:56",
+      "Lap": 16,
+      "Category": "Flag",
+      "Flag": "CLEAR",
+      "Scope": "Track",
+      "Message": "TRACK CLEAR"
+    },
+    {
+      "Utc": "2025-11-23T04:30:59",
+      "Lap": 16,
+      "Category": "Drs",
+      "Status": "ENABLED",
+      "Message": "DRS ENABLED"
+    },
+    {
+      "Utc": "2025-11-23T04:34:45",
+      "Lap": 19,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: INCIDENT INVOLVING CAR 23 (ALB) UNDER INVESTIGATION - STARTING PROCEDURE INFRINGEMENT"
+    },
+    {
+      "Utc": "2025-11-23T04:36:49",
+      "Lap": 20,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: 5 SECOND TIME PENALTY FOR CAR 23 (ALB) - CAUSING A COLLISION"
+    },
+    {
+      "Utc": "2025-11-23T04:38:01",
+      "Lap": 21,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: REPRIMAND (DRIVING) FOR CAR 23 (ALB) - STARTING PROCEDURE INFRINGEMENT"
+    },
+    {
+      "Utc": "2025-11-23T05:02:02",
+      "Lap": 36,
+      "Category": "Flag",
+      "Flag": "BLUE",
+      "Scope": "Driver",
+      "RacingNumber": "23",
+      "Message": "WAVED BLUE FLAG FOR CAR 23 (ALB) TIMED AT 21:02:02"
+    },
+    {
+      "Utc": "2025-11-23T05:02:10",
+      "Lap": 36,
+      "Category": "Flag",
+      "Flag": "BLUE",
+      "Scope": "Driver",
+      "RacingNumber": "23",
+      "Message": "WAVED BLUE FLAG FOR CAR 23 (ALB) TIMED AT 21:02:09"
+    },
+    {
+      "Utc": "2025-11-23T05:04:26",
+      "Lap": 37,
+      "Category": "Other",
+      "Message": "FIA STEWARDS: PENALTY SERVED - 5 SECOND TIME PENALTY FOR CAR 23 (ALB) - CAUSING A COLLISION"
+    },
+    {
+      "Utc": "2025-11-23T05:17:22",
+      "Lap": 45,
+      "Category": "Flag",
+      "Flag": "BLUE",
+      "Scope": "Driver",
+      "RacingNumber": "43",
+      "Message": "WAVED BLUE FLAG FOR CAR 43 (COL) TIMED AT 21:17:21"
+    },
+    {
+      "Utc": "2025-11-23T05:22:21",
+      "Lap": 49,
+      "Category": "Flag",
+      "Flag": "BLUE",
+      "Scope": "Driver",
+      "RacingNumber": "30",
+      "Message": "WAVED BLUE FLAG FOR CAR 30 (LAW) TIMED AT 21:22:21"
+    },
+    {
+      "Utc": "2025-11-23T05:25:17",
+      "Lap": 50,
+      "Category": "Flag",
+      "Flag": "CHEQUERED",
+      "Scope": "Track",
+      "Message": "CHEQUERED FLAG"
+    },
+    {
+      "Utc": "2025-11-23T05:29:18",
+      "Lap": 50,
+      "Category": "Other",
+      "Message": "ALL PASS HOLDERS MAY ACCESS THE PIT LANE"
+    }
+  ]
+}
