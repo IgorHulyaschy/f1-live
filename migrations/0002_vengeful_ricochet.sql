@@ -1,0 +1,1 @@
+ALTER TABLE "drivers" ADD CONSTRAINT "drivers_number_unique" UNIQUE("number");

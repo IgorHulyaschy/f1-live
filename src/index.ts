@@ -1,27 +1,17 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { config } from "./config.js";
-import { LiveTimingClient } from "./infra/f1-client/livetiming.client.js";
-import { DriverRepository } from "./infra/db/repositories/driver.repository.js";
-import { handlerTimingDataChunk } from "./module/handlerTimingDataChunk.js";
+import { main } from "./main.js";
 
-export async function main(): Promise<void> {
-  const db = drizzle(config.database.url);
-  const driverRepository = new DriverRepository(db);
-
-  // controller
-  const handlerTimingDataChunkCallback =
-    handlerTimingDataChunk(driverRepository);
-
-  const liveTimingClient = new LiveTimingClient(
-    config.livetiming.negotiateUrl,
-    config.livetiming.connectionUrl
-  );
-
-  await liveTimingClient.init();
-
-  liveTimingClient.onMessage({
-    TimingData: handlerTimingDataChunkCallback,
+async function test() {
+  process.on("unhandledRejection", (reason) => {
+    console.log(reason);
   });
+  try {
+    const { liveTimingClient } = await main();
+    setTimeout(() => {
+      liveTimingClient.stop();
+      process.exit(0);
+    }, 5000);
+  } catch (error) {
+    console.log(error);
+  }
 }
-
-void main();
+void test();

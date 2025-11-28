@@ -1,0 +1,1 @@
+ALTER TABLE "drivers" ALTER COLUMN "avatar_url" DROP NOT NULL;

@@ -1,6 +1,6 @@
 {
-  "id": "e3ed0cf0-5755-47fc-9295-5f328f2d4e3d",
-  "prevId": "306dbca5-d867-45e4-b597-fca86099d4b6",
+  "id": "9b7142dd-3fe7-4477-92f5-9327e3074b45",
+  "prevId": "66311a45-e19f-452a-8f52-3aec40bbc809",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -28,6 +28,12 @@
         },
         "type": {
           "name": "type",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "date": {
+          "name": "date",
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
@@ -153,7 +159,15 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "drivers_number_unique": {
+          "name": "drivers_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "number"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

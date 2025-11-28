@@ -1,6 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import WebSocket from "ws";
+import fs from "fs";
+import type { Logger } from "../logger/index.js";
+import type { CallBackMap } from "./types/sync-events.types.js";
+import { Topic } from "./types/constants.js";
 
-type Topics = "TimingData" | "LapCount";
+const wsMessageDelimiter = "\x1e";
 
 export class LiveTimingClient {
   private connection!: WebSocket;
@@ -8,6 +13,7 @@ export class LiveTimingClient {
   private connectionParam!: string;
 
   constructor(
+    private readonly logger: Logger,
     private readonly negotiateUrl: string,
     private readonly wsUrl: string
   ) {}
@@ -25,20 +31,84 @@ export class LiveTimingClient {
         },
       }
     );
+
+    this.connection.on("open", () => {
+      this.logger.info("Websocket connected");
+
+      this.connection.send(
+        `${JSON.stringify({
+          protocol: "json",
+          version: 1,
+        })}${wsMessageDelimiter}`
+      );
+    });
+
+    this.connection.on("error", (error) => {
+      this.logger.error(error);
+    });
+
+    this.connection.on("close", (code, reason) => {
+      this.logger.info(`Websocket closed: ${code} ${reason}`);
+    });
   }
 
-  onMessage(callbackMap: Record<Topics, (data: string) => void>) {
+  stop() {
+    this.connection.close();
+  }
+
+  onMessage(callbackMap: CallBackMap) {
+    let counter = 400;
     this.connection.on("message", (data) => {
       const messages = data.toString().split("\x1e").filter(Boolean);
       for (const msg of messages) {
+        if (msg === "{}") {
+          this.logger.info("Handshake completed!");
+          this.subscribesToTopics();
+          return;
+        }
+
         const parsed = JSON.parse(msg);
 
-        for (const [key, value] of Object.entries(parsed.result)) {
-          const handler = callbackMap[key as Topics];
-            void handler(value);
+        if (parsed.type === 6) {
+          this.connection.send(
+            `${JSON.stringify({ type: 6 })}${wsMessageDelimiter}`
+          );
+          return;
+        }
+
+        if (parsed.type === 3 && parsed.result) {
+          for (const [key, value] of Object.entries(parsed.result)) {
+            this.logger.info(`[RECEIVED INFO] for ${key}`);
+            if (callbackMap[key as Topic]) {
+              const handler = callbackMap[key as Topic];
+              void handler(value as any);
+            }
+          }
+        }
+
+        if (parsed.type === 1 && parsed.target === "feed") {
+          this.logger.info(`[LIVE UPDATE]`);
+          counter += 1;
+          fs.writeFileSync(
+            `live-update-${counter}.json`,
+            JSON.stringify(parsed.arguments, null, 2)
+          );
+          // for (const [key, value] of Object.entries(parsed.arguments)) {
+          // }
         }
       }
     });
+  }
+
+  private subscribesToTopics() {
+    this.connection.send(
+      JSON.stringify({
+        arguments: [[Topic.SESSION_INFO, Topic.DRIVER_LIST]],
+        invocationId: "1",
+        target: "Subscribe",
+        type: 1,
+      }) + wsMessageDelimiter
+    );
   }
 
   async negotiateConnection() {
