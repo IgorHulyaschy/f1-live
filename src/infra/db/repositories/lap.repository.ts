@@ -1,7 +1,8 @@
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import { lap } from "../schemas/lap.schema.js";
 import { and, desc, eq } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+
 import { Lap } from "../../../app/entities/Lap.js";
+import { lap } from "../schemas/lap.schema.js";
 
 export class LapRepository {
   constructor(private readonly db: NodePgDatabase) {}
@@ -22,7 +23,7 @@ export class LapRepository {
       .select()
       .from(lap)
       .where(
-        and(eq(lap.driverNumber, driverNumber), eq(lap.sessionId, sessionId))
+        and(eq(lap.driverNumber, driverNumber), eq(lap.sessionId, sessionId)),
       )
       .orderBy(desc(lap.lapNumber))
       .limit(1);
@@ -39,10 +40,6 @@ export class LapRepository {
         sector3Time: lapEntity.sector3Time,
         time: lapEntity.time ?? undefined,
       })
-      .where(
-        and(
-          eq(lap.id, lapEntity.id),
-        )
-      );
+      .where(and(eq(lap.id, lapEntity.id)));
   }
 }

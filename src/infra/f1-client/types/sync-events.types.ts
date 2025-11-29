@@ -24,8 +24,8 @@ export type DriverListEvent = {
     LastName: string;
     HeadshotUrl: string;
     TeamName: string;
-  }
-}
+  };
+};
 
 export type SessionEvent = {
   Meeting: {

@@ -1,9 +1,12 @@
+import fs from "fs";
+
 import WebSocket from "ws";
+
+import type { LiveHandlerFactory } from "../../app/use-cases/live/live.handler.js";
 import type { Logger } from "../logger/index.js";
-import type { CallBackMap } from "./types/sync-events.types.js";
+
 import { Topic } from "./types/constants.js";
-import fs from 'fs';
-import { LiveHandlerFactory } from "../../app/use-cases/live/live.handler.js";
+import type { CallBackMap } from "./types/sync-events.types.js";
 
 const wsMessageDelimiter = "\x1e";
 
@@ -15,7 +18,7 @@ export class LiveTimingClient {
   constructor(
     private readonly logger: Logger,
     private readonly negotiateUrl: string,
-    private readonly wsUrl: string
+    private readonly wsUrl: string,
   ) {}
 
   async init() {
@@ -29,7 +32,7 @@ export class LiveTimingClient {
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         },
-      }
+      },
     );
 
     this.connection.on("open", () => {
@@ -39,7 +42,7 @@ export class LiveTimingClient {
         `${JSON.stringify({
           protocol: "json",
           version: 1,
-        })}${wsMessageDelimiter}`
+        })}${wsMessageDelimiter}`,
       );
     });
 
@@ -56,10 +59,7 @@ export class LiveTimingClient {
     this.connection.close();
   }
 
-  onMessage(
-    callbackMap: CallBackMap,
-    liveHandlerFactory: LiveHandlerFactory,
-  ) {
+  onMessage(callbackMap: CallBackMap, liveHandlerFactory: LiveHandlerFactory) {
     let counter = 5100;
     this.connection.on("message", (data) => {
       const messages = data.toString().split("\x1e").filter(Boolean);
@@ -74,7 +74,7 @@ export class LiveTimingClient {
 
         if (parsed.type === 6) {
           this.connection.send(
-            `${JSON.stringify({ type: 6 })}${wsMessageDelimiter}`
+            `${JSON.stringify({ type: 6 })}${wsMessageDelimiter}`,
           );
           return;
         }
@@ -89,7 +89,7 @@ export class LiveTimingClient {
 
             fs.writeFileSync(
               `./sprint/live-update-${key}.json`,
-              JSON.stringify(value, null, 2)
+              JSON.stringify(value, null, 2),
             );
           }
         }
@@ -100,10 +100,10 @@ export class LiveTimingClient {
           counter += 1;
           fs.writeFileSync(
             `./sprint/live-update-${counter}.json`,
-            JSON.stringify(parsed.arguments, null, 2)
+            JSON.stringify(parsed.arguments, null, 2),
           );
 
-          if(typeof parsed.arguments === "string") {
+          if (typeof parsed.arguments === "string") {
             return;
           }
 
@@ -120,7 +120,7 @@ export class LiveTimingClient {
         invocationId: "1",
         target: "Subscribe",
         type: 1,
-      }) + wsMessageDelimiter
+      }) + wsMessageDelimiter,
     );
   }
 
@@ -162,12 +162,12 @@ export class LiveTimingClient {
         },
         credentials: "include",
         body: JSON.stringify({}),
-      }
+      },
     );
 
     if (!negotiateResponse.ok) {
       throw new Error(
-        `Negotiate failed with status ${negotiateResponse.status.toString()}`
+        `Negotiate failed with status ${negotiateResponse.status.toString()}`,
       );
     }
 

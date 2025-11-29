@@ -1,8 +1,8 @@
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { SessionType } from "../../../app/entities/Session.js";
-import { type Session } from "../../../app/entities/Session.js";
-import { sessionSchema } from "../schemas/session.schema.js";
 import { and, eq } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+
+import type { SessionType, Session } from "../../../app/entities/Session.js";
+import { sessionSchema } from "../schemas/session.schema.js";
 
 export class SessionRepository {
   constructor(private readonly db: NodePgDatabase) {}

@@ -6,7 +6,7 @@ export function handleDriverList(driverRepository: DriverRepository) {
   return async (data: DriverListEvent) => {
     const drivers = await driverRepository.findAll();
     for (const [key, value] of Object.entries(data)) {
-      if(typeof value !== 'object') {
+      if (typeof value !== "object") {
         continue;
       }
 
@@ -19,7 +19,7 @@ export function handleDriverList(driverRepository: DriverRepository) {
           number: key,
           team: value.TeamName,
           avatarUrl: value.HeadshotUrl,
-        })
+        }),
       );
     }
   };

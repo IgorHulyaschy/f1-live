@@ -5,11 +5,11 @@ type DriverCreation = {
   number: string;
   team: string;
   avatarUrl?: string;
-}
+};
 
 type DriverData = DriverCreation & {
   id: string;
-}
+};
 
 export class Driver {
   id: string;

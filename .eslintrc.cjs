@@ -18,11 +18,9 @@ module.exports = {
     "plugin:import/typescript",
     "plugin:prettier/recommended",
     "plugin:drizzle/recommended",
-    "plugin:vitest-globals/recommended",
   ],
   env: {
     node: true,
-    "vitest-globals/env": true,
   },
   plugins: ["import", "@typescript-eslint", "drizzle"],
   rules: {

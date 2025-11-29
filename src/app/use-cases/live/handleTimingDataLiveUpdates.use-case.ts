@@ -6,7 +6,7 @@
 // import { LapRepository } from "../../../infra/db/repositories/lap.repository.js";
 import type { Cache } from "../../../infra/cache/Cache.js";
 import type { LapRepository } from "../../../infra/db/repositories/lap.repository.js";
-import { Topic } from "../../../infra/f1-client/types/constants.js";
+import type { Topic } from "../../../infra/f1-client/types/constants.js";
 import type {
   LiveEvent,
   LiveEventData,
@@ -18,12 +18,12 @@ import { Lap } from "../../entities/Lap.js";
 
 export function handleTimingDataLiveUpdates(
   cache: Cache,
-  lapRepository: LapRepository
+  lapRepository: LapRepository,
 ) {
   function parseDriverChunk(
     lapToUpdate: Lap,
     sectors?: { [key: string]: SectorData },
-    lastLapTime?: { Value: string }
+    lastLapTime?: { Value: string },
   ) {
     if (sectors) {
       for (const [sectorNumber, sectorData] of Object.entries(sectors)) {
@@ -39,7 +39,7 @@ export function handleTimingDataLiveUpdates(
   function parseSector(
     lapToUpdate: Lap,
     sectorNumber: string,
-    sectorData: SectorData
+    sectorData: SectorData,
   ) {
     if ("Value" in sectorData) {
       lapToUpdate.sector1Time =
@@ -62,7 +62,7 @@ export function handleTimingDataLiveUpdates(
       for (const [key, value] of Object.entries(data.Lines)) {
         const driverLastLap = await lapRepository.findLastLap(
           key,
-          cache.sessionId
+          cache.sessionId,
         );
 
         // In case of first lap or last lap was completed

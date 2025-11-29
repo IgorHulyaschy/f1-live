@@ -12,12 +12,12 @@ type SessionCreation = {
   name: string;
   country: string;
   type: SessionType;
-}
+};
 
 type SessionData = SessionCreation & {
   id: string;
   date: string;
-}
+};
 
 export class Session {
   id: string;

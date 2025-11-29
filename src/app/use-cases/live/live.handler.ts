@@ -1,44 +1,42 @@
-import { Cache } from "../../../infra/cache/Cache.js";
-import { LapRepository } from "../../../infra/db/repositories/lap.repository.js";
-import { LogRepository } from "../../../infra/db/repositories/log.repository.js";
-import { SessionRepository } from "../../../infra/db/repositories/session.repository.js";
+import type { Cache } from "../../../infra/cache/Cache.js";
+import type { LapRepository } from "../../../infra/db/repositories/lap.repository.js";
+import type { LogRepository } from "../../../infra/db/repositories/log.repository.js";
 import { Topic } from "../../../infra/f1-client/types/constants.js";
-import {
+import type {
   LiveEvent,
   LiveEventData,
 } from "../../../infra/f1-client/types/live-events.types.js";
-import { Logger } from "../../../infra/logger/index.js";
+import type { Logger } from "../../../infra/logger/index.js";
+import type { SessionService } from "../../services/session.service.js";
+
 import { handleSessionInfo } from "./handleSessionInfo.use-case.js";
 import { handleTimingDataLiveUpdates } from "./handleTimingDataLiveUpdates.use-case.js";
 
 export class LiveHandlerFactory {
   private readonly handlers: {
     [Topic.TIMING_DATA]: (
-      data: LiveEventData[Topic.TIMING_DATA]
+      data: LiveEventData[Topic.TIMING_DATA],
     ) => Promise<void>;
     [Topic.SESSION_INFO]: (
-      data: LiveEventData[Topic.SESSION_INFO]
+      data: LiveEventData[Topic.SESSION_INFO],
     ) => Promise<void>;
     [Topic.DRIVER_LIST]: (
-      data: LiveEventData[Topic.DRIVER_LIST]
+      data: LiveEventData[Topic.DRIVER_LIST],
     ) => Promise<void>;
   };
   constructor(
     private readonly logger: Logger,
     private readonly cache: Cache,
     private readonly lapRepository: LapRepository,
-    private readonly sessionRepository: SessionRepository,
-    private readonly logRepository: LogRepository
+    private readonly sessionService: SessionService,
+    private readonly logRepository: LogRepository,
   ) {
     this.handlers = {
       [Topic.TIMING_DATA]: handleTimingDataLiveUpdates(
         this.cache,
-        this.lapRepository
+        this.lapRepository,
       ),
-      [Topic.SESSION_INFO]: handleSessionInfo(
-        this.cache,
-        this.sessionRepository
-      ),
+      [Topic.SESSION_INFO]: handleSessionInfo(sessionService),
       [Topic.DRIVER_LIST]: (_data: LiveEventData[Topic.DRIVER_LIST]) =>
         Promise.resolve(),
     };

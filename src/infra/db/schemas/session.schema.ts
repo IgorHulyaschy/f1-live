@@ -1,4 +1,5 @@
 import { pgTable, varchar } from "drizzle-orm/pg-core";
+
 import type { SessionType } from "../../../app/entities/Session.js";
 
 export const sessionSchema = pgTable("sessions", {

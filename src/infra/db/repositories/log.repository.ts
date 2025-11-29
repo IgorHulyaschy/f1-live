@@ -1,4 +1,5 @@
-import { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+
 import { logSchema } from "../schemas/log.schema.js";
 
 export class LogRepository {
