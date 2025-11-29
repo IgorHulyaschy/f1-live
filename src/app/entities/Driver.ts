@@ -5,6 +5,7 @@ type DriverCreation = {
   number: string;
   team: string;
   avatarUrl?: string;
+  shortName: string;
 };
 
 type DriverData = DriverCreation & {
@@ -17,6 +18,7 @@ export class Driver {
   number: string;
   team: string;
   avatarUrl: string | null;
+  shortName: string;
 
   constructor(data: DriverData) {
     this.id = data.id;
@@ -24,6 +26,7 @@ export class Driver {
     this.number = data.number;
     this.team = data.team;
     this.avatarUrl = data.avatarUrl ?? null;
+    this.shortName = data.shortName;
   }
 
   static create(data: DriverCreation): Driver {

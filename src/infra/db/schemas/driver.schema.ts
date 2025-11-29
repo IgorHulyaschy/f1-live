@@ -6,4 +6,5 @@ export const driverSchema = pgTable("drivers", {
   number: text("number").notNull().unique(),
   team: varchar("team").notNull(),
   avatarUrl: text("avatar_url"),
+  shortName: varchar("shortName").notNull(),
 });

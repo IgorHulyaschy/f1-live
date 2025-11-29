@@ -19,6 +19,7 @@ export function handleDriverList(driverRepository: DriverRepository) {
           number: key,
           team: value.TeamName,
           avatarUrl: value.HeadshotUrl,
+          shortName: value.Tla,
         }),
       );
     }
