@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { SegmentStatus, Topic } from "./constants.js";
 
-export type LiveEvent<TTopic extends Topic = Topic> = [
+export type LiveEvent<TTopic extends Topic> = [
   TTopic,
   LiveEventData[TTopic],
   string, // data of chunk with their timezone

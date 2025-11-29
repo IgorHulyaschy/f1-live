@@ -84,6 +84,7 @@ export class LiveTimingClient {
             this.logger.info(`[RECEIVED INFO] for ${key}`);
             if (callbackMap[key as Topic]) {
               const handler = callbackMap[key as Topic];
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               void handler(value as any);
             }
 

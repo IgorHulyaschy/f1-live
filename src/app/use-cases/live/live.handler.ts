@@ -26,23 +26,20 @@ export class LiveHandlerFactory {
   };
   constructor(
     private readonly logger: Logger,
-    private readonly cache: Cache,
-    private readonly lapRepository: LapRepository,
-    private readonly sessionService: SessionService,
+    cache: Cache,
+    lapRepository: LapRepository,
+    sessionService: SessionService,
     private readonly logRepository: LogRepository,
   ) {
     this.handlers = {
-      [Topic.TIMING_DATA]: handleTimingDataLiveUpdates(
-        this.cache,
-        this.lapRepository,
-      ),
+      [Topic.TIMING_DATA]: handleTimingDataLiveUpdates(cache, lapRepository),
       [Topic.SESSION_INFO]: handleSessionInfo(sessionService),
       [Topic.DRIVER_LIST]: (_data: LiveEventData[Topic.DRIVER_LIST]) =>
         Promise.resolve(),
     };
   }
 
-  async handleLiveUpdates<TTopic extends Topic = Topic>([
+  async handleLiveUpdates<TTopic extends Topic>([
     topic,
     data,
     _timestamp,
@@ -58,6 +55,7 @@ export class LiveHandlerFactory {
       eventData: data,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await handler(data as any);
   }
 

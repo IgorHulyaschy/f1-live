@@ -1,0 +1,1 @@
+ALTER TABLE "lap" ALTER COLUMN "sector1_time" DROP NOT NULL;

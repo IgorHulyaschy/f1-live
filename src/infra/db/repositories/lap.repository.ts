@@ -8,7 +8,6 @@ export class LapRepository {
   constructor(private readonly db: NodePgDatabase) {}
 
   create(lapEntity: Lap) {
-    console.log(lapEntity);
     return this.db.insert(lap).values({
       ...lapEntity,
       sector1Time: lapEntity.sector1Time ?? 0,

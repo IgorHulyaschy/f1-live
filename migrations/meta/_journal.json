@@ -29,6 +29,13 @@
       "when": 1764432624542,
       "tag": "0003_secret_franklin_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1764437272815,
+      "tag": "0004_bored_shadow_king",
+      "breakpoints": true
     }
   ]
 }

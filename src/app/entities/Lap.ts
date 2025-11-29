@@ -10,7 +10,7 @@ type LapData = {
   id: string;
   driverNumber: string;
   lapNumber: number;
-  sector1Time?: number;
+  sector1Time?: number | null;
   sector2Time?: number | null;
   sector3Time?: number | null;
   time?: number | null;
@@ -21,7 +21,7 @@ export class Lap {
   id: string;
   driverNumber: string;
   lapNumber: number;
-  sector1Time!: number;
+  sector1Time: number | null;
   sector2Time: number | null;
   sector3Time: number | null;
   time: number | null;
@@ -30,6 +30,7 @@ export class Lap {
     this.id = data.id;
     this.driverNumber = data.driverNumber;
     this.lapNumber = data.lapNumber;
+    this.sector1Time = data.sector1Time ?? null;
     this.sector2Time = data.sector2Time ?? null;
     this.sector3Time = data.sector3Time ?? null;
     this.time = data.time ?? null;
