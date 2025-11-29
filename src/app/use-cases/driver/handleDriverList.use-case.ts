@@ -6,6 +6,9 @@ export function handleDriverList(driverRepository: DriverRepository) {
   return async (data: DriverListEvent) => {
     const drivers = await driverRepository.findAll();
     for (const [key, value] of Object.entries(data)) {
+      if(typeof value !== 'object') {
+        continue;
+      }
 
       if (drivers.some((driver) => driver.number === key)) {
         continue;

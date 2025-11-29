@@ -4,13 +4,13 @@ import type { SegmentStatus, Topic } from "./constants.js";
 export type LiveEvent<TTopic extends Topic = Topic> = [
   TTopic,
   LiveEventData[TTopic],
-  string // data of chunk with their timezone
+  string, // data of chunk with their timezone
 ];
 
 export type LiveEventData = {
   [Topic.TIMING_DATA]: LiveTimingDataEvent;
-  [Topic.SESSION_INFO]: never;
-  [Topic.DRIVER_LIST]: never;
+  [Topic.SESSION_INFO]: LiveSessionInfoEvent;
+  [Topic.DRIVER_LIST]: unknown;
 };
 
 export type SectorData =
@@ -24,22 +24,36 @@ export type SectorData =
           Status: SegmentStatus;
         };
       };
-    } | {
+    }
+  | {
       PreviousValue: string; // secs
     };
 
-export type LiveTimingDataEvent = {
+type LiveTimingDataEvent = {
   Lines: {
     // number of driver
     [key: string]: {
-      Sectors: {
+      Sectors?: {
         // number of sector starts from 0
         [key: string]: SectorData;
       };
+      LastLapTime?: {
+        Value: string; // mins
+      };
+      Speeds?: {
+        [key: string]: any;
+      };
     };
-  } | ForNowUselessType1;
+  };
 };
 
-type ForNowUselessType1 = {
-  Speeds: any;
+type LiveSessionInfoEvent = {
+  Meeting: {
+    Name: string;
+    Country: {
+      Code: string;
+    };
+  };
+  Name: "Race" | "Qualifying" | "Sprint" | "Sprint Qualifying" | "Practice";
+  StartDate: string;
 };

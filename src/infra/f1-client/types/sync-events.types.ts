@@ -34,6 +34,6 @@ export type SessionEvent = {
       Code: string;
     };
   };
-  Type: "Race" | "Qualifying" | "Sprint" | "SprintQualifying" | "Practice";
+  Name: "Race" | "Qualifying" | "Sprint" | "Sprint Qualifying" | "Practice";
   StartDate: string;
 };

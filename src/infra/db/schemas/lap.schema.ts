@@ -2,8 +2,11 @@ import { integer, pgTable, text, varchar } from "drizzle-orm/pg-core";
 
 export const lap = pgTable("lap", {
   id: varchar("id").primaryKey(),
-  driverId: varchar("driver_id").notNull(),
-  time: text("time").notNull(),
+  driverNumber: text("driver_number").notNull(),
   lapNumber: integer("lap_number").notNull(),
-  grandPrixId: varchar("grand_prix_id").notNull(),
+  sector1Time: integer("sector1_time").notNull(),
+  sector2Time: integer("sector2_time"),
+  sector3Time: integer("sector3_time"),
+  time: integer("time"), // ms
+  sessionId: varchar("session_id").notNull(),
 });

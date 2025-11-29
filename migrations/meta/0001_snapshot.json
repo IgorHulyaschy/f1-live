@@ -1,6 +1,6 @@
 {
-  "id": "e3ed0cf0-5755-47fc-9295-5f328f2d4e3d",
-  "prevId": "306dbca5-d867-45e4-b597-fca86099d4b6",
+  "id": "f5f1f5b8-49d0-4ab5-973e-08ae3390fda9",
+  "prevId": "f1e25137-ed94-4e72-b1c7-aac02e9597eb",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -31,6 +31,12 @@
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
+        },
+        "date": {
+          "name": "date",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {},
@@ -51,14 +57,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "driver_id": {
-          "name": "driver_id",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "time": {
-          "name": "time",
+        "driver_number": {
+          "name": "driver_number",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -69,40 +69,33 @@
           "primaryKey": false,
           "notNull": true
         },
-        "grand_prix_id": {
-          "name": "grand_prix_id",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.grand_prix": {
-      "name": "grand_prix",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
+        "sector1_time": {
+          "name": "sector1_time",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
-        "year": {
-          "name": "year",
-          "type": "text",
+        "sector2_time": {
+          "name": "sector2_time",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sector3_time": {
+          "name": "sector3_time",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "time": {
+          "name": "time",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": true
         }
@@ -137,8 +130,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "team_id": {
-          "name": "team_id",
+        "team": {
+          "name": "team",
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
@@ -153,44 +146,15 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.teams": {
-      "name": "teams",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "logo_url": {
-          "name": "logo_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
+      "uniqueConstraints": {
+        "drivers_number_unique": {
+          "name": "drivers_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "number"
+          ]
         }
       },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false

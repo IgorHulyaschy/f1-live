@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import WebSocket from "ws";
-import fs from "fs";
 import type { Logger } from "../logger/index.js";
 import type { CallBackMap } from "./types/sync-events.types.js";
 import { Topic } from "./types/constants.js";
+// import type { LiveEvent } from "./types/live-events.types.js";
+import fs from 'fs';
+import { LiveHandlerFactory } from "../../app/use-cases/live/live.handler.js";
 
 const wsMessageDelimiter = "\x1e";
 
@@ -56,8 +58,11 @@ export class LiveTimingClient {
     this.connection.close();
   }
 
-  onMessage(callbackMap: CallBackMap) {
-    let counter = 400;
+  onMessage(
+    callbackMap: CallBackMap,
+    liveHandlerFactory: LiveHandlerFactory,
+  ) {
+    let counter = 5100;
     this.connection.on("message", (data) => {
       const messages = data.toString().split("\x1e").filter(Boolean);
       for (const msg of messages) {
@@ -83,18 +88,28 @@ export class LiveTimingClient {
               const handler = callbackMap[key as Topic];
               void handler(value as any);
             }
+
+            fs.writeFileSync(
+              `./sprint/live-update-${key}.json`,
+              JSON.stringify(value, null, 2)
+            );
           }
         }
 
         if (parsed.type === 1 && parsed.target === "feed") {
-          this.logger.info(`[LIVE UPDATE]`);
+          this.logger.info(`[LIVE UPDATE] ${counter}`);
+          // void liveUpdatesCallback(parsed.arguments);
           counter += 1;
           fs.writeFileSync(
-            `live-update-${counter}.json`,
+            `./sprint/live-update-${counter}.json`,
             JSON.stringify(parsed.arguments, null, 2)
           );
-          // for (const [key, value] of Object.entries(parsed.arguments)) {
-          // }
+
+          if(typeof parsed.arguments === "string") {
+            return;
+          }
+
+          void liveHandlerFactory.handleLiveUpdates(parsed.arguments);
         }
       }
     });
@@ -103,7 +118,7 @@ export class LiveTimingClient {
   private subscribesToTopics() {
     this.connection.send(
       JSON.stringify({
-        arguments: [[Topic.SESSION_INFO, Topic.DRIVER_LIST]],
+        arguments: [[Topic.SESSION_INFO, Topic.DRIVER_LIST, Topic.TIMING_DATA]],
         invocationId: "1",
         target: "Subscribe",
         type: 1,

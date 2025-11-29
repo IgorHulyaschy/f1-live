@@ -1,11 +1,11 @@
 {
-  "id": "306dbca5-d867-45e4-b597-fca86099d4b6",
+  "id": "f1e25137-ed94-4e72-b1c7-aac02e9597eb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.drivers": {
-      "name": "drivers",
+    "public.sessions": {
+      "name": "sessions",
       "schema": "",
       "columns": {
         "id": {
@@ -16,93 +16,25 @@
         },
         "name": {
           "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "number": {
-          "name": "number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "team_id": {
-          "name": "team_id",
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
         },
-        "avatar_url": {
-          "name": "avatar_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.teams": {
-      "name": "teams",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
+        "country": {
+          "name": "country",
           "type": "varchar",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "logo_url": {
-          "name": "logo_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.grand_prix": {
-      "name": "grand_prix",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
+        "type": {
+          "name": "type",
           "type": "varchar",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "year": {
-          "name": "year",
-          "type": "text",
+        "date": {
+          "name": "date",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": true
         }
@@ -125,14 +57,8 @@
           "primaryKey": true,
           "notNull": true
         },
-        "driver_id": {
-          "name": "driver_id",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "time": {
-          "name": "time",
+        "driver_number": {
+          "name": "driver_number",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -143,8 +69,32 @@
           "primaryKey": false,
           "notNull": true
         },
-        "grand_prix_id": {
-          "name": "grand_prix_id",
+        "sector1_time": {
+          "name": "sector1_time",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sector2_time": {
+          "name": "sector2_time",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sector3_time": {
+          "name": "sector3_time",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "time": {
+          "name": "time",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
@@ -154,6 +104,57 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.drivers": {
+      "name": "drivers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "number": {
+          "name": "number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "team": {
+          "name": "team",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "drivers_number_unique": {
+          "name": "drivers_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "number"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
