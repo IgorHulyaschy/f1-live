@@ -43,6 +43,8 @@ type LiveTimingDataEvent = {
       Speeds?: {
         [key: string]: any;
       };
+      // completed lap number, can be present on sprint race or race
+      NumberOfLaps?: number;
     };
   };
 };

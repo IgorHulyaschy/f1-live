@@ -1,4 +1,6 @@
 export function parseTime(time: string) {
+  if (time === "") return null;
+
   if (time.includes(":")) {
     const [minutes, secondsMillis] = time.split(":");
     const [seconds, milliseconds] = secondsMillis.split(".");

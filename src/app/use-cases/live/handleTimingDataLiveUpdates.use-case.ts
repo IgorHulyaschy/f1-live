@@ -1,20 +1,12 @@
-// import type { Topic } from "../../../infra/f1-client/types/constants.js";
-// import type { LiveEvent } from "../../../infra/f1-client/types/live-events.types.js";
-// import { LiveTimingDataEvent } from "../../../infra/f1-client/types/live-events.types.js";
-
-// import { Cache } from "../../../infra/cache/Cache.js";
-// import { LapRepository } from "../../../infra/db/repositories/lap.repository.js";
 import type { Cache } from "../../../infra/cache/Cache.js";
 import type { LapRepository } from "../../../infra/db/repositories/lap.repository.js";
 import type { Topic } from "../../../infra/f1-client/types/constants.js";
 import type {
-  LiveEvent,
   LiveEventData,
   SectorData,
 } from "../../../infra/f1-client/types/live-events.types.js";
 import { parseTime } from "../../../pkg/time.js";
 import { Lap } from "../../entities/Lap.js";
-// import fs from 'fs';
 
 export function handleTimingDataLiveUpdates(
   cache: Cache,
@@ -70,7 +62,9 @@ export function handleTimingDataLiveUpdates(
           const lap = Lap.create({
             driverNumber: key,
             sessionId: cache.sessionId,
-            lapNumber: driverLastLap ? driverLastLap.lapNumber + 1 : 1,
+            lapNumber: driverLastLap
+              ? (value.NumberOfLaps || driverLastLap.lapNumber) + 1
+              : 1,
           });
 
           parseDriverChunk(lap, value.Sectors, value.LastLapTime);
