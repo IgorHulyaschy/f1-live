@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import WebSocket from "ws";
 import type { Logger } from "../logger/index.js";
 import type { CallBackMap } from "./types/sync-events.types.js";
 import { Topic } from "./types/constants.js";
-// import type { LiveEvent } from "./types/live-events.types.js";
 import fs from 'fs';
 import { LiveHandlerFactory } from "../../app/use-cases/live/live.handler.js";
 

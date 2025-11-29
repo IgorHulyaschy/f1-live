@@ -11,6 +11,7 @@ import { handleDriverList } from "./app/use-cases/driver/handleDriverList.use-ca
 import { Cache } from "./infra/cache/Cache.js";
 import { LiveHandlerFactory } from "./app/use-cases/live/live.handler.js";
 import { LapRepository } from "./infra/db/repositories/lap.repository.js";
+import { LogRepository } from "./infra/db/repositories/log.repository.js";
 
 export async function main() {
   const logger = new Logger();
@@ -21,6 +22,7 @@ export async function main() {
   const driverRepository = new DriverRepository(db);
   const sessionRepository = new SessionRepository(db);
   const lapRepository = new LapRepository(db);
+  const logRepository = new LogRepository(db);
 
   const liveTimingClient = new LiveTimingClient(
     logger,
@@ -36,7 +38,13 @@ export async function main() {
       DriverList: handleDriverList(driverRepository),
       TimingData: () => ({}),
     },
-    new LiveHandlerFactory(logger, cache, lapRepository, sessionRepository)
+    new LiveHandlerFactory(
+      logger,
+      cache,
+      lapRepository,
+      sessionRepository,
+      logRepository
+    )
   );
 
   process.on("SIGTERM", async () => {

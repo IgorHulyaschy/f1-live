@@ -15,6 +15,20 @@
       "when": 1764422450093,
       "tag": "0001_tan_thor_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764432605931,
+      "tag": "0002_even_lizard",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764432624542,
+      "tag": "0003_secret_franklin_richards",
+      "breakpoints": true
     }
   ]
 }
