@@ -1,0 +1,10 @@
+### ROADMAP
+- [ ] ws connection with the world (highest)
+- [ ] start working with sector colors and best laps (highest)
+- [ ] REST to get historical data (mid)
+- [ ] start working with drivers position changes in sprint/race (mid)
+- [ ] start working with segments  (mid)
+- [ ] start working with pit-stops (mid)
+- [ ] start working with deltas (low)
+- [ ] analyze how to work with incidents (low)
+- [ ] start work with weather (low)
