@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
+import fastifyWebSocket from "@fastify/websocket";
 import { drizzle } from "drizzle-orm/node-postgres";
 import Fastify from "fastify";
 import { Pool } from "pg";
@@ -19,6 +20,7 @@ import { Logger } from "./infra/logger/index.js";
 
 export async function main() {
   const fastify = Fastify();
+  await fastify.register(fastifyWebSocket);
 
   const logger = new Logger();
   const cache = new Cache();
@@ -59,6 +61,8 @@ export async function main() {
     "/onLoad",
     onLoad(cache, lapRepository, driverRepository, sessionRepository),
   );
+
+  fastify.get("/live-updates", { websocket: true }, );
 
   fastify.listen({ port: 3000 }, (err, address) => {
     if (err) logger.error(err);
