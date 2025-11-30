@@ -18,7 +18,7 @@ export class SessionService {
 
     if (existingSession) {
       this.cache.sessionId = existingSession.id;
-      return;
+      return existingSession;
     }
 
     const session = Session.create({
@@ -28,6 +28,6 @@ export class SessionService {
     });
     this.cache.sessionId = session.id;
 
-    await this.sessionRepository.create(session);
+    return await this.sessionRepository.create(session);
   }
 }

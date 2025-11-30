@@ -1,4 +1,5 @@
 import { main } from "./main.js";
+import WebSocket from "ws";
 
 async function test() {
   process.on("unhandledRejection", (reason) => {
@@ -13,5 +14,10 @@ async function test() {
   } catch (error) {
     console.log(error);
   }
+
+  const connection = new WebSocket("ws://localhost:3001");
+  connection.on("message", (message) => {
+    console.log(message.toString());
+  });
 }
 void test();

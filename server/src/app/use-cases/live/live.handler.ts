@@ -7,6 +7,7 @@ import type {
   LiveEventData,
 } from "../../../infra/f1-client/types/live-events.types.js";
 import type { Logger } from "../../../infra/logger/index.js";
+import type { WSServer } from "../../../infra/ws/WebSocketSever.js";
 import type { SessionService } from "../../services/session.service.js";
 
 import { handleSessionInfo } from "./handleSessionInfo.use-case.js";
@@ -30,10 +31,18 @@ export class LiveHandlerFactory {
     lapRepository: LapRepository,
     sessionService: SessionService,
     private readonly logRepository: LogRepository,
+    private readonly websocketServer: WSServer,
   ) {
     this.handlers = {
-      [Topic.TIMING_DATA]: handleTimingDataLiveUpdates(cache, lapRepository),
-      [Topic.SESSION_INFO]: handleSessionInfo(sessionService),
+      [Topic.TIMING_DATA]: handleTimingDataLiveUpdates(
+        cache,
+        lapRepository,
+        this.websocketServer,
+      ),
+      [Topic.SESSION_INFO]: handleSessionInfo(
+        sessionService,
+        this.websocketServer,
+      ),
       [Topic.DRIVER_LIST]: (_data: LiveEventData[Topic.DRIVER_LIST]) =>
         Promise.resolve(),
     };

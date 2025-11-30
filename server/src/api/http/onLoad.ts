@@ -28,10 +28,8 @@ export function onLoad(
             cache.sessionId,
           );
           return {
-            driver: {
-              ...driver,
-              laps,
-            },
+            ...driver,
+            laps,
           };
         }),
       ),

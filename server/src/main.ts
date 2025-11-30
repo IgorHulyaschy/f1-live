@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
-import fastifyWebSocket from "@fastify/websocket";
+import cors from "@fastify/cors";
 import { drizzle } from "drizzle-orm/node-postgres";
 import Fastify from "fastify";
 import { Pool } from "pg";
@@ -17,10 +17,11 @@ import { LogRepository } from "./infra/db/repositories/log.repository.js";
 import { SessionRepository } from "./infra/db/repositories/session.repository.js";
 import { LiveTimingClient } from "./infra/f1-client/livetiming.client.js";
 import { Logger } from "./infra/logger/index.js";
+import { WSServer } from "./infra/ws/WebSocketSever.js";
 
 export async function main() {
   const fastify = Fastify();
-  await fastify.register(fastifyWebSocket);
+  const websocketServer = new WSServer({ port: config.app.wsPort });
 
   const logger = new Logger();
   const cache = new Cache();
@@ -34,6 +35,11 @@ export async function main() {
 
   const sessionService = new SessionService(cache, sessionRepository);
 
+  websocketServer.on("connection", (socket) => {
+    logger.info("WebSocket connection handling");
+    socket.send("Connection established");
+  });
+
   const liveTimingClient = new LiveTimingClient(
     logger,
     config.livetiming.negotiateUrl,
@@ -44,7 +50,7 @@ export async function main() {
 
   liveTimingClient.onMessage(
     {
-      SessionInfo: handleSessionInfo(sessionService),
+      SessionInfo: handleSessionInfo(sessionService, websocketServer),
       DriverList: handleDriverList(driverRepository),
       TimingData: () => ({}),
     },
@@ -54,17 +60,22 @@ export async function main() {
       lapRepository,
       sessionService,
       logRepository,
+      websocketServer,
     ),
   );
+
+  await fastify.register(cors, {
+    // Your CORS options here
+    origin: "*", // Allows all origins (for development, use specific origins in production)
+    methods: ["GET", "POST", "PUT", "DELETE"], // Allowed HTTP methods
+  });
 
   fastify.get(
     "/onLoad",
     onLoad(cache, lapRepository, driverRepository, sessionRepository),
   );
 
-  fastify.get("/live-updates", { websocket: true }, );
-
-  fastify.listen({ port: 3000 }, (err, address) => {
+  fastify.listen({ port: config.app.port }, (err, address) => {
     if (err) logger.error(err);
     logger.info(`Server is running on ${address}`);
   });

@@ -5,12 +5,15 @@ import type {
   LiveEventData,
   SectorData,
 } from "../../../infra/f1-client/types/live-events.types.js";
+import type { WSServer } from "../../../infra/ws/WebSocketSever.js";
 import { parseTime } from "../../../pkg/time.js";
 import { Lap } from "../../entities/Lap.js";
+import { Theme } from "../../types/topic.js";
 
 export function handleTimingDataLiveUpdates(
   cache: Cache,
   lapRepository: LapRepository,
+  websocketServer: WSServer,
 ) {
   function parseDriverChunk(
     lapToUpdate: Lap,
@@ -68,13 +71,23 @@ export function handleTimingDataLiveUpdates(
           });
 
           parseDriverChunk(lap, value.Sectors, value.LastLapTime);
-          if (lap.sector1Time) await lapRepository.create(lap);
+          if (lap.sector1Time) {
+            await lapRepository.create(lap);
+            websocketServer.sendMessage(
+              Theme.LAP_INFO,
+              lap as unknown as Record<string, unknown>,
+            );
+          }
         }
 
         // In case last lap not completed
         if (driverLastLap && !driverLastLap.time) {
           parseDriverChunk(driverLastLap, value.Sectors, value.LastLapTime);
           await lapRepository.update(driverLastLap);
+          websocketServer.sendMessage(
+            Theme.LAP_INFO,
+            driverLastLap as unknown as Record<string, unknown>,
+          );
         }
       }
     }
