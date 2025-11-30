@@ -1,0 +1,19 @@
+/* Driver status badge */
+.status {
+	font-size: 0.6875rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.status[data-status='PIT'] {
+	color: #3b82f6;
+}
+
+.status[data-status='OUT'] {
+	color: #f97316;
+}
+
+.status[data-status='TRACK'] {
+	color: #22c55e;
+}

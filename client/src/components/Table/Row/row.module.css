@@ -1,0 +1,26 @@
+/* Table row base styling */
+.row {
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	transition: background 150ms;
+}
+
+.row:nth-child(odd) {
+	background: #0d0d0d;
+}
+
+.row:nth-child(even) {
+	background: #111111;
+}
+
+.row:hover {
+	background: #1a1a1a;
+}
+
+/* Position change gradients */
+.row[data-position-change='up'] {
+	background: linear-gradient(to right, rgba(34, 197, 94, 0.12), transparent);
+}
+
+.row[data-position-change='down'] {
+	background: linear-gradient(to right, rgba(239, 68, 68, 0.12), transparent);
+}

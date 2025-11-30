@@ -1,0 +1,19 @@
+/* Position number display */
+.position {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-weight: 700;
+	font-size: 0.9375rem;
+	text-align: center;
+}
+
+.position[data-place='1'] {
+	color: #ffd700; /* Gold */
+}
+
+.position[data-place='2'] {
+	color: #c0c0c0; /* Silver */
+}
+
+.position[data-place='3'] {
+	color: #cd7f32; /* Bronze */
+}

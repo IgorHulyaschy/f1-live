@@ -1,0 +1,218 @@
+/* Main container */
+.container {
+	min-height: 100vh;
+	background: black;
+	padding: 1.5rem;
+	font-family: 'Outfit', sans-serif;
+}
+
+.content {
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+/* Controls */
+.controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75rem;
+	margin-bottom: 1.25rem;
+}
+
+.button {
+	padding: 0.625rem 1.25rem;
+	color: white;
+	border: none;
+	border-radius: 0.5rem;
+	font-weight: 600;
+	font-size: 0.875rem;
+	cursor: pointer;
+	transition: background-color 150ms;
+}
+
+.buttonSimulate {
+	composes: button;
+	background: #e10600;
+}
+
+.buttonSimulate:hover {
+	background: #b00500;
+}
+
+.buttonAutoSimulate {
+	composes: button;
+}
+
+.buttonAutoSimulate[data-active='true'] {
+	background: #22c55e;
+}
+
+.buttonAutoSimulate[data-active='true']:hover {
+	background: #16a34a;
+}
+
+.buttonAutoSimulate[data-active='false'] {
+	background: #333;
+}
+
+.buttonAutoSimulate[data-active='false']:hover {
+	background: #444;
+}
+
+.buttonReset {
+	composes: button;
+	background: #333;
+}
+
+.buttonReset:hover {
+	background: #444;
+}
+
+/* Table wrapper */
+.tableWrapper {
+	font-family: 'Outfit', sans-serif;
+	background: #0a0a0a;
+	color: white;
+	border-radius: 0.75rem;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	overflow: hidden;
+}
+
+/* Title bar */
+.titleBar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0.75rem 1rem;
+	background: linear-gradient(to bottom, #151515, #0a0a0a);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.titleLeft {
+	display: flex;
+	align-items: center;
+}
+
+.liveBadge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	background: #e10600;
+	color: white;
+	padding: 0.25rem 0.625rem;
+	border-radius: 0.25rem;
+	font-weight: 700;
+	font-size: 0.6875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.liveDot {
+	width: 0.375rem;
+	height: 0.375rem;
+	background: white;
+	border-radius: 50%;
+	animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+	0%, 100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+.titleText {
+	font-size: 0.8125rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: #888;
+	margin-left: 0.75rem;
+}
+
+.lapCounter {
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-size: 0.8125rem;
+	color: #888;
+}
+
+.lapCurrent {
+	color: white;
+	font-weight: 600;
+}
+
+/* Scrollable container */
+.scrollContainer {
+	overflow-x: auto;
+	overflow-y: hidden;
+	scrollbar-width: thin;
+	scrollbar-color: #333 #0a0a0a;
+}
+
+.scrollContainer::-webkit-scrollbar {
+	height: 8px;
+}
+
+.scrollContainer::-webkit-scrollbar-track {
+	background: #0a0a0a;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb {
+	background: #333;
+	border-radius: 4px;
+}
+
+.scrollContainer::-webkit-scrollbar-thumb:hover {
+	background: #444;
+}
+
+/* Table */
+.table {
+	min-width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.tableHead {
+	background: linear-gradient(to bottom, #1a1a1a, #111);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Legend */
+.legend {
+	margin-top: 1.25rem;
+	padding: 1rem;
+	background: #111;
+	border-radius: 0.5rem;
+	font-size: 0.8125rem;
+	color: #666;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.5rem 1.5rem;
+}
+
+.legendItem {
+	display: inline-flex;
+	align-items: center;
+}
+
+.legendDot {
+	display: inline-block;
+	width: 0.5rem;
+	height: 0.5rem;
+	border-radius: 50%;
+	margin-right: 0.375rem;
+}
+
+.legendDotPurple {
+	composes: legendDot;
+	background: #a855f7;
+}
+
+.legendDotGreen {
+	composes: legendDot;
+	background: #22c55e;
+}

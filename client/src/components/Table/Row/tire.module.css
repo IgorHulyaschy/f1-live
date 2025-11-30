@@ -1,0 +1,28 @@
+/* Tire compound badge */
+.tire {
+	width: 1.375rem;
+	height: 1.375rem;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 0.625rem;
+	font-weight: 700;
+}
+
+.tire[data-compound='S'] {
+	background: linear-gradient(to bottom right, #ef4444, #dc2626);
+	box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+.tire[data-compound='M'] {
+	background: linear-gradient(to bottom right, #fbbf24, #f59e0b);
+	color: black;
+	box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+}
+
+.tire[data-compound='H'] {
+	background: linear-gradient(to bottom right, #f5f5f5, #d4d4d4);
+	color: black;
+	box-shadow: 0 0 8px rgba(245, 245, 245, 0.6);
+}

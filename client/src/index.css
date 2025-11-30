@@ -1,0 +1,104 @@
+@import "tailwindcss";
+
+@theme {
+	/* Font Families */
+	--font-sans: 'Outfit', system-ui, sans-serif;
+	--font-mono: 'JetBrains Mono', monospace;
+
+	/* Custom Box Shadows */
+	--shadow-purple: 0 0 8px rgba(168, 85, 247, 0.4);
+	--shadow-red: 0 0 8px rgba(239, 68, 68, 0.4);
+	--shadow-yellow: 0 0 8px rgba(251, 191, 36, 0.4);
+	--shadow-white: 0 0 8px rgba(255, 255, 255, 0.3);
+
+	/* F1 Colors */
+	--color-f1-red: #e10600;
+	--color-f1-red-dark: #c00500;
+
+	/* Team Colors */
+	--color-team-red-bull: #1e3a8a;
+	--color-team-ferrari: #dc0000;
+	--color-team-mclaren: #ff8700;
+	--color-team-mercedes: #00d2be;
+	--color-team-aston-martin: #006f62;
+	--color-team-alpine: #0090ff;
+	--color-team-williams: #005aff;
+	--color-team-rb: #2b4562;
+	--color-team-sauber: #00e701;
+	--color-team-haas: #ffffff;
+}
+
+@layer base {
+	* {
+		margin: 0;
+		padding: 0;
+		box-sizing: border-box;
+	}
+
+	body {
+		font-family: system-ui, -apple-system, sans-serif;
+		-webkit-font-smoothing: antialiased;
+		-moz-osx-font-smoothing: grayscale;
+	}
+
+	/* Custom scrollbar styles */
+	::-webkit-scrollbar {
+		height: 8px;
+		width: 8px;
+	}
+
+	::-webkit-scrollbar-track {
+		background: #0a0a0a;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: #333;
+		border-radius: 4px;
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+		background: #444;
+	}
+}
+
+@layer utilities {
+	/* Custom gradient utilities */
+	.bg-linear-to-b {
+		background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
+	}
+
+	.bg-linear-to-r {
+		background-image: linear-gradient(to right, var(--tw-gradient-stops));
+	}
+
+	.bg-linear-to-l {
+		background-image: linear-gradient(to left, var(--tw-gradient-stops));
+	}
+
+	.bg-linear-to-br {
+		background-image: linear-gradient(
+			to bottom right,
+			var(--tw-gradient-from),
+			var(--tw-gradient-to)
+		);
+	}
+
+	/* Scrollbar utilities */
+	.scrollbar-thin::-webkit-scrollbar {
+		height: 8px;
+		width: 8px;
+	}
+
+	.scrollbar-track-primary::-webkit-scrollbar-track {
+		background: #0a0a0a;
+	}
+
+	.scrollbar-thumb-gray::-webkit-scrollbar-thumb {
+		background: #333;
+		border-radius: 4px;
+	}
+
+	.scrollbar-thumb-gray::-webkit-scrollbar-thumb:hover {
+		background: #444;
+	}
+}
