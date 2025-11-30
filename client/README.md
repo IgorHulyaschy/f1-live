@@ -62,16 +62,22 @@ npm run preview
 - ✅ DRS detection
 - ✅ Fastest lap indicators
 - ✅ Responsive design
+- ✅ WebSocket live updates
+- ✅ Automatic reconnection
 - ✅ Auto-refresh for live data
 
 ## Data Fetching
 
-This project uses **TanStack Query** for data fetching and caching.
+This project uses **TanStack Query** for data fetching and **WebSocket** for real-time updates.
 
-See [TANSTACK_QUERY_SETUP.md](./TANSTACK_QUERY_SETUP.md) for setup details and [TANSTACK_QUERY.md](./TANSTACK_QUERY.md) for complete usage guide.
+- 📖 [TanStack Query Setup](./TANSTACK_QUERY_SETUP.md)
+- 📖 [TanStack Query Guide](./TANSTACK_QUERY.md)
+- 🔌 [WebSocket Setup](./WEBSOCKET_SETUP.md)
+- 🔌 [WebSocket Guide](./WEBSOCKET.md)
 
-### Quick Example
+### Quick Examples
 
+**TanStack Query (REST API):**
 ```tsx
 import { useRaceSession } from './hooks/useRaceSession';
 
@@ -83,6 +89,34 @@ function RaceComponent() {
   if (isLoading) return <div>Loading...</div>;
 
   return <div>{data.sessionName}</div>;
+}
+```
+
+**WebSocket (Real-time):**
+```tsx
+import { useRaceSession } from './hooks/useRaceSession';
+import { useLiveRaceUpdates } from './hooks/useLiveRaceUpdates';
+
+function RaceComponent() {
+  // Fetch initial data
+  const { data, isLoading } = useRaceSession({
+    refetchInterval: false  // Disable polling, use WebSocket instead
+  });
+
+  // Connect to live updates
+  const { isConnected } = useLiveRaceUpdates({
+    sessionId: data?.sessionId,
+    enabled: data?.isLive  // Only connect for live sessions
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+
+  return (
+    <div>
+      {isConnected && <span>● LIVE</span>}
+      <div>{data.sessionName}</div>
+    </div>
+  );
 }
 ```
 
@@ -104,10 +138,17 @@ src/
 
 ## Documentation
 
+### Styling
 - 📖 [Tailwind CSS Configuration](./TAILWIND_CONFIG.md)
+- 📝 [CSS Modules Usage](./CLASSNAMES_USAGE.md)
+
+### Data Fetching
 - 🔄 [TanStack Query Setup](./TANSTACK_QUERY_SETUP.md)
 - 📚 [TanStack Query Guide](./TANSTACK_QUERY.md)
-- 📝 [CSS Modules Usage](./CLASSNAMES_USAGE.md)
+
+### Real-time Updates
+- 🔌 [WebSocket Setup](./WEBSOCKET_SETUP.md)
+- 📡 [WebSocket Guide](./WEBSOCKET.md)
 
 ## Development Notes
 
