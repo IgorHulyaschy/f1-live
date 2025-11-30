@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { drizzle } from "drizzle-orm/node-postgres";
+import Fastify from "fastify";
 import { Pool } from "pg";
 
+import { onLoad } from "./api/http/onLoad.js";
 import { SessionService } from "./app/services/session.service.js";
 import { handleDriverList } from "./app/use-cases/driver/handleDriverList.use-case.js";
 import { LiveHandlerFactory } from "./app/use-cases/live/live.handler.js";
@@ -16,6 +18,8 @@ import { LiveTimingClient } from "./infra/f1-client/livetiming.client.js";
 import { Logger } from "./infra/logger/index.js";
 
 export async function main() {
+  const fastify = Fastify();
+
   const logger = new Logger();
   const cache = new Cache();
 
@@ -50,6 +54,16 @@ export async function main() {
       logRepository,
     ),
   );
+
+  fastify.get(
+    "/onLoad",
+    onLoad(cache, lapRepository, driverRepository, sessionRepository),
+  );
+
+  fastify.listen({ port: 3000 }, (err, address) => {
+    if (err) logger.error(err);
+    logger.info(`Server is running on ${address}`);
+  });
 
   process.on("SIGTERM", async () => {
     liveTimingClient.stop();

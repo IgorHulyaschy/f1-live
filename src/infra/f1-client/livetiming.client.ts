@@ -117,7 +117,30 @@ export class LiveTimingClient {
   private subscribesToTopics() {
     this.connection.send(
       JSON.stringify({
-        arguments: [[Topic.SESSION_INFO, Topic.DRIVER_LIST, Topic.TIMING_DATA]],
+        arguments: [
+          [
+            Topic.SESSION_INFO,
+            Topic.DRIVER_LIST,
+            Topic.TIMING_DATA,
+            "Heartbeat",
+            "AudioStreams",
+            "ExtrapolatedClock",
+            "RaceControlMessages",
+            "SessionStatus",
+            "TeamRadio",
+            "TimingStats",
+            "TrackStatus",
+            "WeatherData",
+            "Position.z",
+            "CarData.z",
+            "ContentStreams",
+            "SessionData",
+            "TimingData",
+            "TopThree",
+            "RcmSeries",
+            "LapCount",
+          ],
+        ],
         invocationId: "1",
         target: "Subscribe",
         type: 1,

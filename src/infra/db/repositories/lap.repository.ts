@@ -41,4 +41,13 @@ export class LapRepository {
       })
       .where(and(eq(lap.id, lapEntity.id)));
   }
+
+  findAllByDriverNumber(driverNumber: string, sessionId: string) {
+    return this.db
+      .select()
+      .from(lap)
+      .where(
+        and(eq(lap.driverNumber, driverNumber), eq(lap.sessionId, sessionId)),
+      );
+  }
 }
