@@ -124,19 +124,42 @@ function RaceComponent() {
 
 ```
 src/
-├── components/        # React components
-│   ├── Table/        # Main race table component
-│   └── Icons/        # Icon components
-├── hooks/            # Custom React hooks (TanStack Query)
-├── services/         # API services
-├── types/            # TypeScript type definitions
-├── lib/              # Library configurations (QueryClient)
-├── utils/            # Utility functions
-├── pages/            # Page components
-└── constants/        # App constants
+├── components/
+│   ├── Table/              # Full demo table (mock data)
+│   ├── SimpleLiveTable/    # Simplified table for real data
+│   └── Icons/              # Icon components
+├── hooks/
+│   ├── useRaceSession.ts   # TanStack Query hooks
+│   ├── useSessions.ts
+│   ├── useSessionData.ts   # Real session data hook
+│   ├── useWebSocket.ts     # WebSocket hooks
+│   └── useLiveRaceUpdates.ts
+├── services/
+│   ├── api.ts              # REST API service
+│   └── websocket.ts        # WebSocket service
+├── types/
+│   ├── api.types.ts        # Full API types
+│   ├── real-data-we-have.types.ts  # Real data types
+│   ├── driver.types.ts
+│   ├── table.types.ts
+│   └── websocket.types.ts
+├── lib/                    # Library configurations
+├── utils/                  # Utility functions
+├── pages/
+│   ├── SimpleLive.tsx      # Real data page
+│   └── Home.tsx            # Demo page
+└── constants/              # App constants
 ```
 
+## Routes
+
+- `/` - Simple Live Table (real race data)
+- `/demo` - Full Demo Table (mock data)
+
 ## Documentation
+
+### Components
+- 📊 [Simple Live Table](./SIMPLE_LIVE_TABLE.md) - Simplified table for real data
 
 ### Styling
 - 📖 [Tailwind CSS Configuration](./TAILWIND_CONFIG.md)
