@@ -20,25 +20,20 @@ import { Logger } from "./infra/logger/index.js";
 import { WSServer } from "./infra/ws/WebSocketSever.js";
 
 export async function main() {
-  const fastify = Fastify();
-  const websocketServer = new WSServer({ port: config.app.wsPort });
-
+  const pool = new Pool({ connectionString: config.database.url });
+  const db = drizzle(pool);
   const logger = new Logger();
   const cache = new Cache();
 
-  const pool = new Pool({ connectionString: config.database.url });
-  const db = drizzle(pool);
+  const fastify = Fastify();
+  const websocketServer = new WSServer(logger, config.app.wsPort);
+
   const driverRepository = new DriverRepository(db);
   const sessionRepository = new SessionRepository(db);
   const lapRepository = new LapRepository(db);
   const logRepository = new LogRepository(db);
 
   const sessionService = new SessionService(cache, sessionRepository);
-
-  websocketServer.on("connection", (socket) => {
-    logger.info("WebSocket connection handling");
-    socket.send("Connection established");
-  });
 
   const liveTimingClient = new LiveTimingClient(
     logger,

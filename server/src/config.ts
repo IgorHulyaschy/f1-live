@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 export const config = {
   app: {
     port: Number(process.env.PORT ?? 3000),

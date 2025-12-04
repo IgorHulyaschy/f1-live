@@ -48,6 +48,7 @@ export class LapRepository {
       .from(lap)
       .where(
         and(eq(lap.driverNumber, driverNumber), eq(lap.sessionId, sessionId)),
-      );
+      )
+      .orderBy(desc(lap.lapNumber));
   }
 }

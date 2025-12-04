@@ -53,16 +53,16 @@ export class LiveHandlerFactory {
     data,
     _timestamp,
   ]: LiveEvent<TTopic>) {
+    await this.logRepository.create({
+      topic,
+      eventData: data,
+    });
+
     const handler = this.getHandler(topic);
     if (!handler) {
       this.logger.error(`No handler found for topic: ${topic}`);
       return;
     }
-
-    await this.logRepository.create({
-      topic,
-      eventData: data,
-    });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await handler(data as any);
