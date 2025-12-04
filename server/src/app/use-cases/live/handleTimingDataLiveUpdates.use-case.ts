@@ -19,6 +19,7 @@ export function handleTimingDataLiveUpdates(
     lapToUpdate: Lap,
     sectors?: { [key: string]: SectorData },
     lastLapTime?: { Value: string },
+    lapNumber?: number,
   ) {
     if (sectors) {
       for (const [sectorNumber, sectorData] of Object.entries(sectors)) {
@@ -28,6 +29,10 @@ export function handleTimingDataLiveUpdates(
 
     if (lastLapTime?.Value) {
       lapToUpdate.time = parseTime(lastLapTime.Value);
+    }
+
+    if (lapNumber) {
+      lapToUpdate.lapNumber = lapNumber;
     }
   }
 
@@ -70,7 +75,12 @@ export function handleTimingDataLiveUpdates(
               : 1,
           });
 
-          parseDriverChunk(lap, value.Sectors, value.LastLapTime);
+          parseDriverChunk(
+            lap,
+            value.Sectors,
+            value.LastLapTime,
+            value.NumberOfLaps,
+          );
           if (lap.sector1Time) {
             await lapRepository.create(lap);
             websocketServer.sendMessage(
@@ -82,7 +92,12 @@ export function handleTimingDataLiveUpdates(
 
         // In case last lap not completed
         if (driverLastLap && !driverLastLap.time) {
-          parseDriverChunk(driverLastLap, value.Sectors, value.LastLapTime);
+          parseDriverChunk(
+            driverLastLap,
+            value.Sectors,
+            value.LastLapTime,
+            value.NumberOfLaps,
+          );
           await lapRepository.update(driverLastLap);
           websocketServer.sendMessage(
             Theme.LAP_INFO,
