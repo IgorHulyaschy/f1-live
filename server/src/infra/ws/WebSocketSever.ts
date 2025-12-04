@@ -24,4 +24,11 @@ export class WSServer extends WebSocketServer {
 
     this.on("error", (error) => this.logger.error(error));
   }
+
+  stop() {
+    this.clients.forEach((client) => {
+      client.close();
+    });
+    this.close();
+  }
 }

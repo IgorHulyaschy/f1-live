@@ -42,7 +42,6 @@ export async function main() {
   );
 
   await liveTimingClient.init();
-
   liveTimingClient.onMessage(
     {
       SessionInfo: handleSessionInfo(sessionService, websocketServer),
@@ -75,16 +74,10 @@ export async function main() {
     logger.info(`Server is running on ${address}`);
   });
 
-  process.on("SIGTERM", async () => {
+  fastify.addHook("onClose", async () => {
     liveTimingClient.stop();
+    websocketServer.stop();
     await pool.end();
-    process.exit(0);
-  });
-
-  process.on("SIGINT", async () => {
-    liveTimingClient.stop();
-    await pool.end();
-    process.exit(0);
   });
 
   return { liveTimingClient, db };
