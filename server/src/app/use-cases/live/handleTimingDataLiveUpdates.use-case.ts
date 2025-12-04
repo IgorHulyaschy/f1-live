@@ -5,17 +5,21 @@ import type {
   LiveEventData,
   SectorData,
 } from "../../../infra/f1-client/types/live-events.types.js";
+import type { WSServer } from "../../../infra/ws/WebSocketSever.js";
 import { parseTime } from "../../../pkg/time.js";
 import { Lap } from "../../entities/Lap.js";
+import { Theme } from "../../types/topic.js";
 
 export function handleTimingDataLiveUpdates(
   cache: Cache,
   lapRepository: LapRepository,
+  websocketServer: WSServer,
 ) {
   function parseDriverChunk(
     lapToUpdate: Lap,
     sectors?: { [key: string]: SectorData },
     lastLapTime?: { Value: string },
+    lapNumber?: number,
   ) {
     if (sectors) {
       for (const [sectorNumber, sectorData] of Object.entries(sectors)) {
@@ -25,6 +29,10 @@ export function handleTimingDataLiveUpdates(
 
     if (lastLapTime?.Value) {
       lapToUpdate.time = parseTime(lastLapTime.Value);
+    }
+
+    if (lapNumber) {
+      lapToUpdate.lapNumber = lapNumber;
     }
   }
 
@@ -67,14 +75,34 @@ export function handleTimingDataLiveUpdates(
               : 1,
           });
 
-          parseDriverChunk(lap, value.Sectors, value.LastLapTime);
-          if (lap.sector1Time) await lapRepository.create(lap);
+          parseDriverChunk(
+            lap,
+            value.Sectors,
+            value.LastLapTime,
+            value.NumberOfLaps,
+          );
+          if (lap.sector1Time) {
+            await lapRepository.create(lap);
+            websocketServer.sendMessage(
+              Theme.LAP_INFO,
+              lap as unknown as Record<string, unknown>,
+            );
+          }
         }
 
         // In case last lap not completed
         if (driverLastLap && !driverLastLap.time) {
-          parseDriverChunk(driverLastLap, value.Sectors, value.LastLapTime);
+          parseDriverChunk(
+            driverLastLap,
+            value.Sectors,
+            value.LastLapTime,
+            value.NumberOfLaps,
+          );
           await lapRepository.update(driverLastLap);
+          websocketServer.sendMessage(
+            Theme.LAP_INFO,
+            driverLastLap as unknown as Record<string, unknown>,
+          );
         }
       }
     }

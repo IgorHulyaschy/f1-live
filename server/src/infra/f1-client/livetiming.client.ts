@@ -1,5 +1,3 @@
-import fs from "fs";
-
 import WebSocket from "ws";
 
 import type { LiveHandlerFactory } from "../../app/use-cases/live/live.handler.js";
@@ -60,7 +58,6 @@ export class LiveTimingClient {
   }
 
   onMessage(callbackMap: CallBackMap, liveHandlerFactory: LiveHandlerFactory) {
-    let counter = 5100;
     this.connection.on("message", (data) => {
       const messages = data.toString().split("\x1e").filter(Boolean);
       for (const msg of messages) {
@@ -87,26 +84,15 @@ export class LiveTimingClient {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               void handler(value as any);
             }
-
-            fs.writeFileSync(
-              `./sprint/live-update-${key}.json`,
-              JSON.stringify(value, null, 2),
-            );
           }
         }
 
         if (parsed.type === 1 && parsed.target === "feed") {
-          this.logger.info(`[LIVE UPDATE] ${counter}`);
-          // void liveUpdatesCallback(parsed.arguments);
-          counter += 1;
-          fs.writeFileSync(
-            `./sprint/live-update-${counter}.json`,
-            JSON.stringify(parsed.arguments, null, 2),
-          );
-
           if (typeof parsed.arguments === "string") {
             return;
           }
+
+          this.logger.info(`[LIVE UPDATE] ${parsed.arguments[0]}`);
 
           void liveHandlerFactory.handleLiveUpdates(parsed.arguments);
         }

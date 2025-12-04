@@ -8,11 +8,11 @@ export function parseTime(time: string) {
     return (
       parseInt(minutes) * 60 * 1000 +
       parseInt(seconds) * 1000 +
-      parseInt(milliseconds) * 10
+      parseInt(milliseconds)
     );
   } else {
     const [seconds, milliseconds] = time.split(".");
 
-    return parseInt(seconds) * 1000 + parseInt(milliseconds) * 10;
+    return parseInt(seconds) * 1000 + parseInt(milliseconds);
   }
 }

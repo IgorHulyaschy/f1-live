@@ -1,4 +1,9 @@
+/* eslint-disable @typescript-eslint/no-non-null-assertion */
 export const config = {
+  app: {
+    port: Number(process.env.PORT ?? 3000),
+    wsPort: Number(process.env.WS_PORT ?? 3001),
+  },
   database: {
     url: process.env.DATABASE_URL!,
   },

@@ -7,6 +7,7 @@ import type {
   LiveEventData,
 } from "../../../infra/f1-client/types/live-events.types.js";
 import type { Logger } from "../../../infra/logger/index.js";
+import type { WSServer } from "../../../infra/ws/WebSocketSever.js";
 import type { SessionService } from "../../services/session.service.js";
 
 import { handleSessionInfo } from "./handleSessionInfo.use-case.js";
@@ -30,10 +31,18 @@ export class LiveHandlerFactory {
     lapRepository: LapRepository,
     sessionService: SessionService,
     private readonly logRepository: LogRepository,
+    private readonly websocketServer: WSServer,
   ) {
     this.handlers = {
-      [Topic.TIMING_DATA]: handleTimingDataLiveUpdates(cache, lapRepository),
-      [Topic.SESSION_INFO]: handleSessionInfo(sessionService),
+      [Topic.TIMING_DATA]: handleTimingDataLiveUpdates(
+        cache,
+        lapRepository,
+        this.websocketServer,
+      ),
+      [Topic.SESSION_INFO]: handleSessionInfo(
+        sessionService,
+        this.websocketServer,
+      ),
       [Topic.DRIVER_LIST]: (_data: LiveEventData[Topic.DRIVER_LIST]) =>
         Promise.resolve(),
     };
@@ -44,16 +53,16 @@ export class LiveHandlerFactory {
     data,
     _timestamp,
   ]: LiveEvent<TTopic>) {
+    await this.logRepository.create({
+      topic,
+      eventData: data,
+    });
+
     const handler = this.getHandler(topic);
     if (!handler) {
       this.logger.error(`No handler found for topic: ${topic}`);
       return;
     }
-
-    await this.logRepository.create({
-      topic,
-      eventData: data,
-    });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await handler(data as any);

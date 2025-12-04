@@ -8,7 +8,12 @@ export class SessionRepository {
   constructor(private readonly db: NodePgDatabase) {}
 
   async create(session: Session) {
-    await this.db.insert(sessionSchema).values(session);
+    const [first] = await this.db
+      .insert(sessionSchema)
+      .values(session)
+      .returning();
+
+    return first;
   }
 
   async findOneById(id: string) {
