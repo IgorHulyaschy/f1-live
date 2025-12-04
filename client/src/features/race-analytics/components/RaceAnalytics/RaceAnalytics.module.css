@@ -1,0 +1,313 @@
+/* Container */
+.container {
+	padding: 2rem 1.5rem;
+	max-width: 1400px;
+	margin: 0 auto;
+	font-family: 'Outfit', sans-serif;
+}
+
+/* Header */
+.header {
+	margin-bottom: 2.5rem;
+}
+
+.titleSection {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 0.5rem;
+}
+
+.title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	color: white;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin: 0;
+}
+
+.liveBadge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	background: #e10600;
+	color: white;
+	padding: 0.375rem 0.75rem;
+	border-radius: 0.375rem;
+	font-weight: 700;
+	font-size: 0.6875rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-family: 'JetBrains Mono', monospace;
+}
+
+.liveDot {
+	width: 0.375rem;
+	height: 0.375rem;
+	background: white;
+	border-radius: 50%;
+	animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+.subtitle {
+	font-size: 1rem;
+	color: #888;
+	margin: 0;
+}
+
+/* Stats Grid */
+.statsGrid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 1.5rem;
+	margin-bottom: 2.5rem;
+}
+
+.statCard {
+	background: linear-gradient(to bottom, #151515, #0a0a0a);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	position: relative;
+	overflow: hidden;
+	transition: all 200ms;
+}
+
+.statCard:hover {
+	border-color: rgba(255, 255, 255, 0.15);
+	transform: translateY(-2px);
+}
+
+.statCard[data-winner='true'] {
+	border-color: rgba(225, 6, 0, 0.3);
+	background: linear-gradient(to bottom, rgba(225, 6, 0, 0.05), #0a0a0a);
+}
+
+.statCard[data-winner='true']::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+	background: linear-gradient(to right, #e10600, #ff4d4d);
+}
+
+.statHeader {
+	margin-bottom: 1.25rem;
+}
+
+.driverName {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: white;
+	margin-bottom: 0.5rem;
+}
+
+.teamBadge {
+	display: inline-block;
+	font-size: 0.75rem;
+	font-weight: 600;
+	padding: 0.25rem 0.625rem;
+	border-radius: 0.25rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.teamBadge[data-team='red-bull'] {
+	background: rgba(30, 58, 138, 0.2);
+	color: #6b9cff;
+	border: 1px solid rgba(107, 156, 255, 0.3);
+}
+
+.teamBadge[data-team='mclaren'] {
+	background: rgba(255, 135, 0, 0.2);
+	color: #ffb366;
+	border: 1px solid rgba(255, 179, 102, 0.3);
+}
+
+.statValue {
+	font-family: 'JetBrains Mono', monospace;
+	font-size: 2.5rem;
+	font-weight: 700;
+	color: white;
+	margin-bottom: 0.25rem;
+}
+
+.statLabel {
+	font-size: 0.875rem;
+	color: #666;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin-bottom: 1rem;
+}
+
+.winnerBadge {
+	display: inline-block;
+	background: linear-gradient(135deg, #e10600, #ff4d4d);
+	color: white;
+	font-size: 0.8125rem;
+	font-weight: 700;
+	padding: 0.5rem 1rem;
+	border-radius: 0.5rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+	0%,
+	100% {
+		box-shadow: 0 0 20px rgba(225, 6, 0, 0.3);
+	}
+	50% {
+		box-shadow: 0 0 30px rgba(225, 6, 0, 0.5);
+	}
+}
+
+.gapBadge {
+	display: inline-block;
+	background: rgba(255, 255, 255, 0.05);
+	color: #ef4444;
+	font-size: 0.8125rem;
+	font-weight: 600;
+	padding: 0.5rem 1rem;
+	border-radius: 0.5rem;
+	font-family: 'JetBrains Mono', monospace;
+}
+
+/* Chart Container */
+.chartContainer {
+	background: linear-gradient(to bottom, #151515, #0a0a0a);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+	margin-bottom: 2rem;
+}
+
+.chartHeader {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 1.5rem;
+	flex-wrap: wrap;
+	gap: 1rem;
+}
+
+.chartTitle {
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: white;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin: 0;
+}
+
+.legend {
+	display: flex;
+	gap: 1.5rem;
+	flex-wrap: wrap;
+}
+
+.legendItem {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	font-size: 0.875rem;
+	color: #888;
+	font-weight: 500;
+}
+
+.legendDot {
+	width: 0.75rem;
+	height: 0.75rem;
+	border-radius: 50%;
+}
+
+.legendDot[data-color='blue'] {
+	background: #1e3a8a;
+}
+
+.legendDot[data-color='orange'] {
+	background: #ff8700;
+}
+
+/* Analysis */
+.analysis {
+	background: linear-gradient(135deg, rgba(225, 6, 0, 0.05), rgba(225, 6, 0, 0.02));
+	border: 1px solid rgba(225, 6, 0, 0.2);
+	border-radius: 0.75rem;
+	padding: 1.5rem;
+}
+
+.analysisTitle {
+	font-size: 1.125rem;
+	font-weight: 700;
+	color: white;
+	margin: 0 0 1rem 0;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.analysisContent {
+	color: #ccc;
+	font-size: 0.9375rem;
+	line-height: 1.7;
+}
+
+.analysisContent p {
+	margin: 0 0 0.875rem 0;
+}
+
+.analysisContent p:last-child {
+	margin-bottom: 0;
+}
+
+.highlight {
+	color: #e10600;
+	font-weight: 700;
+	font-family: 'JetBrains Mono', monospace;
+}
+
+.verdict {
+	margin-top: 1.25rem;
+	padding-top: 1.25rem;
+	border-top: 1px solid rgba(225, 6, 0, 0.2);
+	color: white;
+	font-size: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+	.container {
+		padding: 1.5rem 1rem;
+	}
+
+	.title {
+		font-size: 1.75rem;
+	}
+
+	.statsGrid {
+		grid-template-columns: 1fr;
+	}
+
+	.chartHeader {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.statValue {
+		font-size: 2rem;
+	}
+}

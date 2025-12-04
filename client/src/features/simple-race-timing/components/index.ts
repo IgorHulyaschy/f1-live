@@ -1,0 +1,1 @@
+export { SimpleLiveTable } from './SimpleLiveTable';

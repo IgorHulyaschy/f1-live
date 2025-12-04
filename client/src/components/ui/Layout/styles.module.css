@@ -1,0 +1,15 @@
+/* Layout */
+.layout {
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+	background: black;
+	font-family: 'Outfit', sans-serif;
+}
+
+/* Main Content Area */
+.main {
+	flex: 1;
+	width: 100%;
+	position: relative;
+}

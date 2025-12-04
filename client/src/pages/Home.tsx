@@ -1,5 +1,5 @@
-import Table from '../components/Table';
+import { TimingTable } from '@/features/race-timing';
 
 export default function Home() {
-	return <Table />;
+	return <TimingTable />;
 }

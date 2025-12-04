@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { WebSocketService } from '../services/websocket';
-
-import type { WebSocketHookOptions, WebSocketStatus } from '../types/websocket.types';
-
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws';
+import { webSocketConnection, WebSocketService } from '@/lib/websocket';
+import type { WebSocketHookOptions, WebSocketStatus } from '@/types/websocket.types';
 
 /**
  * Hook to manage WebSocket connection
@@ -29,72 +26,59 @@ const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws';
  * }, [subscribe]);
  */
 export function useWebSocket(options: WebSocketHookOptions = {}) {
-	const {
-		url = WS_URL,
-		enabled = true,
-		reconnectInterval,
-		maxReconnectAttempts,
-		heartbeatInterval,
-		onMessage,
-		onConnect,
-		onDisconnect,
-		onError
-	} = options;
+	const { enabled = true, onMessage, onConnect, onDisconnect, onError } = options;
 
 	const [status, setStatus] = useState<WebSocketStatus>('disconnected');
 	const wsRef = useRef<WebSocketService | null>(null);
 
 	// Initialize WebSocket service
-	useEffect(() => {
-		if (!enabled) {
-			return;
-		}
-
-		wsRef.current = new WebSocketService({
-			url,
-			reconnectInterval,
-			maxReconnectAttempts,
-			heartbeatInterval,
-			autoConnect: true
-		});
-
-		// Subscribe to status changes
-		const unsubscribe = wsRef.current.onStatusChange((newStatus) => {
-			setStatus(newStatus);
-
-			if (newStatus === 'connected' && onConnect) {
-				onConnect();
-			} else if (newStatus === 'disconnected' && onDisconnect) {
-				onDisconnect();
-			} else if (newStatus === 'error' && onError) {
-				onError(new Event('error'));
+	useEffect(
+		() => {
+			if (!enabled) {
+				return;
 			}
-		});
 
-		// Subscribe to all messages if handler provided
-		let messageUnsubscribe: (() => void) | undefined;
+			wsRef.current = webSocketConnection;
 
-		if (onMessage) {
-			messageUnsubscribe = wsRef.current.on('*', onMessage);
-		}
+			// Subscribe to status changes
+			const unsubscribe = wsRef.current.onStatusChange((newStatus) => {
+				setStatus(newStatus);
 
-		return () => {
-			unsubscribe();
-			messageUnsubscribe?.();
-			wsRef.current?.disconnect();
-			wsRef.current = null;
-		};
-	}, [
-		enabled,
-		url,
-		reconnectInterval,
-		maxReconnectAttempts,
-		heartbeatInterval,
-		onConnect,
-		onDisconnect,
-		onError,
-		onMessage
-	]);
+				if (newStatus === 'connected' && onConnect) {
+					onConnect();
+				} else if (newStatus === 'disconnected' && onDisconnect) {
+					onDisconnect();
+				} else if (newStatus === 'error' && onError) {
+					onError(new Event('error'));
+				}
+			});
+
+			// Subscribe to all messages if handler provided
+			let messageUnsubscribe: (() => void) | undefined;
+
+			if (onMessage) {
+				messageUnsubscribe = wsRef.current.on('*', onMessage);
+			}
+
+			return () => {
+				unsubscribe();
+				messageUnsubscribe?.();
+				wsRef.current?.disconnect();
+				wsRef.current = null;
+			};
+		},
+		[
+			// enabled,
+			// url,
+			// reconnectInterval,
+			// maxReconnectAttempts,
+			// heartbeatInterval,
+			// onConnect,
+			// onDisconnect,
+			// onError,
+			// onMessage
+		]
+	);
 
 	/**
 	 * Send message to WebSocket server
