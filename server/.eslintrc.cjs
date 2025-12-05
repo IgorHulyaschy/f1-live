@@ -60,5 +60,6 @@ module.exports = {
         pathGroupsExcludedImportTypes: ["builtin"],
       },
     ],
+    "import/no-named-as-default": "off"
   },
 };
