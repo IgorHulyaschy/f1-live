@@ -1,0 +1,33 @@
+.canvas {
+	flex: 1;
+	position: relative;
+	background: #0a0a0a;
+	overflow: hidden;
+	background-image:
+		linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+		linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+	background-size: 50px 50px;
+	height: 100%;
+	width: 100%;
+}
+
+.emptyState {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	text-align: center;
+	color: #666;
+}
+
+.emptyState h2 {
+	font-size: 24px;
+	font-weight: 600;
+	margin-bottom: 12px;
+	color: #999;
+}
+
+.emptyState p {
+	font-size: 14px;
+	margin: 0;
+}

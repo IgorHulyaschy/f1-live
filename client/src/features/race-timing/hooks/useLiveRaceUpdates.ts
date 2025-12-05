@@ -43,7 +43,7 @@ export function useLiveRaceUpdates(options: UseLiveRaceUpdatesOptions = {}) {
 			console.log('WebSocket connected - listening for live updates');
 		},
 		onDisconnect: () => {
-			// eslint-disable-next-line no-console
+			alert('keke');
 			console.log('WebSocket disconnected');
 		}
 	});

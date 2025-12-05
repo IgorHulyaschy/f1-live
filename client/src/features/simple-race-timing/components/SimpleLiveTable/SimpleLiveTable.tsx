@@ -1,5 +1,4 @@
 import styles from './SimpleLiveTable.module.css';
-import { useLiveRaceUpdatesSimple } from '../../hooks/useLiveRaceUpdatesSimple';
 import { useSessionData } from '../../hooks/useSessionData';
 
 import type { Driver, Lap } from '../../types';
@@ -17,7 +16,7 @@ export default function SimpleLiveTable() {
 		refetchInterval: 1000 // Refresh every 5 seconds
 	});
 
-	useLiveRaceUpdatesSimple();
+	// useLiveRaceUpdatesSimple();
 
 	if (isLoading) {
 		return (
