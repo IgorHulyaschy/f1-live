@@ -13,6 +13,10 @@ export function fromSessionEventType(type: SessionEvent["Name"]): SessionType {
       return SessionType.SPRINT_QUALIFYING;
     case "Practice":
       return SessionType.PRACTICE;
+    case "Practice 2":
+      return SessionType.PRACTICE_2;
+    case "Practice 3":
+      return SessionType.PRACTICE_3;
     default: {
       const unsupportedType: never = type;
       throw new Error(`Unknown session type: ${unsupportedType}`);

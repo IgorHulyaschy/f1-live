@@ -6,6 +6,8 @@ export enum SessionType {
   SPRINT = "sprint",
   SPRINT_QUALIFYING = "sprint_qualifying",
   PRACTICE = "practice",
+  PRACTICE_2 = "practice_2",
+  PRACTICE_3 = "practice_3",
 }
 
 type SessionCreation = {

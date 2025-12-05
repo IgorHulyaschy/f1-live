@@ -35,6 +35,13 @@ export type SessionEvent = {
       Code: string;
     };
   };
-  Name: "Race" | "Qualifying" | "Sprint" | "Sprint Qualifying" | "Practice";
+  Name:
+    | "Race"
+    | "Qualifying"
+    | "Sprint"
+    | "Sprint Qualifying"
+    | "Practice"
+    | "Practice 2"
+    | "Practice 3";
   StartDate: string;
 };

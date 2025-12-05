@@ -74,6 +74,16 @@ export async function main() {
     logger.info(`Server is running on ${address}`);
   });
 
+  setInterval(() => {
+    logger.info(
+      JSON.stringify(
+        { heapUsed: `${process.memoryUsage().heapUsed / 1024 / 1024} MB` },
+        null,
+        2,
+      ),
+    );
+  }, 1000);
+
   fastify.addHook("onClose", async () => {
     liveTimingClient.stop();
     websocketServer.stop();
