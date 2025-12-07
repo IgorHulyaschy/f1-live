@@ -60,7 +60,13 @@ export default function RaceComparisonPage() {
 	};
 
 	return (
-		<div className="flex h-screen bg-[#0a0a0a]">
+		<div className="flex h-screen bg-black font-['Outfit']">
+			<link rel="preconnect" href="https://fonts.googleapis.com" />
+			<link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+			<link
+				href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap"
+				rel="stylesheet"
+			/>
 			<div ref={canvasRef} className="flex-1 relative">
 				<ComparisonCanvas
 					charts={charts}

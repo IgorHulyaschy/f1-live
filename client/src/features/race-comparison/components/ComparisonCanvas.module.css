@@ -18,16 +18,21 @@
 	transform: translate(-50%, -50%);
 	text-align: center;
 	color: #666;
+	font-family: 'Outfit', sans-serif;
+	padding: 3rem 1rem;
 }
 
 .emptyState h2 {
-	font-size: 24px;
+	font-size: 1rem;
 	font-weight: 600;
-	margin-bottom: 12px;
-	color: #999;
+	margin-bottom: 0.5rem;
+	color: #888;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
 }
 
 .emptyState p {
-	font-size: 14px;
+	font-size: 0.875rem;
 	margin: 0;
+	color: #666;
 }

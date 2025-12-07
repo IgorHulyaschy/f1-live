@@ -85,7 +85,7 @@ export default function ComparisonChart({
 			dataKey: driverNumber,
 			label: driver?.name || driverNumber,
 			color: getDriverColor(driverNumber, index),
-			showMark: true
+			showMark: false
 		};
 	});
 
@@ -151,7 +151,6 @@ export default function ComparisonChart({
 										{
 											dataKey: 'lap',
 											label: 'Lap',
-											valueFormatter: (value: number) => `Lap ${value}`,
 											zoom: true
 										}
 									]}
@@ -163,9 +162,9 @@ export default function ComparisonChart({
 											zoom: true
 										}
 									]}
-									height={chart.size.height - 44}
+									height={chart.size.height - 50}
 									margin={{ left: 0, right: 20, top: 0, bottom: 50 }}
-									grid={{ horizontal: true }}
+									// grid={{ horizontal: true }}
 									sx={{
 										'& .MuiChartsAxis-line': {
 											stroke: '#fff !important'
@@ -184,6 +183,9 @@ export default function ComparisonChart({
 											color: '#fff !important'
 										},
 										'& .MuiChartsAxis-label tspan': {
+											fill: '#fff !important'
+										},
+										'& .MuiChartsAxisHighlight-root': {
 											fill: '#fff !important'
 										}
 									}}
