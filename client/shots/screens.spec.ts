@@ -6,6 +6,7 @@ import { expect, type Page, test } from '@playwright/test';
  */
 
 const VIEWPORTS = [
+	{ name: 'android', width: 360, height: 800 },
 	{ name: 'mobile', width: 390, height: 844 },
 	{ name: 'tablet', width: 834, height: 1194 },
 	{ name: 'laptop', width: 1280, height: 800 },
@@ -23,7 +24,11 @@ const PLANS = ['free', 'pro'] as const;
 const THEMES = ['dark', 'light'] as const;
 
 async function switchToLightTheme(page: Page): Promise<void> {
-	await page.getByRole('button', { name: 'Switch to light theme' }).click();
+	// The header key is hidden on phones, where the footer carries the switch instead.
+	await page
+		.getByRole('button', { name: /^(Switch to light theme|Light theme)$/ })
+		.filter({ visible: true })
+		.click();
 	await expect(page.locator('html')).not.toHaveClass(/dark/);
 }
 

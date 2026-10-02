@@ -1,5 +1,3 @@
-import { CheckIcon } from 'lucide-react';
-
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { TeamStripe } from '@/components/driver-tag';
 import type { StandingRow } from '@/insights/standings';
@@ -19,13 +17,13 @@ export function DriverList({
 }) {
 	return (
 		<Panel aria-label="Drivers to compare">
-			<PanelHeader title="Compare" meta={`${selected.length} selected`} />
-			<ul className="grid grid-cols-4 gap-px p-2 sm:grid-cols-5 lg:flex lg:flex-col">
+			<PanelHeader title="Compare" meta={`${selected.length} on chart`} />
+			<ul className="grid grid-cols-4 sm:grid-cols-5 lg:flex lg:flex-col">
 				{rows.map((row) => {
 					const isSelected = selected.includes(row.driver.code);
 
 					return (
-						<li key={row.driver.number}>
+						<li key={row.driver.number} className="border-b lg:last:border-b-0">
 							<button
 								type="button"
 								aria-pressed={isSelected}
@@ -35,20 +33,25 @@ export function DriverList({
 								onMouseLeave={() => onHighlight(null)}
 								onBlur={() => onHighlight(null)}
 								className={cn(
-									'hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
-									isSelected ? 'text-foreground' : 'text-muted-foreground'
+									'hover:bg-accent flex h-9 w-full items-center gap-2 px-4 text-left transition-colors',
+									isSelected && 'bg-accent'
 								)}
 							>
+								<span
+									aria-hidden
+									className={cn(
+										'flex size-3 shrink-0 items-center justify-center border',
+										isSelected && 'border-foreground bg-foreground'
+									)}
+								/>
 								<span className="text-muted-foreground hidden w-5 text-right font-mono text-xs lg:inline">
 									{row.position}
 								</span>
-								<TeamStripe driver={row.driver} className={cn(!isSelected && 'opacity-30')} />
-								<span className="font-display font-semibold tracking-wide">{row.driver.code}</span>
-								<span className="hidden truncate text-xs lg:inline">{row.driver.lastName}</span>
-								<CheckIcon
-									aria-hidden
-									className={cn('ml-auto hidden size-3.5 lg:block', !isSelected && 'invisible')}
-								/>
+								<TeamStripe driver={row.driver} />
+								<span className="type-wide text-sm font-bold">{row.driver.code}</span>
+								<span className="text-muted-foreground hidden truncate text-xs lg:inline">
+									{row.driver.lastName}
+								</span>
 							</button>
 						</li>
 					);

@@ -4,12 +4,14 @@ import { StintChart } from '@/features/strategy/stint-chart';
 
 export function StrategyPage() {
 	return (
-		<div className="bg-border grid gap-px overflow-hidden rounded-lg border lg:grid-cols-2">
-			<div className="lg:col-span-2">
-				<StintChart />
+		<div className="flex flex-col gap-6">
+			<StintChart />
+			<div className="grid gap-y-6 lg:grid-cols-2 lg:gap-y-0">
+				<div className="lg:border-r">
+					<Degradation />
+				</div>
+				<PitStops />
 			</div>
-			<Degradation />
-			<PitStops />
 		</div>
 	);
 }

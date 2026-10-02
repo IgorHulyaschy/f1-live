@@ -1,7 +1,5 @@
-import NumberFlow from '@number-flow/react';
-import type * as React from 'react';
-
-import { Eyebrow, Panel, PanelHeader } from '@/components/console/panel';
+import { Digits } from '@/components/console/digits';
+import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { ProGate } from '@/components/pro-gate';
 import { TyreBadge } from '@/components/tyre-badge';
 import {
@@ -12,49 +10,32 @@ import {
 	SelectValue
 } from '@/components/ui/select';
 import { useRace } from '@/data/race-context';
-import { battleAhead } from '@/insights/battle';
 import { standingsAt } from '@/insights/standings';
 import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-import { BattleGauge } from './battle-gauge';
-import { PitWindow } from './pit-window';
-
-function Reading({ label, children }: { label: string; children: React.ReactNode }) {
-	return (
-		<div className="flex flex-col gap-1 px-4 py-3">
-			<Eyebrow>{label}</Eyebrow>
-			<span className="font-mono text-sm font-semibold">{children}</span>
-		</div>
-	);
-}
+import { BoxNow } from './box-now';
+import { GapLadder } from './gap-ladder';
 
 export function FocusPanel() {
 	const { snapshot, followedDriver, setFollowedDriver } = useRace();
 	const rows = standingsAt(snapshot);
-
-	const index = Math.max(
-		rows.findIndex((entry) => entry.driver.number === followedDriver),
-		0
-	);
-
-	const row = rows[index];
+	const row = rows.find((entry) => entry.driver.number === followedDriver) ?? rows[0];
 
 	if (!row) {
 		return null;
 	}
 
-	const behind = rows[index + 1];
-	const ahead = battleAhead(snapshot, row.driver.number);
-
-	const chaser =
-		behind && behind.state !== 'out' ? battleAhead(snapshot, behind.driver.number) : null;
-
 	const gained = row.positionsGained ?? 0;
 
 	return (
-		<Panel aria-label="Followed driver" data-testid="followed-driver">
-			<PanelHeader title="Following">
+		<Panel
+			id="focus"
+			aria-label="Followed driver"
+			data-testid="followed-driver"
+			className="scroll-mt-16"
+		>
+			<PanelHeader title="Focus">
 				<Select value={row.driver.number} onValueChange={setFollowedDriver}>
 					<SelectTrigger size="sm" aria-label="Followed driver">
 						<SelectValue />
@@ -62,83 +43,66 @@ export function FocusPanel() {
 					<SelectContent>
 						{rows.map((entry) => (
 							<SelectItem key={entry.driver.number} value={entry.driver.number}>
-								{entry.driver.code} · {entry.driver.lastName}
+								{entry.driver.code} {entry.driver.lastName}
 							</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
 			</PanelHeader>
 			<div
-				className="relative overflow-hidden border-b px-4 py-4"
+				className="flex items-stretch border-b"
 				style={{ '--team': `#${row.driver.teamColour}` }}
 			>
-				<span aria-hidden className="bg-team absolute inset-y-0 left-0 w-1" />
-				<span aria-hidden className="bg-team/10 absolute inset-0" />
-				<div className="relative flex items-end justify-between gap-4">
-					<div className="flex min-w-0 flex-col gap-1">
-						<span className="text-muted-foreground truncate text-xs">{row.driver.team}</span>
-						<span className="font-display truncate text-2xl leading-none font-bold tracking-wide uppercase">
-							{row.driver.firstName} {row.driver.lastName}
-						</span>
-						<span className="text-muted-foreground font-mono text-xs">
-							{row.gridPosition === null ? null : `Started P${row.gridPosition}`}
-							{gained === 0 ? null : (
-								<span className={cn(gained > 0 ? 'text-personal-best' : 'text-primary')}>
-									{' '}
-									{gained > 0 ? `▲${gained}` : `▼${-gained}`}
-								</span>
-							)}
-						</span>
-					</div>
-					<span className="font-display text-6xl leading-none font-bold">
-						{row.state === 'out' ? (
-							'OUT'
-						) : (
-							<NumberFlow value={row.position} prefix="P" aria-label={`Position ${row.position}`} />
+				<span className="bg-team text-background cut-corner type-wide flex min-w-28 items-center justify-center px-4 text-5xl font-black italic">
+					{row.state === 'out' ? 'Out' : `P${row.position}`}
+				</span>
+				<div className="flex min-w-0 flex-col justify-center gap-2 px-4 py-3">
+					<span className="type-wide truncate text-lg leading-none font-black">
+						{row.driver.lastName}
+					</span>
+					<span className="type-label truncate">
+						#{row.driver.number} {row.driver.team}
+					</span>
+					<span className="type-label">
+						Grid P{row.gridPosition ?? '-'}
+						{gained === 0 ? null : (
+							<span className={cn('ml-2', gained > 0 ? 'text-personal-best' : 'text-danger')}>
+								{gained > 0 ? `+${gained}` : gained}
+							</span>
 						)}
 					</span>
 				</div>
 			</div>
-			<div className="grid grid-cols-2 divide-x border-b sm:grid-cols-4">
-				<Reading label="Last lap">
-					{row.lastLap ? formatLapTime(row.lastLap.lapTimeMs) : '—'}
-				</Reading>
-				<Reading label="Best">
-					<span className={cn(row.hasFastestLap && 'text-fastest')}>
-						{row.bestLapMs === null ? '—' : formatLapTime(row.bestLapMs)}
-					</span>
-				</Reading>
-				<Reading label="Tyre">
-					{row.compound ? <TyreBadge compound={row.compound} age={row.tyreAge} /> : '—'}
-				</Reading>
-				<Reading label="Stops">{row.pitStops}</Reading>
+			<div className="grid grid-cols-2 border-b sm:grid-cols-4 sm:divide-x">
+				<Field label="Last" className="px-4 py-2.5">
+					{row.lastLap ? <Digits value={formatLapTime(row.lastLap.lapTimeMs)} /> : '-'}
+				</Field>
+				<Field label="Best" className="px-4 py-2.5">
+					{row.bestLapMs === null ? (
+						'-'
+					) : (
+						<Digits
+							value={formatLapTime(row.bestLapMs)}
+							className={cn(row.hasFastestLap && 'text-fastest')}
+						/>
+					)}
+				</Field>
+				<Field label="Tyre" className="px-4 py-2.5">
+					{row.compound ? <TyreBadge compound={row.compound} age={row.tyreAge} /> : '-'}
+				</Field>
+				<Field label="Stops" className="px-4 py-2.5">
+					<span className="font-mono">{row.pitStops}</span>
+				</Field>
 			</div>
-			<div className="flex flex-col gap-5 border-b px-4 py-4" data-testid="battle-summary">
-				{ahead ? (
-					<BattleGauge
-						label="Ahead"
-						driver={ahead.ahead}
-						gapSeconds={ahead.intervalSeconds}
-						closingSecondsPerLap={ahead.closingSecondsPerLap}
-						lapsToCatch={ahead.catchesBeforeFlag ? ahead.lapsToCatch : null}
-					/>
-				) : (
-					<p className="text-muted-foreground text-sm">
-						{row.position === 1 ? 'Leading the race.' : 'No car directly ahead on the same lap.'}
-					</p>
-				)}
-				{chaser && behind ? (
-					<BattleGauge
-						label="Behind"
-						driver={behind.driver}
-						gapSeconds={chaser.intervalSeconds}
-						closingSecondsPerLap={chaser.closingSecondsPerLap}
-					/>
-				) : null}
+			<div className="border-b">
+				<GapLadder />
 			</div>
 			<div className="px-4 py-4">
-				<ProGate feature="Pit window prediction">
-					<PitWindow driverNumber={row.driver.number} />
+				<ProGate
+					feature="Pit stop prediction"
+					teaser={`Where ${row.driver.code} comes out if they box this lap, and whether it is into traffic.`}
+				>
+					<BoxNow driverNumber={row.driver.number} />
 				</ProGate>
 			</div>
 		</Panel>

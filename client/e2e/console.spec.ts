@@ -46,3 +46,25 @@ test('the analysis chart switches metric', async ({ page }) => {
 	await page.getByRole('tab', { name: 'Battle' }).click();
 	await expect(page.getByTestId('chart-battle')).toBeVisible();
 });
+
+for (const path of ['/', '/analysis', '/strategy']) {
+	test(`phones never scroll sideways on ${path}`, async ({ page }) => {
+		await page.setViewportSize({ width: 360, height: 800 });
+		await openRace(page, path);
+
+		const overflow = await page.evaluate(
+			() => document.documentElement.scrollWidth - document.documentElement.clientWidth
+		);
+
+		expect(overflow).toBe(0);
+	});
+}
+
+test('race control filters to the followed driver', async ({ page }) => {
+	await openRace(page, '/?driver=23&lap=30');
+
+	await page.getByRole('radio', { name: 'Mine' }).click();
+
+	const items = page.getByTestId('race-control').getByRole('listitem');
+	await expect(items.first()).toContainText('ALB');
+});

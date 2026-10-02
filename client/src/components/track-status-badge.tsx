@@ -3,34 +3,31 @@ import type { TrackStatus } from '@f1-live/shared';
 import { cn } from '@/lib/utils';
 
 export const TRACK_STATUS_LABEL: Record<TrackStatus, string> = {
-	green: 'Green flag',
-	yellow: 'Yellow flag',
-	vsc: 'Virtual Safety Car',
-	safety_car: 'Safety Car',
+	green: 'Green',
+	yellow: 'Yellow',
+	vsc: 'VSC',
+	safety_car: 'Safety car',
 	red: 'Red flag'
 };
 
-const DOT_CLASS: Record<TrackStatus, string> = {
+const SWATCH: Record<TrackStatus, string> = {
 	green: 'bg-personal-best',
-	yellow: 'bg-safety-car',
-	vsc: 'bg-safety-car',
-	safety_car: 'bg-safety-car',
-	red: 'bg-primary'
+	yellow: 'bg-flag',
+	vsc: 'bg-flag',
+	safety_car: 'bg-flag',
+	red: 'bg-danger'
 };
 
+/** Flag state as a square swatch and a printed word, like a marshal panel. */
 export function TrackStatusBadge({ status }: { status: TrackStatus }) {
 	return (
 		<span
-			className="font-display inline-flex items-center gap-2 text-sm font-semibold tracking-wider uppercase"
+			className="type-wide inline-flex items-center gap-2 text-xs font-bold"
 			data-testid="track-status"
 		>
 			<span
 				aria-hidden
-				className={cn(
-					'size-2 rounded-full',
-					DOT_CLASS[status],
-					status !== 'green' && 'animate-live-dot'
-				)}
+				className={cn('size-2.5', SWATCH[status], status !== 'green' && 'animate-live-dot')}
 			/>
 			{TRACK_STATUS_LABEL[status]}
 		</span>

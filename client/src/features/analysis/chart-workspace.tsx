@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 
 import { Panel, PanelHeader } from '@/components/console/panel';
-import { Segmented } from '@/components/console/segmented';
+import { KeyGroup } from '@/components/console/keys';
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -29,13 +29,14 @@ import { battlePoints, type Metric, neutralisedRanges, toPoints } from './lap-se
 
 const METRICS = [
 	{ value: 'lapTime', label: 'Lap times' },
-	{ value: 'gap', label: 'Gap to leader' },
+	{ value: 'gap', label: 'Gap' },
 	{ value: 'position', label: 'Positions' },
 	{ value: 'battle', label: 'Battle' }
 ] as const satisfies readonly { value: Metric; label: string }[];
 
 const METRIC_NOTE: Record<Metric, string> = {
-	lapTime: 'Green-flag laps; in-laps, out-laps and VSC laps left out. Purple line: fastest lap.',
+	lapTime:
+		'Green-flag laps only. In-laps, out-laps and VSC laps are left out. The purple rule is the fastest lap.',
 	gap: 'Seconds behind the leader at each line crossing.',
 	position: 'Running order at the end of every lap.',
 	battle: 'Gap to the car directly ahead. The band is the one-second DRS window.'
@@ -55,19 +56,6 @@ function formatMetric(metric: Metric, value: number): string {
 	return `+${value.toFixed(1)}s`;
 }
 
-function GradientDefs({ keys }: { keys: readonly string[] }) {
-	return (
-		<defs>
-			{keys.map((key) => (
-				<linearGradient key={key} id={`fill-${key}`} x1="0" y1="0" x2="0" y2="1">
-					<stop offset="5%" stopColor={`var(--color-${key})`} stopOpacity={0.35} />
-					<stop offset="95%" stopColor={`var(--color-${key})`} stopOpacity={0.02} />
-				</linearGradient>
-			))}
-		</defs>
-	);
-}
-
 export function ChartWorkspace({
 	drivers,
 	highlighted
@@ -78,6 +66,12 @@ export function ChartWorkspace({
 	const { snapshot, followedDriver } = useRace();
 	const [metric, setMetric] = React.useState<Metric>('lapTime');
 	const neutralised = neutralisedRanges(snapshot);
+
+	const lapTicks = [
+		1,
+		...Array.from({ length: Math.floor(snapshot.currentLap / 5) }, (_, index) => (index + 1) * 5)
+	];
+
 	const followed = snapshot.drivers.find((driver) => driver.number === followedDriver);
 	const opacity = (code: string) => (highlighted && highlighted !== code ? DIMMED_OPACITY : 1);
 
@@ -97,7 +91,7 @@ export function ChartWorkspace({
 			key={range.from}
 			x1={range.from - 0.5}
 			x2={range.to + 0.5}
-			fill="var(--safety-car)"
+			fill="var(--flag)"
 			fillOpacity={0.07}
 			ifOverflow="hidden"
 		/>
@@ -113,7 +107,7 @@ export function ChartWorkspace({
 				tickLine={false}
 				axisLine={false}
 				tickMargin={8}
-				minTickGap={24}
+				ticks={lapTicks}
 				tickFormatter={(lap: number) => `L${lap}`}
 			/>
 		</>
@@ -130,12 +124,18 @@ export function ChartWorkspace({
 		/>
 	);
 
-	const title = metric === 'battle' && followed ? `${followed.code} vs car ahead` : 'Race trace';
+	const title = metric === 'battle' && followed ? `${followed.code} to car ahead` : 'Trace';
 
 	return (
 		<Panel aria-label="Race charts" className="min-h-0">
 			<PanelHeader title={title}>
-				<Segmented label="Chart" options={METRICS} value={metric} onChange={setMetric} />
+				<KeyGroup
+					label="Chart"
+					role="tablist"
+					options={METRICS}
+					value={metric}
+					onChange={setMetric}
+				/>
 			</PanelHeader>
 			<div className="flex flex-col gap-3 p-4" data-testid={`chart-${metric}`}>
 				<p className="text-muted-foreground text-xs">{METRIC_NOTE[metric]}</p>
@@ -145,7 +145,6 @@ export function ChartWorkspace({
 							data={followed ? battlePoints(snapshot, followed.number) : []}
 							margin={{ left: 4, right: 12, top: 8 }}
 						>
-							<GradientDefs keys={['interval']} />
 							{axes}
 							{shading}
 							<YAxis
@@ -158,17 +157,18 @@ export function ChartWorkspace({
 							<ReferenceArea
 								y1={0}
 								y2={1}
-								fill="var(--drs)"
-								fillOpacity={0.12}
+								fill="var(--foreground)"
+								fillOpacity={0.06}
 								ifOverflow="hidden"
 							/>
 							{tooltip}
 							<Area
 								dataKey="interval"
-								type="monotone"
+								type="linear"
 								stroke="var(--color-interval)"
 								strokeWidth={2}
-								fill="url(#fill-interval)"
+								fill="var(--color-interval)"
+								fillOpacity={0.12}
 								isAnimationActive={false}
 							/>
 						</AreaChart>
@@ -177,7 +177,6 @@ export function ChartWorkspace({
 							data={toPoints(snapshot, drivers, 'gap')}
 							margin={{ left: 4, right: 12, top: 8 }}
 						>
-							<GradientDefs keys={drivers.map((driver) => driver.code)} />
 							{axes}
 							{shading}
 							<YAxis
@@ -192,12 +191,11 @@ export function ChartWorkspace({
 								<Area
 									key={driver.number}
 									dataKey={driver.code}
-									type="monotone"
+									type="linear"
 									stroke={`var(--color-${driver.code})`}
 									strokeWidth={2}
 									strokeOpacity={opacity(driver.code)}
-									fill={`url(#fill-${driver.code})`}
-									fillOpacity={highlighted && highlighted !== driver.code ? 0 : 1}
+									fill="none"
 									strokeDasharray={isSecondTeamCar(driver, drivers) ? '5 3' : undefined}
 									connectNulls
 									isAnimationActive={false}
@@ -229,12 +227,16 @@ export function ChartWorkspace({
 								<Line
 									key={driver.number}
 									dataKey={driver.code}
-									type={metric === 'position' ? 'stepAfter' : 'monotone'}
+									type={metric === 'position' ? 'stepAfter' : 'linear'}
 									stroke={`var(--color-${driver.code})`}
 									strokeWidth={highlighted === driver.code ? 3 : 2}
 									strokeOpacity={opacity(driver.code)}
 									strokeDasharray={isSecondTeamCar(driver, drivers) ? '5 3' : undefined}
-									dot={false}
+									dot={
+										metric === 'lapTime'
+											? { r: 1.5, strokeWidth: 0, fill: `var(--color-${driver.code})` }
+											: false
+									}
 									activeDot={{ r: 3 }}
 									connectNulls
 									isAnimationActive={false}
@@ -249,15 +251,19 @@ export function ChartWorkspace({
 							<span key={driver.number} className="flex items-center gap-1.5">
 								<span
 									aria-hidden
-									className="bg-team h-0.5 w-3 rounded-full"
+									className={
+										isSecondTeamCar(driver, drivers)
+											? 'border-team w-4 border-t-2 border-dashed'
+											: 'bg-team h-0.5 w-4'
+									}
 									style={{ '--team': `#${driver.teamColour}` }}
 								/>
-								<span className="font-display font-semibold">{driver.code}</span>
+								<span className="type-wide font-bold">{driver.code}</span>
 							</span>
 						))}
 						{neutralised.length > 0 ? (
 							<span className="text-muted-foreground flex items-center gap-1.5">
-								<span aria-hidden className="bg-safety-car/30 h-2.5 w-3 rounded-xs" />
+								<span aria-hidden className="bg-flag/30 h-2.5 w-4" />
 								Neutralised laps
 							</span>
 						) : null}

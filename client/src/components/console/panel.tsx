@@ -3,8 +3,8 @@ import type * as React from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * A region of the console. Regions sit flush in a grid and are divided by hairlines rather than
- * floating as separate cards, so dense data reads as one surface.
+ * A region of the timing screen. Regions are not cards: they sit flush, open with a heavy rule
+ * and a printed label, and are divided from each other by hairlines.
  */
 export function Panel({ className, ...props }: React.ComponentProps<'section'>) {
 	return <section className={cn('bg-panel flex min-w-0 flex-col', className)} {...props} />;
@@ -24,12 +24,12 @@ export function PanelHeader({
 	return (
 		<header
 			className={cn(
-				'flex min-h-11 flex-wrap items-center gap-x-3 gap-y-2 border-b px-4 py-2',
+				'border-rule-strong flex min-h-10 flex-wrap items-center gap-x-4 gap-y-2 border-t-2 border-b px-4 py-1.5',
 				className
 			)}
 		>
-			<h2 className="font-display text-sm font-semibold tracking-wider uppercase">{title}</h2>
-			{meta ? <span className="text-muted-foreground font-mono text-xs">{meta}</span> : null}
+			<h2 className="type-wide text-xs font-bold">{title}</h2>
+			{meta ? <span className="type-label">{meta}</span> : null}
 			{children ? (
 				<div className="ml-auto flex max-w-full items-center gap-2 overflow-x-auto">{children}</div>
 			) : null}
@@ -37,16 +37,26 @@ export function PanelHeader({
 	);
 }
 
-/** Small uppercase label above a reading. */
+/** Instrument-panel micro-label. */
 export function Eyebrow({ className, ...props }: React.ComponentProps<'span'>) {
+	return <span className={cn('type-label', className)} {...props} />;
+}
+
+/** A labelled reading: label printed above, value below. Used instead of dot-separated text. */
+export function Field({
+	label,
+	children,
+	className
+}: {
+	label: string;
+	children: React.ReactNode;
+	className?: string;
+}) {
 	return (
-		<span
-			className={cn(
-				'text-muted-foreground font-display text-xs font-medium tracking-wider uppercase',
-				className
-			)}
-			{...props}
-		/>
+		<div className={cn('flex min-w-0 flex-col', className)}>
+			<span className="type-label">{label}</span>
+			<span className="truncate text-sm font-medium">{children}</span>
+		</div>
 	);
 }
 
@@ -54,7 +64,7 @@ export function Kbd({ className, ...props }: React.ComponentProps<'kbd'>) {
 	return (
 		<kbd
 			className={cn(
-				'bg-muted text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center rounded border px-1 font-mono text-xs',
+				'text-muted-foreground inline-flex h-5 min-w-5 items-center justify-center border border-b-2 px-1 font-mono text-xs',
 				className
 			)}
 			{...props}

@@ -1,41 +1,31 @@
-import type { RaceControlCategory } from '@f1-live/shared';
-import {
-	CloudRainIcon,
-	DropletsIcon,
-	FlagIcon,
-	GavelIcon,
-	InfoIcon,
-	type LucideIcon,
-	SirenIcon,
-	ThermometerIcon,
-	TriangleAlertIcon,
-	WindIcon,
-	ZapIcon
-} from 'lucide-react';
+import type { RaceControlCategory, RaceControlMessage } from '@f1-live/shared';
 import { AnimatePresence, motion } from 'motion/react';
+import * as React from 'react';
 
+import { KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { useRace } from '@/data/race-context';
 import { cn } from '@/lib/utils';
 
-const VISIBLE_MESSAGES = 6;
+const VISIBLE_MESSAGES = 7;
 
-const CATEGORY_ICON = {
-	flag: FlagIcon,
-	safety_car: SirenIcon,
-	drs: ZapIcon,
-	penalty: GavelIcon,
-	incident: TriangleAlertIcon,
-	other: InfoIcon
-} as const satisfies Record<RaceControlCategory, LucideIcon>;
+type Filter = 'all' | 'flags' | 'stewards' | 'mine';
 
-const CATEGORY_TONE: Record<RaceControlCategory, string> = {
-	flag: 'text-foreground',
-	safety_car: 'text-safety-car',
-	drs: 'text-drs',
-	penalty: 'text-primary',
-	incident: 'text-warning',
-	other: 'text-muted-foreground'
+const FILTERS = [
+	{ value: 'all', label: 'All' },
+	{ value: 'flags', label: 'Flags' },
+	{ value: 'stewards', label: 'Stewards' },
+	{ value: 'mine', label: 'Mine' }
+] as const;
+
+/** Printed category codes, coloured only where the colour is the regulated one. */
+const CATEGORY: Record<RaceControlCategory, { code: string; tone: string }> = {
+	flag: { code: 'Flag', tone: 'text-flag' },
+	safety_car: { code: 'VSC/SC', tone: 'text-flag' },
+	drs: { code: 'DRS', tone: 'text-muted-foreground' },
+	penalty: { code: 'Pen', tone: 'text-danger' },
+	incident: { code: 'Inc', tone: 'text-foreground' },
+	other: { code: 'Info', tone: 'text-muted-foreground' }
 };
 
 const KEEP_UPPERCASE = /\b(vsc|sc|drs|fia|dsq)\b/g;
@@ -44,10 +34,26 @@ const KEEP_UPPERCASE = /\b(vsc|sc|drs|fia|dsq)\b/g;
 function readable(message: string): string {
 	const lower = message
 		.toLowerCase()
+		.replace(/^fia stewards: /, '')
 		.replaceAll(/\(([a-z]{3})\)/g, (_, code: string) => `(${code.toUpperCase()})`)
 		.replaceAll(KEEP_UPPERCASE, (word) => word.toUpperCase());
 
 	return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+function matches(message: RaceControlMessage, filter: Filter, driverNumber: string): boolean {
+	switch (filter) {
+		case 'all':
+			return true;
+		case 'flags':
+			return message.category === 'flag' || message.category === 'safety_car';
+		case 'stewards':
+			return message.category === 'penalty' || message.category === 'incident';
+		case 'mine':
+			return (
+				message.driverNumber === driverNumber || message.message.includes(`CAR ${driverNumber} `)
+			);
+	}
 }
 
 function Conditions() {
@@ -59,22 +65,19 @@ function Conditions() {
 	}
 
 	const readings = [
-		{ icon: ThermometerIcon, label: 'Track', value: `${weather.trackTempC.toFixed(1)}°` },
-		{ icon: ThermometerIcon, label: 'Air', value: `${weather.airTempC.toFixed(1)}°` },
-		{ icon: DropletsIcon, label: 'Humidity', value: `${weather.humidityPct}%` },
+		{ label: 'Track', value: `${weather.trackTempC.toFixed(1)}°C` },
+		{ label: 'Air', value: `${weather.airTempC.toFixed(1)}°C` },
+		{ label: 'Humidity', value: `${weather.humidityPct}%` },
 		weather.rainfall
-			? { icon: CloudRainIcon, label: 'Rain', value: 'Falling' }
-			: { icon: WindIcon, label: 'Wind', value: `${weather.windSpeedMs.toFixed(1)} m/s` }
+			? { label: 'Rain', value: 'Falling' }
+			: { label: 'Wind', value: `${weather.windSpeedMs.toFixed(1)}m/s` }
 	];
 
 	return (
-		<dl className="grid grid-cols-4 divide-x border-t" aria-label="Conditions">
+		<dl className="mt-auto grid grid-cols-4 divide-x border-t" aria-label="Conditions">
 			{readings.map((reading) => (
-				<div key={reading.label} className="flex flex-col gap-0.5 px-3 py-2.5">
-					<dt className="text-muted-foreground flex items-center gap-1 text-xs">
-						<reading.icon className="size-3" aria-hidden />
-						{reading.label}
-					</dt>
+				<div key={reading.label} className="flex flex-col px-3 py-2">
+					<dt className="type-label">{reading.label}</dt>
 					<dd className="font-mono text-sm">{reading.value}</dd>
 				</div>
 			))}
@@ -83,40 +86,44 @@ function Conditions() {
 }
 
 export function RaceControlFeed() {
-	const { snapshot } = useRace();
-	const messages = snapshot.raceControl.slice(-VISIBLE_MESSAGES).toReversed();
+	const { snapshot, followedDriver } = useRace();
+	const [filter, setFilter] = React.useState<Filter>('all');
+
+	const messages = snapshot.raceControl
+		.filter((message) => matches(message, filter, followedDriver))
+		.slice(-VISIBLE_MESSAGES)
+		.toReversed();
 
 	return (
 		<Panel aria-label="Race control" className="flex-1">
-			<PanelHeader title="Race control" meta={`${snapshot.raceControl.length} messages`} />
+			<PanelHeader title="Race control">
+				<KeyGroup label="Messages shown" options={FILTERS} value={filter} onChange={setFilter} />
+			</PanelHeader>
 			{messages.length === 0 ? (
-				<p className="text-muted-foreground px-4 py-4 text-sm">No messages yet.</p>
+				<p className="text-muted-foreground px-4 py-4 text-sm">Nothing here yet.</p>
 			) : (
-				<ol className="flex flex-col px-4 py-2" data-testid="race-control">
+				<ol className="flex flex-col" data-testid="race-control">
 					<AnimatePresence initial={false} mode="popLayout">
 						{messages.map((message) => {
-							const Icon = CATEGORY_ICON[message.category];
+							const category = CATEGORY[message.category];
 
 							return (
 								<motion.li
 									key={`${message.lap}-${message.message}`}
 									layout
-									initial={{ opacity: 0, y: -8 }}
-									animate={{ opacity: 1, y: 0 }}
+									initial={{ opacity: 0, x: -6 }}
+									animate={{ opacity: 1, x: 0 }}
 									exit={{ opacity: 0 }}
-									transition={{ duration: 0.25 }}
-									className="flex gap-3 border-b py-2.5 last:border-b-0"
+									transition={{ duration: 0.2 }}
+									className="grid grid-cols-[2.5rem_3.5rem_minmax(0,1fr)] gap-2 border-b px-4 py-2.5 last:border-b-0"
 								>
-									<Icon
-										className={cn('mt-0.5 size-4 shrink-0', CATEGORY_TONE[message.category])}
-										aria-hidden
-									/>
-									<span className="flex min-w-0 flex-col gap-0.5">
-										<span className="text-sm leading-snug">{readable(message.message)}</span>
-										<span className="text-muted-foreground font-mono text-xs">
-											Lap {message.lap}
-										</span>
+									<span className="text-muted-foreground font-mono text-xs leading-5">
+										L{message.lap}
 									</span>
+									<span className={cn('type-label leading-5 font-bold', category.tone)}>
+										{category.code}
+									</span>
+									<span className="text-sm leading-5">{readable(message.message)}</span>
 								</motion.li>
 							);
 						})}

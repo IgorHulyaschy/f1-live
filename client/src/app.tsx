@@ -1,16 +1,19 @@
+import { MotionConfig } from 'motion/react';
 import * as React from 'react';
 import { Outlet } from 'react-router';
 
 import { AppHeader } from '@/components/app-header';
+import { Key } from '@/components/console/keys';
 import { CommandMenu } from '@/components/command-menu';
+import { PitBoard } from '@/components/pit-board';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { RaceProvider } from '@/data/race-context';
+import { RaceProvider, useRace } from '@/data/race-context';
 import type { RaceSource } from '@/data/race-source';
 import { useRaceAlerts } from '@/hooks/use-race-alerts';
 import { useRaceHotkeys } from '@/hooks/use-race-hotkeys';
-import { useDarkTheme } from '@/hooks/use-theme';
+import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 
 export function LoadingState() {
 	return (
@@ -35,28 +38,58 @@ function Console({ sourceKind }: { sourceKind: RaceSource['kind'] }) {
 	const [commandOpen, setCommandOpen] = React.useState(false);
 	const openCommand = React.useCallback(() => setCommandOpen(true), []);
 	const dark = useDarkTheme();
+	const { snapshot, followedDriver } = useRace();
+	const focus = snapshot.drivers.find((driver) => driver.number === followedDriver);
 
 	useRaceHotkeys(openCommand);
 	useRaceAlerts();
 
 	return (
-		<TooltipProvider>
-			<AppHeader onOpenCommand={openCommand} />
-			<main className="mx-auto max-w-screen-2xl px-4 pb-6 md:px-6">
-				<Outlet />
-			</main>
-			<footer className="text-muted-foreground mx-auto flex max-w-screen-2xl flex-wrap justify-between gap-2 px-4 pb-8 text-xs md:px-6">
-				<span>
-					Unofficial. Not associated in any way with the Formula 1 companies.
-					{sourceKind === 'mock'
-						? ' Replay: real grid, strategies, race control and result; lap times are modelled.'
-						: null}
-				</span>
-				<span className="hidden md:inline">← → laps · Space play · 1 2 3 pages · ⌘K jump</span>
-			</footer>
-			<CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
-			<Toaster theme={dark ? 'dark' : 'light'} position="bottom-right" />
-		</TooltipProvider>
+		<MotionConfig reducedMotion="user">
+			<TooltipProvider>
+				<div
+					className="min-h-svh"
+					style={focus ? { '--focus': `#${focus.teamColour}` } : undefined}
+				>
+					<AppHeader onOpenCommand={openCommand} />
+					<main className="px-4 pb-6 md:px-6">
+						<Outlet />
+					</main>
+					<footer className="text-muted-foreground flex flex-wrap justify-between gap-x-8 gap-y-2 px-4 pb-24 text-xs md:px-6 md:pb-8">
+						<p className="max-w-3xl">
+							Unofficial. Not associated in any way with the Formula 1 companies.
+							{sourceKind === 'mock'
+								? ' This replay uses the real grid, strategies, race control and result; lap times are modelled from them.'
+								: null}
+						</p>
+						<Key className="sm:hidden" onClick={toggleTheme}>
+							{dark ? 'Light theme' : 'Dark theme'}
+						</Key>
+						<dl className="type-label hidden gap-4 md:flex">
+							<div className="flex gap-1.5">
+								<dt>Laps</dt>
+								<dd className="text-foreground">← →</dd>
+							</div>
+							<div className="flex gap-1.5">
+								<dt>Play</dt>
+								<dd className="text-foreground">Space</dd>
+							</div>
+							<div className="flex gap-1.5">
+								<dt>Pages</dt>
+								<dd className="text-foreground">1 2 3</dd>
+							</div>
+							<div className="flex gap-1.5">
+								<dt>Jump</dt>
+								<dd className="text-foreground">⌘K</dd>
+							</div>
+						</dl>
+					</footer>
+					<PitBoard />
+				</div>
+				<CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
+				<Toaster theme={dark ? 'dark' : 'light'} position="bottom-right" />
+			</TooltipProvider>
+		</MotionConfig>
 	);
 }
 

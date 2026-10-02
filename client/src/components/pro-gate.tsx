@@ -1,11 +1,23 @@
 import { LockIcon } from 'lucide-react';
 import type * as React from 'react';
 
-import { Button } from '@/components/ui/button';
+import { Key } from '@/components/console/keys';
 import { useRace } from '@/data/race-context';
 
-/** Shows Pro content to Pro viewers; others see a faded preview with one way in. */
-export function ProGate({ feature, children }: { feature: string; children: React.ReactNode }) {
+/**
+ * Pro content for Pro viewers. Everyone else gets one line saying what they would see and one
+ * key to preview it: no blurred slabs.
+ */
+export function ProGate({
+	feature,
+	teaser,
+	children
+}: {
+	feature: string;
+	/** What the locked feature would answer right now, in the viewer's terms. */
+	teaser?: React.ReactNode;
+	children: React.ReactNode;
+}) {
 	const { plan, setPlan } = useRace();
 
 	if (plan === 'pro') {
@@ -13,22 +25,13 @@ export function ProGate({ feature, children }: { feature: string; children: Reac
 	}
 
 	return (
-		<div className="relative isolate">
-			<div aria-hidden className="pointer-events-none opacity-40 blur-xs select-none" inert>
-				{children}
+		<div className="flex flex-wrap items-center gap-x-4 gap-y-2 border border-dashed px-3 py-3">
+			<LockIcon className="text-muted-foreground size-3.5" aria-hidden />
+			<div className="flex min-w-48 flex-1 flex-col">
+				<span className="text-sm font-medium">{feature} is part of Pro</span>
+				{teaser ? <span className="text-muted-foreground text-xs">{teaser}</span> : null}
 			</div>
-			<div className="from-panel/40 via-panel/80 to-panel/40 absolute inset-0 flex items-center justify-center bg-linear-to-b p-4">
-				<div className="flex flex-col items-center gap-2 text-center">
-					<span className="font-display text-primary flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
-						<LockIcon className="size-3" aria-hidden />
-						Pro
-					</span>
-					<p className="max-w-64 text-sm font-medium">{feature} is part of Pro</p>
-					<Button size="sm" variant="outline" onClick={() => setPlan('pro')}>
-						Preview Pro
-					</Button>
-				</div>
-			</div>
+			<Key onClick={() => setPlan('pro')}>Preview Pro</Key>
 		</div>
 	);
 }

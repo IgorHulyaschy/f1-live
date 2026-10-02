@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 
+import { Digits } from '@/components/console/digits';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { ProGate } from '@/components/pro-gate';
@@ -12,62 +13,57 @@ const SHOWN_DRIVERS = 10;
 export function PaceRanking() {
 	const { snapshot } = useRace();
 	const ranking = tyreCorrectedPace(snapshot).slice(0, SHOWN_DRIVERS);
-	const slowest = Math.max(...ranking.map((entry) => entry.deltaToBestSeconds), 0.5);
+	const scale = Math.max(...ranking.map((entry) => entry.deltaToBestSeconds), 0.5);
+	const leader = ranking[0]?.driver.code;
 
 	return (
-		<Panel aria-label="Tyre-corrected pace" data-testid="pace-ranking">
-			<PanelHeader title="Who is really fastest" meta="fuel & tyre corrected" />
-			<div className="p-4">
-				<ProGate feature="Tyre-corrected pace">
+		<Panel aria-label="True pace" data-testid="pace-ranking">
+			<PanelHeader title="True pace" meta="fuel and tyre age removed" />
+			<div className="flex flex-col gap-3 p-4">
+				<ProGate
+					feature="Tyre-corrected pace"
+					teaser="Who is actually quickest once fuel load and tyre age are taken out, in tenths per lap."
+				>
 					{ranking.length === 0 ? (
 						<p className="text-muted-foreground text-sm">
 							Not enough green-flag laps on the current tyres yet.
 						</p>
 					) : (
-						<ol className="flex flex-col gap-2">
+						<ol className="flex flex-col">
 							{ranking.map((entry, index) => (
 								<li
 									key={entry.driver.number}
-									className="grid grid-cols-[1.25rem_4rem_minmax(0,1fr)_4.5rem] items-center gap-3"
+									className="grid grid-cols-[1.25rem_4rem_2.5rem_minmax(0,1fr)_4.5rem] items-center gap-3 border-b py-1.5 last:border-b-0"
 								>
 									<span className="text-muted-foreground text-right font-mono text-xs">
 										{index + 1}
 									</span>
-									<span className="flex items-center gap-2">
-										<DriverTag driver={entry.driver} />
-									</span>
-									<span className="bg-muted relative h-2 overflow-hidden rounded-full">
+									<DriverTag driver={entry.driver} />
+									<TyreBadge compound={entry.compound} />
+									<span className="border-rule-strong relative h-3 border-l">
 										<motion.span
-											className="bg-team absolute inset-y-0 left-0 rounded-full"
+											className="bg-team absolute inset-y-0 left-0"
 											style={{ '--team': `#${entry.driver.teamColour}` }}
 											initial={{ width: 0 }}
-											animate={{
-												width: `${Math.max(3, (1 - entry.deltaToBestSeconds / (slowest * 1.15)) * 100)}%`
-											}}
-											transition={{
-												type: 'spring',
-												stiffness: 120,
-												damping: 20,
-												delay: index * 0.03
-											}}
+											animate={{ width: `${(entry.deltaToBestSeconds / scale) * 100}%` }}
+											transition={{ duration: 0.4, ease: 'easeOut', delay: index * 0.02 }}
 										/>
 									</span>
-									<span className="flex items-center justify-end gap-2 font-mono text-xs">
+									<span className="text-right text-sm">
 										{index === 0 ? (
-											<span className="text-fastest">best</span>
+											<span className="type-label text-fastest">Quickest</span>
 										) : (
-											`+${entry.deltaToBestSeconds.toFixed(2)}`
+											<Digits value={`+${entry.deltaToBestSeconds.toFixed(3)}`} />
 										)}
-										<TyreBadge compound={entry.compound} />
 									</span>
 								</li>
 							))}
 						</ol>
 					)}
 				</ProGate>
-				<p className="text-muted-foreground mt-4 text-xs">
-					Recent green-flag laps with fuel load and tyre age removed, on equal tyres. Seconds per
-					lap off the quickest car.
+				<p className="text-muted-foreground text-xs">
+					Seconds per lap off {leader ?? 'the quickest car'} over recent green-flag laps, on equal
+					tyres. Bars grow from the quickest car.
 				</p>
 			</div>
 		</Panel>

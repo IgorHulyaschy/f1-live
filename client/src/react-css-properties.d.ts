@@ -4,6 +4,8 @@ declare module 'react' {
 	interface CSSProperties {
 		/** Driver team colour, read by the `team` theme colour. */
 		'--team'?: string;
+		/** Team colour of the followed driver; the app accent re-tints around it. */
+		'--focus'?: string;
 		/** Fractional size or offset of a data mark, as a CSS length or percentage. */
 		'--size'?: string;
 		'--offset'?: string;

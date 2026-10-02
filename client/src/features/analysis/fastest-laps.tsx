@@ -1,3 +1,4 @@
+import { Digits } from '@/components/console/digits';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
@@ -31,7 +32,7 @@ export function FastestLaps() {
 	return (
 		<Panel aria-label="Fastest laps">
 			<PanelHeader title="Fastest laps" meta="best per driver" />
-			<ol className="flex flex-col px-4 py-2">
+			<ol className="flex flex-col px-4 py-1">
 				{laps.map((lap, index) => {
 					const driver = drivers.get(lap.driverNumber);
 
@@ -44,11 +45,14 @@ export function FastestLaps() {
 							{driver ? <DriverTag driver={driver} /> : null}
 							<span className="text-muted-foreground ml-auto text-xs">L{lap.lap}</span>
 							<TyreBadge compound={lap.compound} age={lap.tyreAge} />
-							<span className={cn('w-20 text-right', index === 0 && 'text-fastest')}>
-								{index === 0
-									? formatLapTime(lap.lapTimeMs)
-									: `+${((lap.lapTimeMs - fastest) / 1000).toFixed(3)}`}
-							</span>
+							<Digits
+								className={cn('w-20 text-right', index === 0 && 'text-fastest')}
+								value={
+									index === 0
+										? formatLapTime(lap.lapTimeMs)
+										: `+${((lap.lapTimeMs - fastest) / 1000).toFixed(3)}`
+								}
+							/>
 						</li>
 					);
 				})}

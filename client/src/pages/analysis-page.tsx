@@ -11,8 +11,7 @@ const DEFAULT_COMPARED = 3;
 
 export function AnalysisPage() {
 	const { snapshot, followedDriver } = useRace();
-	const rows = standingsAt(snapshot);
-	const running = rows.filter((row) => row.state !== 'out');
+	const running = standingsAt(snapshot).filter((row) => row.state !== 'out');
 	const [highlighted, setHighlighted] = React.useState<string | null>(null);
 
 	const [selected, setSelected] = React.useState<string[]>(() => {
@@ -36,16 +35,22 @@ export function AnalysisPage() {
 		.filter((driver) => selected.includes(driver.code));
 
 	return (
-		<div className="bg-border grid gap-px overflow-hidden rounded-lg border lg:grid-cols-[15rem_minmax(0,1fr)]">
-			<DriverList
-				rows={running}
-				selected={selected}
-				onToggle={toggle}
-				onHighlight={setHighlighted}
-			/>
-			<ChartWorkspace drivers={compared} highlighted={highlighted} />
-			<div className="bg-border grid gap-px lg:col-span-2 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-				<PaceRanking />
+		<div className="flex flex-col gap-6">
+			<div className="grid gap-y-6 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-y-0">
+				<div className="lg:border-r">
+					<DriverList
+						rows={running}
+						selected={selected}
+						onToggle={toggle}
+						onHighlight={setHighlighted}
+					/>
+				</div>
+				<ChartWorkspace drivers={compared} highlighted={highlighted} />
+			</div>
+			<div className="grid gap-y-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-y-0">
+				<div className="lg:border-r">
+					<PaceRanking />
+				</div>
 				<FastestLaps />
 			</div>
 		</div>
