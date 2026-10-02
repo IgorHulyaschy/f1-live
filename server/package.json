@@ -8,7 +8,9 @@
 		"dev": "tsx watch --env-file=.env ./src/index.ts",
 		"build": "tsc",
 		"start": "node dist/index.js",
+		"record": "tsx --env-file-if-exists=.env ./src/cli/record.ts",
 		"typecheck": "tsc --noEmit",
+		"test:unit": "node --import tsx --test 'src/**/*.test.ts'",
 		"migrations:generate": "npm run build && drizzle-kit generate",
 		"migrations:up": "drizzle-kit migrate"
 	},
@@ -18,7 +20,8 @@
 		"fastify": "5.12.5",
 		"pg": "8.23.1",
 		"ulid": "3.0.2",
-		"ws": "8.22.0"
+		"ws": "8.22.0",
+		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@types/pg": "8.23.1",

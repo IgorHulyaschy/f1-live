@@ -26,5 +26,6 @@ client/shots/output/
 .DS_Store
 Thumbs.db
 
-# Raw live-timing dumps
+# Raw live-timing dumps and recordings
 live-update-*.json
+/data/
