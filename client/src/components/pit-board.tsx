@@ -39,6 +39,7 @@ export function PitBoard() {
 	return (
 		<button
 			type="button"
+			data-pit-board
 			onClick={showFocus}
 			aria-label={`Following ${row.driver.code}, P${row.position}. Show details.`}
 			className="bg-background/95 text-left border-rule-strong fixed inset-x-0 bottom-0 z-40 grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 border-t-2 px-4 py-2 backdrop-blur-sm md:hidden"

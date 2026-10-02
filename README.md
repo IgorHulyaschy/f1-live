@@ -3,6 +3,36 @@
 Live and post-race Formula 1 insights: timing, battles, pit windows, tyre strategy and pace.
 Working name only; the product must not use "F1" or "Formula 1" in its brand.
 
+![Live dashboard: timing tower, followed driver and race control](docs/screenshots/live-desktop-dark.png)
+
+| Pit wall at 2560px, fit to screen                                                         | Building a dashboard                                                           |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| ![Pit wall preset on a 2560px monitor](docs/screenshots/pit-wall-2560.png)                | ![Edit mode with tile bars and resize handles](docs/screenshots/edit-mode.png) |
+| **Analysis**                                                                              | **Strategy**                                                                   |
+| ![Lap time chart, true pace and fastest laps](docs/screenshots/analysis-desktop-dark.png) | ![Stints, tyre wear and pit stops](docs/screenshots/strategy-desktop-dark.png) |
+
+More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](docs/screenshots.md).
+
+## Dashboards
+
+Every page is a dashboard: tiles on a 24-column grid, made to work on any screen from a phone to
+a wall monitor.
+
+- **Presets.** Live, Analysis and Strategy (at `/`, `/analysis`, `/strategy`), Battle and Pit
+  wall. Presets can be edited and reset; **+** starts your own.
+- **Tiles.** Timing, focus, gaps, box now, race control, chart (lap times, gap, positions,
+  battle), compare, true pace, fastest laps, stints, tyre wear and pit stops. Drag by the bar,
+  resize from the edges, or use the keyboard: focus a grip, arrows move, Shift and arrows resize.
+- **Any monitor.** Panels lay out by their tile's width (container queries), not the screen's.
+  **Fit** stretches rows to the window height; text size runs from S to TV; narrow screens stack
+  tiles in reading order.
+- **Windows.** Open a tile or a whole dashboard in its own window. Lap, followed driver, plan,
+  compared drivers and play/pause stay in sync across windows.
+- **Sharing.** Export a dashboard as JSON and import it anywhere. Dashboards are saved in the
+  browser; there is no account sync yet.
+
+Design rules: [docs/design/identity.md](docs/design/identity.md).
+
 ## Layout
 
 | Workspace | What it is                                                                   |
@@ -39,7 +69,7 @@ modelled and calibrated to the real gaps. Set `VITE_DATA_SOURCE=api` to read fro
 | `npm run format`              | Prettier.                                                   |
 | `npm run test:unit -w client` | Node test runner over the mock race and insights.           |
 | `npm run test:e2e`            | Playwright against the mock replay.                         |
-| `npm run shots`               | Screenshots of every page at 4 sizes, free/Pro, dark/light. |
+| `npm run shots`               | Screenshots of every page at 6 sizes, free/Pro, dark/light. |
 
 Shots land in `client/shots/output/<viewport>/<page>-<plan>-<theme>.png` (not committed) and are
 meant for design and quality audits. If Playwright's own browser is not installed, point it at

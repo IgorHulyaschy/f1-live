@@ -62,7 +62,9 @@ for (const viewport of VIEWPORTS) {
 						await page.screenshot({
 							path: `shots/output/${viewport.name}/${screen.name}-${plan}-${theme}.png`,
 							fullPage: true,
-							animations: 'disabled'
+							animations: 'disabled',
+							// Full-page shots would print the pinned pit board mid-page; show it at the end.
+							style: 'body { position: relative; } [data-pit-board] { position: absolute; bottom: 0; }'
 						});
 					});
 				}
