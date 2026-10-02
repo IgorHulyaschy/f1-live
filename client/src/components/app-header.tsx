@@ -145,7 +145,7 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 				<MainNav />
 				<div className="ml-auto flex items-center gap-1 sm:gap-2">
 					{needsClock ? (
-						<div className="flex items-center gap-3" data-testid="header-clock">
+						<div className="hidden items-center gap-3 sm:flex" data-testid="header-clock">
 							<Transport className="hidden 2xl:flex" />
 							<LapCounter size="sm" />
 						</div>

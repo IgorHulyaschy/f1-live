@@ -46,15 +46,36 @@ function Overlay({ sources, className }: { sources: readonly string[]; className
 	);
 }
 
-/** The driver's picture on their team colour; without one, their race number in its place. */
-export function DriverPortrait({ driver, className }: { driver: Driver; className?: string }) {
+/**
+ * The driver's picture over their race number. Plates are neutral with a team-colour rule; only a
+ * `tinted` plate (the driver you follow, or the one you are picking) takes the colour, so a wall
+ * of twenty plates stays a timing screen, not a sticker sheet.
+ */
+export function DriverPortrait({
+	driver,
+	tinted = false,
+	className
+}: {
+	driver: Driver;
+	tinted?: boolean;
+	className?: string;
+}) {
 	return (
 		<span
 			aria-hidden
-			className={cn('bg-team/15 plate relative block shrink-0 overflow-hidden', className)}
+			className={cn(
+				'plate relative block shrink-0 overflow-hidden',
+				tinted ? 'bg-team/15' : 'bg-muted',
+				className
+			)}
 			style={{ '--team': `#${driver.teamColour}` }}
 		>
-			<span className="text-team plate-number absolute inset-x-0 bottom-0 font-mono font-black italic">
+			<span
+				className={cn(
+					'plate-number absolute inset-x-0 bottom-0 font-mono font-black italic',
+					tinted ? 'text-team' : 'text-foreground/30'
+				)}
+			>
 				{driver.number}
 			</span>
 			<Overlay sources={driverPhotoUrls(driver, 240)} className="object-cover object-top" />

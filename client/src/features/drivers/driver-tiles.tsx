@@ -1,5 +1,6 @@
 import { CarSide, DriverPortrait, TeamLogo } from '@/components/driver-media';
-import { Panel, PanelHeader } from '@/components/console/panel';
+import { Digits } from '@/components/console/digits';
+import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { TyreBadge } from '@/components/tyre-badge';
 import {
 	Select,
@@ -10,7 +11,7 @@ import {
 } from '@/components/ui/select';
 import { useRace } from '@/data/race-context';
 import type { StandingRow } from '@/insights/standings';
-import { formatGap } from '@/lib/format';
+import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 function gapText(row: StandingRow): string {
@@ -53,7 +54,7 @@ export function DriverCard() {
 				</Select>
 			</PanelHeader>
 			<div className="flex items-stretch border-b">
-				<DriverPortrait driver={driver} className="h-36 w-28 @md:h-44 @md:w-36" />
+				<DriverPortrait driver={driver} tinted className="h-36 w-28 @md:h-44 @md:w-36" />
 				<div className="flex min-w-0 flex-1 flex-col justify-between gap-3 px-4 py-3">
 					<div className="flex min-w-0 flex-col gap-1">
 						<span className="type-label">{driver.firstName}</span>
@@ -73,11 +74,22 @@ export function DriverCard() {
 							<span className="type-label">Gap</span>
 							<span className="text-sm">{gapText(row)}</span>
 						</span>
-						<span className="text-muted-foreground ml-auto text-4xl leading-none font-black italic">
-							{driver.number}
-						</span>
 					</div>
 				</div>
+			</div>
+			<div className="grid grid-cols-2 border-b @md:grid-cols-4 @md:divide-x">
+				<Field label="Last" className="px-4 py-2.5">
+					{row.lastLap ? <Digits value={formatLapTime(row.lastLap.lapTimeMs)} /> : '-'}
+				</Field>
+				<Field label="Best" className="px-4 py-2.5">
+					{row.bestLapMs === null ? '-' : <Digits value={formatLapTime(row.bestLapMs)} />}
+				</Field>
+				<Field label="Tyre" className="px-4 py-2.5">
+					{row.compound ? <TyreBadge compound={row.compound} age={row.tyreAge} /> : '-'}
+				</Field>
+				<Field label="Stops" className="px-4 py-2.5">
+					<span className="font-mono">{row.pitStops}</span>
+				</Field>
 			</div>
 			<CarSide driver={driver} className="mx-4 my-3" />
 		</Panel>
@@ -108,7 +120,7 @@ export function GridWall() {
 									row.state === 'out' && 'opacity-50'
 								)}
 							>
-								<DriverPortrait driver={row.driver} className="aspect-4/3 w-full" />
+								<DriverPortrait driver={row.driver} tinted={followed} className="h-24 w-full" />
 								<span className="flex flex-col gap-1 px-2 py-1.5">
 									<span className="flex items-baseline gap-1.5">
 										<span className="font-mono text-xs font-bold">{row.position}</span>

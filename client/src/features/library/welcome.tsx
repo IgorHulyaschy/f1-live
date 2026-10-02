@@ -61,7 +61,7 @@ export function WelcomePage() {
 					<span className="text-muted-foreground font-mono text-sm">01</span>
 					<span className="type-wide text-sm font-bold">Who do you follow?</span>
 				</h2>
-				<ul className="grid grid-cols-2 border-t border-l sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-10">
+				<ul className="grid grid-cols-4 border-t border-l sm:grid-cols-5 xl:grid-cols-10">
 					{drivers.map((driver) => {
 						const chosen = driver.number === followedDriver;
 
@@ -76,12 +76,18 @@ export function WelcomePage() {
 										chosen && 'bg-accent'
 									)}
 								>
-									<DriverPortrait driver={driver} className="aspect-square w-full" />
+									<DriverPortrait
+										driver={driver}
+										tinted={chosen}
+										className="h-16 w-full sm:aspect-square sm:h-auto"
+									/>
 									<span className="flex items-baseline justify-between gap-2 px-2 py-1.5">
 										<span className="type-wide truncate text-xs font-bold">{driver.lastName}</span>
 										{chosen ? <span aria-hidden className="bg-focus size-2 shrink-0" /> : null}
 									</span>
-									<span className="type-label truncate px-2 pb-2">{driver.team}</span>
+									<span className="type-label hidden truncate px-2 pb-2 sm:block">
+										{driver.team}
+									</span>
 								</button>
 							</li>
 						);

@@ -34,7 +34,7 @@ function LayoutThumb({ dashboard, className }: { dashboard: Dashboard; className
 			aria-hidden
 			viewBox={`0 0 ${GRID_COLUMNS} ${rows}`}
 			preserveAspectRatio="none"
-			className={cn('bg-muted/40 aspect-video w-36 shrink-0 border', className)}
+			className={cn('bg-muted/40 aspect-video w-24 shrink-0 border sm:w-36', className)}
 		>
 			{dashboard.layout.map((place) => {
 				const kind = kinds.get(place.i);
@@ -82,11 +82,11 @@ function LibraryRow({
 
 	return (
 		<li
-			className="flex flex-col gap-3 border-b py-3 sm:flex-row sm:items-center"
+			className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b py-3"
 			data-testid="library-row"
 		>
 			<LayoutThumb dashboard={dashboard} />
-			<div className="flex min-w-0 flex-1 flex-col gap-1">
+			<div className="flex min-w-48 flex-1 flex-col gap-1">
 				<span className="flex flex-wrap items-baseline gap-x-3">
 					<span className="type-wide text-sm font-bold">{dashboard.name}</span>
 					{by ? <span className="type-label">by @{by}</span> : null}
@@ -135,7 +135,7 @@ function Section({
 				<h2 className="type-wide text-xs font-bold">{title}</h2>
 				{meta ? <span className="type-label">{meta}</span> : null}
 			</header>
-			<ul>{children}</ul>
+			<ul className="grid 2xl:grid-cols-2 2xl:gap-x-10">{children}</ul>
 		</section>
 	);
 }
@@ -156,7 +156,7 @@ export function LibraryPage() {
 	const fans = [...published, ...COMMUNITY];
 
 	return (
-		<div className="flex max-w-6xl flex-col gap-8" data-testid="library">
+		<div className="flex flex-col gap-8" data-testid="library">
 			<header className="flex flex-col gap-2">
 				<h1 className="type-wide text-2xl leading-none font-black italic md:text-4xl">Library</h1>
 				<p className="text-muted-foreground max-w-2xl text-sm">
