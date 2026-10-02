@@ -19,6 +19,8 @@ type RaceContextValue = {
 	snapshot: RaceSnapshot;
 	lap: number;
 	setLap: (lap: number) => void;
+	/** Moves the replay by `delta` laps, clamped to the laps available. */
+	stepLap: (delta: number) => void;
 	playing: boolean;
 	setPlaying: (playing: boolean) => void;
 	plan: Plan;
@@ -72,6 +74,13 @@ function useRaceData(source: RaceSource): RaceState {
  * Race data plus the viewer's choices. Lap, plan and followed driver live in the URL so every
  * view is linkable, and tests and screenshots can open an exact state.
  */
+/** The lap the URL asks for, clamped to the laps available, or the default. */
+function resolveLap(raw: string | null, maxLap: number, defaultLap: number): number {
+	const requested = Number(raw);
+
+	return Number.isInteger(requested) && requested > 0 ? Math.min(requested, maxLap) : defaultLap;
+}
+
 export function RaceProvider({
 	source,
 	loadingFallback,
@@ -103,13 +112,23 @@ export function RaceProvider({
 
 	const race = state.status === 'ready' ? state.race : null;
 	const maxLap = race?.currentLap ?? 1;
-	const requestedLap = Number(searchParams.get('lap'));
 	const defaultLap = source.kind === 'mock' ? DEFAULT_REPLAY_LAP : maxLap;
+	const lap = resolveLap(searchParams.get('lap'), maxLap, defaultLap);
 
-	const lap =
-		Number.isInteger(requestedLap) && requestedLap > 0
-			? Math.min(requestedLap, maxLap)
-			: defaultLap;
+	// The router hands functional updates the params of the last render, so two quick clicks would
+	// both step from the same lap. The address bar is updated as soon as a navigation commits.
+	const stepLap = React.useCallback(
+		(delta: number) => {
+			const current = resolveLap(
+				new URLSearchParams(window.location.search).get('lap'),
+				maxLap,
+				defaultLap
+			);
+
+			updateParam('lap', String(Math.min(Math.max(current + delta, 1), maxLap)));
+		},
+		[updateParam, maxLap, defaultLap]
+	);
 
 	// Playback stops by itself at the last available lap.
 	const isPlaying = playing && lap < maxLap;
@@ -119,13 +138,10 @@ export function RaceProvider({
 			return;
 		}
 
-		const timer = window.setTimeout(
-			() => updateParam('lap', String(lap + 1)),
-			PLAYBACK_INTERVAL_MS
-		);
+		const timer = window.setInterval(() => stepLap(1), PLAYBACK_INTERVAL_MS);
 
-		return () => window.clearTimeout(timer);
-	}, [isPlaying, lap, updateParam]);
+		return () => window.clearInterval(timer);
+	}, [isPlaying, stepLap]);
 
 	const snapshot = React.useMemo(() => (race ? snapshotAtLap(race, lap) : null), [race, lap]);
 	const plan: Plan = searchParams.get('plan') === 'pro' ? 'pro' : 'free';
@@ -140,6 +156,7 @@ export function RaceProvider({
 						snapshot,
 						lap,
 						setLap: (nextLap) => updateParam('lap', String(nextLap)),
+						stepLap,
 						playing: isPlaying,
 						setPlaying,
 						plan,
@@ -148,7 +165,7 @@ export function RaceProvider({
 						setFollowedDriver: (driverNumber) => updateParam('driver', driverNumber)
 					}
 				: null,
-		[source.kind, race, snapshot, lap, isPlaying, plan, followedDriver, updateParam]
+		[source.kind, race, snapshot, lap, isPlaying, plan, followedDriver, updateParam, stepLap]
 	);
 
 	if (state.status === 'error') {

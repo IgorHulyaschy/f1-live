@@ -17,7 +17,7 @@ import { useRace } from '@/data/race-context';
 import { battleAhead } from '@/insights/battle';
 import { predictRejoin } from '@/insights/pit-window';
 import { standingsAt } from '@/insights/standings';
-import { formatDeltaSeconds, formatLapTime } from '@/lib/format';
+import { formatLapTime } from '@/lib/format';
 
 function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 	return (
@@ -46,7 +46,7 @@ function BattleSummary({ driverNumber }: { driverNumber: string }) {
 				{closing === null ? null : (
 					<span className="text-muted-foreground">
 						{' '}
-						· {closing > 0 ? 'closing' : 'losing'} {formatDeltaSeconds(Math.abs(closing))}/lap
+						· {closing > 0 ? 'closing' : 'losing'} {Math.abs(closing).toFixed(1)}s a lap
 					</span>
 				)}
 			</p>

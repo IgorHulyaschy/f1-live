@@ -3,7 +3,7 @@ import type { Driver, Lap, RaceSnapshot, TyreCompound } from '@f1-live/shared';
 import { average, fuelCorrectedSeconds, isCleanLap } from './clean-laps.ts';
 
 /** Fewer clean laps than this make a degradation fit meaningless. */
-const MIN_STINT_LAPS = 4;
+const MIN_STINT_LAPS = 6;
 
 export interface StintPace {
 	driverNumber: string;

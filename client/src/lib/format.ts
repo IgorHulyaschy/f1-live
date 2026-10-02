@@ -17,8 +17,8 @@ export function formatGap(ms: number): string {
 }
 
 /** Signed seconds with one decimal: 0.42 → "+0.4s", -1.26 → "−1.3s". */
-export function formatDeltaSeconds(seconds: number): string {
+export function formatDeltaSeconds(seconds: number, digits = 1): string {
 	const sign = seconds < 0 ? '−' : '+';
 
-	return `${sign}${Math.abs(seconds).toFixed(1)}s`;
+	return `${sign}${Math.abs(seconds).toFixed(digits)}s`;
 }

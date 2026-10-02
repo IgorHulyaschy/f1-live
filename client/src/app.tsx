@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { RaceProvider } from '@/data/race-context';
 import type { RaceSource } from '@/data/race-source';
 
-function LoadingState() {
+export function LoadingState() {
 	return (
 		<div className="mx-auto flex max-w-screen-2xl flex-col gap-4 p-6" aria-busy>
 			<Skeleton className="h-8 w-72" />

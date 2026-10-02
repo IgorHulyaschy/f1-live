@@ -16,7 +16,7 @@ const SESSION_LABEL = {
 } as const;
 
 export function SessionBar() {
-	const { race, snapshot, lap, setLap, playing, setPlaying, sourceKind } = useRace();
+	const { race, snapshot, lap, setLap, stepLap, playing, setPlaying, sourceKind } = useRace();
 	const year = new Date(race.session.startsAt).getUTCFullYear();
 
 	return (
@@ -43,7 +43,7 @@ export function SessionBar() {
 						size="icon-sm"
 						aria-label="Previous lap"
 						disabled={lap <= 1}
-						onClick={() => setLap(lap - 1)}
+						onClick={() => stepLap(-1)}
 					>
 						<SkipBackIcon />
 					</Button>
@@ -61,7 +61,7 @@ export function SessionBar() {
 						size="icon-sm"
 						aria-label="Next lap"
 						disabled={lap >= race.currentLap}
-						onClick={() => setLap(lap + 1)}
+						onClick={() => stepLap(1)}
 					>
 						<SkipForwardIcon />
 					</Button>

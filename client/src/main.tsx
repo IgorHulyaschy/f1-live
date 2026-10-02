@@ -4,7 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router';
 
 import './index.css';
 
-import { AppLayout } from './app';
+import { AppLayout, LoadingState } from './app';
 import { createRaceSource, raceSourceKindFromEnv } from './data/race-source';
 import { LivePage } from './pages/live-page';
 
@@ -16,6 +16,7 @@ const source = createRaceSource(
 const router = createBrowserRouter([
 	{
 		element: <AppLayout source={source} />,
+		hydrateFallbackElement: <LoadingState />,
 		children: [
 			{ path: '/', element: <LivePage /> },
 			{

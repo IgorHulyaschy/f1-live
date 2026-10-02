@@ -47,6 +47,20 @@ const PIT_LANE_UNDER_VSC_SECONDS = 13;
 
 const OUT_LAP_SECONDS = 1.4;
 
+/** Stops vary by up to this much either side, so not every lane time reads the same. */
+const PIT_LANE_SPREAD_SECONDS = 0.8;
+
+/**
+ * Time in the pit lane for one stop. Spread comes from a hash of driver and lap rather than the
+ * shared PRNG, so the lap model and the pit-stop list agree without threading extra state.
+ */
+function pitLaneSeconds(driverNumber: string, lap: number, underVsc: boolean): number {
+	const base = underVsc ? PIT_LANE_UNDER_VSC_SECONDS : PIT_LANE_SECONDS;
+	const hash = ((Number(driverNumber) * 7919 + lap * 104_729) % 1000) / 1000;
+
+	return base + (hash - 0.5) * 2 * PIT_LANE_SPREAD_SECONDS;
+}
+
 /** Sector split of VER's best lap: 26.350 / 31.156 / 35.859. */
 const SECTOR_SPLIT = [0.2824, 0.3339, 0.3837] as const;
 
@@ -138,7 +152,7 @@ function planLaps(result: ReferenceResult, random: () => number): PlannedLap[] {
 			seconds *= VSC_SLOWDOWN_BY_LAP.get(lap) ?? 1;
 
 			if (isLastLapOfStint && lap < result.lapsCompleted) {
-				seconds += trackStatusOnLap(lap) === 'vsc' ? PIT_LANE_UNDER_VSC_SECONDS : PIT_LANE_SECONDS;
+				seconds += pitLaneSeconds(result.driverNumber, lap, trackStatusOnLap(lap) === 'vsc');
 			}
 
 			const pitOut = stintIndex > 0 && age === 1;
@@ -311,11 +325,7 @@ function buildPitStops(laps: readonly Lap[]): PitStop[] {
 					{
 						driverNumber: lap.driverNumber,
 						lap: lap.lap,
-						laneTimeMs: toMs(
-							lap.trackStatus === 'vsc'
-								? PIT_LANE_UNDER_VSC_SECONDS
-								: PIT_LANE_SECONDS + OUT_LAP_SECONDS
-						)
+						laneTimeMs: toMs(pitLaneSeconds(lap.driverNumber, lap.lap, lap.trackStatus === 'vsc'))
 					}
 				]
 			: []

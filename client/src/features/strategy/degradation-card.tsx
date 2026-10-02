@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { useRace } from '@/data/race-context';
 import { stintPaces } from '@/insights/tyre-pace';
-import { formatLapTime } from '@/lib/format';
+import { formatDeltaSeconds, formatLapTime } from '@/lib/format';
 
 const SHOWN_STINTS = 12;
 
@@ -60,7 +60,9 @@ export function DegradationCard() {
 												</span>
 											</span>
 										</TableCell>
-										<TableCell numeric>+{stint.degradationSecondsPerLap.toFixed(3)}s</TableCell>
+										<TableCell numeric>
+											{formatDeltaSeconds(stint.degradationSecondsPerLap, 3)}
+										</TableCell>
 										<TableCell numeric>
 											{formatLapTime(Math.round(stint.newTyrePaceSeconds * 1000))}
 										</TableCell>

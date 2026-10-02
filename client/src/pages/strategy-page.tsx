@@ -4,7 +4,7 @@ import { StintTimelineCard } from '@/features/strategy/stint-timeline-card';
 
 export function StrategyPage() {
 	return (
-		<div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
+		<div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_28rem]">
 			<StintTimelineCard />
 			<div className="flex flex-col gap-4">
 				<DegradationCard />
