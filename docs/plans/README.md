@@ -31,5 +31,5 @@ These are tracked here so no plan quietly decides them.
 ## How each plan is run
 
 - Every step is its own commit, with tests and a review pass (code, plus design from screenshots).
-- Work lands on the fork's `master` (Fybex/f1-live-fork). Nothing is pushed to the upstream repository.
+- Work lands on `master` of Fybex/f1-live-private. Nothing is pushed to the upstream repository.
 - A plan is done when its "Done when" list passes on the hosted preview, not only locally.
