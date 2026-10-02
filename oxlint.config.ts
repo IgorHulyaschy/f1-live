@@ -33,6 +33,9 @@ export default defineConfig({
 		'react/exhaustive-deps': 'error',
 		'react/rules-of-hooks': 'error',
 		'no-console': ['error', { allow: ['warn', 'error'] }],
+		'import/no-unassigned-import': ['error', { allow: ['**/*.css'] }],
+		// Immutable updates (`{ ...item, field }`) are the norm for shared race data.
+		'oxc/no-map-spread': 'off',
 		eqeqeq: 'error',
 
 		'oxc/no-accumulating-spread': 'error',
@@ -69,7 +72,9 @@ export default defineConfig({
 			rules: {
 				'shadcn/no-restyle': 'off',
 				'shadcn/no-arbitrary-values': 'off',
-				'shadcn/require-static-classes': 'off'
+				'shadcn/require-static-classes': 'off',
+				// chart.tsx injects per-chart series colours as CSS custom properties.
+				'shadcn/no-inline-styles': 'off'
 			}
 		}
 	]
