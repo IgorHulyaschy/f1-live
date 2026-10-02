@@ -2,28 +2,36 @@ import type { Driver } from '@f1-live/shared';
 
 import { cn } from '@/lib/utils';
 
+export function TeamStripe({ driver, className }: { driver: Driver; className?: string }) {
+	return (
+		<span
+			aria-hidden
+			className={cn('bg-team h-4 w-1 shrink-0 rounded-full', className)}
+			style={{ '--team': `#${driver.teamColour}` }}
+		/>
+	);
+}
+
 export function DriverTag({
 	driver,
-	showTeam = false,
+	showName = false,
 	className
 }: {
 	driver: Driver;
-	showTeam?: boolean;
+	showName?: boolean;
 	className?: string;
 }) {
 	return (
 		<span className={cn('flex min-w-0 items-center gap-2', className)}>
-			<span
-				aria-hidden
-				className="bg-team h-4 w-1 shrink-0 rounded-full"
-				style={{ '--team': `#${driver.teamColour}` }}
-			/>
-			<span className="min-w-0">
-				<span className="block font-semibold tracking-wide">{driver.code}</span>
-				{showTeam ? (
-					<span className="text-muted-foreground block truncate text-xs">{driver.team}</span>
-				) : null}
+			<TeamStripe driver={driver} />
+			<span className="font-display text-base leading-none font-semibold tracking-wide">
+				{driver.code}
 			</span>
+			{showName ? (
+				<span className="text-muted-foreground hidden truncate text-xs 2xl:inline">
+					{driver.lastName}
+				</span>
+			) : null}
 		</span>
 	);
 }

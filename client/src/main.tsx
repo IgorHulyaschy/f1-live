@@ -6,7 +6,10 @@ import './index.css';
 
 import { AppLayout, LoadingState } from './app';
 import { createRaceSource, raceSourceKindFromEnv } from './data/race-source';
+import { restoreTheme } from './hooks/use-theme';
 import { LivePage } from './pages/live-page';
+
+restoreTheme();
 
 const source = createRaceSource(
 	raceSourceKindFromEnv(import.meta.env.VITE_DATA_SOURCE),

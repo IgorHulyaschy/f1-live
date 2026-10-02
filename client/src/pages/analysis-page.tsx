@@ -1,16 +1,19 @@
 import * as React from 'react';
 
 import { useRace } from '@/data/race-context';
-import { DriverPicker } from '@/features/analysis/driver-picker';
-import { LapMetricChart } from '@/features/analysis/lap-charts';
-import { PaceRankingCard } from '@/features/analysis/pace-ranking-card';
+import { ChartWorkspace } from '@/features/analysis/chart-workspace';
+import { DriverList } from '@/features/analysis/driver-list';
+import { FastestLaps } from '@/features/analysis/fastest-laps';
+import { PaceRanking } from '@/features/analysis/pace-ranking';
 import { standingsAt } from '@/insights/standings';
 
 const DEFAULT_COMPARED = 3;
 
 export function AnalysisPage() {
 	const { snapshot, followedDriver } = useRace();
-	const running = standingsAt(snapshot).filter((row) => row.state !== 'out');
+	const rows = standingsAt(snapshot);
+	const running = rows.filter((row) => row.state !== 'out');
+	const [highlighted, setHighlighted] = React.useState<string | null>(null);
 
 	const [selected, setSelected] = React.useState<string[]>(() => {
 		const codes = running.slice(0, DEFAULT_COMPARED).map((row) => row.driver.code);
@@ -19,17 +22,31 @@ export function AnalysisPage() {
 		return followed && !codes.includes(followed) ? [...codes, followed] : codes;
 	});
 
-	const drivers = running.map((row) => row.driver);
-	const compared = drivers.filter((driver) => selected.includes(driver.code));
+	const toggle = (code: string) =>
+		setSelected((current) =>
+			current.includes(code)
+				? current.length > 1
+					? current.filter((entry) => entry !== code)
+					: current
+				: [...current, code]
+		);
+
+	const compared = running
+		.map((row) => row.driver)
+		.filter((driver) => selected.includes(driver.code));
 
 	return (
-		<div className="flex flex-col gap-4">
-			<DriverPicker drivers={drivers} selected={selected} onChange={setSelected} />
-			<div className="grid gap-4 xl:grid-cols-2">
-				<LapMetricChart snapshot={snapshot} drivers={compared} metric="lapTime" />
-				<LapMetricChart snapshot={snapshot} drivers={compared} metric="gap" />
-				<LapMetricChart snapshot={snapshot} drivers={compared} metric="position" />
-				<PaceRankingCard />
+		<div className="bg-border grid gap-px overflow-hidden rounded-lg border lg:grid-cols-[15rem_minmax(0,1fr)]">
+			<DriverList
+				rows={running}
+				selected={selected}
+				onToggle={toggle}
+				onHighlight={setHighlighted}
+			/>
+			<ChartWorkspace drivers={compared} highlighted={highlighted} />
+			<div className="bg-border grid gap-px lg:col-span-2 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+				<PaceRanking />
+				<FastestLaps />
 			</div>
 		</div>
 	);
