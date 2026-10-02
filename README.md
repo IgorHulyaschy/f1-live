@@ -5,31 +5,43 @@ Working name only; the product must not use "F1" or "Formula 1" in its brand.
 
 ![Live dashboard: timing tower, followed driver and race control](docs/screenshots/live-desktop-dark.png)
 
-| Pit wall at 2560px, fit to screen                                                         | Building a dashboard                                                           |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| ![Pit wall preset on a 2560px monitor](docs/screenshots/pit-wall-2560.png)                | ![Edit mode with tile bars and resize handles](docs/screenshots/edit-mode.png) |
-| **Analysis**                                                                              | **Strategy**                                                                   |
-| ![Lap time chart, true pace and fastest laps](docs/screenshots/analysis-desktop-dark.png) | ![Stints, tyre wear and pit stops](docs/screenshots/strategy-desktop-dark.png) |
+| Pit wall at 2560px, fit to screen                                                                  | Building a dashboard                                                                           |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| ![Pit wall preset on a 2560px monitor](docs/screenshots/pit-wall-2560.png)                         | ![Edit mode with tile bars and resize handles](docs/screenshots/edit-mode.png)                 |
+| **Analysis**                                                                                       | **Strategy**                                                                                   |
+| ![Lap time chart, true pace and fastest laps](docs/screenshots/analysis-desktop-dark.png)          | ![Stints, tyre wear and pit stops](docs/screenshots/strategy-desktop-dark.png)                 |
+| **Library**                                                                                        | **Drivers**                                                                                    |
+| ![Ready-made and fan dashboards with layout thumbnails](docs/screenshots/library-desktop-dark.png) | ![Grid of driver plates, driver card and positions](docs/screenshots/drivers-desktop-dark.png) |
 
 More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](docs/screenshots.md).
 
 ## Dashboards
 
-Every page is a dashboard: tiles on a 24-column grid, made to work on any screen from a phone to
-a wall monitor.
+The whole screen is tiles on a 24-column grid, from a phone to a wall monitor: the race title,
+replay keys and lap strip move and resize like timing or a chart.
 
-- **Presets.** Live, Analysis and Strategy (at `/`, `/analysis`, `/strategy`), Battle and Pit
-  wall. Presets can be edited and reset; **+** starts your own.
-- **Tiles.** Timing, focus, gaps, box now, race control, chart (lap times, gap, positions,
-  battle), compare, true pace, fastest laps, stints, tyre wear and pit stops. Drag by the bar,
-  resize from the edges, or use the keyboard: focus a grip, arrows move, Shift and arrows resize.
-- **Any monitor.** Panels lay out by their tile's width (container queries), not the screen's.
-  **Fit** stretches rows to the window height; text size runs from S to TV; narrow screens stack
-  tiles in reading order.
-- **Windows.** Open a tile or a whole dashboard in its own window. Lap, followed driver, plan,
-  compared drivers and play/pause stay in sync across windows.
-- **Sharing.** Export a dashboard as JSON and import it anywhere. Dashboards are saved in the
-  browser; there is no account sync yet.
+- **Ready-made.** Live, Analysis and Strategy (at `/`, `/analysis`, `/strategy`), Battle,
+  Drivers and Pit wall. Edit any of them and Reset brings it back; **+** starts your own.
+- **18 tiles in 5 groups.** Race (session, replay, lap strip, weather, race control), Drivers
+  (focus, driver, grid), Timing, Analysis and Strategy. Drag by the bar, resize from the edges,
+  or use the keyboard: focus a grip, arrows move, Shift and arrows resize. Edit mode bars sit in
+  the gaps, so a dashboard looks the same while you build it.
+- **Any monitor.** Panels lay out by their tile's width (container queries). **Fit** stretches
+  rows to the window height; text size runs from S to TV; narrow screens stack tiles.
+- **Windows.** Pop out a tile or a dashboard; lap, driver, plan, compared drivers and play/pause
+  stay in sync.
+- **Library and sharing.** `/library` has your dashboards, the ready-made ones and fan
+  dashboards to preview and add. **Share** copies a link that carries the whole dashboard; no
+  server needed. Export/Import does the same with a file.
+- **First run.** `/welcome` picks the driver you follow and a starting dashboard.
+- **Free and Pro.** Free keeps 3 dashboards of your own; Pro keeps any number, unlocks Pro tiles
+  and publishing. Accounts and the fan library are mocked in the browser for now.
+- **Pictures.** Driver photos, team logos and cars load from formula1.com in the viewer's browser,
+  using the references the timing feed publishes; nothing is stored in the repo, and each has a
+  drawn fallback. A paid launch needs a media licence first.
+
+How it all fits together, what ships by default and the backend contract:
+[docs/product/dashboards.md](docs/product/dashboards.md).
 
 Design rules: [docs/design/identity.md](docs/design/identity.md).
 
@@ -69,7 +81,7 @@ modelled and calibrated to the real gaps. Set `VITE_DATA_SOURCE=api` to read fro
 | `npm run format`              | Prettier.                                                   |
 | `npm run test:unit -w client` | Node test runner over the mock race and insights.           |
 | `npm run test:e2e`            | Playwright against the mock replay.                         |
-| `npm run shots`               | Screenshots of every page at 6 sizes, free/Pro, dark/light. |
+| `npm run shots`               | Screenshots of 10 screens at 6 sizes, free/Pro, dark/light. |
 
 Shots land in `client/shots/output/<viewport>/<page>-<plan>-<theme>.png` (not committed) and are
 meant for design and quality audits. If Playwright's own browser is not installed, point it at

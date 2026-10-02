@@ -56,7 +56,8 @@ for (const viewport of VIEWPORTS) {
 						await page.goto(
 							`${screen.path}${screen.path.includes('?') ? '&' : '?'}lap=30&plan=${plan}`
 						);
-						await expect(page.getByTestId('lap-counter')).toBeVisible();
+						// Phones keep the lap on the pit board, not in the top bar, so wait for the race, not its view.
+						await expect(page.getByTestId('lap-counter')).toBeAttached();
 
 						if (theme === 'light') {
 							await switchToLightTheme(page);
