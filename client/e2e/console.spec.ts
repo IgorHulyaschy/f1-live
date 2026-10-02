@@ -68,3 +68,14 @@ test('race control filters to the followed driver', async ({ page }) => {
 	const items = page.getByTestId('race-control').getByRole('listitem');
 	await expect(items.first()).toContainText('ALB');
 });
+
+test('arrow keys move between chart tabs without changing the lap', async ({ page }) => {
+	await openRace(page, '/analysis');
+
+	await page.getByRole('tab', { name: 'Lap times' }).focus();
+	await page.keyboard.press('ArrowRight');
+
+	await expect(page.getByRole('tab', { name: 'Gap' })).toBeFocused();
+	await expect(page.getByRole('tabpanel')).toHaveAttribute('data-testid', 'chart-gap');
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 30/50');
+});

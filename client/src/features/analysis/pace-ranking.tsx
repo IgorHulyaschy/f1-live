@@ -33,27 +33,29 @@ export function PaceRanking() {
 							{ranking.map((entry, index) => (
 								<li
 									key={entry.driver.number}
-									className="grid grid-cols-[1.25rem_4rem_2.5rem_minmax(0,1fr)_4.5rem] items-center gap-3 border-b py-1.5 last:border-b-0"
+									className="grid grid-cols-[1.25rem_4rem_2.5rem_minmax(0,1fr)] items-center gap-3 border-b py-1.5 last:border-b-0"
 								>
 									<span className="text-muted-foreground text-right font-mono text-xs">
 										{index + 1}
 									</span>
 									<DriverTag driver={entry.driver} />
 									<TyreBadge compound={entry.compound} />
-									<span className="border-rule-strong relative h-3 border-l">
-										<motion.span
-											className="bg-team absolute inset-y-0 left-0"
-											style={{ '--team': `#${entry.driver.teamColour}` }}
-											initial={{ width: 0 }}
-											animate={{ width: `${(entry.deltaToBestSeconds / scale) * 100}%` }}
-											transition={{ duration: 0.4, ease: 'easeOut', delay: index * 0.02 }}
-										/>
-									</span>
-									<span className="text-right text-sm">
+									<span className="border-rule-strong flex h-5 max-w-xl items-center gap-2 border-l">
 										{index === 0 ? (
-											<span className="type-label text-fastest">Quickest</span>
+											<span className="type-label text-fastest pl-1 font-bold">Quickest</span>
 										) : (
-											<Digits value={`+${entry.deltaToBestSeconds.toFixed(3)}`} />
+											<>
+												<motion.span
+													className="bg-foreground/45 h-3 w-(--size)"
+													initial={{ '--size': '0%' }}
+													animate={{ '--size': `${(entry.deltaToBestSeconds / scale) * 80}%` }}
+													transition={{ duration: 0.4, ease: 'easeOut', delay: index * 0.02 }}
+												/>
+												<Digits
+													className="text-sm"
+													value={`+${entry.deltaToBestSeconds.toFixed(3)}`}
+												/>
+											</>
 										)}
 									</span>
 								</li>

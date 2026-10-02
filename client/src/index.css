@@ -46,6 +46,8 @@
 	--fastest: oklch(0.5 0.24 303);
 	--personal-best: oklch(0.52 0.16 150);
 	--flag: oklch(0.7 0.16 85);
+	/* Yellow text needs to be darker than yellow fills to stay readable on bone. */
+	--flag-ink: oklch(0.5 0.11 75);
 	--danger: oklch(0.55 0.21 27);
 	--blue-flag: oklch(0.55 0.17 255);
 
@@ -84,6 +86,7 @@
 	--fastest: oklch(0.68 0.21 305);
 	--personal-best: oklch(0.76 0.19 150);
 	--flag: oklch(0.86 0.16 90);
+	--flag-ink: var(--flag);
 	--danger: oklch(0.66 0.2 27);
 	--blue-flag: oklch(0.7 0.15 250);
 
@@ -129,6 +132,7 @@
 	--color-fastest: var(--fastest);
 	--color-personal-best: var(--personal-best);
 	--color-flag: var(--flag);
+	--color-flag-ink: var(--flag-ink);
 	--color-danger: var(--danger);
 	--color-blue-flag: var(--blue-flag);
 	--color-rule-strong: var(--rule-strong);

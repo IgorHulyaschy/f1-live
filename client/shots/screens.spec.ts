@@ -30,6 +30,8 @@ async function switchToLightTheme(page: Page): Promise<void> {
 		.filter({ visible: true })
 		.click();
 	await expect(page.locator('html')).not.toHaveClass(/dark/);
+	// Clicking the footer key scrolls; the sticky header would otherwise land mid-shot.
+	await page.evaluate(() => window.scrollTo(0, 0));
 }
 
 for (const viewport of VIEWPORTS) {

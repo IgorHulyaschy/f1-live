@@ -20,8 +20,8 @@ const FILTERS = [
 
 /** Printed category codes, coloured only where the colour is the regulated one. */
 const CATEGORY: Record<RaceControlCategory, { code: string; tone: string }> = {
-	flag: { code: 'Flag', tone: 'text-flag' },
-	safety_car: { code: 'VSC/SC', tone: 'text-flag' },
+	flag: { code: 'Flag', tone: 'text-flag-ink' },
+	safety_car: { code: 'VSC/SC', tone: 'text-flag-ink' },
 	drs: { code: 'DRS', tone: 'text-muted-foreground' },
 	penalty: { code: 'Pen', tone: 'text-danger' },
 	incident: { code: 'Inc', tone: 'text-foreground' },

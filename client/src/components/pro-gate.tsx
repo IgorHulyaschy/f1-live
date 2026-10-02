@@ -6,7 +6,7 @@ import { useRace } from '@/data/race-context';
 
 /**
  * Pro content for Pro viewers. Everyone else gets one line saying what they would see and one
- * key to preview it: no blurred slabs.
+ * key to preview it, behind a hatched edge: no blurred slabs.
  */
 export function ProGate({
 	feature,
@@ -25,13 +25,16 @@ export function ProGate({
 	}
 
 	return (
-		<div className="flex flex-wrap items-center gap-x-4 gap-y-2 border border-dashed px-3 py-3">
-			<LockIcon className="text-muted-foreground size-3.5" aria-hidden />
-			<div className="flex min-w-48 flex-1 flex-col">
-				<span className="text-sm font-medium">{feature} is part of Pro</span>
-				{teaser ? <span className="text-muted-foreground text-xs">{teaser}</span> : null}
+		<div className="flex items-stretch border">
+			<span aria-hidden className="hatch text-foreground/25 w-3 shrink-0 border-r" />
+			<div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-2 px-3 py-3">
+				<LockIcon className="text-muted-foreground size-3.5" aria-hidden />
+				<div className="flex min-w-48 flex-1 flex-col">
+					<span className="text-sm font-medium">{feature} is part of Pro</span>
+					{teaser ? <span className="text-muted-foreground text-xs">{teaser}</span> : null}
+				</div>
+				<Key onClick={() => setPlan('pro')}>Preview Pro</Key>
 			</div>
-			<Key onClick={() => setPlan('pro')}>Preview Pro</Key>
 		</div>
 	);
 }

@@ -2,7 +2,13 @@ import type { RaceSnapshot } from '@f1-live/shared';
 
 const TIME_PENALTY = /(\d+) SECOND TIME PENALTY FOR CAR (\d+)/i;
 
-/** Time penalties issued so far, in seconds per car number, parsed from race control. */
+/** Messages that close a penalty rather than issue one. */
+const CLEARED = /PENALTY SERVED|REVOKED|CANCELLED|RESCINDED/i;
+
+/**
+ * Time penalties still outstanding, in seconds per car number, parsed from race control.
+ * A served or revoked penalty is taken off again.
+ */
 export function timePenalties(snapshot: RaceSnapshot): Map<string, number> {
 	const penalties = new Map<string, number>();
 
@@ -11,8 +17,16 @@ export function timePenalties(snapshot: RaceSnapshot): Map<string, number> {
 		const seconds = Number(match?.[1]);
 		const car = match?.[2];
 
-		if (car && Number.isFinite(seconds)) {
-			penalties.set(car, (penalties.get(car) ?? 0) + seconds);
+		if (!car || !Number.isFinite(seconds)) {
+			continue;
+		}
+
+		const total = (penalties.get(car) ?? 0) + (CLEARED.test(message.message) ? -seconds : seconds);
+
+		if (total > 0) {
+			penalties.set(car, total);
+		} else {
+			penalties.delete(car);
 		}
 	}
 

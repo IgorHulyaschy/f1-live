@@ -61,7 +61,7 @@ function StintBar({
 				</span>
 			</TooltipTrigger>
 			<TooltipContent>
-				{compoundName(stint.compound)} · laps {stint.startLap}–{stint.endLap} · {laps} laps
+				{compoundName(stint.compound)}, laps {stint.startLap}–{stint.endLap}, {laps} laps
 				{ongoing ? ' so far' : ''}
 			</TooltipContent>
 		</Tooltip>

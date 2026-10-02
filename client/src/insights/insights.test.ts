@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import { simulateLasVegas2025 } from '../data/mock/simulate-race.ts';
 import { snapshotAtLap } from '../data/snapshot-at-lap.ts';
 import { battleAhead } from './battle.ts';
+import { timePenalties } from './penalties.ts';
 import { PIT_LOSS_MS, predictRejoin } from './pit-window.ts';
 import { standingsAt } from './standings.ts';
 import { stintPaces, tyreCorrectedPace } from './tyre-pace.ts';
@@ -87,5 +88,12 @@ describe('battleAhead', () => {
 
 		assert.ok(battle);
 		assert.ok(battle.intervalSeconds > 0);
+	});
+});
+
+describe('timePenalties', () => {
+	it('shows a penalty once and clears it when served', () => {
+		assert.equal(timePenalties(snapshotAtLap(race, 30)).get('23'), 5);
+		assert.equal(timePenalties(snapshotAtLap(race, 40)).has('23'), false);
 	});
 });

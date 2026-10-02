@@ -27,7 +27,7 @@ export function useRaceAlerts(): void {
 		for (const message of snapshot.raceControl) {
 			if (message.lap === lap && ALERT_CATEGORIES.has(message.category)) {
 				toast(message.message, {
-					description: `Race control · lap ${lap}`,
+					description: `Race control, lap ${lap}`,
 					id: `${lap}-${message.message}`
 				});
 			}

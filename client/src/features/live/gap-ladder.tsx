@@ -81,11 +81,13 @@ export function GapLadder() {
 							<span className="type-wide text-sm font-bold">{row.driver.code}</span>
 							{battle && !isSubject ? <Trend closing={battle.closingSecondsPerLap} /> : null}
 						</span>
-						{isSubject || gap === null ? (
+						{isSubject ? (
 							<span className="type-label text-foreground">You</span>
+						) : gap === null ? (
+							<span className="text-muted-foreground font-mono text-sm">-</span>
 						) : (
 							<span className="flex items-center gap-2">
-								{Math.abs(gap) < DRS_SECONDS ? (
+								{adjacent && ahead && Math.abs(gap) < DRS_SECONDS ? (
 									<span className="type-label text-foreground border px-1">DRS</span>
 								) : null}
 								<Digits

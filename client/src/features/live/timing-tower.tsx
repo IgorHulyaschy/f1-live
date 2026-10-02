@@ -14,6 +14,7 @@ import { type StandingRow, standingsAt } from '@/insights/standings';
 import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
+import { LapTrend, recentLaps, TREND_LAPS } from './lap-trend';
 import { MiniSectors } from './mini-sectors';
 
 type GapMode = 'interval' | 'leader';
@@ -133,11 +134,21 @@ export function TimingTower() {
 	const penalties = timePenalties(snapshot);
 	const followedIndex = rows.findIndex((row) => row.driver.number === followedDriver);
 	const rejoin = plan === 'pro' ? predictRejoin(snapshot, followedDriver) : null;
+	const trends = recentLaps(snapshot.laps);
 
 	const visible =
 		view === 'near' && followedIndex >= 0
 			? rows.slice(Math.max(followedIndex - NEAR_CARS, 0), followedIndex + NEAR_CARS + 1)
 			: rows;
+
+	// The ghost row sits after the car the driver would rejoin behind. With no car ahead it leads
+	// the table; when that car is outside the near view it closes the slice instead.
+	const ghostAfter = rejoin?.carAhead?.driver.number ?? null;
+	const ghostShown = visible.some((row) => row.driver.number === ghostAfter);
+
+	const ghost = rejoin ? (
+		<GhostRow code={rejoin.driver.code} position={rejoin.rejoinPosition} />
+	) : null;
 
 	return (
 		<Panel aria-label="Timing">
@@ -173,6 +184,12 @@ export function TimingTower() {
 							>
 								S1 S2 S3
 							</th>
+							<th
+								scope="col"
+								className="type-label hidden pr-4 text-left font-normal xl:table-cell"
+							>
+								Last {TREND_LAPS}
+							</th>
 							<th scope="col" className="type-label pr-4 text-left font-normal">
 								Tyre
 							</th>
@@ -185,7 +202,8 @@ export function TimingTower() {
 						</tr>
 					</thead>
 					<tbody>
-						{visible.map((row) => {
+						{rejoin && ghostAfter === null ? ghost : null}
+						{visible.map((row, index) => {
 							const followed = row.driver.number === followedDriver;
 							const previous = before.get(row.driver.number);
 
@@ -201,7 +219,9 @@ export function TimingTower() {
 								row.position > 1 &&
 								row.state === 'running';
 
-							const ghostAfter = rejoin?.carAhead?.driver.number === row.driver.number;
+							const ghostHere =
+								ghostAfter !== null &&
+								(row.driver.number === ghostAfter || (!ghostShown && index === visible.length - 1));
 
 							return (
 								<React.Fragment key={row.driver.number}>
@@ -239,6 +259,7 @@ export function TimingTower() {
 														{row.positionsGained > 0
 															? `+${row.positionsGained}`
 															: row.positionsGained}
+														<span className="sr-only"> places since the start</span>
 													</span>
 												)}
 											</span>
@@ -262,6 +283,12 @@ export function TimingTower() {
 										<td className="hidden pr-4 md:table-cell">
 											<MiniSectors lap={row.lastLap} marks={row.sectorMarks} />
 										</td>
+										<td className="hidden pr-4 xl:table-cell">
+											<LapTrend
+												laps={trends.get(row.driver.number) ?? []}
+												bestLapMs={row.bestLapMs}
+											/>
+										</td>
 										<td className="pr-4">
 											{row.compound ? (
 												<TyreBadge compound={row.compound} age={row.tyreAge} />
@@ -271,9 +298,7 @@ export function TimingTower() {
 											{row.pitStops}
 										</td>
 									</motion.tr>
-									{ghostAfter && rejoin ? (
-										<GhostRow code={rejoin.driver.code} position={rejoin.rejoinPosition} />
-									) : null}
+									{ghostHere ? ghost : null}
 								</React.Fragment>
 							);
 						})}

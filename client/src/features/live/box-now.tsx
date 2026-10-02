@@ -33,7 +33,7 @@ export function BoxNow({ driverNumber }: { driverNumber: string }) {
 						{prediction.carAhead ? (
 							<>
 								<span className="font-bold">{prediction.carAhead.driver.code}</span>{' '}
-								<Digits value={`+${(prediction.carAhead.gapMs / 1000).toFixed(1)}`} />
+								<Digits value={`−${(prediction.carAhead.gapMs / 1000).toFixed(1)}`} />
 							</>
 						) : (
 							'Clear'
@@ -46,7 +46,7 @@ export function BoxNow({ driverNumber }: { driverNumber: string }) {
 						{prediction.carBehind ? (
 							<>
 								<span className="font-bold">{prediction.carBehind.driver.code}</span>{' '}
-								<Digits value={`−${(prediction.carBehind.gapMs / 1000).toFixed(1)}`} />
+								<Digits value={`+${(prediction.carBehind.gapMs / 1000).toFixed(1)}`} />
 							</>
 						) : (
 							'Clear'
@@ -55,7 +55,7 @@ export function BoxNow({ driverNumber }: { driverNumber: string }) {
 				</div>
 				<div className="flex flex-col py-2 pl-3">
 					<dt className="type-label">Air</dt>
-					<dd className={traffic ? 'text-flag text-sm font-bold' : 'text-sm'}>
+					<dd className={traffic ? 'text-flag-ink text-sm font-bold' : 'text-sm'}>
 						{traffic ? 'Traffic' : 'Free'}
 					</dd>
 				</div>

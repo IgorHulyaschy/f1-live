@@ -73,13 +73,13 @@ export function LapStrip() {
 							className="group relative flex h-full flex-1 cursor-pointer flex-col justify-end disabled:cursor-default"
 						>
 							{entry.fastest && entry.lap <= lap ? (
-								<span aria-hidden className="bg-fastest absolute inset-x-0 top-0 h-0.5" />
+								<span aria-hidden className="bg-fastest block h-0.5 w-full" />
 							) : null}
 							<span
 								aria-hidden
 								className={cn(
 									'block w-full transition-all duration-200',
-									!raced && 'bg-border h-px',
+									!raced && 'bg-foreground/25 h-px',
 									raced &&
 										(selected
 											? 'h-full'

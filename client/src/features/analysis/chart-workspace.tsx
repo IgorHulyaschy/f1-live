@@ -65,6 +65,7 @@ export function ChartWorkspace({
 }) {
 	const { snapshot, followedDriver } = useRace();
 	const [metric, setMetric] = React.useState<Metric>('lapTime');
+	const panelId = React.useId();
 	const neutralised = neutralisedRanges(snapshot);
 
 	const lapTicks = [
@@ -135,9 +136,16 @@ export function ChartWorkspace({
 					options={METRICS}
 					value={metric}
 					onChange={setMetric}
+					controls={panelId}
 				/>
 			</PanelHeader>
-			<div className="flex flex-col gap-3 p-4" data-testid={`chart-${metric}`}>
+			<div
+				id={panelId}
+				role="tabpanel"
+				aria-label={METRICS.find((entry) => entry.value === metric)?.label}
+				className="flex flex-col gap-3 p-4"
+				data-testid={`chart-${metric}`}
+			>
 				<p className="text-muted-foreground text-xs">{METRIC_NOTE[metric]}</p>
 				<ChartContainer config={config} className="aspect-auto h-80 w-full lg:h-136">
 					{metric === 'battle' ? (
@@ -234,7 +242,7 @@ export function ChartWorkspace({
 									strokeDasharray={isSecondTeamCar(driver, drivers) ? '5 3' : undefined}
 									dot={
 										metric === 'lapTime'
-											? { r: 1.5, strokeWidth: 0, fill: `var(--color-${driver.code})` }
+											? { r: 2, strokeWidth: 0, fill: `var(--color-${driver.code})` }
 											: false
 									}
 									activeDot={{ r: 3 }}
