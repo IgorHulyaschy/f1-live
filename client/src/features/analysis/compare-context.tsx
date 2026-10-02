@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router';
 
 import { useRace } from '@/data/race-context';
-import { type StandingRow, standingsAt } from '@/insights/standings';
+import type { StandingRow } from '@/insights/standings';
 
 const DEFAULT_COMPARED = 3;
 
@@ -26,14 +26,11 @@ const CompareContext = React.createContext<CompareContextValue | null>(null);
  * dashboard (and dashboards in other windows, through the URL) stay on the same cars.
  */
 export function CompareProvider({ children }: { children: React.ReactNode }) {
-	const { snapshot, followedDriver } = useRace();
+	const { standings, followedDriver, broadcast } = useRace();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [highlighted, setHighlighted] = React.useState<string | null>(null);
 
-	const running = React.useMemo(
-		() => standingsAt(snapshot).filter((row) => row.state !== 'out'),
-		[snapshot]
-	);
+	const running = React.useMemo(() => standings.filter((row) => row.state !== 'out'), [standings]);
 
 	const raw = searchParams.get('compare');
 
@@ -68,11 +65,12 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
 					},
 					{ replace: true }
 				);
+				broadcast({ compare: next.join(',') });
 			},
 			highlighted,
 			setHighlighted
 		}),
-		[running, selected, highlighted, setSearchParams]
+		[running, selected, highlighted, setSearchParams, broadcast]
 	);
 
 	return <CompareContext.Provider value={value}>{children}</CompareContext.Provider>;

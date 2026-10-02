@@ -1,15 +1,19 @@
+import { useNavigate } from 'react-router';
+
 import { TyreBadge } from '@/components/tyre-badge';
+import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useRace } from '@/data/race-context';
 import { battleAhead } from '@/insights/battle';
-import { standingsAt } from '@/insights/standings';
 
 /**
  * The followed driver as a pit board, pinned to the bottom of the screen on phones so the one
  * car you care about is always in view, wherever you scroll.
  */
 export function PitBoard() {
-	const { snapshot, followedDriver, lap } = useRace();
-	const row = standingsAt(snapshot).find((entry) => entry.driver.number === followedDriver);
+	const { snapshot, followedDriver, lap, standings } = useRace();
+	const navigate = useNavigate();
+	const search = useCarriedSearch();
+	const row = standings.find((entry) => entry.driver.number === followedDriver);
 
 	if (!row) {
 		return null;
@@ -17,11 +21,25 @@ export function PitBoard() {
 
 	const ahead = battleAhead(snapshot, row.driver.number);
 
+	// Scroll to this dashboard's focus panel, or open Live, which always has one.
+	const showFocus = () => {
+		const panel = document.querySelector('[data-focus-panel]');
+
+		if (panel) {
+			panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+			return;
+		}
+
+		void navigate({ pathname: '/', search });
+	};
+
 	return (
-		<a
-			href="#focus"
+		<button
+			type="button"
+			onClick={showFocus}
 			aria-label={`Following ${row.driver.code}, P${row.position}. Show details.`}
-			className="bg-background/95 border-rule-strong fixed inset-x-0 bottom-0 z-40 grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 border-t-2 px-4 py-2 backdrop-blur-sm md:hidden"
+			className="bg-background/95 text-left border-rule-strong fixed inset-x-0 bottom-0 z-40 grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 border-t-2 px-4 py-2 backdrop-blur-sm md:hidden"
 			style={{ '--team': `#${row.driver.teamColour}` }}
 		>
 			<span className="bg-team text-background cut-forward type-wide px-3 py-1 text-xl font-black italic">
@@ -35,6 +53,6 @@ export function PitBoard() {
 			</span>
 			{row.compound ? <TyreBadge compound={row.compound} age={row.tyreAge} /> : <span />}
 			<span className="font-mono text-xs">L{lap}</span>
-		</a>
+		</button>
 	);
 }

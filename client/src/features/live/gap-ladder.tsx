@@ -2,7 +2,7 @@ import { Digits } from '@/components/console/digits';
 import { TeamStripe } from '@/components/driver-tag';
 import { useRace } from '@/data/race-context';
 import { battleAhead } from '@/insights/battle';
-import { type StandingRow, standingsAt } from '@/insights/standings';
+import type { StandingRow } from '@/insights/standings';
 import { cn } from '@/lib/utils';
 
 /** Cars listed either side of the followed driver. */
@@ -37,8 +37,8 @@ function Trend({ closing }: { closing: number | null }) {
  * race-time gap to you and whether it is closing.
  */
 export function GapLadder() {
-	const { snapshot, followedDriver } = useRace();
-	const rows = standingsAt(snapshot).filter((row) => row.state !== 'out' && row.lapsDown === 0);
+	const { snapshot, followedDriver, standings } = useRace();
+	const rows = standings.filter((row) => row.state !== 'out' && row.lapsDown === 0);
 	const index = rows.findIndex((row) => row.driver.number === followedDriver);
 	const subject = rows[index];
 

@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router';
 
-import { useCarriedSearch } from '@/components/app-header';
 import { TeamStripe } from '@/components/driver-tag';
 import {
 	CommandDialog,
@@ -25,8 +24,8 @@ import { useRace } from '@/data/race-context';
 import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
 import { dashboardPath } from '@/features/dashboard/paths';
+import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { toggleTheme } from '@/hooks/use-theme';
-import { standingsAt } from '@/insights/standings';
 
 /** ⌘K: follow any driver, jump to a page or lap, or flip settings without hunting for controls. */
 export function CommandMenu({
@@ -36,12 +35,12 @@ export function CommandMenu({
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
-	const { race, snapshot, setLap, plan, setPlan, followedDriver, setFollowedDriver } = useRace();
+	const { race, setLap, plan, setPlan, followedDriver, setFollowedDriver, standings } = useRace();
 	const navigate = useNavigate();
 	const search = useCarriedSearch();
 	const { dashboards } = useDashboards();
 	const create = useCreateDashboard();
-	const rows = standingsAt(snapshot);
+	const rows = standings;
 
 	const run = (action: () => void) => {
 		action();

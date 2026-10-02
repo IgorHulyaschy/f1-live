@@ -1,10 +1,10 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router';
 
-import { useCarriedSearch } from '@/components/app-header';
 import { useRace } from '@/data/race-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
 import { dashboardPath } from '@/features/dashboard/paths';
+import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 
 function isTyping(target: EventTarget | null): boolean {
 	return (

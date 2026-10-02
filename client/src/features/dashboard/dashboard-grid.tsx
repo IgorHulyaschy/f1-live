@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 import { type Layout, ReactGridLayout, useContainerWidth } from 'react-grid-layout';
-import { useSearchParams } from 'react-router';
 
 import { Key } from '@/components/console/keys';
 import { useRemPixels } from '@/hooks/use-scale';
@@ -24,8 +23,16 @@ import {
 	tileTitle
 } from './dashboards';
 import { tilePath } from './paths';
+import { type ArrangeKey, arrangeTile } from './arrange';
 import { TileFillContext } from './tile-fill';
 import { TileContent } from './tiles';
+import { useCarriedSearch } from './use-carried-search';
+
+const ARRANGE_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
+
+function arrangeKey(key: string): ArrangeKey {
+	return key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' ? key : 'ArrowRight';
+}
 
 /** Narrower than this (in rem) a dashboard stacks its tiles in reading order, at natural height. */
 const STACK_BELOW_REM = 64;
@@ -61,7 +68,7 @@ function TileBar({
 	neighbours?: { up?: string; down?: string };
 	onChange: (dashboard: Dashboard) => void;
 }) {
-	const [searchParams] = useSearchParams();
+	const search = useCarriedSearch();
 	const title = tileTitle(tile);
 
 	if (!editing) {
@@ -69,11 +76,7 @@ function TileBar({
 	}
 
 	const popOut = () =>
-		window.open(
-			`${tilePath(dashboard.id, tile.id)}?${searchParams.toString()}`,
-			'_blank',
-			'noopener'
-		);
+		window.open(`${tilePath(dashboard.id, tile.id)}?${search}`, '_blank', 'noopener');
 
 	return (
 		<div
@@ -81,7 +84,28 @@ function TileBar({
 			className="bg-panel-raised flex h-8 shrink-0 cursor-move items-center gap-1.5 border border-b-0 border-dashed pr-1 pl-1.5"
 			data-testid="tile-bar"
 		>
-			<GripVerticalIcon aria-hidden className="text-muted-foreground size-3.5" />
+			<button
+				type="button"
+				aria-label={`Arrange ${title}`}
+				aria-describedby="tile-arrange-help"
+				data-tile-grip
+				className="text-muted-foreground hover:text-foreground focus-visible:ring-ring flex size-6 shrink-0 cursor-move items-center justify-center focus-visible:ring-2 focus-visible:outline-none"
+				onKeyDown={(event) => {
+					if (ARRANGE_KEYS.has(event.key)) {
+						event.preventDefault();
+						event.stopPropagation();
+						onChange(arrangeTile(dashboard, tile.id, arrangeKey(event.key), event.shiftKey));
+						// The tile re-renders in its new place; keep the keyboard on its grip.
+						requestAnimationFrame(() =>
+							document
+								.querySelector<HTMLButtonElement>(`[data-tile-id="${tile.id}"] [data-tile-grip]`)
+								?.focus()
+						);
+					}
+				}}
+			>
+				<GripVerticalIcon aria-hidden className="size-3.5" />
+			</button>
 			<span className="type-label text-foreground truncate">{title}</span>
 			<span className="ml-auto flex">
 				{neighbours?.up ? (
@@ -112,7 +136,13 @@ function TileBar({
 				<Key
 					aria-label={`Remove ${title}`}
 					className="-ml-px h-6 sm:h-6"
-					onClick={() => onChange(removeTile(dashboard, tile.id))}
+					onClick={() => {
+						onChange(removeTile(dashboard, tile.id));
+						// The tile and its bar are gone; hand focus to Add tile rather than the page.
+						requestAnimationFrame(() =>
+							document.querySelector<HTMLButtonElement>('[data-add-tile]')?.focus()
+						);
+					}}
 				>
 					<XIcon />
 				</Key>
@@ -217,7 +247,12 @@ export function DashboardGrid({
 		return (
 			<div ref={containerRef} className="flex flex-col gap-6" data-testid="dashboard-stack">
 				{ordered.map((tile, index) => (
-					<div key={tile.id} className="flex min-w-0 flex-col" data-testid={`tile-${tile.kind}`}>
+					<div
+						key={tile.id}
+						className="flex min-w-0 flex-col"
+						data-tile-id={tile.id}
+						data-testid={`tile-${tile.kind}`}
+					>
 						<TileBar
 							dashboard={dashboard}
 							tile={tile}
@@ -243,7 +278,11 @@ export function DashboardGrid({
 					margin: [GAP_REM * rem, GAP_REM * rem],
 					containerPadding: [0, 0]
 				}}
-				dragConfig={{ enabled: editing, handle: '[data-tile-handle]', cancel: 'button' }}
+				dragConfig={{
+					enabled: editing,
+					handle: '[data-tile-handle]',
+					cancel: 'button:not([data-tile-grip])'
+				}}
 				resizeConfig={{ enabled: editing, handles: ['se', 'e', 's'] }}
 				onLayoutChange={onLayoutChange}
 			>
@@ -255,6 +294,7 @@ export function DashboardGrid({
 								<div
 									key={tile.id}
 									className="flex min-w-0 flex-col"
+									data-tile-id={tile.id}
 									data-testid={`tile-${tile.kind}`}
 								>
 									<TileBar

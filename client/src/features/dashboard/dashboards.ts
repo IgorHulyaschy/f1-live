@@ -277,16 +277,33 @@ const dashboardSchema = z.object({
 	)
 });
 
+/** Keeps the first entry for each key; ids must be unique for keys, routes and the grid. */
+function uniqueBy<Entry>(entries: readonly Entry[], key: (entry: Entry) => string): Entry[] {
+	const seen = new Set<string>();
+
+	return entries.filter((entry) => {
+		const id = key(entry);
+
+		if (seen.has(id)) {
+			return false;
+		}
+
+		seen.add(id);
+
+		return true;
+	});
+}
+
 function cleanDashboard(parsed: z.infer<typeof dashboardSchema>): Dashboard {
 	const placed = new Set(parsed.layout.map((place) => place.i));
-	const tiles = parsed.tiles.filter((tile) => placed.has(tile.id));
+	const tiles = uniqueBy(parsed.tiles, (tile) => tile.id).filter((tile) => placed.has(tile.id));
 	const ids = new Set(tiles.map((tile) => tile.id));
 
 	return {
 		id: parsed.id,
 		name: parsed.name.slice(0, 40) || 'Untitled',
 		tiles,
-		layout: parsed.layout.filter((place) => ids.has(place.i))
+		layout: uniqueBy(parsed.layout, (place) => place.i).filter((place) => ids.has(place.i))
 	};
 }
 
@@ -312,9 +329,11 @@ export function parseDashboardText(text: string): Dashboard | null {
 export function parseDashboardListText(text: string): Dashboard[] {
 	const list = jsonText.pipe(z.array(z.json())).safeParse(text);
 
-	return (list.success ? list.data : []).flatMap((entry) => {
+	const dashboards = (list.success ? list.data : []).flatMap((entry) => {
 		const parsed = dashboardSchema.safeParse(entry);
 
 		return parsed.success ? [cleanDashboard(parsed.data)] : [];
 	});
+
+	return uniqueBy(dashboards, (dashboard) => dashboard.id);
 }

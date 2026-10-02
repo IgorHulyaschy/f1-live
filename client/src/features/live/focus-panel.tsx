@@ -10,7 +10,6 @@ import {
 	SelectValue
 } from '@/components/ui/select';
 import { useRace } from '@/data/race-context';
-import { standingsAt } from '@/insights/standings';
 import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -18,8 +17,8 @@ import { BoxNow } from './box-now';
 import { GapLadder } from './gap-ladder';
 
 export function FocusPanel() {
-	const { snapshot, followedDriver, setFollowedDriver } = useRace();
-	const rows = standingsAt(snapshot);
+	const { followedDriver, setFollowedDriver, standings } = useRace();
+	const rows = standings;
 	const row = rows.find((entry) => entry.driver.number === followedDriver) ?? rows[0];
 
 	if (!row) {
@@ -30,7 +29,7 @@ export function FocusPanel() {
 
 	return (
 		<Panel
-			id="focus"
+			data-focus-panel
 			aria-label="Followed driver"
 			data-testid="followed-driver"
 			className="scroll-mt-16"

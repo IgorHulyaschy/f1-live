@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { arrangeTile } from './arrange.ts';
 import {
 	addTile,
 	GRID_COLUMNS,
@@ -96,5 +97,26 @@ describe('parsing', () => {
 		assert.equal(parseDashboardText('not json'), null);
 		assert.equal(parseDashboardText('{"name": 3}'), null);
 		assert.deepEqual(parseDashboardListText('{"broken"'), []);
+	});
+});
+
+describe('keyboard arranging', () => {
+	const live = PRESETS[0];
+
+	it('moves a tile above the one over it', () => {
+		assert.ok(live);
+		assert.deepEqual(
+			readingOrder(arrangeTile(live, 'live-2', 'ArrowUp', false)).map((tile) => tile.kind),
+			['timing', 'race-control', 'focus']
+		);
+	});
+
+	it('resizes within the grid and the tile minimum', () => {
+		assert.ok(live);
+		const wider = arrangeTile(live, 'live-1', 'ArrowRight', true);
+		const narrower = arrangeTile(live, 'live-1', 'ArrowLeft', true);
+
+		assert.equal(wider.layout.find((place) => place.i === 'live-1')?.w, 8);
+		assert.equal(narrower.layout.find((place) => place.i === 'live-1')?.w, 7);
 	});
 });

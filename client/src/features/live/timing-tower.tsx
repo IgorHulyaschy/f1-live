@@ -10,7 +10,7 @@ import { TyreBadge } from '@/components/tyre-badge';
 import { useRace } from '@/data/race-context';
 import { timePenalties } from '@/insights/penalties';
 import { predictRejoin } from '@/insights/pit-window';
-import { type StandingRow, standingsAt } from '@/insights/standings';
+import type { StandingRow } from '@/insights/standings';
 import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -126,10 +126,10 @@ function GhostRow({ code, position }: { code: string; position: number }) {
 }
 
 export function TimingTower() {
-	const { snapshot, lap, plan, followedDriver, setFollowedDriver } = useRace();
+	const { snapshot, lap, plan, followedDriver, setFollowedDriver, standings } = useRace();
 	const [mode, setMode] = React.useState<GapMode>('interval');
 	const [view, setView] = React.useState<View>('full');
-	const rows = standingsAt(snapshot);
+	const rows = standings;
 	const before = previousPositions(snapshot.laps, lap);
 	const penalties = timePenalties(snapshot);
 	const followedIndex = rows.findIndex((row) => row.driver.number === followedDriver);

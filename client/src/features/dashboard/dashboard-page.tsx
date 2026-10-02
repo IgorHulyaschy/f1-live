@@ -34,6 +34,7 @@ import {
 	TILE_KINDS
 } from './dashboards';
 import { dashboardPath } from './paths';
+import { useCarriedSearch } from './use-carried-search';
 
 const SCALE_OPTIONS = SCALES.map(({ value, label }) => ({ value, label }));
 
@@ -128,7 +129,7 @@ function DashboardBar({
 	onChange: (dashboard: Dashboard) => void;
 }) {
 	const navigate = useNavigate();
-	const [searchParams] = useSearchParams();
+	const search = useCarriedSearch();
 	const scale = useScale();
 	const create = useCreateDashboard();
 	const [adding, setAdding] = React.useState(false);
@@ -147,18 +148,17 @@ function DashboardBar({
 
 			saveDashboard({ ...parsed, id });
 			toast(`Imported ${parsed.name}`);
-			void navigate({ pathname: dashboardPath(id), search: searchParams.toString() });
+			void navigate({ pathname: dashboardPath(id), search });
 		} catch {
 			toast('That file is not a Pitwall dashboard.');
 		}
 	};
 
 	return (
-		<div
+		<section
 			className="flex flex-wrap items-center gap-x-3 gap-y-2 pb-4"
 			data-testid="dashboard-bar"
-			role="toolbar"
-			aria-label="Dashboard"
+			aria-label="Dashboard controls"
 		>
 			{editing ? (
 				<input
@@ -166,6 +166,13 @@ function DashboardBar({
 					value={dashboard.name}
 					maxLength={40}
 					onChange={(event) => onChange({ ...dashboard, name: event.target.value })}
+					onBlur={() => {
+						const name = dashboard.name.trim();
+
+						if (name !== dashboard.name || !name) {
+							onChange({ ...dashboard, name: name || 'Untitled' });
+						}
+					}}
 					className="type-wide border-rule-strong focus-visible:border-foreground h-9 w-56 border-b-2 bg-transparent text-sm font-bold outline-none sm:h-7"
 				/>
 			) : (
@@ -173,7 +180,7 @@ function DashboardBar({
 			)}
 			{editing ? (
 				<div className="flex flex-wrap gap-2">
-					<Key pressed onClick={() => setAdding(true)}>
+					<Key pressed data-add-tile onClick={() => setAdding(true)}>
 						<PlusIcon />
 						Add tile
 					</Key>
@@ -198,7 +205,7 @@ function DashboardBar({
 						<Key
 							onClick={() => {
 								forgetDashboard(dashboard.id);
-								void navigate({ pathname: '/', search: searchParams.toString() });
+								void navigate({ pathname: '/', search });
 							}}
 						>
 							<Trash2Icon />
@@ -223,6 +230,12 @@ function DashboardBar({
 					/>
 				</div>
 			) : null}
+			{editing ? (
+				<p id="tile-arrange-help" className="type-label hidden w-full xl:order-last xl:block">
+					Drag a tile by its bar, resize from the edges. Keyboard: focus a grip, arrows move, Shift
+					and arrows resize.
+				</p>
+			) : null}
 			<div className="ml-auto flex flex-wrap items-center gap-2">
 				<span className="hidden lg:block">
 					<KeyGroup<Scale>
@@ -234,7 +247,7 @@ function DashboardBar({
 				</span>
 				<Key
 					className="hidden sm:inline-flex"
-					onClick={() => window.open(window.location.href, '_blank', 'noopener')}
+					onClick={() => window.open(`${window.location.pathname}?${search}`, '_blank', 'noopener')}
 				>
 					<ExternalLinkIcon />
 					New window
@@ -252,7 +265,7 @@ function DashboardBar({
 					setAdding(false);
 				}}
 			/>
-		</div>
+		</section>
 	);
 }
 

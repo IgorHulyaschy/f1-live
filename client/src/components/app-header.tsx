@@ -8,7 +8,7 @@ import {
 	SunIcon
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { NavLink, useSearchParams } from 'react-router';
+import { NavLink } from 'react-router';
 
 import { Key, KeyGroup } from '@/components/console/keys';
 import { Field, Kbd } from '@/components/console/panel';
@@ -18,6 +18,7 @@ import { useRace } from '@/data/race-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
 import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
 import { dashboardPath } from '@/features/dashboard/paths';
+import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
 
@@ -47,16 +48,6 @@ function Wordmark() {
 	);
 }
 
-/** The search to carry between dashboards: race state, but not edit mode. */
-export function useCarriedSearch(): string {
-	const [searchParams] = useSearchParams();
-	const params = new URLSearchParams(searchParams);
-
-	params.delete('edit');
-
-	return params.toString();
-}
-
 /** Dashboards as tabs: presets first, then the viewer's own, then a key to start a new one. */
 function MainNav() {
 	const search = useCarriedSearch();
@@ -82,7 +73,7 @@ function MainNav() {
 				>
 					{({ isActive }) => (
 						<>
-							{dashboard.name}
+							{dashboard.name || 'Untitled'}
 							{isActive ? (
 								<motion.span
 									layoutId="nav-indicator"

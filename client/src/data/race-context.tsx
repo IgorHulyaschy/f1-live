@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router';
 import { z } from 'zod';
 
 import type { RaceSource } from './race-source.ts';
+import { type StandingRow, standingsAt } from '../insights/standings.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
 
 export type Plan = 'free' | 'pro';
@@ -28,6 +29,10 @@ type RaceContextValue = {
 	setPlan: (plan: Plan) => void;
 	followedDriver: string;
 	setFollowedDriver: (driverNumber: string) => void;
+	/** Standings at `lap`, computed once for every panel. */
+	standings: readonly StandingRow[];
+	/** Tells other windows about a change made here. */
+	broadcast: (message: SyncMessage) => void;
 };
 
 const RaceContext = React.createContext<RaceContextValue | null>(null);
@@ -41,29 +46,26 @@ const PLAYBACK_INTERVAL_MS = 1500;
 /** Race state shared by every open Pitwall window, so tiles on other monitors stay in step. */
 const SYNC_CHANNEL = 'pitwall-race';
 
-const SYNCED_PARAMS = ['lap', 'driver', 'plan', 'compare'] as const;
-
-const syncedSchema = z.object({
-	lap: z.string().optional(),
+/**
+ * What one window tells the others. Only deliberate actions are sent (a lap step, a new driver,
+ * play or pause), never state a window loaded or clamped, so opening a tab moves nobody.
+ */
+const syncMessageSchema = z.object({
+	lap: z.int().positive().optional(),
 	driver: z.string().optional(),
-	plan: z.string().optional(),
-	compare: z.string().optional()
+	plan: z.enum(['free', 'pro']).optional(),
+	compare: z.string().optional(),
+	playing: z.boolean().optional()
 });
 
-type SyncedState = z.infer<typeof syncedSchema>;
+export type SyncMessage = z.infer<typeof syncMessageSchema>;
 
-/**
- * Keeps lap, followed driver, plan and compared drivers the same in every window of this
- * browser. A window that applies a change from elsewhere does not send it back.
- */
-function useWindowSync(state: SyncedState, apply: (state: SyncedState) => void): void {
+function useSyncChannel(receive: (message: SyncMessage) => void): (message: SyncMessage) => void {
 	const channel = React.useRef<BroadcastChannel | null>(null);
-	const received = React.useRef<string | null>(null);
-	const applyRef = React.useRef(apply);
-	const key = JSON.stringify(state);
+	const receiveRef = React.useRef(receive);
 
 	React.useEffect(() => {
-		applyRef.current = apply;
+		receiveRef.current = receive;
 	});
 
 	React.useEffect(() => {
@@ -74,11 +76,10 @@ function useWindowSync(state: SyncedState, apply: (state: SyncedState) => void):
 		const opened = new BroadcastChannel(SYNC_CHANNEL);
 
 		opened.addEventListener('message', (event: MessageEvent<unknown>) => {
-			const synced = syncedSchema.safeParse(event.data);
+			const message = syncMessageSchema.safeParse(event.data);
 
-			if (synced.success) {
-				received.current = JSON.stringify(synced.data);
-				applyRef.current(synced.data);
+			if (message.success) {
+				receiveRef.current(message.data);
 			}
 		});
 		channel.current = opened;
@@ -89,16 +90,7 @@ function useWindowSync(state: SyncedState, apply: (state: SyncedState) => void):
 		};
 	}, []);
 
-	// Opening or reloading a window must not pull the others to its state; only later changes go out.
-	const sent = React.useRef(key);
-
-	React.useEffect(() => {
-		if (key !== sent.current && key !== received.current) {
-			channel.current?.postMessage(JSON.parse(key));
-		}
-
-		sent.current = key;
-	}, [key]);
+	return React.useCallback((message: SyncMessage) => channel.current?.postMessage(message), []);
 }
 
 function useRaceData(source: RaceSource): RaceState {
@@ -158,7 +150,9 @@ export function RaceProvider({
 }) {
 	const state = useRaceData(source);
 	const [searchParams, setSearchParams] = useSearchParams();
-	const [playing, setPlaying] = React.useState(false);
+	// This window drives playback; `mirroring` means another window is playing and we follow it.
+	const [playing, setLocalPlaying] = React.useState(false);
+	const [mirroring, setMirroring] = React.useState(false);
 
 	const updateParam = React.useCallback(
 		(key: string, value: string) => {
@@ -173,6 +167,27 @@ export function RaceProvider({
 		},
 		[setSearchParams]
 	);
+
+	// Changes from another window are applied here without being sent on again.
+	const broadcast = useSyncChannel((message) => {
+		const { playing: remotePlaying, ...params } = message;
+
+		if (remotePlaying !== undefined) {
+			setLocalPlaying(false);
+			setMirroring(remotePlaying);
+		}
+
+		setSearchParams(
+			(current) => {
+				for (const [key, entry] of Object.entries(params)) {
+					current.set(key, String(entry));
+				}
+
+				return current;
+			},
+			{ replace: true }
+		);
+	});
 
 	const race = state.status === 'ready' ? state.race : null;
 	const maxLap = race?.currentLap ?? 1;
@@ -189,53 +204,42 @@ export function RaceProvider({
 				defaultLap
 			);
 
-			updateParam('lap', String(Math.min(Math.max(current + delta, 1), maxLap)));
+			const next = Math.min(Math.max(current + delta, 1), maxLap);
+
+			updateParam('lap', String(next));
+			broadcast({ lap: next });
 		},
-		[updateParam, maxLap, defaultLap]
+		[updateParam, maxLap, defaultLap, broadcast]
 	);
 
 	// Playback stops by itself at the last available lap.
-	const isPlaying = playing && lap < maxLap;
+	const drivesPlayback = playing && lap < maxLap;
+	const isPlaying = (playing || mirroring) && lap < maxLap;
 
 	React.useEffect(() => {
-		if (!isPlaying) {
+		if (!drivesPlayback) {
 			return;
 		}
 
 		const timer = window.setInterval(() => stepLap(1), PLAYBACK_INTERVAL_MS);
 
 		return () => window.clearInterval(timer);
-	}, [isPlaying, stepLap]);
+	}, [drivesPlayback, stepLap]);
+
+	const setPlaying = React.useCallback(
+		(next: boolean) => {
+			setLocalPlaying(next);
+			setMirroring(false);
+			broadcast({ playing: next });
+		},
+		[broadcast]
+	);
 
 	const snapshot = React.useMemo(() => (race ? snapshotAtLap(race, lap) : null), [race, lap]);
 	const plan: Plan = searchParams.get('plan') === 'pro' ? 'pro' : 'free';
 	const followedDriver = searchParams.get('driver') ?? DEFAULT_FOLLOWED_DRIVER;
 
-	useWindowSync(
-		{
-			lap: String(lap),
-			driver: followedDriver,
-			plan,
-			compare: searchParams.get('compare') ?? undefined
-		},
-		(synced) =>
-			setSearchParams(
-				(params) => {
-					for (const param of SYNCED_PARAMS) {
-						const value = synced[param];
-
-						if (value === undefined) {
-							params.delete(param);
-						} else {
-							params.set(param, value);
-						}
-					}
-
-					return params;
-				},
-				{ replace: true }
-			)
-	);
+	const standings = React.useMemo(() => (snapshot ? standingsAt(snapshot) : []), [snapshot]);
 
 	const value = React.useMemo<RaceContextValue | null>(
 		() =>
@@ -245,17 +249,41 @@ export function RaceProvider({
 						race,
 						snapshot,
 						lap,
-						setLap: (nextLap) => updateParam('lap', String(nextLap)),
+						setLap: (nextLap) => {
+							updateParam('lap', String(nextLap));
+							broadcast({ lap: nextLap });
+						},
 						stepLap,
 						playing: isPlaying,
 						setPlaying,
 						plan,
-						setPlan: (nextPlan) => updateParam('plan', nextPlan),
+						setPlan: (nextPlan) => {
+							updateParam('plan', nextPlan);
+							broadcast({ plan: nextPlan });
+						},
 						followedDriver,
-						setFollowedDriver: (driverNumber) => updateParam('driver', driverNumber)
+						setFollowedDriver: (driverNumber) => {
+							updateParam('driver', driverNumber);
+							broadcast({ driver: driverNumber });
+						},
+						standings,
+						broadcast
 					}
 				: null,
-		[source.kind, race, snapshot, lap, isPlaying, plan, followedDriver, updateParam, stepLap]
+		[
+			source.kind,
+			race,
+			snapshot,
+			lap,
+			isPlaying,
+			setPlaying,
+			plan,
+			followedDriver,
+			updateParam,
+			stepLap,
+			standings,
+			broadcast
+		]
 	);
 
 	if (state.status === 'error') {

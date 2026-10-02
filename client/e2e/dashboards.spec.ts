@@ -84,3 +84,62 @@ test('a popped-out tile follows the lap of the window that opened it', async ({ 
 	await expect(main.getByTestId('lap-counter')).toHaveText('Lap 21/50');
 	await expect(tile.getByTestId('lap-counter')).toHaveText('Lap 21/50');
 });
+
+test('tiles can be arranged from the keyboard', async ({ page }) => {
+	await openRace(page, '/?edit=1');
+
+	await page.getByRole('button', { name: 'Arrange Race control' }).focus();
+	await page.keyboard.press('ArrowUp');
+	await expect(page.getByRole('button', { name: 'Arrange Race control' })).toBeFocused();
+
+	// Tiles glide to their new place, so wait for the order to settle.
+	await expect
+		.poll(() =>
+			page.locator('[data-tile-id]').evaluateAll((tiles) =>
+				tiles
+					.map((tile) => ({
+						id: tile.getAttribute('data-testid'),
+						top: tile.getBoundingClientRect().top
+					}))
+					.filter((tile) => tile.id !== 'tile-timing')
+					.toSorted((a, b) => a.top - b.top)
+					.map((tile) => tile.id)
+			)
+		)
+		.toEqual(['tile-race-control', 'tile-focus']);
+});
+
+test('opening another window does not move the windows already open', async ({ context }) => {
+	const main = await context.newPage();
+
+	await openRace(main, '/?lap=30');
+
+	const stale = await context.newPage();
+
+	await openRace(stale, '/?lap=5');
+	await main.waitForTimeout(300);
+	await expect(main.getByTestId('lap-counter')).toHaveText('Lap 30/50');
+});
+
+test('play in one window is mirrored, and pause from the other stops it', async ({ context }) => {
+	const main = await context.newPage();
+
+	await openRace(main, '/?lap=10');
+
+	const other = await context.newPage();
+
+	await openRace(other, '/?lap=10');
+
+	await main.getByRole('button', { name: 'Play replay' }).click();
+	await expect(other.getByRole('button', { name: 'Pause replay' })).toBeVisible();
+	await expect(other.getByTestId('lap-counter')).toHaveText('Lap 11/50');
+
+	await other.getByRole('button', { name: 'Pause replay' }).click();
+	await expect(main.getByRole('button', { name: 'Play replay' })).toBeVisible();
+
+	const stopped = await main.getByTestId('lap-counter').textContent();
+
+	await main.waitForTimeout(2000);
+	await expect(main.getByTestId('lap-counter')).toHaveText(stopped ?? '');
+	await expect(other.getByTestId('lap-counter')).toHaveText(stopped ?? '');
+});

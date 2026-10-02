@@ -5,7 +5,6 @@ import { DriverTag } from '@/components/driver-tag';
 import { compoundName } from '@/components/tyre-badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRace } from '@/data/race-context';
-import { standingsAt } from '@/insights/standings';
 import { cn } from '@/lib/utils';
 
 const LEGEND = ['SOFT', 'MEDIUM', 'HARD'] as const;
@@ -69,8 +68,8 @@ function StintBar({
 }
 
 export function StintChart() {
-	const { snapshot } = useRace();
-	const rows = standingsAt(snapshot);
+	const { snapshot, standings } = useRace();
+	const rows = standings;
 	const totalLaps = snapshot.session.totalLaps;
 	const now = snapshot.currentLap;
 
