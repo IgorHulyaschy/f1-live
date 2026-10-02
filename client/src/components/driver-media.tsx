@@ -1,0 +1,102 @@
+import type { Driver } from '@f1-live/shared';
+import * as React from 'react';
+
+import { useDarkTheme } from '@/hooks/use-theme';
+import { carImageUrl, driverPhotoUrl, teamLogoUrl } from '@/lib/media';
+import { cn } from '@/lib/utils';
+
+/**
+ * A picture laid over its drawn fallback. The fallback always renders, so a slow, blocked or
+ * missing picture never leaves a hole or a broken-image icon; the picture fades in once loaded.
+ */
+function Overlay({ src, className }: { src: string | null; className?: string }) {
+	const [state, setState] = React.useState<{
+		src: string | null;
+		loaded: boolean;
+		failed: boolean;
+	}>({ src, loaded: false, failed: false });
+
+	// A new driver means a new picture: start over without carrying the last one's state.
+	const current = state.src === src ? state : { src, loaded: false, failed: false };
+
+	if (!src || current.failed) {
+		return null;
+	}
+
+	return (
+		<img
+			src={src}
+			alt=""
+			loading="lazy"
+			decoding="async"
+			referrerPolicy="no-referrer"
+			draggable={false}
+			onLoad={() => setState({ src, loaded: true, failed: false })}
+			onError={() => setState({ src, loaded: false, failed: true })}
+			className={cn(
+				'absolute inset-0 size-full transition-opacity duration-300',
+				current.loaded ? 'opacity-100' : 'opacity-0',
+				className
+			)}
+		/>
+	);
+}
+
+/** The driver's picture on their team colour; without one, their race number in its place. */
+export function DriverPortrait({ driver, className }: { driver: Driver; className?: string }) {
+	return (
+		<span
+			aria-hidden
+			className={cn('bg-team/15 plate relative block shrink-0 overflow-hidden', className)}
+			style={{ '--team': `#${driver.teamColour}` }}
+		>
+			<span className="text-team plate-number absolute inset-x-0 bottom-0 font-mono font-black italic">
+				{driver.number}
+			</span>
+			<Overlay src={driverPhotoUrl(driver, 240)} className="object-cover object-top" />
+			<span className="bg-team absolute inset-x-0 bottom-0 h-0.5" />
+		</span>
+	);
+}
+
+/** The team's logo, or its name printed small. */
+export function TeamLogo({ driver, className }: { driver: Driver; className?: string }) {
+	const dark = useDarkTheme();
+
+	return (
+		<span className={cn('relative flex min-w-0 items-center', className)}>
+			<span className="type-label truncate">{driver.team}</span>
+			<Overlay
+				src={teamLogoUrl(driver, dark ? 'white' : 'black', 160)}
+				className="bg-panel object-contain object-left"
+			/>
+		</span>
+	);
+}
+
+/**
+ * The car side on. The fallback is a generic single-seater outline in the team colour, drawn here:
+ * it is not any team's car.
+ */
+export function CarSide({ driver, className }: { driver: Driver; className?: string }) {
+	return (
+		<span
+			aria-hidden
+			className={cn('relative block aspect-4/1', className)}
+			style={{ '--team': `#${driver.teamColour}` }}
+		>
+			<svg viewBox="0 0 400 100" className="absolute inset-0 size-full">
+				<path
+					className="fill-team"
+					d="M4 80h56l6-6 70-10 18-12h26l8-10 18-6h22l6 6v12l78 6 10-20h50l2 6-6 2-4 32h-30l-6 4H86l-8 4H4z"
+				/>
+				<path className="fill-foreground/80" d="M160 52l14-8h18l-6 8z" />
+				<circle className="fill-foreground" cx="96" cy="78" r="20" />
+				<circle className="fill-foreground" cx="318" cy="76" r="22" />
+				<circle className="fill-background" cx="96" cy="78" r="7" />
+				<circle className="fill-background" cx="318" cy="76" r="8" />
+			</svg>
+			<Overlay src={carImageUrl(driver, 640)} className="bg-panel object-contain" />
+		</span>
+	);
+}

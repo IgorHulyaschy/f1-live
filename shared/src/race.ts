@@ -39,6 +39,14 @@ export interface Driver {
 	team: string;
 	/** Hex colour without the leading "#", as published by the timing feed. */
 	teamColour: string;
+	/** Headshot on formula1.com, as published by the timing feed (DriverList HeadshotUrl). */
+	headshotUrl?: string;
+	/**
+	 * formula1.com media id of the driver's side-on picture (DriverList PublicIdRight), e.g.
+	 * "common/f1/2025/mclaren/lannor01/2025mclarenlannor01right". The team's folder in it also
+	 * locates the team logo and car.
+	 */
+	imageId?: string;
 }
 
 /** One completed lap for one driver, with the race state at the moment it was completed. */
