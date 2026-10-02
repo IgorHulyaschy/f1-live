@@ -23,5 +23,14 @@ export function dashboardIdFromPath(pathname: string): string | null {
 
 	const match = /^\/d\/([^/]+)$/.exec(pathname);
 
-	return match?.[1] ? decodeURIComponent(match[1]) : null;
+	return match?.[1] ? safeDecode(match[1]) : null;
+}
+
+/** A path segment, decoded; a malformed escape reads as nothing rather than throwing. */
+export function safeDecode(segment: string): string | null {
+	try {
+		return decodeURIComponent(segment);
+	} catch {
+		return null;
+	}
 }

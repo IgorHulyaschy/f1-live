@@ -70,6 +70,9 @@ const ROW_REM = 1.25;
 /** The gap between tiles in rem. */
 const GAP_REM = 1.25;
 
+/** The gap between rows while editing: room for a tile bar with full-size (24px) keys. */
+const EDIT_ROW_GAP_REM = 1.5;
+
 function sameLayout(dashboard: Dashboard, layout: Layout): boolean {
 	const places = new Map(dashboard.layout.map((place) => [place.i, place]));
 
@@ -116,7 +119,7 @@ function TileBar({
 			data-tile-handle
 			className={cn(
 				'bg-panel-raised flex shrink-0 cursor-move items-center gap-1.5 border border-b-0 border-dashed pr-1 pl-1.5',
-				floating ? 'absolute inset-x-0 -top-5 z-10 h-5' : 'h-8'
+				floating ? 'absolute inset-x-0 -top-6 z-10 h-6' : 'h-8'
 			)}
 			data-testid="tile-bar"
 		>
@@ -127,7 +130,7 @@ function TileBar({
 				data-tile-grip
 				className={cn(
 					'text-muted-foreground hover:text-foreground focus-visible:ring-ring flex shrink-0 cursor-move items-center justify-center focus-visible:ring-2 focus-visible:outline-none',
-					floating ? 'size-5' : 'size-6'
+					'size-6'
 				)}
 				onKeyDown={(event) => {
 					if (ARRANGE_KEYS.has(event.key)) {
@@ -137,7 +140,9 @@ function TileBar({
 						// The tile re-renders in its new place; keep the keyboard on its grip.
 						requestAnimationFrame(() =>
 							document
-								.querySelector<HTMLButtonElement>(`[data-tile-id="${tile.id}"] [data-tile-grip]`)
+								.querySelector<HTMLButtonElement>(
+									`[data-tile-id="${CSS.escape(tile.id)}"] [data-tile-grip]`
+								)
 								?.focus()
 						);
 					}
@@ -146,7 +151,7 @@ function TileBar({
 				<GripVerticalIcon aria-hidden className="size-3.5" />
 			</button>
 			<span className="type-label text-foreground truncate">{title}</span>
-			<span className={cn('ml-auto flex', floating && '[&_button]:h-5 [&_button]:sm:h-5')}>
+			<span className="ml-auto flex">
 				{neighbours?.up ? (
 					<Key
 						aria-label={`Move ${title} up`}
@@ -244,11 +249,14 @@ export function DashboardGrid({
 	const space = useSpaceBelow(containerRef, mounted && !stacked && Boolean(dashboard.fit));
 	const rows = Math.max(1, ...dashboard.layout.map((place) => place.y + place.h));
 	const gap = GAP_REM * rem;
+	const rowGap = (editing ? EDIT_ROW_GAP_REM : GAP_REM) * rem;
+	// Editing pads the grid top and bottom so the first row's bars have room.
+	const padding = editing ? rowGap : 0;
 
 	// Fit: share the height left in the window between the rows, but never shrink below half size.
 	const rowHeight =
 		dashboard.fit && space
-			? Math.max((space - (rows - 1) * gap) / rows, (ROW_REM * rem) / 2)
+			? Math.max((space - 2 * padding - (rows - 1) * rowGap) / rows, (ROW_REM * rem) / 2)
 			: ROW_REM * rem;
 
 	const tiles = new Map(dashboard.tiles.map((tile) => [tile.id, tile]));
@@ -324,9 +332,9 @@ export function DashboardGrid({
 				gridConfig={{
 					cols: GRID_COLUMNS,
 					rowHeight,
-					margin: [gap, gap],
+					margin: [gap, rowGap],
 					// Room above the first row for the tile bars, which sit in the gaps.
-					containerPadding: [0, editing ? gap : 0]
+					containerPadding: [0, padding]
 				}}
 				dragConfig={{
 					enabled: editing,

@@ -2,37 +2,41 @@ import type { Driver } from '@f1-live/shared';
 import * as React from 'react';
 
 import { useDarkTheme } from '@/hooks/use-theme';
-import { carImageUrl, driverPhotoUrl, teamLogoUrl } from '@/lib/media';
+import { carImageUrl, driverPhotoUrls, teamLogoUrl } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
+function present(url: string | null): string[] {
+	return url ? [url] : [];
+}
+
 /**
- * A picture laid over its drawn fallback. The fallback always renders, so a slow, blocked or
- * missing picture never leaves a hole or a broken-image icon; the picture fades in once loaded.
+ * Pictures laid over their drawn fallback, tried in order. The fallback always renders, so a slow,
+ * blocked or missing picture never leaves a hole or a broken-image icon; the picture fades in once loaded.
  */
-function Overlay({ src, className }: { src: string | null; className?: string }) {
-	const [state, setState] = React.useState<{
-		src: string | null;
-		loaded: boolean;
-		failed: boolean;
-	}>({ src, loaded: false, failed: false });
+function Overlay({ sources, className }: { sources: readonly string[]; className?: string }) {
+	const key = sources.join(' ');
+	const [state, setState] = React.useState({ key, index: 0, loaded: false });
 
-	// A new driver means a new picture: start over without carrying the last one's state.
-	const current = state.src === src ? state : { src, loaded: false, failed: false };
+	// New pictures (another driver) start over without carrying the last ones' state.
+	const current = state.key === key ? state : { key, index: 0, loaded: false };
+	const src = sources[current.index];
 
-	if (!src || current.failed) {
+	if (!src) {
 		return null;
 	}
 
 	return (
 		<img
+			key={src}
 			src={src}
 			alt=""
 			loading="lazy"
 			decoding="async"
 			referrerPolicy="no-referrer"
 			draggable={false}
-			onLoad={() => setState({ src, loaded: true, failed: false })}
-			onError={() => setState({ src, loaded: false, failed: true })}
+			onLoad={() => setState({ key, index: current.index, loaded: true })}
+			// A picture that fails hands over to the next source, and after the last to the drawing.
+			onError={() => setState({ key, index: current.index + 1, loaded: false })}
 			className={cn(
 				'absolute inset-0 size-full transition-opacity duration-300',
 				current.loaded ? 'opacity-100' : 'opacity-0',
@@ -53,7 +57,7 @@ export function DriverPortrait({ driver, className }: { driver: Driver; classNam
 			<span className="text-team plate-number absolute inset-x-0 bottom-0 font-mono font-black italic">
 				{driver.number}
 			</span>
-			<Overlay src={driverPhotoUrl(driver, 240)} className="object-cover object-top" />
+			<Overlay sources={driverPhotoUrls(driver, 240)} className="object-cover object-top" />
 			<span className="bg-team absolute inset-x-0 bottom-0 h-0.5" />
 		</span>
 	);
@@ -67,7 +71,7 @@ export function TeamLogo({ driver, className }: { driver: Driver; className?: st
 		<span className={cn('relative flex min-w-0 items-center', className)}>
 			<span className="type-label truncate">{driver.team}</span>
 			<Overlay
-				src={teamLogoUrl(driver, dark ? 'white' : 'black', 160)}
+				sources={present(teamLogoUrl(driver, dark ? 'white' : 'black', 160))}
 				className="bg-panel object-contain object-left"
 			/>
 		</span>
@@ -96,7 +100,7 @@ export function CarSide({ driver, className }: { driver: Driver; className?: str
 				<circle className="fill-background" cx="96" cy="78" r="7" />
 				<circle className="fill-background" cx="318" cy="76" r="8" />
 			</svg>
-			<Overlay src={carImageUrl(driver, 640)} className="bg-panel object-contain" />
+			<Overlay sources={present(carImageUrl(driver, 640))} className="bg-panel object-contain" />
 		</span>
 	);
 }

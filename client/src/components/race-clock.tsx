@@ -35,7 +35,7 @@ export function LapCounter({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
 	const { race, lap } = useRace();
 
 	return (
-		<div className="flex items-baseline gap-1.5 leading-none" aria-live="polite">
+		<div className="flex items-baseline gap-1.5 leading-none">
 			<span className="type-label">Lap</span>
 			<span className="sr-only" data-testid="lap-counter">
 				Lap {lap}/{race.session.totalLaps}

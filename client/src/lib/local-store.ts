@@ -8,6 +8,8 @@ import type { z } from 'zod';
 export function createLocalStore<Value>(key: string, schema: z.ZodType<Value>, fallback: Value) {
 	const listeners = new Set<() => void>();
 	let cache: { raw: string | null; value: Value } | null = null;
+	// Set when storage refused a write: the value then lives in memory until the page closes.
+	let memoryOnly = false;
 
 	function readRaw(): string | null {
 		try {
@@ -18,6 +20,10 @@ export function createLocalStore<Value>(key: string, schema: z.ZodType<Value>, f
 	}
 
 	function get(): Value {
+		if (memoryOnly && cache) {
+			return cache.value;
+		}
+
 		const raw = readRaw();
 
 		if (cache && cache.raw === raw) {
@@ -48,8 +54,9 @@ export function createLocalStore<Value>(key: string, schema: z.ZodType<Value>, f
 
 		try {
 			window.localStorage.setItem(key, raw);
+			memoryOnly = false;
 		} catch {
-			// Storage can be full or blocked; the value still holds until the page closes.
+			memoryOnly = true;
 		}
 
 		for (const listener of listeners) {

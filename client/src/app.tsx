@@ -1,6 +1,6 @@
 import { MotionConfig } from 'motion/react';
 import * as React from 'react';
-import { Outlet } from 'react-router';
+import { matchPath, Outlet, useLocation } from 'react-router';
 
 import { AppHeader } from '@/components/app-header';
 import { Key } from '@/components/console/keys';
@@ -12,6 +12,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { RaceProvider, useRace } from '@/data/race-context';
 import { CompareProvider } from '@/features/analysis/compare-context';
+import { useDashboards } from '@/features/dashboard/dashboard-store';
 import type { RaceSource } from '@/data/race-source';
 import { useRaceAlerts } from '@/hooks/use-race-alerts';
 import { useRaceHotkeys } from '@/hooks/use-race-hotkeys';
@@ -39,6 +40,14 @@ function ErrorState({ message }: { message: string }) {
 /** The slim bar over a popped-out tile: what race, which lap, what flag. */
 function BareHeader() {
 	const { race, snapshot, lap } = useRace();
+	const { pathname } = useLocation();
+	const { dashboards } = useDashboards();
+
+	const match = matchPath('/tile/:dashboardId/:tileId', pathname);
+
+	const poppedKind = dashboards
+		.find((dashboard) => dashboard.id === match?.params.dashboardId)
+		?.tiles.find((tile) => tile.id === match?.params.tileId)?.kind;
 
 	return (
 		<header className="flex h-10 shrink-0 items-center gap-4 border-b px-4">
@@ -46,18 +55,20 @@ function BareHeader() {
 				{race.session.meetingName.replace(/ Grand Prix$/, '')}
 			</span>
 			<TrackStatusBadge status={snapshot.trackStatus} />
-			<span className="ml-auto flex items-baseline gap-1.5 font-mono">
-				<span className="type-label">Lap</span>
-				<span className="sr-only" data-testid="lap-counter">
-					Lap {lap}/{race.session.totalLaps}
+			{poppedKind === 'replay' ? null : (
+				<span className="ml-auto flex items-baseline gap-1.5 font-mono">
+					<span className="type-label">Lap</span>
+					<span className="sr-only" data-testid="lap-counter">
+						Lap {lap}/{race.session.totalLaps}
+					</span>
+					<span aria-hidden className="text-lg font-bold">
+						{lap}
+					</span>
+					<span aria-hidden className="text-muted-foreground text-xs">
+						/{race.session.totalLaps}
+					</span>
 				</span>
-				<span aria-hidden className="text-lg font-bold">
-					{lap}
-				</span>
-				<span aria-hidden className="text-muted-foreground text-xs">
-					/{race.session.totalLaps}
-				</span>
-			</span>
+			)}
 		</header>
 	);
 }

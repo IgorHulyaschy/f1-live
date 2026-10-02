@@ -146,7 +146,7 @@ function Section({
  */
 export function LibraryPage() {
 	const search = useCarriedSearch();
-	const { plan } = useRace();
+	const { plan, setPlan } = useRace();
 	const { dashboards } = useDashboards();
 	const published = usePublished();
 	const account = accountStore.useValue();
@@ -186,6 +186,15 @@ export function LibraryPage() {
 								onClick={() => {
 									if (!account) {
 										setSigningIn(true);
+
+										return;
+									}
+
+									if (!entry && plan === 'free') {
+										toast('Publishing is part of Pro', {
+											description: 'Share links work on Free; the library lists Pro dashboards.',
+											action: { label: 'Preview Pro', onClick: () => setPlan('pro') }
+										});
 
 										return;
 									}
@@ -288,7 +297,7 @@ function DashboardPreview({ entry }: { entry: Omit<LibraryEntry, 'id'> | null })
 				>
 					<ArrowLeftIcon aria-hidden className="size-3.5" />
 				</Link>
-				<h2 className="type-wide text-sm font-bold">{entry.dashboard.name}</h2>
+				<h1 className="type-wide text-sm font-bold">{entry.dashboard.name}</h1>
 				<span className="type-label">
 					{entry.author ? `Preview, by @${entry.author}` : 'Preview, shared with you'}
 				</span>

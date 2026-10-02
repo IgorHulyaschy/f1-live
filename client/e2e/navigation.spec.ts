@@ -5,7 +5,8 @@ import { openRace } from './fixtures.ts';
 test('loads the Las Vegas replay on the live page', async ({ page }) => {
 	await openRace(page);
 
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Las Vegas GP 2025');
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Live');
+	await expect(page.getByRole('heading', { name: 'Las Vegas GP 2025' })).toBeVisible();
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 30/50');
 	await expect(page.getByTestId(/^timing-row-/)).toHaveCount(20);
 });

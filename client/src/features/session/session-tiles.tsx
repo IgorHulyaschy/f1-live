@@ -26,10 +26,10 @@ export function SessionTile() {
 			className="@container flex h-full min-w-0 flex-col justify-end gap-3 py-2"
 			data-testid="session"
 		>
-			<h1 className="type-wide truncate text-2xl leading-none font-black italic @2xl:text-4xl">
+			<h2 className="type-wide truncate text-2xl leading-none font-black italic @2xl:text-4xl">
 				{race.session.meetingName.replace(/ Grand Prix$/, '')}
 				<span className="text-muted-foreground"> GP {year}</span>
-			</h1>
+			</h2>
 			<div className="flex flex-wrap gap-y-2 divide-x">
 				<Field label="Circuit" className="pr-4">
 					{race.session.circuit}

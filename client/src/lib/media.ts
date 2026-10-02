@@ -23,17 +23,16 @@ function transformed(publicId: string, transform: string): string {
 	return `${MEDIA_HOST}/${transform}/q_auto/${publicId}.webp`;
 }
 
-/** Head and shoulders, cut out: the feed's own headshot link, else the side-on picture. */
-export function driverPhotoUrl(driver: Driver, width: number): string | null {
+/** The driver's pictures to try in order: the side-on cut-out, then the feed's own headshot. */
+export function driverPhotoUrls(driver: Driver, width: number): string[] {
 	if (!MEDIA_ENABLED) {
-		return null;
+		return [];
 	}
 
-	if (driver.imageId) {
-		return transformed(driver.imageId, `c_lfill,w_${width}`);
-	}
-
-	return driver.headshotUrl ?? null;
+	return [
+		driver.imageId ? transformed(driver.imageId, `c_lfill,w_${width}`) : null,
+		driver.headshotUrl ?? null
+	].filter((url) => url !== null);
 }
 
 export function teamLogoUrl(driver: Driver, tone: 'white' | 'black', width: number): string | null {

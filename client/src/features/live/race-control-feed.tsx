@@ -107,9 +107,10 @@ export function RaceControlFeed() {
 						{messages.map((message, index) => {
 							const category = CATEGORY[message.category];
 
-							// Race control can repeat a message on the same lap; count repeats into the key.
+							// Race control can repeat a message on the same lap. The list is newest first, so
+							// count the older copies below: a new copy then never takes an old one's key.
 							const repeat = messages
-								.slice(0, index)
+								.slice(index + 1)
 								.filter(
 									(other) => other.lap === message.lap && other.message === message.message
 								).length;

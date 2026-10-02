@@ -53,6 +53,8 @@ type TileInfo = {
 	size: { w: number; h: number };
 	min: { w: number; h: number };
 	pro?: boolean;
+	/** At most one per dashboard: the masthead and the lap clock. */
+	single?: boolean;
 };
 
 export const TILE_INFO: Record<TileKind, TileInfo> = {
@@ -61,14 +63,16 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		title: 'Session',
 		description: 'The race, circuit, feed and track status: the screen’s masthead.',
 		size: { w: 16, h: 3 },
-		min: { w: 6, h: 3 }
+		min: { w: 6, h: 3 },
+		single: true
 	},
 	replay: {
 		group: 'Race',
 		title: 'Replay',
 		description: 'Lap counter with previous, play and next.',
 		size: { w: 8, h: 3 },
-		min: { w: 4, h: 3 }
+		min: { w: 4, h: 3 },
+		single: true
 	},
 	'lap-strip': {
 		group: 'Race',

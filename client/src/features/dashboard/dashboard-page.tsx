@@ -48,10 +48,13 @@ const SCALE_OPTIONS = SCALES.map(({ value, label }) => ({ value, label }));
 function AddTileDialog({
 	open,
 	onOpenChange,
+	present,
 	onAdd
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	/** Kinds already on the dashboard; single-instance ones cannot be added again. */
+	present: ReadonlySet<(typeof TILE_KINDS)[number]>;
 	onAdd: (kind: (typeof TILE_KINDS)[number]) => void;
 }) {
 	return (
@@ -72,11 +75,15 @@ function AddTileDialog({
 									<li key={kind} className="border-b sm:odd:border-r">
 										<button
 											type="button"
+											disabled={TILE_INFO[kind].single && present.has(kind)}
 											onClick={() => onAdd(kind)}
-											className="hover:bg-accent focus-visible:bg-accent flex w-full flex-col gap-1 px-3 py-2.5 text-left transition-colors focus-visible:outline-none"
+											className="hover:bg-accent focus-visible:bg-accent flex w-full flex-col gap-1 px-3 py-2.5 text-left transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40"
 										>
 											<span className="type-wide flex items-center gap-2 text-xs font-bold">
 												{TILE_INFO[kind].title}
+												{TILE_INFO[kind].single && present.has(kind) ? (
+													<span className="type-label">On this dashboard</span>
+												) : null}
 												{TILE_INFO[kind].pro ? (
 													<span className="type-label flex items-center gap-1 border px-1">
 														<LockIcon aria-hidden className="size-2.5" />
@@ -196,7 +203,7 @@ function DashboardBar({
 					className="type-wide border-rule-strong focus-visible:border-foreground h-9 w-56 border-b-2 bg-transparent text-sm font-bold outline-none sm:h-7"
 				/>
 			) : (
-				<h2 className="type-wide text-sm font-bold">{dashboard.name}</h2>
+				<h1 className="type-wide text-sm font-bold">{dashboard.name}</h1>
 			)}
 			{editing ? (
 				<span className="type-label" data-testid="save-status">
@@ -298,6 +305,7 @@ function DashboardBar({
 			<AddTileDialog
 				open={adding}
 				onOpenChange={setAdding}
+				present={new Set(dashboard.tiles.map((tile) => tile.kind))}
 				onAdd={(kind) => {
 					onChange(addTile(dashboard, kind, newId(kind)));
 					setAdding(false);
