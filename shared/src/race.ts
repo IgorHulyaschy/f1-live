@@ -1,6 +1,6 @@
 /** Race domain contract shared by the server (producer) and the client (consumer). */
 
-export const TYRE_COMPOUNDS = ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET'] as const;
+export const TYRE_COMPOUNDS = ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET', 'UNKNOWN'] as const;
 
 export type TyreCompound = (typeof TYRE_COMPOUNDS)[number];
 
@@ -103,6 +103,11 @@ export interface WeatherSample {
 	rainfall: boolean;
 }
 
+export interface GridSlot {
+	driverNumber: string;
+	position: number;
+}
+
 export interface Retirement {
 	driverNumber: string;
 	lap: number;
@@ -115,6 +120,7 @@ export interface RaceSnapshot {
 	currentLap: number;
 	trackStatus: TrackStatus;
 	drivers: readonly Driver[];
+	startingGrid: readonly GridSlot[];
 	laps: readonly Lap[];
 	stints: readonly Stint[];
 	pitStops: readonly PitStop[];
