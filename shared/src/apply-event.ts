@@ -343,15 +343,12 @@ function applyTyres(state: RaceSnapshot, event: TyresFittedEvent): RaceSnapshot 
 		};
 	});
 
-	const driverOrder = new Map(state.drivers.map((driver, index) => [driver.number, index]));
-	const orderOf = (stint: Stint) => driverOrder.get(stint.driverNumber) ?? state.drivers.length;
+	const others = state.stints.filter((stint) => stint.driverNumber !== event.driverNumber);
+	const first = state.stints.findIndex((stint) => stint.driverNumber === event.driverNumber);
 
 	return {
 		...state,
-		stints: [
-			...state.stints.filter((stint) => stint.driverNumber !== event.driverNumber),
-			...renumbered
-		].toSorted((a, b) => orderOf(a) - orderOf(b) || a.startLap - b.startLap),
+		stints: others.toSpliced(first === -1 ? others.length : first, 0, ...renumbered),
 		laps: state.laps.map((lap) => {
 			if (lap.driverNumber !== event.driverNumber) {
 				return lap;
