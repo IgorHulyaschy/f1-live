@@ -5,9 +5,14 @@ import { cn } from '@/lib/utils';
 /**
  * A region of the timing screen. Regions are not cards: they sit flush, open with a heavy rule
  * and a printed label, and are divided from each other by hairlines.
+ *
+ * A panel is a size container: what it shows depends on the width of its tile, not of the
+ * screen, so it reads the same in a narrow side tile on a 4K monitor as on a phone.
  */
 export function Panel({ className, ...props }: React.ComponentProps<'section'>) {
-	return <section className={cn('bg-panel flex min-w-0 flex-col', className)} {...props} />;
+	return (
+		<section className={cn('bg-panel @container flex min-w-0 flex-col', className)} {...props} />
+	);
 }
 
 export function PanelHeader({
@@ -23,8 +28,9 @@ export function PanelHeader({
 }) {
 	return (
 		<header
+			data-slot="panel-header"
 			className={cn(
-				'border-rule-strong flex min-h-10 flex-wrap items-center gap-x-4 gap-y-2 border-t-2 border-b px-4 py-1.5',
+				'border-rule-strong bg-panel flex min-h-10 flex-wrap items-center gap-x-4 gap-y-2 border-t-2 border-b px-4 py-1.5',
 				className
 			)}
 		>

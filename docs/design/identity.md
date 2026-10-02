@@ -60,3 +60,15 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
 - Straight lines between laps, per-lap dots on lap times, ticks every 5 laps.
 - No gradients. Neutralised laps are a faint `--flag` band. The DRS window is a faint neutral band.
 - The second car of a team is dashed instead of getting an invented colour.
+
+## Dashboards
+
+- Every page is a dashboard: tiles on a 24-column grid. Live, Analysis and Strategy are presets
+  at their old addresses; Battle and Pit wall are presets for focused and wide screens.
+- Panels size themselves to their tile with container queries (`@container` on `Panel`), never
+  to the screen, so a narrow tile on a 4K monitor looks like a phone-width panel.
+- Below 64rem of width the grid stacks tiles in reading order at natural height.
+- Edit mode is quiet: a dashed tile bar to drag, corner ticks to resize. No wiggle, no
+  confetti, no gamified empty states.
+- Text size (S to TV) scales rem, so tiles, type and grid rows grow together on wall screens.
+- Lap, followed driver, plan and compared drivers stay in step across every open window.

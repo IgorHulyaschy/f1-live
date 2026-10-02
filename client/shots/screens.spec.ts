@@ -10,13 +10,17 @@ const VIEWPORTS = [
 	{ name: 'mobile', width: 390, height: 844 },
 	{ name: 'tablet', width: 834, height: 1194 },
 	{ name: 'laptop', width: 1280, height: 800 },
-	{ name: 'desktop', width: 1920, height: 1080 }
+	{ name: 'desktop', width: 1920, height: 1080 },
+	{ name: 'qhd', width: 2560, height: 1440 }
 ] as const;
 
 const PAGES = [
 	{ name: 'live', path: '/' },
 	{ name: 'analysis', path: '/analysis' },
-	{ name: 'strategy', path: '/strategy' }
+	{ name: 'strategy', path: '/strategy' },
+	{ name: 'battle', path: '/d/battle' },
+	{ name: 'wall', path: '/d/wall' },
+	{ name: 'editing', path: '/d/battle?edit=1' }
 ] as const;
 
 const PLANS = ['free', 'pro'] as const;
@@ -42,7 +46,9 @@ for (const viewport of VIEWPORTS) {
 			for (const plan of PLANS) {
 				for (const theme of THEMES) {
 					test(`${screen.name} ${plan} ${theme}`, async ({ page }) => {
-						await page.goto(`${screen.path}?lap=30&plan=${plan}`);
+						await page.goto(
+							`${screen.path}${screen.path.includes('?') ? '&' : '?'}lap=30&plan=${plan}`
+						);
 						await expect(page.getByTestId('lap-counter')).toBeVisible();
 
 						if (theme === 'light') {

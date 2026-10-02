@@ -1,6 +1,7 @@
 import type { RaceSnapshot } from '@f1-live/shared';
 import * as React from 'react';
 import { useSearchParams } from 'react-router';
+import { z } from 'zod';
 
 import type { RaceSource } from './race-source.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
@@ -36,6 +37,69 @@ const DEFAULT_REPLAY_LAP = 30;
 const DEFAULT_FOLLOWED_DRIVER = '16';
 
 const PLAYBACK_INTERVAL_MS = 1500;
+
+/** Race state shared by every open Pitwall window, so tiles on other monitors stay in step. */
+const SYNC_CHANNEL = 'pitwall-race';
+
+const SYNCED_PARAMS = ['lap', 'driver', 'plan', 'compare'] as const;
+
+const syncedSchema = z.object({
+	lap: z.string().optional(),
+	driver: z.string().optional(),
+	plan: z.string().optional(),
+	compare: z.string().optional()
+});
+
+type SyncedState = z.infer<typeof syncedSchema>;
+
+/**
+ * Keeps lap, followed driver, plan and compared drivers the same in every window of this
+ * browser. A window that applies a change from elsewhere does not send it back.
+ */
+function useWindowSync(state: SyncedState, apply: (state: SyncedState) => void): void {
+	const channel = React.useRef<BroadcastChannel | null>(null);
+	const received = React.useRef<string | null>(null);
+	const applyRef = React.useRef(apply);
+	const key = JSON.stringify(state);
+
+	React.useEffect(() => {
+		applyRef.current = apply;
+	});
+
+	React.useEffect(() => {
+		if (!('BroadcastChannel' in window)) {
+			return;
+		}
+
+		const opened = new BroadcastChannel(SYNC_CHANNEL);
+
+		opened.addEventListener('message', (event: MessageEvent<unknown>) => {
+			const synced = syncedSchema.safeParse(event.data);
+
+			if (synced.success) {
+				received.current = JSON.stringify(synced.data);
+				applyRef.current(synced.data);
+			}
+		});
+		channel.current = opened;
+
+		return () => {
+			opened.close();
+			channel.current = null;
+		};
+	}, []);
+
+	// Opening or reloading a window must not pull the others to its state; only later changes go out.
+	const sent = React.useRef(key);
+
+	React.useEffect(() => {
+		if (key !== sent.current && key !== received.current) {
+			channel.current?.postMessage(JSON.parse(key));
+		}
+
+		sent.current = key;
+	}, [key]);
+}
 
 function useRaceData(source: RaceSource): RaceState {
 	const [state, setState] = React.useState<RaceState>({ status: 'loading' });
@@ -146,6 +210,32 @@ export function RaceProvider({
 	const snapshot = React.useMemo(() => (race ? snapshotAtLap(race, lap) : null), [race, lap]);
 	const plan: Plan = searchParams.get('plan') === 'pro' ? 'pro' : 'free';
 	const followedDriver = searchParams.get('driver') ?? DEFAULT_FOLLOWED_DRIVER;
+
+	useWindowSync(
+		{
+			lap: String(lap),
+			driver: followedDriver,
+			plan,
+			compare: searchParams.get('compare') ?? undefined
+		},
+		(synced) =>
+			setSearchParams(
+				(params) => {
+					for (const param of SYNCED_PARAMS) {
+						const value = synced[param];
+
+						if (value === undefined) {
+							params.delete(param);
+						} else {
+							params.set(param, value);
+						}
+					}
+
+					return params;
+				},
+				{ replace: true }
+			)
+	);
 
 	const value = React.useMemo<RaceContextValue | null>(
 		() =>

@@ -1,16 +1,15 @@
 import {
-	ChartLineIcon,
 	FlagIcon,
-	GaugeIcon,
-	LayersIcon,
+	LayoutDashboardIcon,
 	MoonIcon,
+	PlusIcon,
 	SkipBackIcon,
 	SkipForwardIcon,
 	SparklesIcon
 } from 'lucide-react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
-import { NAV_ITEMS } from '@/components/app-header';
+import { useCarriedSearch } from '@/components/app-header';
 import { TeamStripe } from '@/components/driver-tag';
 import {
 	CommandDialog,
@@ -23,10 +22,11 @@ import {
 	CommandShortcut
 } from '@/components/ui/command';
 import { useRace } from '@/data/race-context';
+import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
+import { useDashboards } from '@/features/dashboard/dashboard-store';
+import { dashboardPath } from '@/features/dashboard/paths';
 import { toggleTheme } from '@/hooks/use-theme';
 import { standingsAt } from '@/insights/standings';
-
-const PAGE_ICON = { '/': GaugeIcon, '/analysis': ChartLineIcon, '/strategy': LayersIcon } as const;
 
 /** ⌘K: follow any driver, jump to a page or lap, or flip settings without hunting for controls. */
 export function CommandMenu({
@@ -38,7 +38,9 @@ export function CommandMenu({
 }) {
 	const { race, snapshot, setLap, plan, setPlan, followedDriver, setFollowedDriver } = useRace();
 	const navigate = useNavigate();
-	const [searchParams] = useSearchParams();
+	const search = useCarriedSearch();
+	const { dashboards } = useDashboards();
+	const create = useCreateDashboard();
 	const rows = standingsAt(snapshot);
 
 	const run = (action: () => void) => {
@@ -55,9 +57,9 @@ export function CommandMenu({
 			open={open}
 			onOpenChange={onOpenChange}
 			title="Jump to"
-			description="Follow a driver, open a page or move through the race."
+			description="Follow a driver, open a dashboard or move through the race."
 		>
-			<CommandInput placeholder="Driver, page or lap…" />
+			<CommandInput placeholder="Driver, dashboard or lap…" />
 			<CommandList>
 				<CommandEmpty>Nothing matches.</CommandEmpty>
 				<CommandGroup heading="Follow driver">
@@ -83,23 +85,24 @@ export function CommandMenu({
 					))}
 				</CommandGroup>
 				<CommandSeparator />
-				<CommandGroup heading="Pages">
-					{NAV_ITEMS.map((item) => {
-						const Icon = PAGE_ICON[item.to];
-
-						return (
-							<CommandItem
-								key={item.to}
-								onSelect={() =>
-									run(() => navigate({ pathname: item.to, search: searchParams.toString() }))
-								}
-							>
-								<Icon />
-								{item.label}
-								<CommandShortcut>{item.shortcut}</CommandShortcut>
-							</CommandItem>
-						);
-					})}
+				<CommandGroup heading="Dashboards">
+					{dashboards.map((dashboard, index) => (
+						<CommandItem
+							key={dashboard.id}
+							value={`dashboard ${dashboard.name}`}
+							onSelect={() =>
+								run(() => void navigate({ pathname: dashboardPath(dashboard.id), search }))
+							}
+						>
+							<LayoutDashboardIcon />
+							{dashboard.name}
+							{index < 9 ? <CommandShortcut>{index + 1}</CommandShortcut> : null}
+						</CommandItem>
+					))}
+					<CommandItem value="new dashboard" onSelect={() => run(() => create())}>
+						<PlusIcon />
+						New dashboard
+					</CommandItem>
 				</CommandGroup>
 				<CommandSeparator />
 				<CommandGroup heading="Race">

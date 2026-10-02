@@ -1,29 +1,22 @@
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { TeamStripe } from '@/components/driver-tag';
-import type { StandingRow } from '@/insights/standings';
 import { cn } from '@/lib/utils';
 
+import { useCompare } from './compare-context';
+
 /** Pick the drivers to compare; hovering one highlights it in the chart. */
-export function DriverList({
-	rows,
-	selected,
-	onToggle,
-	onHighlight
-}: {
-	rows: readonly StandingRow[];
-	selected: readonly string[];
-	onToggle: (code: string) => void;
-	onHighlight: (code: string | null) => void;
-}) {
+export function DriverList() {
+	const { running: rows, selected, toggle: onToggle, setHighlighted: onHighlight } = useCompare();
+
 	return (
 		<Panel aria-label="Drivers to compare">
 			<PanelHeader title="Compare" meta={`${selected.length} on chart`} />
-			<ul className="grid grid-cols-4 sm:grid-cols-5 lg:flex lg:flex-col">
+			<ul className="flex flex-col @xs:grid @xs:grid-cols-4 @2xl:grid-cols-6">
 				{rows.map((row) => {
 					const isSelected = selected.includes(row.driver.code);
 
 					return (
-						<li key={row.driver.number} className="border-b lg:last:border-b-0">
+						<li key={row.driver.number} className="border-b last:border-b-0 @xs:last:border-b">
 							<button
 								type="button"
 								aria-pressed={isSelected}
@@ -44,12 +37,12 @@ export function DriverList({
 										isSelected && 'border-foreground bg-foreground'
 									)}
 								/>
-								<span className="text-muted-foreground hidden w-5 text-right font-mono text-xs lg:inline">
+								<span className="text-muted-foreground w-5 text-right font-mono text-xs @xs:hidden">
 									{row.position}
 								</span>
 								<TeamStripe driver={row.driver} />
 								<span className="type-wide text-sm font-bold">{row.driver.code}</span>
-								<span className="text-muted-foreground hidden truncate text-xs lg:inline">
+								<span className="text-muted-foreground truncate text-xs @xs:hidden">
 									{row.driver.lastName}
 								</span>
 							</button>

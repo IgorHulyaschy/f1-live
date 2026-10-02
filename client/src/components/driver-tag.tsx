@@ -27,13 +27,13 @@ export function DriverTag({
 		<span className={cn('flex min-w-0 items-center gap-2', className)}>
 			<TeamStripe driver={driver} />
 			{showNumber ? (
-				<span className="text-muted-foreground hidden w-5 text-right font-mono text-xs italic sm:inline">
+				<span className="text-muted-foreground hidden w-5 text-right font-mono text-xs italic @lg:inline">
 					{driver.number}
 				</span>
 			) : null}
 			<span className="type-wide text-sm leading-none font-bold">{driver.code}</span>
 			{showName ? (
-				<span className="text-muted-foreground hidden truncate text-xs 2xl:inline">
+				<span className="text-muted-foreground hidden truncate text-xs @3xl:inline">
 					{driver.lastName}
 				</span>
 			) : null}

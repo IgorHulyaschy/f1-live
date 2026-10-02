@@ -2,6 +2,7 @@ import {
 	MoonIcon,
 	PauseIcon,
 	PlayIcon,
+	PlusIcon,
 	SkipBackIcon,
 	SkipForwardIcon,
 	SunIcon
@@ -14,14 +15,11 @@ import { Field, Kbd } from '@/components/console/panel';
 import { LapStrip } from '@/components/lap-strip';
 import { TRACK_STATUS_LABEL, TrackStatusBadge } from '@/components/track-status-badge';
 import { useRace } from '@/data/race-context';
+import { useDashboards } from '@/features/dashboard/dashboard-store';
+import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
+import { dashboardPath } from '@/features/dashboard/paths';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
-
-export const NAV_ITEMS = [
-	{ to: '/', label: 'Live', shortcut: '1' },
-	{ to: '/analysis', label: 'Analysis', shortcut: '2' },
-	{ to: '/strategy', label: 'Strategy', shortcut: '3' }
-] as const;
 
 const SESSION_LABEL = {
 	race: 'Race',
@@ -49,27 +47,42 @@ function Wordmark() {
 	);
 }
 
-function MainNav() {
+/** The search to carry between dashboards: race state, but not edit mode. */
+export function useCarriedSearch(): string {
 	const [searchParams] = useSearchParams();
-	const search = searchParams.toString();
+	const params = new URLSearchParams(searchParams);
+
+	params.delete('edit');
+
+	return params.toString();
+}
+
+/** Dashboards as tabs: presets first, then the viewer's own, then a key to start a new one. */
+function MainNav() {
+	const search = useCarriedSearch();
+	const { dashboards } = useDashboards();
+	const create = useCreateDashboard();
 
 	return (
-		<nav aria-label="Main" className="flex h-full items-stretch">
-			{NAV_ITEMS.map((item) => (
+		<nav
+			aria-label="Main"
+			className="flex h-full min-w-0 items-stretch overflow-x-auto [scrollbar-width:none]"
+		>
+			{dashboards.map((dashboard) => (
 				<NavLink
-					key={item.to}
-					to={{ pathname: item.to, search }}
+					key={dashboard.id}
+					to={{ pathname: dashboardPath(dashboard.id), search }}
 					end
 					className={({ isActive }) =>
 						cn(
-							'type-wide relative flex items-center px-1.5 text-xs font-bold transition-colors sm:px-3.5',
+							'type-wide relative flex shrink-0 items-center px-1.5 text-xs font-bold whitespace-nowrap transition-colors sm:px-3.5',
 							isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
 						)
 					}
 				>
 					{({ isActive }) => (
 						<>
-							{item.label}
+							{dashboard.name}
 							{isActive ? (
 								<motion.span
 									layoutId="nav-indicator"
@@ -81,6 +94,11 @@ function MainNav() {
 					)}
 				</NavLink>
 			))}
+			<span className="flex shrink-0 items-center px-1.5">
+				<Key aria-label="New dashboard" onClick={() => create()} className="h-7 px-1.5 sm:h-7">
+					<PlusIcon />
+				</Key>
+			</span>
 		</nav>
 	);
 }

@@ -1,8 +1,10 @@
 import * as React from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
-import { NAV_ITEMS } from '@/components/app-header';
+import { useCarriedSearch } from '@/components/app-header';
 import { useRace } from '@/data/race-context';
+import { useDashboards } from '@/features/dashboard/dashboard-store';
+import { dashboardPath } from '@/features/dashboard/paths';
 
 function isTyping(target: EventTarget | null): boolean {
 	return (
@@ -11,12 +13,12 @@ function isTyping(target: EventTarget | null): boolean {
 	);
 }
 
-/** ← → step laps, Space plays, 1–3 switch pages, ⌘K or / opens the palette. */
+/** ← → step laps, Space plays, 1–9 switch dashboards, ⌘K or / opens the palette. */
 export function useRaceHotkeys(openCommand: () => void): void {
 	const { stepLap, playing, setPlaying } = useRace();
 	const navigate = useNavigate();
-	const [searchParams] = useSearchParams();
-	const search = searchParams.toString();
+	const search = useCarriedSearch();
+	const { dashboards } = useDashboards();
 
 	React.useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -36,10 +38,10 @@ export function useRaceHotkeys(openCommand: () => void): void {
 				return;
 			}
 
-			const page = NAV_ITEMS.find((item) => item.shortcut === event.key);
+			const page = /^[1-9]$/.test(event.key) ? dashboards[Number(event.key) - 1] : undefined;
 
 			if (page) {
-				navigate({ pathname: page.to, search });
+				void navigate({ pathname: dashboardPath(page.id), search });
 			} else if (event.key === 'ArrowRight') {
 				stepLap(1);
 			} else if (event.key === 'ArrowLeft') {
@@ -56,5 +58,5 @@ export function useRaceHotkeys(openCommand: () => void): void {
 		window.addEventListener('keydown', onKeyDown);
 
 		return () => window.removeEventListener('keydown', onKeyDown);
-	}, [navigate, search, stepLap, playing, setPlaying, openCommand]);
+	}, [navigate, search, dashboards, stepLap, playing, setPlaying, openCommand]);
 }

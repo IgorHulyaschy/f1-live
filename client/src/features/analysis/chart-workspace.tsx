@@ -1,4 +1,3 @@
-import type { Driver } from '@f1-live/shared';
 import * as React from 'react';
 import {
 	Area,
@@ -23,11 +22,15 @@ import {
 import { useRace } from '@/data/race-context';
 import { isCleanLap } from '@/insights/clean-laps';
 import { formatLapTime } from '@/lib/format';
+import { cn } from '@/lib/utils';
+
+import { useTileFill } from '../dashboard/tile-fill';
 
 import { driverChartConfig, isSecondTeamCar } from './chart-drivers';
+import { useCompare } from './compare-context';
 import { battlePoints, type Metric, neutralisedRanges, toPoints } from './lap-series';
 
-const METRICS = [
+export const METRICS = [
 	{ value: 'lapTime', label: 'Lap times' },
 	{ value: 'gap', label: 'Gap' },
 	{ value: 'position', label: 'Positions' },
@@ -56,15 +59,27 @@ function formatMetric(metric: Metric, value: number): string {
 	return `+${value.toFixed(1)}s`;
 }
 
+/**
+ * One chart of the race with a switch between lap times, gaps, positions and the battle with
+ * the car ahead. A dashboard tile can fix the starting metric and keep the choice.
+ */
 export function ChartWorkspace({
-	drivers,
-	highlighted
+	metric: initialMetric = 'lapTime',
+	onMetricChange
 }: {
-	drivers: readonly Driver[];
-	highlighted: string | null;
+	metric?: Metric;
+	onMetricChange?: (metric: Metric) => void;
 }) {
 	const { snapshot, followedDriver } = useRace();
-	const [metric, setMetric] = React.useState<Metric>('lapTime');
+	const { compared: drivers, highlighted } = useCompare();
+	const fill = useTileFill();
+	const [metric, setLocalMetric] = React.useState<Metric>(initialMetric);
+
+	const setMetric = (next: Metric) => {
+		setLocalMetric(next);
+		onMetricChange?.(next);
+	};
+
 	const panelId = React.useId();
 	const neutralised = neutralisedRanges(snapshot);
 
@@ -128,7 +143,7 @@ export function ChartWorkspace({
 	const title = metric === 'battle' && followed ? `${followed.code} to car ahead` : 'Trace';
 
 	return (
-		<Panel aria-label="Race charts" className="min-h-0">
+		<Panel aria-label="Race charts" className={cn('min-h-0', fill && 'h-full')}>
 			<PanelHeader title={title}>
 				<KeyGroup
 					label="Chart"
@@ -143,11 +158,14 @@ export function ChartWorkspace({
 				id={panelId}
 				role="tabpanel"
 				aria-label={METRICS.find((entry) => entry.value === metric)?.label}
-				className="flex flex-col gap-3 p-4"
+				className={cn('flex flex-col gap-3 p-4', fill && 'min-h-0 flex-1')}
 				data-testid={`chart-${metric}`}
 			>
 				<p className="text-muted-foreground text-xs">{METRIC_NOTE[metric]}</p>
-				<ChartContainer config={config} className="aspect-auto h-80 w-full lg:h-136">
+				<ChartContainer
+					config={config}
+					className={cn('aspect-auto w-full', fill ? 'min-h-40 flex-1' : 'h-80 @4xl:h-136')}
+				>
 					{metric === 'battle' ? (
 						<AreaChart
 							data={followed ? battlePoints(snapshot, followed.number) : []}

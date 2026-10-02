@@ -134,6 +134,9 @@ export function TimingTower() {
 	const penalties = timePenalties(snapshot);
 	const followedIndex = rows.findIndex((row) => row.driver.number === followedDriver);
 	const rejoin = plan === 'pro' ? predictRejoin(snapshot, followedDriver) : null;
+	// Rows flash only for a change the viewer saw happen, not on the lap the tower opened on.
+	const [openedOnLap] = React.useState(lap);
+	const flashes = lap !== openedOnLap;
 	const trends = recentLaps(snapshot.laps);
 
 	const visible =
@@ -174,19 +177,19 @@ export function TimingTower() {
 							</th>
 							<th
 								scope="col"
-								className="type-label hidden pr-4 text-right font-normal md:table-cell"
+								className="type-label hidden pr-4 text-right font-normal @2xl:table-cell"
 							>
 								Last lap
 							</th>
 							<th
 								scope="col"
-								className="type-label hidden w-28 pr-4 text-right font-normal md:table-cell xl:w-56"
+								className="type-label hidden w-28 pr-4 text-right font-normal @2xl:table-cell xl:w-56"
 							>
 								S1 S2 S3
 							</th>
 							<th
 								scope="col"
-								className="type-label hidden pr-4 text-left font-normal xl:table-cell"
+								className="type-label hidden pr-4 text-left font-normal @4xl:table-cell"
 							>
 								Last {TREND_LAPS}
 							</th>
@@ -195,7 +198,7 @@ export function TimingTower() {
 							</th>
 							<th
 								scope="col"
-								className="type-label hidden pr-4 text-right font-normal sm:table-cell"
+								className="type-label hidden pr-4 text-right font-normal @lg:table-cell"
 							>
 								Stops
 							</th>
@@ -208,7 +211,9 @@ export function TimingTower() {
 							const previous = before.get(row.driver.number);
 
 							const moved =
-								previous === undefined || row.state === 'out' ? 0 : previous - row.position;
+								!flashes || previous === undefined || row.state === 'out'
+									? 0
+									: previous - row.position;
 
 							const penalty = penalties.get(row.driver.number);
 
@@ -277,13 +282,13 @@ export function TimingTower() {
 												<GapReading row={row} mode={mode} />
 											</span>
 										</td>
-										<td className="hidden pr-4 text-right md:table-cell">
+										<td className="hidden pr-4 text-right @2xl:table-cell">
 											<LastLap row={row} />
 										</td>
-										<td className="hidden pr-4 md:table-cell">
+										<td className="hidden pr-4 @2xl:table-cell">
 											<MiniSectors lap={row.lastLap} marks={row.sectorMarks} />
 										</td>
-										<td className="hidden pr-4 xl:table-cell">
+										<td className="hidden pr-4 @4xl:table-cell">
 											<LapTrend
 												laps={trends.get(row.driver.number) ?? []}
 												bestLapMs={row.bestLapMs}
@@ -294,7 +299,7 @@ export function TimingTower() {
 												<TyreBadge compound={row.compound} age={row.tyreAge} />
 											) : null}
 										</td>
-										<td className="hidden pr-4 text-right font-mono sm:table-cell">
+										<td className="hidden pr-4 text-right font-mono @lg:table-cell">
 											{row.pitStops}
 										</td>
 									</motion.tr>

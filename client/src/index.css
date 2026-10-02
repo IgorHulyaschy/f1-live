@@ -216,3 +216,19 @@
 @utility hatch {
 	background-image: repeating-linear-gradient(-60deg, currentcolor 0 1px, transparent 1px 5px);
 }
+
+/* Dashboard grid: the drop target reads as a printed outline, handles as corner ticks. */
+.react-grid-item.react-grid-placeholder {
+	background: var(--focus);
+	opacity: 0.12;
+	border-radius: 0;
+}
+
+.react-grid-item > .react-resizable-handle::after {
+	border-color: var(--foreground);
+}
+
+[data-editing] .react-grid-item {
+	outline: 1px dashed var(--border);
+	outline-offset: 4px;
+}

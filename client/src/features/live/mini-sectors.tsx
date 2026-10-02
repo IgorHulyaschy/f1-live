@@ -36,7 +36,7 @@ export function MiniSectors({
 				<span key={sector} className="flex min-w-0 flex-col gap-1">
 					<span
 						className={cn(
-							'hidden text-right font-mono text-xs xl:block',
+							'hidden text-right font-mono text-xs @4xl:block',
 							TEXT_CLASS[marks[sector]]
 						)}
 					>

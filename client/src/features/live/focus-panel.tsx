@@ -73,7 +73,7 @@ export function FocusPanel() {
 					</span>
 				</div>
 			</div>
-			<div className="grid grid-cols-2 border-b sm:grid-cols-4 sm:divide-x">
+			<div className="grid grid-cols-2 border-b @sm:grid-cols-4 @sm:divide-x">
 				<Field label="Last" className="px-4 py-2.5">
 					{row.lastLap ? <Digits value={formatLapTime(row.lastLap.lapTimeMs)} /> : '-'}
 				</Field>

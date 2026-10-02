@@ -82,7 +82,7 @@ export function StintChart() {
 	return (
 		<Panel aria-label="Tyre strategies" data-testid="stint-timeline">
 			<PanelHeader title="Stints" meta={`L${now} of ${totalLaps}`}>
-				<span className="type-label hidden items-center gap-3 sm:flex">
+				<span className="type-label hidden items-center gap-3 @xl:flex">
 					{LEGEND.map((compound) => (
 						<span key={compound} className="flex items-center gap-1.5">
 							<span aria-hidden className={cn('h-2.5 w-4', BAR_CLASS[compound])} />

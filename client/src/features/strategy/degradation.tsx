@@ -41,7 +41,7 @@ export function Degradation() {
 								<th scope="col" className="type-label pb-1.5 text-left font-normal">
 									Stint
 								</th>
-								<th scope="col" className="type-label hidden pb-1.5 font-normal sm:table-cell">
+								<th scope="col" className="type-label hidden pb-1.5 font-normal @md:table-cell">
 									<span className="sr-only">Wear bar</span>
 								</th>
 								<th scope="col" className="type-label pb-1.5 text-right font-normal">
@@ -71,7 +71,7 @@ export function Degradation() {
 												</span>
 											</span>
 										</td>
-										<td className="hidden w-1/3 px-3 sm:table-cell" aria-hidden>
+										<td className="hidden w-1/3 px-3 @md:table-cell" aria-hidden>
 											<span aria-hidden className="border-rule-strong relative block h-2 border-l">
 												<span
 													className={cn(
