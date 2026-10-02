@@ -59,7 +59,7 @@ export function PitWindow({ driverNumber }: { driverNumber: string }) {
 					{prediction.cheapStop ? 'Cheap stop' : `−${(prediction.pitLossMs / 1000).toFixed(1)}s`}
 				</span>
 			</div>
-			<div aria-hidden className="relative h-14">
+			<div aria-hidden className="relative h-16">
 				<span className="bg-border absolute inset-x-0 top-7 h-px" />
 				{nearby.map((row) => {
 					const gap = row.position === 1 ? 0 : (row.gapToLeaderMs ?? 0);
@@ -85,10 +85,11 @@ export function PitWindow({ driverNumber }: { driverNumber: string }) {
 					className="absolute top-0 flex -translate-x-1/2 flex-col items-center gap-1 left-(--offset)"
 					style={{ '--offset': offset(rejoinGap) }}
 				>
+					<span className="h-4" />
+					<span className="border-primary bg-panel size-3 rounded-full border-2 border-dashed" />
 					<span className="text-primary font-display text-xs font-bold">
 						{prediction.driver.code}
 					</span>
-					<span className="border-primary bg-panel size-3 rounded-full border-2 border-dashed" />
 				</span>
 			</div>
 			<p className="text-muted-foreground text-xs">
