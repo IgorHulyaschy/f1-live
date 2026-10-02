@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router';
 import { z } from 'zod';
 
+import { createLocalStore } from '../lib/local-store.ts';
 import type { RaceSource } from './race-source.ts';
 import { type StandingRow, standingsAt } from '../insights/standings.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
@@ -40,6 +41,13 @@ const RaceContext = React.createContext<RaceContextValue | null>(null);
 const DEFAULT_REPLAY_LAP = 30;
 
 const DEFAULT_FOLLOWED_DRIVER = '16';
+
+/** The driver last followed here, so a new visit opens on them; a `driver` in the URL wins. */
+const followedDriverStore = createLocalStore<string | null>(
+	'pitwall-driver',
+	z.string().nullable(),
+	null
+);
 
 const PLAYBACK_INTERVAL_MS = 1500;
 
@@ -237,7 +245,8 @@ export function RaceProvider({
 
 	const snapshot = React.useMemo(() => (race ? snapshotAtLap(race, lap) : null), [race, lap]);
 	const plan: Plan = searchParams.get('plan') === 'pro' ? 'pro' : 'free';
-	const followedDriver = searchParams.get('driver') ?? DEFAULT_FOLLOWED_DRIVER;
+	const storedDriver = followedDriverStore.useValue();
+	const followedDriver = searchParams.get('driver') ?? storedDriver ?? DEFAULT_FOLLOWED_DRIVER;
 
 	const standings = React.useMemo(() => (snapshot ? standingsAt(snapshot) : []), [snapshot]);
 
@@ -263,6 +272,7 @@ export function RaceProvider({
 						},
 						followedDriver,
 						setFollowedDriver: (driverNumber) => {
+							followedDriverStore.set(driverNumber);
 							updateParam('driver', driverNumber);
 							broadcast({ driver: driverNumber });
 						},

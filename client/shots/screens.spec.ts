@@ -20,7 +20,11 @@ const PAGES = [
 	{ name: 'strategy', path: '/strategy' },
 	{ name: 'battle', path: '/d/battle' },
 	{ name: 'wall', path: '/d/wall' },
-	{ name: 'editing', path: '/d/battle?edit=1' }
+	{ name: 'drivers', path: '/d/drivers' },
+	{ name: 'editing', path: '/d/battle?edit=1' },
+	{ name: 'library', path: '/library' },
+	{ name: 'preview', path: '/library/tv-wall' },
+	{ name: 'welcome', path: '/welcome' }
 ] as const;
 
 const PLANS = ['free', 'pro'] as const;
@@ -46,6 +50,9 @@ for (const viewport of VIEWPORTS) {
 			for (const plan of PLANS) {
 				for (const theme of THEMES) {
 					test(`${screen.name} ${plan} ${theme}`, async ({ page }) => {
+						// formula1.com pictures are not reachable from CI; shots show the drawn fallbacks.
+						await page.route('https://media.formula1.com/**', (route) => route.abort());
+						await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
 						await page.goto(
 							`${screen.path}${screen.path.includes('?') ? '&' : '?'}lap=30&plan=${plan}`
 						);
@@ -64,7 +71,8 @@ for (const viewport of VIEWPORTS) {
 							fullPage: true,
 							animations: 'disabled',
 							// Full-page shots would print the pinned pit board mid-page; show it at the end.
-							style: 'body { position: relative; } [data-pit-board] { position: absolute; bottom: 0; }'
+							style:
+								'body { position: relative; } [data-pit-board] { position: absolute; bottom: 0; }'
 						});
 					});
 				}

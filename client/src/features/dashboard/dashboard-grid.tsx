@@ -87,12 +87,18 @@ function TileBar({
 	tile,
 	editing,
 	neighbours,
+	floating = false,
 	onChange
 }: {
 	dashboard: Dashboard;
 	tile: Tile;
 	editing: boolean;
 	neighbours?: { up?: string; down?: string };
+	/**
+	 * On the grid the bar sits in the gap above its tile, like a tab, so editing takes no height
+	 * from any tile and the layout looks the same as when it is done.
+	 */
+	floating?: boolean;
 	onChange: (dashboard: Dashboard) => void;
 }) {
 	const search = useCarriedSearch();
@@ -108,7 +114,10 @@ function TileBar({
 	return (
 		<div
 			data-tile-handle
-			className="bg-panel-raised flex h-8 shrink-0 cursor-move items-center gap-1.5 border border-b-0 border-dashed pr-1 pl-1.5"
+			className={cn(
+				'bg-panel-raised flex shrink-0 cursor-move items-center gap-1.5 border border-b-0 border-dashed pr-1 pl-1.5',
+				floating ? 'absolute inset-x-0 -top-5 z-10 h-5' : 'h-8'
+			)}
 			data-testid="tile-bar"
 		>
 			<button
@@ -116,7 +125,10 @@ function TileBar({
 				aria-label={`Arrange ${title}`}
 				aria-describedby="tile-arrange-help"
 				data-tile-grip
-				className="text-muted-foreground hover:text-foreground focus-visible:ring-ring flex size-6 shrink-0 cursor-move items-center justify-center focus-visible:ring-2 focus-visible:outline-none"
+				className={cn(
+					'text-muted-foreground hover:text-foreground focus-visible:ring-ring flex shrink-0 cursor-move items-center justify-center focus-visible:ring-2 focus-visible:outline-none',
+					floating ? 'size-5' : 'size-6'
+				)}
 				onKeyDown={(event) => {
 					if (ARRANGE_KEYS.has(event.key)) {
 						event.preventDefault();
@@ -134,7 +146,7 @@ function TileBar({
 				<GripVerticalIcon aria-hidden className="size-3.5" />
 			</button>
 			<span className="type-label text-foreground truncate">{title}</span>
-			<span className="ml-auto flex">
+			<span className={cn('ml-auto flex', floating && '[&_button]:h-5 [&_button]:sm:h-5')}>
 				{neighbours?.up ? (
 					<Key
 						aria-label={`Move ${title} up`}
@@ -313,7 +325,8 @@ export function DashboardGrid({
 					cols: GRID_COLUMNS,
 					rowHeight,
 					margin: [gap, gap],
-					containerPadding: [0, 0]
+					// Room above the first row for the tile bars, which sit in the gaps.
+					containerPadding: [0, editing ? gap : 0]
 				}}
 				dragConfig={{
 					enabled: editing,
@@ -338,6 +351,7 @@ export function DashboardGrid({
 										dashboard={dashboard}
 										tile={tile}
 										editing={editing}
+										floating
 										onChange={onChange}
 									/>
 									<TileBody dashboard={dashboard} tile={tile} fill onChange={onChange} />

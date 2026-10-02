@@ -6,6 +6,10 @@ import type { Metric } from '../analysis/lap-series.ts';
 export const GRID_COLUMNS = 24;
 
 export const TILE_KINDS = [
+	'session',
+	'replay',
+	'lap-strip',
+	'weather',
 	'timing',
 	'focus',
 	'gaps',
@@ -17,7 +21,9 @@ export const TILE_KINDS = [
 	'fastest-laps',
 	'stints',
 	'degradation',
-	'pit-stops'
+	'pit-stops',
+	'driver',
+	'grid'
 ] as const;
 
 export type TileKind = (typeof TILE_KINDS)[number];
@@ -38,8 +44,11 @@ export type Dashboard = {
 	fit?: boolean;
 };
 
+export const TILE_GROUPS = ['Race', 'Drivers', 'Timing', 'Analysis', 'Strategy'] as const;
+
 type TileInfo = {
 	title: string;
+	group: (typeof TILE_GROUPS)[number];
 	description: string;
 	size: { w: number; h: number };
 	min: { w: number; h: number };
@@ -47,25 +56,57 @@ type TileInfo = {
 };
 
 export const TILE_INFO: Record<TileKind, TileInfo> = {
+	session: {
+		group: 'Race',
+		title: 'Session',
+		description: 'The race, circuit, feed and track status: the screen’s masthead.',
+		size: { w: 16, h: 3 },
+		min: { w: 6, h: 3 }
+	},
+	replay: {
+		group: 'Race',
+		title: 'Replay',
+		description: 'Lap counter with previous, play and next.',
+		size: { w: 8, h: 3 },
+		min: { w: 4, h: 3 }
+	},
+	'lap-strip': {
+		group: 'Race',
+		title: 'Lap strip',
+		description: 'One bar per lap: flags, pit traffic and fastest laps. Click to jump.',
+		size: { w: 24, h: 2 },
+		min: { w: 6, h: 2 }
+	},
+	weather: {
+		group: 'Race',
+		title: 'Weather',
+		description: 'Air and track temperature, humidity, wind and rain.',
+		size: { w: 8, h: 5 },
+		min: { w: 4, h: 4 }
+	},
 	timing: {
+		group: 'Timing',
 		title: 'Timing',
 		description: 'The running order with gaps, last lap, sectors, tyres and stops.',
 		size: { w: 14, h: 23 },
 		min: { w: 5, h: 6 }
 	},
 	focus: {
+		group: 'Drivers',
 		title: 'Focus',
 		description: 'The driver you follow: position, laps, tyres, gaps and pit prediction.',
 		size: { w: 8, h: 14 },
 		min: { w: 5, h: 6 }
 	},
 	gaps: {
+		group: 'Timing',
 		title: 'Gaps',
 		description: 'Two cars ahead and two behind your driver, closing or opening.',
 		size: { w: 7, h: 6 },
 		min: { w: 4, h: 4 }
 	},
 	'box-now': {
+		group: 'Strategy',
 		title: 'Box now',
 		description: 'Where your driver would rejoin if they pitted this lap.',
 		size: { w: 7, h: 6 },
@@ -73,24 +114,28 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		pro: true
 	},
 	'race-control': {
+		group: 'Race',
 		title: 'Race control',
 		description: 'Flags, stewards and track conditions, filterable.',
 		size: { w: 8, h: 10 },
 		min: { w: 5, h: 4 }
 	},
 	chart: {
+		group: 'Analysis',
 		title: 'Chart',
 		description: 'Lap times, gap to leader, positions or the battle with the car ahead.',
 		size: { w: 12, h: 12 },
 		min: { w: 6, h: 6 }
 	},
 	compare: {
+		group: 'Analysis',
 		title: 'Compare',
 		description: 'Pick the drivers every chart compares.',
 		size: { w: 4, h: 18 },
 		min: { w: 3, h: 4 }
 	},
 	pace: {
+		group: 'Analysis',
 		title: 'True pace',
 		description: 'Pace with fuel load and tyre age taken out.',
 		size: { w: 12, h: 12 },
@@ -98,18 +143,21 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		pro: true
 	},
 	'fastest-laps': {
+		group: 'Timing',
 		title: 'Fastest laps',
 		description: 'Each driver’s best lap so far.',
 		size: { w: 8, h: 11 },
 		min: { w: 5, h: 4 }
 	},
 	stints: {
+		group: 'Strategy',
 		title: 'Stints',
 		description: 'Every car’s tyre history across the race.',
 		size: { w: 24, h: 16 },
-		min: { w: 8, h: 6 }
+		min: { w: 6, h: 6 }
 	},
 	degradation: {
+		group: 'Strategy',
 		title: 'Tyre wear',
 		description: 'How fast each stint is losing time per lap.',
 		size: { w: 12, h: 12 },
@@ -117,10 +165,25 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		pro: true
 	},
 	'pit-stops': {
+		group: 'Strategy',
 		title: 'Pit stops',
 		description: 'Every stop against the typical stop time.',
 		size: { w: 12, h: 12 },
 		min: { w: 6, h: 5 }
+	},
+	driver: {
+		group: 'Drivers',
+		title: 'Driver',
+		description: 'The driver you follow, large: picture, car, team, position and gap.',
+		size: { w: 8, h: 14 },
+		min: { w: 5, h: 8 }
+	},
+	grid: {
+		group: 'Drivers',
+		title: 'Grid',
+		description: 'Every driver as a picture plate in running order. Pick one to follow.',
+		size: { w: 24, h: 10 },
+		min: { w: 6, h: 6 }
 	}
 };
 
@@ -137,12 +200,13 @@ export function tileTitle(tile: Tile): string {
 		: TILE_INFO[tile.kind].title;
 }
 
-type PresetTile = [kind: TileKind, x: number, y: number, w: number, h: number, TileSettings?];
+export type TileSpec = [kind: TileKind, x: number, y: number, w: number, h: number, TileSettings?];
 
-function preset(
+/** Builds a dashboard from compact tile specs: kind, x, y, w, h and optional settings. */
+export function buildDashboard(
 	id: string,
 	name: string,
-	tiles: readonly PresetTile[],
+	tiles: readonly TileSpec[],
 	options: { fit?: boolean } = {}
 ): Dashboard {
 	return {
@@ -158,29 +222,45 @@ function preset(
 
 /** Ready-made dashboards. Each can be edited; edits are saved over it and can be reset. */
 export const PRESETS: readonly Dashboard[] = [
-	preset('live', 'Live', [
-		['timing', 0, 0, 16, 23],
-		['focus', 16, 0, 8, 15],
-		['race-control', 16, 15, 8, 8]
+	buildDashboard('live', 'Live', [
+		['session', 0, 0, 16, 3],
+		['replay', 16, 0, 8, 3],
+		['lap-strip', 0, 3, 24, 2],
+		['timing', 0, 5, 16, 23],
+		['focus', 16, 5, 8, 15],
+		['race-control', 16, 20, 8, 8]
 	]),
-	preset('analysis', 'Analysis', [
-		['compare', 0, 0, 4, 18],
-		['chart', 4, 0, 20, 18, { metric: 'lapTime' }],
-		['pace', 0, 18, 14, 12],
-		['fastest-laps', 14, 18, 10, 12]
+	buildDashboard('analysis', 'Analysis', [
+		['lap-strip', 0, 0, 18, 3],
+		['replay', 18, 0, 6, 3],
+		['compare', 0, 3, 4, 18],
+		['chart', 4, 3, 20, 18, { metric: 'lapTime' }],
+		['pace', 0, 21, 14, 12],
+		['fastest-laps', 14, 21, 10, 12]
 	]),
-	preset('strategy', 'Strategy', [
-		['stints', 0, 0, 24, 16],
-		['degradation', 0, 16, 12, 12],
-		['pit-stops', 12, 16, 12, 12]
+	buildDashboard('strategy', 'Strategy', [
+		['lap-strip', 0, 0, 18, 3],
+		['replay', 18, 0, 6, 3],
+		['stints', 0, 3, 24, 16],
+		['degradation', 0, 19, 12, 12],
+		['pit-stops', 12, 19, 12, 12]
 	]),
-	preset('battle', 'Battle', [
-		['timing', 0, 0, 9, 23],
-		['chart', 9, 0, 15, 15, { metric: 'battle' }],
-		['gaps', 9, 15, 7, 8],
-		['box-now', 16, 15, 8, 8]
+	buildDashboard('battle', 'Battle', [
+		['lap-strip', 0, 0, 18, 3],
+		['replay', 18, 0, 6, 3],
+		['timing', 0, 3, 9, 23],
+		['chart', 9, 3, 15, 15, { metric: 'battle' }],
+		['gaps', 9, 18, 7, 8],
+		['box-now', 16, 18, 8, 8]
 	]),
-	preset(
+	buildDashboard('drivers', 'Drivers', [
+		['session', 0, 0, 16, 3],
+		['replay', 16, 0, 8, 3],
+		['grid', 0, 3, 24, 10],
+		['driver', 0, 13, 8, 16],
+		['chart', 8, 13, 16, 16, { metric: 'position' }]
+	]),
+	buildDashboard(
 		'wall',
 		'Pit wall',
 		[

@@ -9,8 +9,11 @@ import {
 	parseDashboardText,
 	PRESETS,
 	readingOrder,
-	swapTiles
+	swapTiles,
+	TILE_INFO
 } from './dashboards.ts';
+import { COMMUNITY } from '../library/community.ts';
+import { decodeShare, encodeShare } from '../library/share.ts';
 
 function overlaps(
 	a: { x: number; y: number; w: number; h: number },
@@ -19,11 +22,16 @@ function overlaps(
 	return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 }
 
-describe('presets', () => {
-	it('fit the grid without overlapping tiles', () => {
-		for (const dashboard of PRESETS) {
+describe('presets and library dashboards', () => {
+	it('fit the grid, respect tile minimums and do not overlap', () => {
+		for (const dashboard of [...PRESETS, ...COMMUNITY.map((entry) => entry.dashboard)]) {
 			for (const place of dashboard.layout) {
+				const kind = dashboard.tiles.find((tile) => tile.id === place.i)?.kind;
+
+				assert.ok(kind, `${dashboard.id} ${place.i}`);
 				assert.ok(place.x + place.w <= GRID_COLUMNS, `${dashboard.id} ${place.i}`);
+				assert.ok(place.w >= TILE_INFO[kind].min.w, `${dashboard.id} ${place.i} width`);
+				assert.ok(place.h >= TILE_INFO[kind].min.h, `${dashboard.id} ${place.i} height`);
 			}
 
 			for (const [index, place] of dashboard.layout.entries()) {
@@ -43,24 +51,24 @@ describe('dashboard edits', () => {
 		const next = addTile(live, 'pit-stops', 'new');
 		const place = next.layout.find((entry) => entry.i === 'new');
 
-		assert.deepEqual(place && { x: place.x, y: place.y }, { x: 0, y: 23 });
+		assert.deepEqual(place && { x: place.x, y: place.y }, { x: 0, y: 28 });
 	});
 
 	it('stacks tiles top to bottom, then left to right', () => {
 		assert.ok(live);
 		assert.deepEqual(
 			readingOrder(live).map((tile) => tile.kind),
-			['timing', 'focus', 'race-control']
+			['session', 'replay', 'lap-strip', 'timing', 'focus', 'race-control']
 		);
 	});
 
 	it('moves a tile by swapping places', () => {
 		assert.ok(live);
-		const swapped = swapTiles(live, 'live-0', 'live-1');
+		const swapped = swapTiles(live, 'live-3', 'live-4');
 
 		assert.deepEqual(
 			readingOrder(swapped).map((tile) => tile.kind),
-			['focus', 'timing', 'race-control']
+			['session', 'replay', 'lap-strip', 'focus', 'timing', 'race-control']
 		);
 	});
 });
@@ -100,23 +108,39 @@ describe('parsing', () => {
 	});
 });
 
+describe('share links', () => {
+	it('carry a dashboard whole, names with any characters included', () => {
+		const live = PRESETS[0];
+
+		assert.ok(live);
+		const named = { ...live, name: 'Vegas – Ферарі 🏁' };
+
+		assert.deepEqual(decodeShare(encodeShare(named)), named);
+	});
+
+	it('read a broken link as nothing', () => {
+		assert.equal(decodeShare('not-a-dashboard'), null);
+		assert.equal(decodeShare('%%%'), null);
+	});
+});
+
 describe('keyboard arranging', () => {
 	const live = PRESETS[0];
 
 	it('moves a tile above the one over it', () => {
 		assert.ok(live);
 		assert.deepEqual(
-			readingOrder(arrangeTile(live, 'live-2', 'ArrowUp', false)).map((tile) => tile.kind),
-			['timing', 'race-control', 'focus']
+			readingOrder(arrangeTile(live, 'live-5', 'ArrowUp', false)).map((tile) => tile.kind),
+			['session', 'replay', 'lap-strip', 'timing', 'race-control', 'focus']
 		);
 	});
 
 	it('resizes within the grid and the tile minimum', () => {
 		assert.ok(live);
-		const wider = arrangeTile(live, 'live-1', 'ArrowRight', true);
-		const narrower = arrangeTile(live, 'live-1', 'ArrowLeft', true);
+		const wider = arrangeTile(live, 'live-4', 'ArrowRight', true);
+		const narrower = arrangeTile(live, 'live-4', 'ArrowLeft', true);
 
-		assert.equal(wider.layout.find((place) => place.i === 'live-1')?.w, 8);
-		assert.equal(narrower.layout.find((place) => place.i === 'live-1')?.w, 7);
+		assert.equal(wider.layout.find((place) => place.i === 'live-4')?.w, 8);
+		assert.equal(narrower.layout.find((place) => place.i === 'live-4')?.w, 7);
 	});
 });

@@ -7,6 +7,7 @@ import {
 	PencilIcon,
 	PlusIcon,
 	RotateCcwIcon,
+	Share2Icon,
 	Trash2Icon,
 	UploadIcon
 } from 'lucide-react';
@@ -24,6 +25,10 @@ import {
 } from '@/components/ui/dialog';
 import { type Scale, SCALES, setScale, useScale } from '@/hooks/use-scale';
 
+import { shareUrl } from '@/features/library/share';
+import { accountStore } from '@/features/library/library-data';
+import { WelcomeBanner } from '@/features/library/welcome';
+
 import { forgetDashboard, newId, saveDashboard, useDashboards } from './dashboard-store';
 import { DashboardGrid } from './dashboard-grid';
 import {
@@ -31,10 +36,11 @@ import {
 	type Dashboard,
 	isPreset,
 	parseDashboardText,
+	TILE_GROUPS,
 	TILE_INFO,
 	TILE_KINDS
 } from './dashboards';
-import { dashboardPath } from './paths';
+import { useAddDashboard } from './use-add-dashboard';
 import { useCarriedSearch } from './use-carried-search';
 
 const SCALE_OPTIONS = SCALES.map(({ value, label }) => ({ value, label }));
@@ -57,28 +63,37 @@ function AddTileDialog({
 						Tiles land at the bottom. Drag the bar on top to move one, the corner to resize.
 					</DialogDescription>
 				</DialogHeader>
-				<ul className="grid max-h-[60svh] overflow-y-auto border-t sm:grid-cols-2">
-					{TILE_KINDS.map((kind) => (
-						<li key={kind} className="border-b sm:odd:border-r">
-							<button
-								type="button"
-								onClick={() => onAdd(kind)}
-								className="hover:bg-accent focus-visible:bg-accent flex w-full flex-col gap-1 px-3 py-2.5 text-left transition-colors focus-visible:outline-none"
-							>
-								<span className="type-wide flex items-center gap-2 text-xs font-bold">
-									{TILE_INFO[kind].title}
-									{TILE_INFO[kind].pro ? (
-										<span className="type-label flex items-center gap-1 border px-1">
-											<LockIcon aria-hidden className="size-2.5" />
-											Pro
-										</span>
-									) : null}
-								</span>
-								<span className="text-muted-foreground text-xs">{TILE_INFO[kind].description}</span>
-							</button>
-						</li>
+				<div className="max-h-[60svh] overflow-y-auto">
+					{TILE_GROUPS.map((group) => (
+						<section key={group} aria-label={group}>
+							<h3 className="type-label border-rule-strong border-b-2 pt-3 pb-1">{group}</h3>
+							<ul className="grid sm:grid-cols-2">
+								{TILE_KINDS.filter((kind) => TILE_INFO[kind].group === group).map((kind) => (
+									<li key={kind} className="border-b sm:odd:border-r">
+										<button
+											type="button"
+											onClick={() => onAdd(kind)}
+											className="hover:bg-accent focus-visible:bg-accent flex w-full flex-col gap-1 px-3 py-2.5 text-left transition-colors focus-visible:outline-none"
+										>
+											<span className="type-wide flex items-center gap-2 text-xs font-bold">
+												{TILE_INFO[kind].title}
+												{TILE_INFO[kind].pro ? (
+													<span className="type-label flex items-center gap-1 border px-1">
+														<LockIcon aria-hidden className="size-2.5" />
+														Pro
+													</span>
+												) : null}
+											</span>
+											<span className="text-muted-foreground text-xs">
+												{TILE_INFO[kind].description}
+											</span>
+										</button>
+									</li>
+								))}
+							</ul>
+						</section>
 					))}
-				</ul>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);
@@ -95,25 +110,29 @@ function download(dashboard: Dashboard): void {
 	URL.revokeObjectURL(url);
 }
 
-/** Starts a new dashboard and opens it in edit mode. */
+/** Starts a new dashboard, empty or copied from another, and opens it in edit mode. */
 export function useCreateDashboard(): (from?: Dashboard) => void {
-	const navigate = useNavigate();
-	const [searchParams] = useSearchParams();
+	const add = useAddDashboard();
 
 	return (from) => {
-		const id = newId('board');
-
-		saveDashboard(
+		add(
 			from
-				? { ...from, id, name: `${from.name} copy`.slice(0, 40) }
-				: { id, name: 'My dashboard', tiles: [], layout: [] }
+				? { ...from, name: `${from.name} copy`.slice(0, 40) }
+				: { id: 'new', name: 'My dashboard', tiles: [], layout: [] },
+			{ edit: true }
 		);
-
-		const params = new URLSearchParams(searchParams);
-
-		params.set('edit', '1');
-		void navigate({ pathname: dashboardPath(id), search: params.toString() });
 	};
+}
+
+async function copyShareLink(dashboard: Dashboard): Promise<void> {
+	const url = shareUrl(dashboard);
+
+	try {
+		await navigator.clipboard.writeText(url);
+		toast('Link copied', { description: 'Anyone with it can add this dashboard to theirs.' });
+	} catch {
+		toast('Copy this link to share the dashboard', { description: url });
+	}
 }
 
 function DashboardBar({
@@ -133,6 +152,8 @@ function DashboardBar({
 	const search = useCarriedSearch();
 	const scale = useScale();
 	const create = useCreateDashboard();
+	const add = useAddDashboard();
+	const account = accountStore.useValue();
 	const [adding, setAdding] = React.useState(false);
 	const fileInput = React.useRef<HTMLInputElement>(null);
 	const preset = isPreset(dashboard.id);
@@ -145,11 +166,9 @@ function DashboardBar({
 				throw new Error('Not a dashboard');
 			}
 
-			const id = newId('board');
-
-			saveDashboard({ ...parsed, id });
-			toast(`Imported ${parsed.name}`);
-			void navigate({ pathname: dashboardPath(id), search });
+			if (add(parsed)) {
+				toast(`Imported ${parsed.name}`);
+			}
 		} catch {
 			toast('That file is not a Pitwall dashboard.');
 		}
@@ -179,6 +198,11 @@ function DashboardBar({
 			) : (
 				<h2 className="type-wide text-sm font-bold">{dashboard.name}</h2>
 			)}
+			{editing ? (
+				<span className="type-label" data-testid="save-status">
+					{account ? `Synced to @${account.handle}` : 'Saved in this browser'}
+				</span>
+			) : null}
 			{editing ? (
 				<div className="flex flex-wrap gap-2">
 					<Key pressed data-add-tile onClick={() => setAdding(true)}>
@@ -246,6 +270,10 @@ function DashboardBar({
 						onChange={setScale}
 					/>
 				</span>
+				<Key aria-label="Copy share link" onClick={() => void copyShareLink(dashboard)}>
+					<Share2Icon />
+					<span className="hidden sm:inline">Share</span>
+				</Key>
 				<Key
 					className="hidden sm:inline-flex"
 					onClick={() => window.open(`${window.location.pathname}?${search}`, '_blank', 'noopener')}
@@ -313,6 +341,7 @@ export function DashboardPage({ id: fixedId }: { id?: string }) {
 
 	return (
 		<div data-testid={`dashboard-${dashboard.id}`}>
+			{isPreset(dashboard.id) ? <WelcomeBanner /> : null}
 			<DashboardBar
 				dashboard={dashboard}
 				edited={saved.has(dashboard.id)}

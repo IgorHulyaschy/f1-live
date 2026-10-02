@@ -67,7 +67,14 @@ test('phones stack the tiles in reading order', async ({ page }) => {
 		.locator(':scope > [data-testid^="tile-"]')
 		.evaluateAll((tiles) => tiles.map((tile) => tile.getAttribute('data-testid')));
 
-	expect(kinds).toEqual(['tile-compare', 'tile-chart', 'tile-pace', 'tile-fastest-laps']);
+	expect(kinds).toEqual([
+		'tile-lap-strip',
+		'tile-replay',
+		'tile-compare',
+		'tile-chart',
+		'tile-pace',
+		'tile-fastest-laps'
+	]);
 });
 
 test('a popped-out tile follows the lap of the window that opened it', async ({ context }) => {
@@ -77,7 +84,7 @@ test('a popped-out tile follows the lap of the window that opened it', async ({ 
 
 	const tile = await context.newPage();
 
-	await openRace(tile, '/tile/analysis/analysis-1?lap=20');
+	await openRace(tile, '/tile/analysis/analysis-3?lap=20');
 	await expect(tile.getByTestId('chart-lapTime')).toBeVisible();
 
 	await main.getByRole('button', { name: 'Next lap' }).click();
@@ -101,7 +108,7 @@ test('tiles can be arranged from the keyboard', async ({ page }) => {
 						id: tile.getAttribute('data-testid'),
 						top: tile.getBoundingClientRect().top
 					}))
-					.filter((tile) => tile.id !== 'tile-timing')
+					.filter((tile) => tile.id === 'tile-focus' || tile.id === 'tile-race-control')
 					.toSorted((a, b) => a.top - b.top)
 					.map((tile) => tile.id)
 			)

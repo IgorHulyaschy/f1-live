@@ -230,5 +230,16 @@
 
 [data-editing] .react-grid-item {
 	outline: 1px dashed var(--border);
-	outline-offset: 4px;
+	outline-offset: 0;
+}
+
+/* A picture plate measures both ways, so the race number inside can fill it like paint on a car. */
+@utility plate {
+	container-type: size;
+}
+
+@utility plate-number {
+	padding-left: 8cqw;
+	font-size: min(62cqh, 58cqw);
+	line-height: 0.8;
 }

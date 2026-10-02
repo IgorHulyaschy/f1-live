@@ -12,3 +12,16 @@ export function dashboardPath(id: string): string {
 export function tilePath(dashboardId: string, tileId: string): string {
 	return `/tile/${encodeURIComponent(dashboardId)}/${encodeURIComponent(tileId)}`;
 }
+
+/** The dashboard a path shows, or null for any other page. */
+export function dashboardIdFromPath(pathname: string): string | null {
+	for (const [id, path] of LEGACY_PATHS) {
+		if (path === pathname) {
+			return id;
+		}
+	}
+
+	const match = /^\/d\/([^/]+)$/.exec(pathname);
+
+	return match?.[1] ? decodeURIComponent(match[1]) : null;
+}

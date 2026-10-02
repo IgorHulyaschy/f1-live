@@ -104,12 +104,19 @@ export function RaceControlFeed() {
 			) : (
 				<ol className="flex flex-col" data-testid="race-control">
 					<AnimatePresence initial={false} mode="popLayout">
-						{messages.map((message) => {
+						{messages.map((message, index) => {
 							const category = CATEGORY[message.category];
+
+							// Race control can repeat a message on the same lap; count repeats into the key.
+							const repeat = messages
+								.slice(0, index)
+								.filter(
+									(other) => other.lap === message.lap && other.message === message.message
+								).length;
 
 							return (
 								<motion.li
-									key={`${message.lap}-${message.message}`}
+									key={`${message.lap}-${message.message}-${repeat}`}
 									layout
 									initial={{ opacity: 0, x: -6 }}
 									animate={{ opacity: 1, x: 0 }}
