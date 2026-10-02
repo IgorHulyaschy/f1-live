@@ -11,6 +11,7 @@ import { join } from 'node:path';
 
 import { z } from 'zod';
 
+import { describeError } from './live.js';
 import type { EventLog, FeedFrame, FeedSnapshot, JsonValue } from './live.js';
 
 const BOM = '\uFEFF';
@@ -102,7 +103,7 @@ export class RawWriter {
 				this.log('write-failed', {
 					topic,
 					failures: this.failures,
-					error: describe(cause)
+					error: describeError(cause)
 				});
 			}
 		}
@@ -152,7 +153,9 @@ export class RawWriter {
 			return { originMs: Date.parse(saved.origin), resumed: true };
 		} catch (cause) {
 			// Offsets may then restart mid-stream, which beats dropping the session's frames.
-			this.log('recording-unreadable', { file, error: describe(cause) });
+			// Saving the fresh origin keeps every later restart on it.
+			this.log('recording-unreadable', { file, error: describeError(cause) });
+			writeFileSync(file, `${JSON.stringify(recording)}\n`);
 
 			return { originMs: at, resumed: false };
 		}
@@ -217,10 +220,6 @@ function readSessionRef(info: JsonValue | undefined): SessionRef | null {
 		key,
 		path: path !== undefined && ARCHIVE_PATH.test(path) ? path : `unindexed/${key.toString()}/`
 	};
-}
-
-function describe(cause: unknown): string {
-	return cause instanceof Error ? cause.message : String(cause);
 }
 
 function isErrorCode(cause: unknown, code: string): boolean {

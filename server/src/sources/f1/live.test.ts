@@ -160,7 +160,7 @@ function at(ms: number): string {
 
 type Recorder = {
 	frames: FeedFrame[];
-	events: { event: string; reason?: string }[];
+	events: { event: string; fields: Parameters<EventLog>[1] }[];
 	untilFrames: (count: number) => Promise<void>;
 	stop: () => Promise<void>;
 };
@@ -186,7 +186,7 @@ function startRecorder(url: string, root: string, stallMs: number): Recorder {
 	const events: Recorder['events'] = [];
 
 	const log: EventLog = (event, fields) => {
-		events.push({ event, reason: fields?.reason?.toString() });
+		events.push({ event, fields });
 	};
 
 	const writer = new RawWriter(root, log, () => T0);
@@ -298,7 +298,8 @@ describe('LiveFeed against a fake hub', () => {
 		const recorder = startRecorder(hub.url, root, 5000);
 		const socket = await hub.nextSubscriber();
 
-		sendFeed(socket, ['CarData.z', 'eJyLjgUAARUAuQ==', at(T0 + 1500)]);
+		// The hub stamps frames with seven fractional digits.
+		sendFeed(socket, ['CarData.z', 'eJyLjgUAARUAuQ==', '2026-10-03T04:15:01.5004321Z']);
 		send(socket, { type: 6 });
 		sendFeed(socket, ['TimingData', { Lines: { 44: { Position: '1' } } }, at(T0 + 62_345)]);
 		await recorder.untilFrames(3);
@@ -352,6 +353,26 @@ describe('LiveFeed against a fake hub', () => {
 		assert.equal(readStream(join(dir, '_subscribe.jsonStream')).length, 2);
 	});
 
+	it('keeps backing off when the hub drops every connection right after Subscribe', async () => {
+		const hub = await startFakeHub();
+		const recorder = startRecorder(hub.url, tempRoot(), 5000);
+
+		for (let drop = 0; drop < 3; drop += 1) {
+			// oxlint-disable-next-line no-await-in-loop -- each drop waits for the next connection.
+			(await hub.nextSubscriber()).terminate();
+		}
+
+		await hub.nextSubscriber();
+		await recorder.stop();
+
+		assert.deepEqual(
+			recorder.events
+				.filter((entry) => entry.event === 'reconnect')
+				.map((entry) => entry.fields?.attempt),
+			[1, 2, 3]
+		);
+	});
+
 	it('keeps a connection open while the hub pings', async () => {
 		const hub = await startFakeHub();
 		const recorder = startRecorder(hub.url, tempRoot(), 300);
@@ -388,7 +409,7 @@ describe('LiveFeed against a fake hub', () => {
 		assert.ok(
 			recorder.events
 				.slice(stall)
-				.some((entry) => entry.event === 'reconnect' && entry.reason === 'stall')
+				.some((entry) => entry.event === 'reconnect' && entry.fields?.reason === 'stall')
 		);
 		assert.ok(hub.negotiations >= 2);
 		assert.deepEqual(readStream(join(root, PRACTICE_3.Path, 'TrackStatus.jsonStream')), [

@@ -21,6 +21,13 @@ if (!Number.isFinite(stallMs) || stallMs <= 0) {
 	throw new Error(`--stall-seconds must be a positive number, got ${values['stall-seconds']}`);
 }
 
+const f1tvToken = process.env.F1TV_TOKEN?.trim() || undefined;
+
+// Checked here so a malformed token never reaches a header error that would print it.
+if (f1tvToken !== undefined && !/^[\w.~+/=-]+$/.test(f1tvToken)) {
+	throw new Error('F1TV_TOKEN has characters a bearer token cannot have; check server/.env');
+}
+
 const log: EventLog = (event, fields) => {
 	process.stdout.write(`${JSON.stringify({ time: new Date().toISOString(), event, ...fields })}\n`);
 };
@@ -35,7 +42,7 @@ const feed = new LiveFeed(
 		backoff: { initialMs: 1000, maxMs: 30_000 },
 		statsIntervalMs: 60_000,
 		log,
-		accessToken: process.env.F1TV_TOKEN
+		accessToken: f1tvToken
 	},
 	{
 		onSnapshot: (snapshot) => writer.writeSnapshot(snapshot),
@@ -56,7 +63,7 @@ log('recorder-started', {
 	out: values.out,
 	url: values.url,
 	stallMs,
-	f1tvToken: Boolean(process.env.F1TV_TOKEN)
+	f1tvToken: f1tvToken !== undefined
 });
 
 await feed.run(stop.signal);

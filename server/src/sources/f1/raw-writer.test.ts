@@ -168,6 +168,11 @@ describe('RawWriter', () => {
 		writer.close();
 
 		assert.deepEqual(events, ['recording-unreadable', 'session']);
+		assert.deepEqual(JSON.parse(readFileSync(join(dir, '_recording.json'), 'utf8')), {
+			key: 11729,
+			path: PRACTICE_3.Path,
+			origin: at(T0)
+		});
 		assert.equal(
 			readFileSync(join(dir, 'LapCount.jsonStream'), 'utf8'),
 			'\uFEFF00:00:01.000{"CurrentLap":1}\r\n'

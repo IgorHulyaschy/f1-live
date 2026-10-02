@@ -177,7 +177,7 @@ export class LiveFeed {
 		try {
 			negotiated = await negotiate(url, accessToken, signal);
 		} catch (cause) {
-			log('negotiate-failed', { error: describe(cause) });
+			log('negotiate-failed', { error: describeError(cause) });
 
 			return { healthy: false, reason: 'negotiate-failed' };
 		}
@@ -247,7 +247,7 @@ export class LiveFeed {
 					const message = parseHubMessage(text);
 
 					if (!message) {
-						log('bad-message', { text });
+						log('bad-message', { text: text.slice(0, 1000) });
 						continue;
 					}
 
@@ -469,7 +469,7 @@ function toFeedFrame(args: JsonValue[] | undefined): FeedFrame | null {
 	return { topic: parsedTopic.data, payload, timestamp: sentAt.success ? sentAt.data : null };
 }
 
-function describe(cause: unknown): string {
+export function describeError(cause: unknown): string {
 	if (!(cause instanceof Error)) {
 		return String(cause);
 	}
