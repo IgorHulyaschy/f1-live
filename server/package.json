@@ -12,9 +12,11 @@
 		"typecheck": "tsc --noEmit",
 		"test:unit": "node --import tsx --test 'src/**/*.test.ts'",
 		"migrations:generate": "npm run build && drizzle-kit generate",
-		"migrations:up": "drizzle-kit migrate"
+		"migrations:up": "drizzle-kit migrate",
+		"fetch:f1": "node src/sources/f1/fetch-archive.ts"
 	},
 	"dependencies": {
+		"@f1-live/shared": "0.1.0",
 		"@fastify/cors": "11.3.0",
 		"drizzle-orm": "0.45.3",
 		"fastify": "5.12.5",

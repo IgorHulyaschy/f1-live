@@ -1,0 +1,16 @@
+﻿00:13:33.645{"Messages":[{"Utc":"2025-11-23T03:20:00","Lap":1,"Category":"Flag","Flag":"GREEN","Scope":"Track","Message":"GREEN LIGHT - PIT EXIT OPEN"}]}
+00:25:55.630{"Messages":{"4":{"Utc":"2025-11-23T03:32:22","Lap":1,"Category":"Other","Message":"DRS DISABLED IN ZONE 1"}}}
+00:57:41.861{"Messages":{"11":{"Utc":"2025-11-23T04:04:09","Lap":1,"Category":"Flag","Flag":"GREEN","Scope":"Track","Message":"GREEN LIGHT - PIT EXIT OPEN"}}}
+01:00:41.159{"Messages":{"23":{"Utc":"2025-11-23T04:07:08","Lap":2,"Category":"SafetyCar","Status":"DEPLOYED","Mode":"VIRTUAL SAFETY CAR","Message":"VIRTUAL SAFETY CAR DEPLOYED"}}}
+01:02:54.377{"Messages":{"26":{"Utc":"2025-11-23T04:09:21","Lap":3,"Category":"Other","Message":"TURN 1 INCIDENT INVOLVING CARS 81 (PIA) AND 30 (LAW) NOTED - CAUSING A COLLISION"}}}
+01:03:26.725{"Messages":{"30":{"Utc":"2025-11-23T04:09:53","Lap":4,"Category":"SafetyCar","Status":"ENDING","Mode":"VIRTUAL SAFETY CAR","Message":"VIRTUAL SAFETY CAR ENDING"}}}
+01:04:00.399{"Messages":{"33":{"Utc":"2025-11-23T04:10:27","Lap":4,"Category":"Other","Message":"TURN 1 INCIDENT INVOLVING CARS 5 (BOR), 43 (COL) AND 18 (STR) NOTED - CAUSING A COLLISION"}}}
+01:21:45.083{"Messages":{"41":{"Utc":"2025-11-23T04:28:12","Lap":15,"Category":"Other","Message":"FIA STEWARDS: 5 SECOND TIME PENALTY FOR CAR 12 (ANT) - FALSE START - MOVING BEFORE SIGNAL"}}}
+01:22:38.435{"Messages":{"42":{"Utc":"2025-11-23T04:29:05","Lap":15,"Category":"Other","Message":"TURN 14 INCIDENT INVOLVING CARS 23 (ALB) AND 44 (HAM) NOTED - CAUSING A COLLISION"}}}
+01:23:12.969{"Messages":{"43":{"Utc":"2025-11-23T04:29:40","Lap":16,"Category":"SafetyCar","Status":"DEPLOYED","Mode":"VIRTUAL SAFETY CAR","Message":"VIRTUAL SAFETY CAR DEPLOYED"}}}
+01:24:16.342{"Messages":{"47":{"Utc":"2025-11-23T04:30:43","Lap":16,"Category":"SafetyCar","Status":"ENDING","Mode":"VIRTUAL SAFETY CAR","Message":"VIRTUAL SAFETY CAR ENDING"}}}
+01:30:22.513{"Messages":{"52":{"Utc":"2025-11-23T04:36:49","Lap":20,"Category":"Other","Message":"FIA STEWARDS: 5 SECOND TIME PENALTY FOR CAR 23 (ALB) - CAUSING A COLLISION"}}}
+01:31:34.643{"Messages":{"53":{"Utc":"2025-11-23T04:38:01","Lap":21,"Category":"Other","Message":"FIA STEWARDS: REPRIMAND (DRIVING) FOR CAR 23 (ALB) - STARTING PROCEDURE INFRINGEMENT"}}}
+01:55:35.765{"Messages":{"54":{"Utc":"2025-11-23T05:02:02","Lap":36,"Category":"Flag","Flag":"BLUE","Scope":"Driver","RacingNumber":"23","Message":"WAVED BLUE FLAG FOR CAR 23 (ALB) TIMED AT 21:02:02"}}}
+01:57:59.275{"Messages":{"56":{"Utc":"2025-11-23T05:04:26","Lap":37,"Category":"Other","Message":"FIA STEWARDS: PENALTY SERVED - 5 SECOND TIME PENALTY FOR CAR 23 (ALB) - CAUSING A COLLISION"}}}
+02:18:50.078{"Messages":{"59":{"Utc":"2025-11-23T05:25:17","Lap":50,"Category":"Flag","Flag":"CHEQUERED","Scope":"Track","Message":"CHEQUERED FLAG"}}}

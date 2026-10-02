@@ -5,7 +5,8 @@
 		"moduleResolution": "nodenext",
 		"types": ["node"],
 		"rootDir": "./src",
-		"outDir": "./dist"
+		"outDir": "./dist",
+		"rewriteRelativeImportExtensions": true
 	},
 	"include": ["src"]
 }
