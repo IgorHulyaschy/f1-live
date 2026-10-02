@@ -1,51 +1,29 @@
 {
-  "name": "f1-typescript",
-  "version": "1.0.0",
-  "description": "F1 TypeScript Project",
-  "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "start:dev": "tsx watch --env-file=.env ./src/index.ts",
-    "start": "node dist/index.js",
-    "lint": "eslint ./src",
-    "lint:fix": "eslint ./src --fix",
-    "typecheck": "tsc --noEmit",
-    "migrations:generate": "npm run build && drizzle-kit generate",
-    "migrations:up": "drizzle-kit migrate"
-  },
-  "keywords": [
-    "f1",
-    "typescript"
-  ],
-  "author": "",
-  "license": "MIT",
-  "devDependencies": {
-    "@types/node": "^22.10.1",
-    "@types/pg": "^8.15.6",
-    "@types/ws": "^8.18.1",
-    "@typescript-eslint/eslint-plugin": "^7.18.0",
-    "@typescript-eslint/parser": "^7.18.0",
-    "drizzle-kit": "^0.31.7",
-    "eslint": "^8.57.1",
-    "eslint-config-prettier": "^9.1.2",
-    "eslint-import-resolver-typescript": "^3.10.1",
-    "eslint-plugin-drizzle": "^0.2.3",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-prettier": "^5.5.4",
-    "eslint-plugin-vitest-globals": "^1.5.0",
-    "prettier": "^3.7.0",
-    "tsx": "^4.20.6",
-    "typescript": "^5.7.2"
-  },
-  "dependencies": {
-    "@fastify/cors": "^11.1.0",
-    "@fastify/websocket": "^11.2.0",
-    "drizzle-orm": "^0.44.7",
-    "fastify": "^5.6.2",
-    "pg": "^8.16.3",
-    "ulid": "^3.0.1",
-    "ws": "^8.18.3"
-  }
+	"name": "@f1-live/server",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"main": "dist/index.js",
+	"scripts": {
+		"dev": "tsx watch --env-file=.env ./src/index.ts",
+		"build": "tsc",
+		"start": "node dist/index.js",
+		"typecheck": "tsc --noEmit",
+		"migrations:generate": "npm run build && drizzle-kit generate",
+		"migrations:up": "drizzle-kit migrate"
+	},
+	"dependencies": {
+		"@fastify/cors": "11.3.0",
+		"drizzle-orm": "0.45.3",
+		"fastify": "5.12.5",
+		"pg": "8.23.1",
+		"ulid": "3.0.2",
+		"ws": "8.22.0"
+	},
+	"devDependencies": {
+		"@types/pg": "8.23.1",
+		"@types/ws": "8.18.2",
+		"drizzle-kit": "0.31.11",
+		"tsx": "4.23.15"
+	}
 }

@@ -1,11 +1,15 @@
-import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 
-import { logSchema } from "../schemas/log.schema.js";
+import { logSchema } from '../schemas/log.schema.js';
 
 export class LogRepository {
-  constructor(private readonly db: NodePgDatabase) {}
+	private readonly db: NodePgDatabase;
 
-  create(log: typeof logSchema.$inferInsert) {
-    return this.db.insert(logSchema).values(log);
-  }
+	constructor(db: NodePgDatabase) {
+		this.db = db;
+	}
+
+	create(log: typeof logSchema.$inferInsert) {
+		return this.db.insert(logSchema).values(log);
+	}
 }

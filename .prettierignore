@@ -1,0 +1,5 @@
+package-lock.json
+server/migrations/
+server/data-examples/
+tools/oxlint/anti-slop/
+client/shots/output/

@@ -1,27 +1,29 @@
-import type { DriverRepository } from "../../../infra/db/repositories/driver.repository.js";
-import type { DriverListEvent } from "../../../infra/f1-client/types/sync-events.types.js";
-import { Driver } from "../../entities/Driver.js";
+import type { DriverRepository } from '../../../infra/db/repositories/driver.repository.js';
+import type { DriverListEvent } from '../../../infra/f1-client/types/sync-events.types.js';
+import { Driver } from '../../entities/Driver.js';
 
 export function handleDriverList(driverRepository: DriverRepository) {
-  return async (data: DriverListEvent) => {
-    const drivers = await driverRepository.findAll();
-    for (const [key, value] of Object.entries(data)) {
-      if (typeof value !== "object") {
-        continue;
-      }
+	return async (data: DriverListEvent) => {
+		const knownNumbers = new Set((await driverRepository.findAll()).map((driver) => driver.number));
+		const newDrivers: Driver[] = [];
 
-      if (drivers.some((driver) => driver.number === key)) {
-        continue;
-      }
-      await driverRepository.create(
-        Driver.create({
-          name: `${value.FirstName} ${value.LastName}`,
-          number: key,
-          team: value.TeamName,
-          avatarUrl: value.HeadshotUrl,
-          shortName: value.Tla,
-        }),
-      );
-    }
-  };
+		for (const [number, entry] of Object.entries(data)) {
+			// Non-driver keys such as `_kf` carry booleans.
+			if (entry === true || entry === false || knownNumbers.has(number)) {
+				continue;
+			}
+
+			newDrivers.push(
+				Driver.create({
+					name: `${entry.FirstName} ${entry.LastName}`,
+					number,
+					team: entry.TeamName,
+					avatarUrl: entry.HeadshotUrl,
+					shortName: entry.Tla
+				})
+			);
+		}
+
+		await Promise.all(newDrivers.map((driver) => driverRepository.create(driver)));
+	};
 }

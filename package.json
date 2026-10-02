@@ -1,0 +1,31 @@
+{
+	"name": "f1-live",
+	"private": true,
+	"type": "module",
+	"workspaces": [
+		"shared",
+		"server",
+		"client"
+	],
+	"engines": {
+		"node": ">=22.18"
+	},
+	"scripts": {
+		"lint": "oxlint",
+		"lint:fix": "oxlint --fix",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"typecheck": "npm run typecheck --workspaces",
+		"check": "npm run format:check && npm run lint && npm run typecheck",
+		"test:e2e": "npm run test:e2e -w client",
+		"shots": "npm run shots -w client"
+	},
+	"devDependencies": {
+		"@oxlint/plugins": "1.86.0",
+		"@shadcn/lint": "0.2.0",
+		"@types/node": "26.6.4",
+		"oxlint": "1.86.0",
+		"prettier": "3.9.9",
+		"typescript": "7.0.2"
+	}
+}

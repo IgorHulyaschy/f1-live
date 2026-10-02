@@ -1,25 +1,13 @@
 {
-  "name": "@f1-live/shared",
-  "version": "1.0.0",
-  "description": "Shared types and utilities for F1 Live application",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rm -rf dist"
-  },
-  "keywords": ["f1", "types", "shared"],
-  "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "typescript": "^5.7.2"
-  }
+	"name": "@f1-live/shared",
+	"private": true,
+	"version": "0.1.0",
+	"description": "Race domain contract shared by the server and the client.",
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit"
+	}
 }

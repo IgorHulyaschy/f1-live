@@ -1,18 +1,11 @@
 {
-  "compilerOptions": {
-    "outDir": "./dist",
-    "declaration": true,
-    "target": "es2022",
-    "lib": ["es2023"],
-    "types": ["node"],
-    "esModuleInterop": true,
-    "allowJs": true,
-    "moduleResolution": "NodeNext",
-    "module": "NodeNext",
-    "removeComments": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "alwaysStrict": true
-  },
-  "include": ["src/**/*"]
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"types": ["node"],
+		"rootDir": "./src",
+		"outDir": "./dist"
+	},
+	"include": ["src"]
 }

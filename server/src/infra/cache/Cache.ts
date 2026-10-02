@@ -1,3 +1,5 @@
+/** In-memory state for the session currently being ingested. */
 export class Cache {
-  sessionId!: string;
+	/** Empty until the first SessionInfo message arrives. */
+	sessionId = '';
 }
