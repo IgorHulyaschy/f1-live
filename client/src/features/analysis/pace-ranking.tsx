@@ -46,9 +46,9 @@ export function PaceRanking() {
 										) : (
 											<>
 												<motion.span
-													className="bg-foreground/45 h-3 w-(--size)"
-													initial={{ '--size': '0%' }}
-													animate={{ '--size': `${(entry.deltaToBestSeconds / scale) * 80}%` }}
+													className="bg-foreground/45 h-3 shrink-0"
+													initial={{ width: 0 }}
+													animate={{ width: `${(entry.deltaToBestSeconds / scale) * 80}%` }}
 													transition={{ duration: 0.4, ease: 'easeOut', delay: index * 0.02 }}
 												/>
 												<Digits

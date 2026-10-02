@@ -34,6 +34,33 @@ function arrangeKey(key: string): ArrangeKey {
 	return key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' ? key : 'ArrowRight';
 }
 
+/** Window height left below the grid's top edge (minus the footer gap), kept up to date. */
+function useSpaceBelow(
+	ref: React.RefObject<HTMLDivElement | null>,
+	enabled: boolean
+): number | null {
+	const [space, setSpace] = React.useState<number | null>(null);
+
+	React.useLayoutEffect(() => {
+		if (!enabled) {
+			return;
+		}
+
+		const measure = () => {
+			const top = (ref.current?.getBoundingClientRect().top ?? 0) + window.scrollY;
+
+			setSpace(window.innerHeight - top - 24);
+		};
+
+		measure();
+		window.addEventListener('resize', measure);
+
+		return () => window.removeEventListener('resize', measure);
+	}, [ref, enabled]);
+
+	return enabled ? space : null;
+}
+
 /** Narrower than this (in rem) a dashboard stacks its tiles in reading order, at natural height. */
 const STACK_BELOW_REM = 64;
 
@@ -202,6 +229,16 @@ export function DashboardGrid({
 	const { width, containerRef, mounted } = useContainerWidth({ measureBeforeMount: true });
 	const rem = useRemPixels();
 	const stacked = width < STACK_BELOW_REM * 16;
+	const space = useSpaceBelow(containerRef, mounted && !stacked && Boolean(dashboard.fit));
+	const rows = Math.max(1, ...dashboard.layout.map((place) => place.y + place.h));
+	const gap = GAP_REM * rem;
+
+	// Fit: share the height left in the window between the rows, but never shrink below half size.
+	const rowHeight =
+		dashboard.fit && space
+			? Math.max((space - (rows - 1) * gap) / rows, (ROW_REM * rem) / 2)
+			: ROW_REM * rem;
+
 	const tiles = new Map(dashboard.tiles.map((tile) => [tile.id, tile]));
 
 	// Minimum sizes come from the tile kind, so the grid enforces them while resizing.
@@ -274,8 +311,8 @@ export function DashboardGrid({
 				layout={layout}
 				gridConfig={{
 					cols: GRID_COLUMNS,
-					rowHeight: ROW_REM * rem,
-					margin: [GAP_REM * rem, GAP_REM * rem],
+					rowHeight,
+					margin: [gap, gap],
 					containerPadding: [0, 0]
 				}}
 				dragConfig={{

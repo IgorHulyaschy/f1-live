@@ -184,7 +184,7 @@ export function ChartWorkspace({
 								y1={0}
 								y2={1}
 								fill="var(--foreground)"
-								fillOpacity={0.06}
+								fillOpacity={0.1}
 								ifOverflow="hidden"
 							/>
 							{tooltip}
@@ -193,8 +193,7 @@ export function ChartWorkspace({
 								type="linear"
 								stroke="var(--color-interval)"
 								strokeWidth={2}
-								fill="var(--color-interval)"
-								fillOpacity={0.12}
+								fill="none"
 								isAnimationActive={false}
 							/>
 						</AreaChart>

@@ -32,7 +32,7 @@ export function FastestLaps() {
 	return (
 		<Panel aria-label="Fastest laps">
 			<PanelHeader title="Fastest laps" meta="best per driver" />
-			<ol className="flex flex-col px-4 py-1">
+			<ol className="flex max-w-2xl flex-col px-4 py-1">
 				{laps.map((lap, index) => {
 					const driver = drivers.get(lap.driverNumber);
 

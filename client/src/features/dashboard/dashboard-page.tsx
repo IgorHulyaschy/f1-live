@@ -3,6 +3,7 @@ import {
 	DownloadIcon,
 	ExternalLinkIcon,
 	LockIcon,
+	MaximizeIcon,
 	PencilIcon,
 	PlusIcon,
 	RotateCcwIcon,
@@ -251,6 +252,15 @@ function DashboardBar({
 				>
 					<ExternalLinkIcon />
 					New window
+				</Key>
+				<Key
+					className="hidden lg:inline-flex"
+					pressed={Boolean(dashboard.fit)}
+					aria-label="Fit to screen height"
+					onClick={() => onChange({ ...dashboard, fit: !dashboard.fit })}
+				>
+					<MaximizeIcon />
+					Fit
 				</Key>
 				<Key pressed={editing} onClick={() => setEditing(!editing)}>
 					<PencilIcon />

@@ -112,8 +112,6 @@ function GhostRow({ code, position }: { code: string; position: number }) {
 	return (
 		<motion.tr
 			layout="position"
-			initial={{ opacity: 0 }}
-			animate={{ opacity: 1 }}
 			className="border-focus h-9 border-y border-dashed"
 			data-testid="ghost-row"
 		>

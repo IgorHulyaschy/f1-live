@@ -57,7 +57,7 @@ function MainNav() {
 	return (
 		<nav
 			aria-label="Main"
-			className="flex h-full min-w-0 items-stretch overflow-x-auto [scrollbar-width:none]"
+			className="flex h-full min-w-0 items-stretch overflow-x-auto mask-r-from-85% [scrollbar-width:none] sm:mask-none"
 		>
 			{dashboards.map((dashboard) => (
 				<NavLink

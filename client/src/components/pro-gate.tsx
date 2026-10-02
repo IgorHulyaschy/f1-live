@@ -25,7 +25,7 @@ export function ProGate({
 	}
 
 	return (
-		<div className="flex items-stretch border">
+		<div className="flex items-stretch">
 			<span aria-hidden className="hatch text-foreground/25 w-3 shrink-0 border-r" />
 			<div className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-2 px-3 py-3">
 				<LockIcon className="text-muted-foreground size-3.5" aria-hidden />

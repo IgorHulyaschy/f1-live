@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 
 import { TyreBadge } from '@/components/tyre-badge';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
@@ -12,10 +12,12 @@ import { battleAhead } from '@/insights/battle';
 export function PitBoard() {
 	const { snapshot, followedDriver, lap, standings } = useRace();
 	const navigate = useNavigate();
+	const [searchParams] = useSearchParams();
 	const search = useCarriedSearch();
 	const row = standings.find((entry) => entry.driver.number === followedDriver);
 
-	if (!row) {
+	// Edit mode needs the whole screen, and the board would sit over the tile controls.
+	if (!row || searchParams.get('edit') === '1') {
 		return null;
 	}
 

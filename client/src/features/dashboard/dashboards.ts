@@ -34,6 +34,8 @@ export type Dashboard = {
 	name: string;
 	tiles: Tile[];
 	layout: TilePlacement[];
+	/** Stretch rows so the whole layout fills the window height: for wall screens and TVs. */
+	fit?: boolean;
 };
 
 type TileInfo = {
@@ -137,8 +139,14 @@ export function tileTitle(tile: Tile): string {
 
 type PresetTile = [kind: TileKind, x: number, y: number, w: number, h: number, TileSettings?];
 
-function preset(id: string, name: string, tiles: readonly PresetTile[]): Dashboard {
+function preset(
+	id: string,
+	name: string,
+	tiles: readonly PresetTile[],
+	options: { fit?: boolean } = {}
+): Dashboard {
 	return {
+		...options,
 		id,
 		name,
 		tiles: tiles.map(([kind, , , , , settings], index) =>
@@ -152,8 +160,8 @@ function preset(id: string, name: string, tiles: readonly PresetTile[]): Dashboa
 export const PRESETS: readonly Dashboard[] = [
 	preset('live', 'Live', [
 		['timing', 0, 0, 16, 23],
-		['focus', 16, 0, 8, 13],
-		['race-control', 16, 13, 8, 10]
+		['focus', 16, 0, 8, 15],
+		['race-control', 16, 15, 8, 8]
 	]),
 	preset('analysis', 'Analysis', [
 		['compare', 0, 0, 4, 18],
@@ -168,17 +176,22 @@ export const PRESETS: readonly Dashboard[] = [
 	]),
 	preset('battle', 'Battle', [
 		['timing', 0, 0, 9, 23],
-		['chart', 9, 0, 15, 13, { metric: 'battle' }],
-		['gaps', 9, 13, 7, 10],
-		['box-now', 16, 13, 8, 10]
+		['chart', 9, 0, 15, 15, { metric: 'battle' }],
+		['gaps', 9, 15, 7, 8],
+		['box-now', 16, 15, 8, 8]
 	]),
-	preset('wall', 'Pit wall', [
-		['timing', 0, 0, 10, 23],
-		['focus', 10, 0, 7, 13],
-		['race-control', 10, 13, 7, 10],
-		['chart', 17, 0, 7, 11, { metric: 'gap' }],
-		['stints', 17, 11, 7, 12]
-	])
+	preset(
+		'wall',
+		'Pit wall',
+		[
+			['timing', 0, 0, 10, 23],
+			['focus', 10, 0, 7, 13],
+			['race-control', 10, 13, 7, 10],
+			['chart', 17, 0, 7, 11, { metric: 'gap' }],
+			['stints', 17, 11, 7, 12]
+		],
+		{ fit: true }
+	)
 ];
 
 export function isPreset(id: string): boolean {
@@ -261,6 +274,7 @@ const tileSchema = z.object({
 const dashboardSchema = z.object({
 	id: z.string().min(1),
 	name: z.string(),
+	fit: z.boolean().optional(),
 	tiles: z.array(z.json()).transform((entries) =>
 		entries.flatMap((entry) => {
 			const tile = tileSchema.safeParse(entry);
@@ -299,12 +313,18 @@ function cleanDashboard(parsed: z.infer<typeof dashboardSchema>): Dashboard {
 	const tiles = uniqueBy(parsed.tiles, (tile) => tile.id).filter((tile) => placed.has(tile.id));
 	const ids = new Set(tiles.map((tile) => tile.id));
 
-	return {
+	const dashboard: Dashboard = {
 		id: parsed.id,
 		name: parsed.name.slice(0, 40) || 'Untitled',
 		tiles,
 		layout: uniqueBy(parsed.layout, (place) => place.i).filter((place) => ids.has(place.i))
 	};
+
+	if (parsed.fit) {
+		dashboard.fit = true;
+	}
+
+	return dashboard;
 }
 
 /** JSON text, parsed. Text that is not JSON fails like any other schema mismatch. */
