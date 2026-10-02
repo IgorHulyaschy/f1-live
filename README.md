@@ -43,7 +43,7 @@ replay keys and lap strip move and resize like timing or a chart.
 How it all fits together, what ships by default and the backend contract:
 [docs/product/dashboards.md](docs/product/dashboards.md).
 
-Design rules: [docs/design/identity.md](docs/design/identity.md).
+Design rules: [docs/design/identity.md](docs/design/identity.md). What comes next: [docs/plans](docs/plans/README.md).
 
 ## Layout
 
