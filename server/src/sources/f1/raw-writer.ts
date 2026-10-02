@@ -13,7 +13,7 @@ import { z } from 'zod';
 
 import type { EventLog, FeedFrame, FeedSnapshot, JsonValue } from './live.js';
 
-const BOM = '﻿';
+const BOM = '\uFEFF';
 
 const SESSION_TOPIC = 'SessionInfo';
 
@@ -102,7 +102,7 @@ export class RawWriter {
 				this.log('write-failed', {
 					topic,
 					failures: this.failures,
-					error: cause instanceof Error ? cause.message : String(cause)
+					error: describe(cause)
 				});
 			}
 		}
@@ -114,6 +114,7 @@ export class RawWriter {
 		}
 
 		this.closeStreams();
+		this.session = null;
 
 		const dir = join(this.rootDir, ref.path);
 
@@ -145,9 +146,16 @@ export class RawWriter {
 			}
 		}
 
-		const saved = recordingSchema.parse(JSON.parse(readFileSync(file, 'utf8')));
+		try {
+			const saved = recordingSchema.parse(JSON.parse(readFileSync(file, 'utf8')));
 
-		return { originMs: Date.parse(saved.origin), resumed: true };
+			return { originMs: Date.parse(saved.origin), resumed: true };
+		} catch (cause) {
+			// Offsets may then restart mid-stream, which beats dropping the session's frames.
+			this.log('recording-unreadable', { file, error: describe(cause) });
+
+			return { originMs: at, resumed: false };
+		}
 	}
 
 	private append(fileName: string, value: JsonValue, at: number) {
@@ -209,6 +217,10 @@ function readSessionRef(info: JsonValue | undefined): SessionRef | null {
 		key,
 		path: path !== undefined && ARCHIVE_PATH.test(path) ? path : `unindexed/${key.toString()}/`
 	};
+}
+
+function describe(cause: unknown): string {
+	return cause instanceof Error ? cause.message : String(cause);
 }
 
 function isErrorCode(cause: unknown, code: string): boolean {

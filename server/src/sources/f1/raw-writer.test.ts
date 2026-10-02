@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -69,15 +69,15 @@ describe('RawWriter', () => {
 
 		assert.equal(
 			readFileSync(join(dir, 'TimingData.jsonStream'), 'utf8'),
-			'﻿00:00:01.234{"Lines":{}}\r\n'
+			'\uFEFF00:00:01.234{"Lines":{}}\r\n'
 		);
 		assert.equal(
 			readFileSync(join(dir, 'CarData.z.jsonStream'), 'utf8'),
-			'﻿01:00:00.005"eJy="\r\n'
+			'\uFEFF01:00:00.005"eJy="\r\n'
 		);
 		assert.equal(
 			readFileSync(join(dir, '_subscribe.jsonStream'), 'utf8'),
-			`﻿00:00:00.000${JSON.stringify({ SessionInfo: PRACTICE_3, Heartbeat: { Utc: at(T0) } })}\r\n`
+			`\uFEFF00:00:00.000${JSON.stringify({ SessionInfo: PRACTICE_3, Heartbeat: { Utc: at(T0) } })}\r\n`
 		);
 		assert.deepEqual(JSON.parse(readFileSync(join(dir, '_recording.json'), 'utf8')), {
 			key: 11729,
@@ -106,16 +106,16 @@ describe('RawWriter', () => {
 
 		assert.equal(
 			readFileSync(join(practice, 'TimingData.jsonStream'), 'utf8'),
-			'﻿00:00:00.010{"Lines":{}}\r\n'
+			'\uFEFF00:00:00.010{"Lines":{}}\r\n'
 		);
 		assert.equal(existsSync(join(practice, 'SessionInfo.jsonStream')), false);
 		assert.equal(
 			readFileSync(join(qualifying, 'SessionInfo.jsonStream'), 'utf8'),
-			`﻿00:00:00.000${JSON.stringify(QUALIFYING)}\r\n`
+			`\uFEFF00:00:00.000${JSON.stringify(QUALIFYING)}\r\n`
 		);
 		assert.equal(
 			readFileSync(join(qualifying, 'TimingData.jsonStream'), 'utf8'),
-			'﻿00:00:00.500{"Lines":{"1":{"Position":"1"}}}\r\n'
+			'\uFEFF00:00:00.500{"Lines":{"1":{"Position":"1"}}}\r\n'
 		);
 	});
 
@@ -141,11 +141,36 @@ describe('RawWriter', () => {
 
 		assert.equal(
 			readFileSync(join(dir, 'LapCount.jsonStream'), 'utf8'),
-			'﻿00:00:01.000{"CurrentLap":1}\r\n00:01:01.000{"CurrentLap":2}\r\n'
+			'\uFEFF00:00:01.000{"CurrentLap":1}\r\n00:01:01.000{"CurrentLap":2}\r\n'
 		);
 		assert.match(
 			readFileSync(join(dir, '_subscribe.jsonStream'), 'utf8'),
-			/^﻿00:00:00\.000\{.*\}\r\n00:01:00\.000\{.*\}\r\n$/
+			/^\uFEFF00:00:00\.000\{.*\}\r\n00:01:00\.000\{.*\}\r\n$/
+		);
+	});
+
+	it('still records when the saved origin is unreadable', () => {
+		const root = tempRoot();
+		const dir = join(root, PRACTICE_3.Path);
+		const events: string[] = [];
+
+		mkdirSync(dir, { recursive: true });
+		writeFileSync(join(dir, '_recording.json'), '');
+
+		const writer = new RawWriter(
+			root,
+			(event) => events.push(event),
+			() => T0
+		);
+
+		writer.writeSnapshot({ SessionInfo: PRACTICE_3 });
+		writer.writeFrame({ topic: 'LapCount', payload: { CurrentLap: 1 }, timestamp: at(T0 + 1000) });
+		writer.close();
+
+		assert.deepEqual(events, ['recording-unreadable', 'session']);
+		assert.equal(
+			readFileSync(join(dir, 'LapCount.jsonStream'), 'utf8'),
+			'\uFEFF00:00:01.000{"CurrentLap":1}\r\n'
 		);
 	});
 
@@ -161,7 +186,7 @@ describe('RawWriter', () => {
 
 		assert.equal(
 			readFileSync(join(root, PRACTICE_3.Path, 'TrackStatus.jsonStream'), 'utf8'),
-			'﻿00:00:00.042{"Status":"1"}\r\n'
+			'\uFEFF00:00:00.042{"Status":"1"}\r\n'
 		);
 	});
 

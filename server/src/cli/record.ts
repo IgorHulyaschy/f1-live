@@ -35,7 +35,7 @@ const feed = new LiveFeed(
 		backoff: { initialMs: 1000, maxMs: 30_000 },
 		statsIntervalMs: 60_000,
 		log,
-		accessToken: process.env.LIVETIMING_ACCESS_TOKEN
+		accessToken: process.env.F1TV_TOKEN
 	},
 	{
 		onSnapshot: (snapshot) => writer.writeSnapshot(snapshot),
@@ -52,7 +52,12 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
 	});
 }
 
-log('recorder-started', { out: values.out, url: values.url, stallMs });
+log('recorder-started', {
+	out: values.out,
+	url: values.url,
+	stallMs,
+	f1tvToken: Boolean(process.env.F1TV_TOKEN)
+});
 
 await feed.run(stop.signal);
 

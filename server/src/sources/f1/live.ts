@@ -88,7 +88,10 @@ export type LiveFeedOptions = {
 	backoff: Backoff;
 	statsIntervalMs: number;
 	log: EventLog;
-	/** Sent as a bearer token when set; the feed works without one. */
+	/**
+	 * An F1 TV subscription token. Without one the hub withholds gated topics (car data,
+	 * positions, championship tables, pit stop times); everything else still records.
+	 */
 	accessToken?: string;
 	random?: () => number;
 };
@@ -104,17 +107,17 @@ const hubMessageSchema = z.object({
 	allowReconnect: z.boolean().optional()
 });
 
-/** `feed` arguments: topic, payload and, when the hub sends one, its UTC timestamp. */
-const feedArgumentsSchema = z.tuple(
-	[z.string(), z.json(), z.string().optional().catch(undefined)],
-	z.json()
-);
+const topicSchema = z.string();
+
+/** A zone-less timestamp would parse as local time, so only UTC ones are trusted. */
+const sentAtSchema = z.iso.datetime();
 
 type HubMessage = z.infer<typeof hubMessageSchema>;
 
 type Negotiated = { connectionToken: string; cookie: string | null };
 
-type ConnectionEnd = { subscribed: boolean; reason: string };
+/** `healthy`: the subscription held for a whole watchdog period. */
+type ConnectionEnd = { healthy: boolean; reason: string };
 
 /**
  * Keeps one subscription to the live timing hub open until stopped: it reconnects with
@@ -124,6 +127,8 @@ export class LiveFeed {
 	private readonly options: LiveFeedOptions;
 	private readonly handlers: FeedHandlers;
 	private readonly frameCounts = new Map<string, number>();
+	/** Topics that had state in a snapshot or sent a frame, to show which ones stay dark. */
+	private readonly topicsWithData = new Set<string>();
 	private totalFrames = 0;
 
 	constructor(options: LiveFeedOptions, handlers: FeedHandlers) {
@@ -155,8 +160,8 @@ export class LiveFeed {
 			return failures;
 		}
 
-		// A connection that reached its subscription resets the backoff.
-		const streak = end.subscribed ? 0 : failures;
+		// A hub that drops every connection right after Subscribe still backs off.
+		const streak = end.healthy ? 0 : failures;
 		const delayMs = backoffDelay(streak, backoff, random);
 
 		log('reconnect', { reason: end.reason, attempt: streak + 1, delayMs });
@@ -174,7 +179,12 @@ export class LiveFeed {
 		} catch (cause) {
 			log('negotiate-failed', { error: describe(cause) });
 
-			return { subscribed: false, reason: 'negotiate-failed' };
+			return { healthy: false, reason: 'negotiate-failed' };
+		}
+
+		// An abort during negotiate has already fired and would never reach the socket.
+		if (signal.aborted) {
+			return { healthy: false, reason: 'stopped' };
 		}
 
 		log('negotiated', { url });
@@ -186,16 +196,21 @@ export class LiveFeed {
 		const { url, topics, stallMs, accessToken, log } = this.options;
 
 		return new Promise((resolve) => {
-			const socket = new WebSocket(
-				`${url.replace(/^http/, 'ws')}?id=${encodeURIComponent(negotiated.connectionToken)}`,
-				{ headers: hubHeaders(negotiated.cookie, accessToken) }
-			);
+			const query = new URLSearchParams({
+				id: negotiated.connectionToken,
+				...(accessToken && { access_token: accessToken })
+			});
+
+			const socket = new WebSocket(`${url.replace(/^http/, 'ws')}?${query.toString()}`, {
+				headers: hubHeaders(negotiated.cookie, accessToken)
+			});
 
 			// The hub sends feed frames as soon as the subscription exists, which can be before
 			// the subscribe result; they are held so a snapshot always comes first.
 			const early: FeedFrame[] = [];
 			let handshaken = false;
 			let subscribed = false;
+			let subscribedAt = 0;
 			let reason = 'closed';
 
 			const end = (why: string) => {
@@ -232,7 +247,7 @@ export class LiveFeed {
 					const message = parseHubMessage(text);
 
 					if (!message) {
-						log('bad-message', { text: text.slice(0, 200) });
+						log('bad-message', { text });
 						continue;
 					}
 
@@ -283,12 +298,18 @@ export class LiveFeed {
 							const snapshot = message.result;
 
 							subscribed = true;
+							subscribedAt = Date.now();
 							watchdog.refresh();
 							log('subscribed', {
 								requested: topics.length,
 								inSnapshot: Object.keys(snapshot).length,
 								missing: topics.filter((topic) => !(topic in snapshot))
 							});
+
+							for (const topic of Object.keys(snapshot)) {
+								this.topicsWithData.add(topic);
+							}
+
 							this.handlers.onSnapshot(snapshot);
 
 							for (const frame of early.splice(0)) {
@@ -325,7 +346,7 @@ export class LiveFeed {
 				clearTimeout(watchdog);
 				signal.removeEventListener('abort', onAbort);
 				log('disconnected', { code, closeReason: closeReason.toString(), reason, subscribed });
-				resolve({ subscribed, reason });
+				resolve({ healthy: subscribed && Date.now() - subscribedAt >= stallMs, reason });
 			});
 		});
 	}
@@ -333,13 +354,15 @@ export class LiveFeed {
 	private deliver(frame: FeedFrame) {
 		this.totalFrames += 1;
 		this.frameCounts.set(frame.topic, (this.frameCounts.get(frame.topic) ?? 0) + 1);
+		this.topicsWithData.add(frame.topic);
 		this.handlers.onFrame(frame);
 	}
 
 	private logFrameCounts() {
 		this.options.log('frames', {
 			total: this.totalFrames,
-			sinceLast: Object.fromEntries(this.frameCounts)
+			sinceLast: Object.fromEntries(this.frameCounts),
+			noData: this.options.topics.filter((topic) => !this.topicsWithData.has(topic))
 		});
 		this.frameCounts.clear();
 	}
@@ -432,16 +455,18 @@ function parseHubMessage(text: string): HubMessage | null {
 	return parsed.success ? parsed.data : null;
 }
 
+/** `feed` arguments: topic, payload and, when the hub sends one, its UTC timestamp. */
 function toFeedFrame(args: JsonValue[] | undefined): FeedFrame | null {
-	const parsed = feedArgumentsSchema.safeParse(args);
+	const [topic, payload, timestamp] = args ?? [];
+	const parsedTopic = topicSchema.safeParse(topic);
 
-	if (!parsed.success) {
+	if (!parsedTopic.success || payload === undefined) {
 		return null;
 	}
 
-	const [topic, payload, timestamp] = parsed.data;
+	const sentAt = sentAtSchema.safeParse(timestamp);
 
-	return { topic, payload, timestamp: timestamp ?? null };
+	return { topic: parsedTopic.data, payload, timestamp: sentAt.success ? sentAt.data : null };
 }
 
 function describe(cause: unknown): string {

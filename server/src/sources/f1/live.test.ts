@@ -148,6 +148,12 @@ function sendFeed(socket: WebSocket, args: JsonValue[]) {
 	send(socket, { type: 1, target: 'feed', arguments: args });
 }
 
+function pingEvery(socket: WebSocket, ms: number) {
+	const timer = setInterval(() => send(socket, { type: 6 }), ms);
+
+	cleanups.push(async () => clearInterval(timer));
+}
+
 function at(ms: number): string {
 	return new Date(ms).toISOString();
 }
@@ -236,7 +242,7 @@ async function until(condition: () => boolean): Promise<void> {
 function readStream(file: string): { offset: string; payload: JsonValue }[] {
 	const text = readFileSync(file, 'utf8');
 
-	assert.ok(text.startsWith('﻿'), `${file} starts with a BOM`);
+	assert.ok(text.startsWith('\uFEFF'), `${file} starts with a BOM`);
 	assert.ok(text.endsWith('\r\n'), `${file} ends with CRLF`);
 
 	return text
@@ -346,6 +352,21 @@ describe('LiveFeed against a fake hub', () => {
 		assert.equal(readStream(join(dir, '_subscribe.jsonStream')).length, 2);
 	});
 
+	it('keeps a connection open while the hub pings', async () => {
+		const hub = await startFakeHub();
+		const recorder = startRecorder(hub.url, tempRoot(), 300);
+
+		pingEvery(await hub.nextSubscriber(), 50);
+		await until(() => hub.pongs >= 15);
+		await recorder.stop();
+
+		assert.equal(hub.negotiations, 1);
+		assert.equal(
+			recorder.events.some((entry) => entry.event === 'stall'),
+			false
+		);
+	});
+
 	it('reconnects when the hub goes silent, without even pings', async () => {
 		const hub = await startFakeHub();
 		const root = tempRoot();
@@ -355,6 +376,7 @@ describe('LiveFeed against a fake hub', () => {
 
 		const second = await hub.nextSubscriber();
 
+		pingEvery(second, 50);
 		sendFeed(second, ['TrackStatus', { Status: '2' }, at(T0 + 500)]);
 		await recorder.untilFrames(1);
 		await recorder.stop();
@@ -368,7 +390,7 @@ describe('LiveFeed against a fake hub', () => {
 				.slice(stall)
 				.some((entry) => entry.event === 'reconnect' && entry.reason === 'stall')
 		);
-		assert.equal(hub.negotiations >= 2, true);
+		assert.ok(hub.negotiations >= 2);
 		assert.deepEqual(readStream(join(root, PRACTICE_3.Path, 'TrackStatus.jsonStream')), [
 			{ offset: '00:00:00.500', payload: { Status: '2' } }
 		]);
