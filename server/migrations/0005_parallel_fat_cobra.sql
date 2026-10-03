@@ -1,1 +1,0 @@
-ALTER TABLE "drivers" ADD COLUMN "shortName" varchar NOT NULL;
