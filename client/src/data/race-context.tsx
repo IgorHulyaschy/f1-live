@@ -84,8 +84,8 @@ export type RunningSlot = { number: string; out: boolean };
 
 /**
  * The race without the running order, which moves many times a lap. `race` and `snapshot` are
- * kept while only the order and personal bests change, so their `standings` and
- * `personalBests` may be behind: read those through `useRace`.
+ * kept while only the order, personal bests and mini sectors change, so their `standings`,
+ * `personalBests` and `miniSectors` may be behind: read those through `useRace`.
  */
 export type RaceView = Omit<RaceContextValue, 'standings'> & {
 	order: readonly RunningSlot[];

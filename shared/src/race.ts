@@ -226,6 +226,36 @@ export interface PersonalBest {
 	topSpeedsKph: TopSpeeds;
 }
 
+/**
+ * What the timing loops say about a car's pass through a mini sector: the session's fastest, the
+ * driver's best, neither, or a pass through the pit lane.
+ */
+export const MINI_SECTOR_MARKS = ['fastest', 'personal_best', 'none', 'pit'] as const;
+
+export type MiniSectorMark = (typeof MINI_SECTOR_MARKS)[number];
+
+/**
+ * A car's mini sectors as the timing loops report them: the lap it is on now, the lap before and
+ * its best so far. Mini sectors count from the line, from 0. Times are between the moments the
+ * feed published each loop, so they carry its jitter of about a tenth of a second; the marks are
+ * the loops' own.
+ */
+export interface MiniSectorRecord {
+	driverNumber: string;
+	/** The lap the newest mini sector belongs to. */
+	lap: number;
+	/** The newest mini sector the car left, and when, ISO 8601 UTC. */
+	index: number;
+	at: string;
+	/** Time through each mini sector of `lap` so far, ms; null where not run yet or not timed. */
+	ms: readonly (number | null)[];
+	marks: readonly (MiniSectorMark | null)[];
+	/** Each mini sector's time on the lap before `lap`. */
+	lastMs: readonly (number | null)[];
+	/** The quickest pass through each mini sector this session, pit lane left out. */
+	bestMs: readonly (number | null)[];
+}
+
 /** Everything known about a session up to `currentLap`. */
 export interface RaceSnapshot {
 	session: Session;
@@ -251,4 +281,8 @@ export interface RaceSnapshot {
 	penalties?: readonly Penalty[];
 	personalBests?: readonly PersonalBest[];
 	corrections?: readonly ClassificationCorrection[];
+	/** Each car's mini sectors now, like `standings`: a cut of the session drops them. */
+	miniSectors?: readonly MiniSectorRecord[];
+	/** The driver holding the session's fastest time in each mini sector, by the loops' marks. */
+	miniSectorLeaders?: readonly (string | null)[];
 }

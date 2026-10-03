@@ -482,4 +482,48 @@ describe('applyEvent', () => {
 			]
 		);
 	});
+
+	it('times mini sectors from the loops, keeping the lap before, the bests and the leaders', () => {
+		const pass = (
+			seconds: number,
+			lapNumber: number,
+			index: number,
+			mark: 'fastest' | 'personal_best' | 'none' | 'pit'
+		): RaceEvent => ({
+			kind: 'mini_sector',
+			at: at(seconds),
+			driverNumber: '1',
+			lap: lapNumber,
+			index,
+			mark
+		});
+
+		const snapshot = replay([
+			...started(),
+			lap(100, '1', 1),
+			pass(104, 2, 0, 'personal_best'),
+			pass(108.5, 2, 1, 'fastest'),
+			// The loop at the end of mini sector 2 was missed, so 3 cannot be timed.
+			pass(115, 2, 3, 'none'),
+			lap(196, '1', 2),
+			pass(199.5, 3, 0, 'none'),
+			pass(205, 3, 1, 'pit'),
+			// A loop from a lap the car has left.
+			pass(206, 2, 3, 'none')
+		]);
+
+		assert.deepEqual(snapshot.miniSectors, [
+			{
+				driverNumber: '1',
+				lap: 3,
+				index: 1,
+				at: at(205),
+				ms: [3500, 5500],
+				marks: ['none', 'pit'],
+				lastMs: [4000, 4500, null, null],
+				bestMs: [3500, 4500]
+			}
+		]);
+		assert.deepEqual(snapshot.miniSectorLeaders, [null, '1']);
+	});
 });

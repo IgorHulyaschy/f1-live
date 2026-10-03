@@ -3,14 +3,14 @@ import type { RaceSnapshot } from '@f1-live/shared';
 import { bestsSoFar } from './snapshot-at-time.ts';
 
 /**
- * The race as it stood when the leader completed `lap`. The feed's running order, its personal
- * bests and speeds are as of now, and corrections are decided after the flag, so only the latest
- * lap keeps them.
+ * The race as it stood when the leader completed `lap`. The feed's running order, mini sectors,
+ * personal bests and speeds are as of now, and corrections are decided after the flag, so only
+ * the latest lap keeps them.
  */
 export function snapshotAtLap(race: RaceSnapshot, lap: number): RaceSnapshot {
 	const currentLap = Math.min(Math.max(lap, 1), race.currentLap);
 	const laps = race.laps.filter((entry) => entry.lap <= currentLap);
-	const { standings, corrections, personalBests, ...rest } = race;
+	const { standings, corrections, personalBests, miniSectors, miniSectorLeaders, ...rest } = race;
 
 	const slice: RaceSnapshot = {
 		...rest,
@@ -28,6 +28,6 @@ export function snapshotAtLap(race: RaceSnapshot, lap: number): RaceSnapshot {
 	};
 
 	return currentLap >= race.currentLap
-		? { ...slice, standings, corrections, personalBests }
+		? { ...slice, standings, corrections, personalBests, miniSectors, miniSectorLeaders }
 		: slice;
 }

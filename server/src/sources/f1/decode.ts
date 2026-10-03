@@ -1,6 +1,7 @@
 import { TYRE_COMPOUNDS } from '@f1-live/shared';
 import type {
 	Driver,
+	MiniSectorMark,
 	Penalty,
 	PenaltyKind,
 	PenaltyStatus,
@@ -77,6 +78,10 @@ export function indexed<T extends z.ZodType>(item: T) {
 
 const value = z.object({ Value: z.string() }).partial();
 
+const timingSectorSchema = z
+	.object({ Value: z.string(), Segments: indexed(z.object({ Status: z.number() }).partial()) })
+	.partial();
+
 const sessionInfoSchema = z
 	.object({
 		Key: z.number(),
@@ -127,7 +132,7 @@ const timingDataSchema = z
 					InPit: z.boolean(),
 					Retired: z.boolean(),
 					LastLapTime: value,
-					Sectors: indexed(value)
+					Sectors: indexed(timingSectorSchema)
 				})
 				.partial()
 		)
@@ -365,6 +370,30 @@ interface TimingLine {
 	pendingLapTime: string | null;
 	pitEntry: { lap: number; timestamp: number } | null;
 	lastPitEntryLap: number | null;
+	/** Each mini sector's last status, keyed `sector/segment`; 0 is not yet run on this lap. */
+	segments: Map<string, number>;
+	/** The lap and mini sector of the newest pass reported. */
+	miniSectorLap: number | null;
+	miniSectorIndex: number | null;
+}
+
+/** Bits of a mini sector's status in TimingData: run, the driver's best, the session's best, pit lane. */
+const SEGMENT_PIT = 16;
+
+const SEGMENT_FASTEST = 2;
+
+const SEGMENT_PERSONAL_BEST = 1;
+
+function segmentMark(status: number): MiniSectorMark {
+	if (status & SEGMENT_PIT) {
+		return 'pit';
+	}
+
+	if (status & SEGMENT_FASTEST) {
+		return 'fastest';
+	}
+
+	return status & SEGMENT_PERSONAL_BEST ? 'personal_best' : 'none';
 }
 
 interface StintEntry {
@@ -439,6 +468,8 @@ export class F1Decoder {
 	private readonly publishedStops = new Set<string>();
 	private readonly stopsWithSeries = new Set<string>();
 	private readonly raceControlSeen = new Set<number>();
+	/** Mini sectors in sectors 1, 2 and 3, as the feed's keyframe lists them. */
+	private readonly segmentCounts: [number, number, number] = [0, 0, 0];
 
 	/** Throws when a frame of a topic it reads does not match the feed's known format. */
 	decode(frame: TopicFrame): RaceEvent[] {
@@ -619,6 +650,8 @@ export class F1Decoder {
 				}
 			}
 
+			events.push(...this.onSegments(driverNumber, line, delta.Sectors ?? [], at));
+
 			// A keyframe after a reconnect repeats the last lap time; only a new one is pending.
 			const lastLapTime = delta.LastLapTime?.Value;
 
@@ -709,6 +742,82 @@ export class F1Decoder {
 			: [];
 	}
 
+	/**
+	 * A mini sector that goes from no status to one is a car leaving it; a later change, as a time
+	 * is beaten, is not. The first mini sector keeps its status when the new pass matches the lap
+	 * before, so it is not sent again; the feed clears the second as the car leaves the first.
+	 */
+	private onSegments(
+		driverNumber: string,
+		line: TimingLine,
+		sectors: readonly (readonly [number, z.output<typeof timingSectorSchema>])[],
+		at: string
+	): RaceEvent[] {
+		const passed = new Set<string>();
+
+		for (const [sector, entry] of sectors) {
+			for (const [segment, { Status: status }] of entry.Segments ?? []) {
+				if (sector >= 0 && sector < 3) {
+					this.segmentCounts[sector] = Math.max(this.segmentCounts[sector] ?? 0, segment + 1);
+				}
+
+				const key = `${sector}/${segment}`;
+				const before = line.segments.get(key) ?? 0;
+
+				if (status === undefined) {
+					continue;
+				}
+
+				if (status !== 0 && before === 0) {
+					passed.add(key);
+				} else if (status === 0 && before !== 0 && sector === 0 && segment === 1) {
+					passed.add('0/0');
+				}
+
+				line.segments.set(key, status);
+			}
+		}
+
+		const [first, second, third] = this.segmentCounts;
+
+		if (!this.started || first === 0 || second === 0 || third === 0) {
+			return [];
+		}
+
+		const offsets = [0, first, first + second];
+
+		const indexes = [...passed]
+			.map((key) => {
+				const [sector = 0, segment = 0] = key.split('/').map(Number);
+
+				return { key, index: (offsets[sector] ?? 0) + segment };
+			})
+			.toSorted((a, b) => a.index - b.index);
+
+		return indexes.map(({ key, index }) => {
+			// A pass at or before the newest one starts a lap: the line, crossed seconds before the
+			// first loop, has counted it.
+			if (
+				line.miniSectorLap === null ||
+				line.miniSectorIndex === null ||
+				index <= line.miniSectorIndex
+			) {
+				line.miniSectorLap = line.lapsCompleted + 1;
+			}
+
+			line.miniSectorIndex = index;
+
+			return {
+				kind: 'mini_sector',
+				at,
+				driverNumber,
+				lap: line.miniSectorLap,
+				index,
+				mark: segmentMark(line.segments.get(key) ?? 0)
+			};
+		});
+	}
+
 	private lineOf(driverNumber: string): TimingLine {
 		const existing = this.lines.get(driverNumber);
 
@@ -726,7 +835,10 @@ export class F1Decoder {
 			lastLapTime: '',
 			pendingLapTime: null,
 			pitEntry: null,
-			lastPitEntryLap: null
+			lastPitEntryLap: null,
+			segments: new Map(),
+			miniSectorLap: null,
+			miniSectorIndex: null
 		};
 
 		this.lines.set(driverNumber, line);
