@@ -24,6 +24,15 @@ export function snapshotAtLap(race: RaceSnapshot, lap: number): RaceSnapshot {
 		raceControl: race.raceControl.filter((message) => message.lap <= currentLap),
 		weather: race.weather.filter((sample) => sample.lap <= currentLap),
 		retirements: race.retirements.filter((retirement) => retirement.lap <= currentLap),
+		penalties: race.penalties
+			?.filter((penalty) => penalty.lap <= currentLap)
+			.map(({ servedLap, ...penalty }) =>
+				servedLap !== undefined && servedLap > currentLap
+					? { ...penalty, status: 'issued' }
+					: { ...penalty, servedLap }
+			),
+		overtakes: race.overtakes?.filter((pass) => pass.lap <= currentLap),
+		teamRadio: race.teamRadio?.filter((clip) => clip.lap <= currentLap),
 		personalBests: personalBests ? bestsSoFar(race, laps) : undefined
 	};
 

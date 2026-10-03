@@ -114,7 +114,10 @@ function sameExceptOrder(kept: RaceSnapshot, next: RaceSnapshot): boolean {
 		kept.statusLog === next.statusLog &&
 		kept.startedAt === next.startedAt &&
 		kept.penalties === next.penalties &&
-		kept.corrections === next.corrections
+		kept.corrections === next.corrections &&
+		kept.overtakes === next.overtakes &&
+		kept.teamRadio === next.teamRadio &&
+		kept.championship === next.championship
 	);
 }
 

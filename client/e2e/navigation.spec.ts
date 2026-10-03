@@ -44,6 +44,7 @@ test('has no console errors on any page', async ({ page }) => {
 	await openRace(page, '/');
 	await openRace(page, '/analysis');
 	await openRace(page, '/strategy');
+	await openRace(page, '/d/story');
 
 	expect(errors).toEqual([]);
 });

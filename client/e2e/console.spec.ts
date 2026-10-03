@@ -47,10 +47,15 @@ test('the analysis chart switches metric', async ({ page }) => {
 	await expect(page.getByTestId('chart-battle')).toBeVisible();
 });
 
-for (const path of ['/', '/analysis', '/strategy']) {
+for (const path of ['/', '/analysis', '/strategy', '/d/story']) {
 	test(`phones never scroll sideways on ${path}`, async ({ page }) => {
 		await page.setViewportSize({ width: 360, height: 800 });
 		await openRace(page, path);
+
+		// The widest tiles load their charts after the page; measure once they are drawn.
+		if (path === '/analysis') {
+			await expect(page.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
+		}
 
 		const overflow = await page.evaluate(
 			() => document.documentElement.scrollWidth - document.documentElement.clientWidth

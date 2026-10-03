@@ -24,6 +24,7 @@ const PAGES = [
 	{ name: 'battle', path: '/d/battle' },
 	{ name: 'wall', path: '/d/wall' },
 	{ name: 'drivers', path: '/d/drivers' },
+	{ name: 'story', path: '/d/story' },
 	{ name: 'editing', path: '/d/battle?edit=1' },
 	{ name: 'library', path: '/library' },
 	{ name: 'preview', path: '/library/tv-wall' },
