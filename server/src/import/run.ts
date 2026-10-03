@@ -142,6 +142,7 @@ async function fetchResults(
 	}
 
 	for (const [meetingKey, sessions] of meetings) {
+		// oxlint-disable-next-line no-await-in-loop -- one meeting at a time keeps the requests to OpenF1 gentle.
 		const kept = await Promise.all(
 			sessions.map(
 				async (session) =>
@@ -155,6 +156,7 @@ async function fetchResults(
 		}
 
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- see above.
 			const saved = await fetchMeetingResults(
 				options.dataDir,
 				meetingKey,

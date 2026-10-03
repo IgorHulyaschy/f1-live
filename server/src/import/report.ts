@@ -27,6 +27,7 @@ export async function hashOutputs(dataDir: string): Promise<OutputDigest> {
 	let bytes = 0;
 
 	for (const name of names) {
+		// oxlint-disable-next-line no-await-in-loop -- name order makes the digest stable, and one file is in memory at a time.
 		const content = await readFile(path.join(root, name));
 
 		hash.update(`${name}\0`);
