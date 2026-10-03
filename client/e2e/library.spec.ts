@@ -59,9 +59,14 @@ test('first run picks a driver and a starting dashboard', async ({ page }) => {
 	await page.goto('/');
 	await page.getByRole('link', { name: 'Set up' }).click();
 
-	await page.getByRole('button', { name: /Norris/ }).click();
-	await page.getByRole('button', { name: /Strategy calls/ }).click();
-	await page.getByRole('button', { name: 'Start watching' }).click();
+	// The dashboard stays on screen until the setup page commits, and its driver names open views.
+	const setup = page.getByTestId('welcome');
+	const norris = setup.getByRole('button', { name: /Norris/ });
+
+	await norris.click();
+	await expect(norris).toHaveAttribute('aria-pressed', 'true');
+	await setup.getByRole('button', { name: /Strategy calls/ }).click();
+	await setup.getByRole('button', { name: 'Start watching' }).click();
 
 	await expect(page).toHaveURL(/\/strategy\?.*driver=4/);
 	await page.goto('/');

@@ -9,6 +9,8 @@ const documentsReply = z.object({
 	documents: z.array(z.object({ dashboard: z.object({ id: z.string() }).nullable() }))
 });
 
+const viewerReply = z.object({ revealed: z.array(z.string()) });
+
 async function addFromLibrary(page: Page, name: string): Promise<void> {
 	await page.goto('/library');
 	await page.getByRole('button', { name: `Add ${name}` }).click();
@@ -25,6 +27,15 @@ async function expectSynced(page: Page, count: number): Promise<void> {
 			return body.documents.filter((document) => document.dashboard !== null).length;
 		})
 		.toBe(count);
+}
+
+/** The sessions the account holds as revealed; an empty merge changes nothing. */
+async function accountReveals(page: Page): Promise<string[]> {
+	const response = await page.request.put('/api/me/viewer', {
+		data: { protect: true, protectUpdatedAt: null, revealed: [] }
+	});
+
+	return viewerReply.parse(await response.json()).revealed;
 }
 
 function yours(page: Page) {
@@ -157,19 +168,27 @@ test('a session revealed on one device opens revealed on another signed in to th
 	await page.getByRole('button', { name: 'Jump to the finish (shows results)' }).first().click();
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 50/50');
 
-	const other = await browser.newPage();
+	// The reveal reaches the account a moment after it is made.
+	await expect.poll(() => accountReveals(page)).not.toEqual([]);
 
+	const other = await browser.newPage();
+	let answer: (() => void) | undefined;
+
+	const answered = new Promise<void>((resolve) => {
+		answer = resolve;
+	});
+
+	// The account's settings answer only after this device has opened the session.
+	await other.route('**/api/me/viewer', async (route) => {
+		await answered;
+		await route.continue();
+	});
 	await openRace(other, '/', { spoilerProtection: true });
 	await signInWithLink(other, email);
-
-	// The reveal reaches the account a moment after it is made; revealed, the modelled replay
-	// opens where it always has.
-	await expect
-		.poll(async () => {
-			await other.goto('/');
-
-			return other.getByTestId('lap-counter').textContent();
-		})
-		.toBe('Lap 30/50');
+	await other.goto('/');
+	await expect(other.getByTestId('lap-counter')).toHaveText('Lap 1/50');
+	answer?.();
+	// Revealed, the modelled replay moves to where it always opens.
+	await expect(other.getByTestId('lap-counter')).toHaveText('Lap 30/50');
 	await other.close();
 });
