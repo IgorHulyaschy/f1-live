@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import * as React from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router';
+import { NavLink, useLocation, useMatch, useNavigate } from 'react-router';
 
 import { BRAND } from '@/brand';
 import { Key, KeyGroup } from '@/components/console/keys';
@@ -28,7 +28,7 @@ import {
 	DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { useRace } from '@/data/race-context';
-import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
+import { useCreateDashboard } from '@/features/dashboard/use-add-dashboard';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
 import { AccountKey } from '@/features/account/account-menu';
@@ -238,6 +238,8 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 	const { plan, setPlan } = useRace();
 	const accountPlan = useAccountPlan();
 	const dark = useDarkTheme();
+	// The home has its own panel for the session on now; the strip is about the one on screen.
+	const home = useMatch('/') !== null;
 
 	return (
 		<header className="bg-background/90 sticky top-0 z-40 mb-4 border-b backdrop-blur-sm">
@@ -289,8 +291,12 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 					</Key>
 				</div>
 			</div>
-			<LiveStrip />
-			<FlagBanner />
+			{home ? null : (
+				<>
+					<LiveStrip />
+					<FlagBanner />
+				</>
+			)}
 		</header>
 	);
 }

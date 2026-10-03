@@ -18,8 +18,8 @@ The rules the flows share:
 
 ## A. Live during a session
 
-**Entry.** Open the app while a session runs (`/` with nothing in the address), or Watch live on
-the live strip from any other session.
+**Entry.** Open the app while a session runs and pick Watch live on the home page (`/`), open
+`/session`, or Watch live on the live strip from any other session.
 
 **Steps.**
 

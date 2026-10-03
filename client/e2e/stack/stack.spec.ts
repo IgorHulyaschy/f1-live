@@ -8,7 +8,7 @@ test('a saved session loads from the static data files', async ({ page }) => {
 		response.url().endsWith('/snapshots/9854.json.gz')
 	);
 
-	await openRace(page, '/?session=9854');
+	await openRace(page, '/session?session=9854');
 	await expect(page.getByTestId('live-key')).toHaveText('Replay');
 
 	const response = await snapshot;
@@ -45,7 +45,7 @@ test('a replayed race reaches the browser through ingest and the relay', async (
 	test.skip(!process.env.STACK_REPLAY, 'start the replay profile and set STACK_REPLAY=1');
 	test.setTimeout(180_000);
 
-	await openRace(page, '/');
+	await openRace(page, '/session');
 	await expect(page.getByTestId('live-key')).toHaveText('Live');
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 2/50', { timeout: 150_000 });
 });

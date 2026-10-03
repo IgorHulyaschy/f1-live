@@ -81,9 +81,28 @@ the driver goes back from a lap. Back steps out one level and Close all of them,
 the replay where it is; a view that came with a link closes onto its session. Clicking a lap
 opens it; race-control messages, race chart points and stint rows move the replay there.
 
+Each part of the driver view (laps, runs, stints, position, best sectors, best-lap telemetry,
+race control and radio) and the compare view is also a **Driver view** tile. The tile is bound
+to a driver, or to whoever the viewer follows, and its header picks either. In the sheet, each
+part has **Add to dashboard**, and **Make a dashboard of this view** saves every part as a new
+dashboard.
+
+Every tile header reads the same way: the title on the left, its modes on the right, and an
+options menu at the end (open the tile in a new window, edit the dashboard). Playback lives in
+one place: the Replay tile, or the live strip's clock when the dashboard has no Replay tile.
+
+## Home
+
+`/` is the home page: an ask box, what is live or starts next with Watch live or Catch up, the
+season's standings after its latest round the viewer may see, and the latest weekend. Recent
+rounds held back as unseen are counted in a note with one key that shows them. Without the
+season's results, the open session's own table stands in. A first visit lands there. A viewer
+can make any page their start page (the default is home), and `/` then opens it; a link with a
+session or position always opens the session.
+
 ## Session layouts
 
-`/` opens the layout for the session on screen, and the first tab is named for it: Race (races
+`/session` opens the layout for the session on screen, and the first tab is named for it: Race (races
 and sprints), Quali (qualifying and sprint qualifying) or Practice. Opening the app while a
 session runs lands on it; when a session goes live with nothing in the address, the screen moves
 to it and its layout.
@@ -128,7 +147,7 @@ session's season after the latest round the viewer has seen; it links to `/stand
 | Race story | What happened, and why   | Session, Replay, Story, Positions chart, Championship, Race control, Conditions |
 
 Viewers can edit any of them; Reset puts it back as shipped. Race keeps the id the Live preset
-had (`live`), so an edited Live opens as an edited Race. There are 36 tiles in 6 groups (Race,
+had (`live`), so an edited Live opens as an edited Race. There are 38 tiles in 6 groups (Race,
 Drivers, Timing, Track, Analysis, Strategy). Nine of them are Pro: Box now, True pace, Tyre wear,
 Undercut ledger, Conditions, Pit rejoin, Dominance, Speed map and Ghost lap.
 

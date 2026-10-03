@@ -74,7 +74,7 @@ export function DrillSheet() {
 					<SheetContent
 						data-testid="drill-sheet"
 						data-drill-sheet
-						className="sm:max-w-2xl xl:max-w-3xl"
+						className="sm:max-w-xl 2xl:max-w-3xl"
 						// Outside clicks belong to the dashboard: a row or a car there opens its own view.
 						onInteractOutside={(event) => event.preventDefault()}
 					>

@@ -86,8 +86,8 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
 
 ## Dashboards
 
-- Every page is a dashboard: tiles on a 24-column grid. `/` is the session's own layout (Race,
-  Quali or Practice); Analysis and Strategy are presets at their old addresses; Battle and Pit
+- Every page is a dashboard: tiles on a 24-column grid. `/session` is the session's own layout
+  (Race, Quali or Practice); Analysis and Strategy are presets at their old addresses; Battle and Pit
   wall are presets for focused and wide screens.
 - One primary reading per screen: on the session layouts it is the time left (or the lap) on the
   live strip and the tower under it. The Replay tile prints the minute only on the clock, so a

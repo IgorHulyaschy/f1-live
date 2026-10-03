@@ -70,7 +70,7 @@ for (const viewport of VIEWPORTS) {
 
 			test('install offer', async ({ page }) => {
 				await page.clock.install();
-				await page.goto('/?lap=30');
+				await page.goto('/session?lap=30');
 				await expect(page.getByTestId('lap-counter')).toBeAttached();
 				await page.evaluate(() => {
 					window.dispatchEvent(

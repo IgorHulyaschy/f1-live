@@ -1,4 +1,5 @@
 import type { Driver, RaceSnapshot } from '@f1-live/shared';
+import type { DrillSection } from '@f1-live/shared/dashboard';
 import * as React from 'react';
 import { CartesianGrid, Line, LineChart, type MouseHandlerDataParam, XAxis, YAxis } from 'recharts';
 
@@ -139,7 +140,7 @@ function Runs({ laps, snapshot }: { laps: readonly DriverLap[]; snapshot: RaceSn
 	const runs = qualifyingRuns(laps);
 
 	return (
-		<Section title="Runs" meta="Push laps only" testId="drill-runs">
+		<Section title="Runs" part="runs" meta="Push laps only" testId="drill-runs">
 			{runs.length === 0 ? (
 				<EmptyNote className="px-0">No push lap yet.</EmptyNote>
 			) : (
@@ -345,7 +346,7 @@ function Stints({ snapshot, driverNumber }: { snapshot: RaceSnapshot; driverNumb
 	}
 
 	return (
-		<Section title="Stints" meta={`${stints.length}`} testId="drill-stints">
+		<Section title="Stints" part="stints" meta={`${stints.length}`} testId="drill-stints">
 			<ol className="flex flex-col">
 				{stints.map((stint) => {
 					const laps = stint.endLap - stint.startLap + 1;
@@ -411,7 +412,12 @@ function PositionChart({
 	const lastLap = points.at(-1)?.lap ?? 1;
 
 	return (
-		<Section title="Position" meta="Click a lap to go there" testId="drill-positions">
+		<Section
+			title="Position"
+			part="position"
+			meta="Click a lap to go there"
+			testId="drill-positions"
+		>
 			<ChartContainer config={config} className="aspect-auto h-40 w-full cursor-pointer">
 				<LineChart
 					data={points}
@@ -489,6 +495,7 @@ function SectorsAndTraps({
 	return (
 		<Section
 			title="Best sectors"
+			part="sectors"
 			meta={traps.length > 0 ? 'and speed traps, km/h' : undefined}
 			testId="drill-sectors"
 		>
@@ -574,6 +581,7 @@ function BestLapTelemetry({ snapshot, driver }: { snapshot: RaceSnapshot; driver
 	return (
 		<Section
 			title="Best lap telemetry"
+			part="telemetry"
 			meta={chosen.length > 1 ? 'A is theirs' : undefined}
 			actions={
 				<KeyGroup<Reference>
@@ -631,7 +639,12 @@ function Mentions({ snapshot, driverNumber }: { snapshot: RaceSnapshot; driverNu
 	}
 
 	return (
-		<Section title="Race control and radio" meta="Click to go there" testId="drill-mentions">
+		<Section
+			title="Race control and radio"
+			part="mentions"
+			meta="Click to go there"
+			testId="drill-mentions"
+		>
 			<ol className="flex flex-col">
 				{mentions.map((mention) => (
 					<li key={mention.key} className="border-b">
@@ -658,12 +671,74 @@ function Mentions({ snapshot, driverNumber }: { snapshot: RaceSnapshot; driverNu
 	);
 }
 
-/** One driver's session: the headline, every lap, runs, stints, sectors, telemetry and messages. */
-export function DriverView({ driverNumber }: { driverNumber: string }) {
+/** The parts of the driver view, in its order; each can also be a tile of its own. */
+export const DRIVER_PARTS = [
+	'runs',
+	'laps',
+	'stints',
+	'position',
+	'sectors',
+	'telemetry',
+	'mentions'
+] as const satisfies readonly DrillSection[];
+
+export type DriverPart = (typeof DRIVER_PARTS)[number];
+
+/** One part of a driver's session, or nothing where it means nothing in this kind of session. */
+export function driverPart(
+	part: DriverPart,
+	{ snapshot, driver, laps }: { snapshot: RaceSnapshot; driver: Driver; laps: readonly DriverLap[] }
+): React.ReactNode {
+	switch (part) {
+		case 'runs': {
+			return isKnockout(snapshot.session.type) ? <Runs laps={laps} snapshot={snapshot} /> : null;
+		}
+
+		case 'laps': {
+			return (
+				<Section title="Laps" meta="Click a lap to open it" part="laps">
+					<LapTable laps={laps} snapshot={snapshot} driver={driver} />
+				</Section>
+			);
+		}
+
+		case 'stints': {
+			return <Stints snapshot={snapshot} driverNumber={driver.number} />;
+		}
+
+		case 'position': {
+			return isTimedSession(snapshot.session.type) ? null : (
+				<PositionChart laps={laps} cars={snapshot.drivers.length} driver={driver} />
+			);
+		}
+
+		case 'sectors': {
+			return <SectorsAndTraps snapshot={snapshot} driverNumber={driver.number} />;
+		}
+
+		case 'telemetry': {
+			return <BestLapTelemetry snapshot={snapshot} driver={driver} />;
+		}
+
+		case 'mentions': {
+			return <Mentions snapshot={snapshot} driverNumber={driver.number} />;
+		}
+	}
+}
+
+/** The session as one driver saw it, up to the replay's moment. */
+export function useDriverSession(driverNumber: string) {
 	const snapshot = useVisibleRace();
-	const { standings } = useRace();
 	const driver = snapshot.drivers.find((entry) => entry.number === driverNumber);
 	const laps = React.useMemo(() => driverLaps(snapshot, driverNumber), [snapshot, driverNumber]);
+
+	return { snapshot, driver, laps };
+}
+
+/** One driver's session: the headline, every lap, runs, stints, sectors, telemetry and messages. */
+export function DriverView({ driverNumber }: { driverNumber: string }) {
+	const { snapshot, driver, laps } = useDriverSession(driverNumber);
+	const { standings } = useRace();
 	const timed = isTimedSession(snapshot.session.type);
 	const row = standings.find((entry) => entry.driver.number === driverNumber);
 
@@ -674,15 +749,9 @@ export function DriverView({ driverNumber }: { driverNumber: string }) {
 	return (
 		<div className="flex flex-col gap-6 p-4" data-testid="driver-view">
 			<Headline row={row} best={bestDriverLap(laps)} timed={timed} />
-			{isKnockout(snapshot.session.type) ? <Runs laps={laps} snapshot={snapshot} /> : null}
-			<Section title="Laps" meta="Click a lap to open it">
-				<LapTable laps={laps} snapshot={snapshot} driver={driver} />
-			</Section>
-			<Stints snapshot={snapshot} driverNumber={driverNumber} />
-			{timed ? null : <PositionChart laps={laps} cars={snapshot.drivers.length} driver={driver} />}
-			<SectorsAndTraps snapshot={snapshot} driverNumber={driverNumber} />
-			<BestLapTelemetry snapshot={snapshot} driver={driver} />
-			<Mentions snapshot={snapshot} driverNumber={driverNumber} />
+			{DRIVER_PARTS.map((part) => (
+				<React.Fragment key={part}>{driverPart(part, { snapshot, driver, laps })}</React.Fragment>
+			))}
 		</div>
 	);
 }

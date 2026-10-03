@@ -34,7 +34,11 @@ const page =
 	() => ({ title, description, indexed });
 
 export const ROUTE_META = {
-	live: page(null, BRAND.description),
+	home: page(null, BRAND.description),
+	session: page(
+		'Session',
+		'The session on now, or the latest, in its own layout: timing, the track, the flags and the gaps.'
+	),
 	analysis: page(
 		'Analysis',
 		'Lap time charts for any drivers you pick, true pace with fuel and tyres taken out, and the fastest laps.'

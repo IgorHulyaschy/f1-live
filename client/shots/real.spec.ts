@@ -17,14 +17,14 @@ const VIEWPORTS = [
 
 const PAGES = [
 	// The session layouts: Quali in its first and second parts, Race, Practice.
-	{ name: 'quali-q1', path: '/?session=11373&lap=12' },
-	{ name: 'quali-q2', path: '/?session=11373&lap=33' },
-	{ name: 'practice', path: '/?session=9852' },
-	{ name: 'race-final', path: '/?session=9858' },
-	{ name: 'race-lap-30', path: '/?session=9858&lap=30' },
+	{ name: 'quali-q1', path: '/session?session=11373&lap=12' },
+	{ name: 'quali-q2', path: '/session?session=11373&lap=33' },
+	{ name: 'practice', path: '/session?session=9852' },
+	{ name: 'race-final', path: '/session?session=9858' },
+	{ name: 'race-lap-30', path: '/session?session=9858&lap=30' },
 	{ name: 'strategy', path: '/strategy?session=9858' },
-	{ name: 'qualifying', path: '/?session=11373' },
-	{ name: 'qualifying-q2', path: '/?session=9854&lap=40' },
+	{ name: 'qualifying', path: '/session?session=11373' },
+	{ name: 'qualifying-q2', path: '/session?session=9854&lap=40' },
 	{ name: 'analysis-qualifying', path: '/analysis?session=9854' },
 	{ name: 'battle-qualifying', path: '/d/battle?session=11373' },
 	{ name: 'analysis-race', path: '/analysis?session=9858&plan=pro' },
@@ -37,9 +37,11 @@ const PAGES = [
 	{ name: 'track-qualifying', path: '/d/track?session=11373&plan=pro' },
 	{ name: 'wall-race', path: '/d/wall?session=9858&lap=30' },
 	// 2026 Bahrain qualifying: the gap tile in the Quali layout, the gap visuals, the quali charts.
-	{ name: 'quali-bahrain', path: '/?session=11730&plan=pro' },
+	{ name: 'quali-bahrain', path: '/session?session=11730&plan=pro' },
 	{ name: 'track-bahrain', path: '/d/track?session=11730&plan=pro' },
 	{ name: 'analysis-bahrain', path: '/analysis?session=11730' },
+	// The home, with the season's latest rounds held back as unseen.
+	{ name: 'home', path: '/', spoilers: true },
 	// The history pages on the results index of 2018 to 2026.
 	{ name: 'calendar', path: '/calendar?season=2026' },
 	{ name: 'standings', path: '/standings?season=2025&round=11' },
@@ -48,14 +50,14 @@ const PAGES = [
 	{ name: 'h2h-hamilton-bottas', path: '/h2h?a=lewis-hamilton&b=valtteri-bottas&preset=teammates' },
 	{ name: 'driver-history', path: '/drivers/lando-norris' },
 	// Spoiler protection on a finished session the viewer has not seen.
-	{ name: 'spoiler-start-quali', path: '/?session=11373', spoilers: true },
-	{ name: 'spoiler-start-race', path: '/?session=9858', spoilers: true },
+	{ name: 'spoiler-start-quali', path: '/session?session=11373', spoilers: true },
+	{ name: 'spoiler-start-race', path: '/session?session=9858', spoilers: true },
 	// The driver, lap and compare views: a sheet over the dashboard, shot as the window shows it.
-	{ name: 'driver-quali', path: '/?session=11373&car=63', sheet: true },
-	{ name: 'driver-race', path: '/?session=9858&car=4&lap=30', sheet: true },
-	{ name: 'lap-quali', path: '/?session=11373&car=63&carLap=26&vs=16', sheet: true },
-	{ name: 'compare-race', path: '/?session=9858&car=1&vs=63', sheet: true },
-	{ name: 'driver-hidden', path: '/?session=11373&car=63', spoilers: true, sheet: true }
+	{ name: 'driver-quali', path: '/session?session=11373&car=63', sheet: true },
+	{ name: 'driver-race', path: '/session?session=9858&car=4&lap=30', sheet: true },
+	{ name: 'lap-quali', path: '/session?session=11373&car=63&carLap=26&vs=16', sheet: true },
+	{ name: 'compare-race', path: '/session?session=9858&car=1&vs=63', sheet: true },
+	{ name: 'driver-hidden', path: '/session?session=11373&car=63', spoilers: true, sheet: true }
 ] as const;
 
 const THEMES = ['dark', 'light'] as const;
@@ -78,7 +80,7 @@ for (const viewport of VIEWPORTS) {
 						[theme, 'spoilers' in screen] as const
 					);
 					await page.goto(screen.path);
-					await (/^\/(calendar|standings|h2h|drivers)/.test(screen.path)
+					await (/^\/(calendar|standings|h2h|drivers|$)/.test(screen.path)
 						? expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 						: expect(page.getByTestId('lap-counter')).toBeAttached());
 					// Heavy tiles below the first screen wait to be scrolled to; a print draws them all.

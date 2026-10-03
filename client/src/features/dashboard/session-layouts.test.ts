@@ -71,7 +71,7 @@ describe('the top bar', () => {
 		assert.deepEqual(
 			tabs.map((entry) => [entry.label, entry.path]),
 			[
-				['Quali', '/'],
+				['Quali', '/session'],
 				['Analysis', '/analysis'],
 				['Race engineer', '/d/mine-1']
 			]

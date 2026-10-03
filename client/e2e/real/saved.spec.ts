@@ -6,7 +6,7 @@ import { openRace } from '../fixtures.ts';
 // timing data (e2e/real/derive-fixtures.ts).
 
 test('the race opens at the flag with the McLaren disqualifications', async ({ page }) => {
-	await openRace(page, '/?session=9858');
+	await openRace(page, '/session?session=9858');
 
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 50/50');
 
@@ -33,7 +33,7 @@ test('the race opens at the flag with the McLaren disqualifications', async ({ p
 });
 
 test('a replayed lap shows the order on that lap, not the final one', async ({ page }) => {
-	await openRace(page, '/?session=9858&lap=10');
+	await openRace(page, '/session?session=9858&lap=10');
 
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 10/50');
 	await expect(page.getByTestId('timing-row-NOR').getByText('DSQ')).toHaveCount(0);
@@ -52,7 +52,7 @@ test('stints and pit stops come from the real strategies', async ({ page }) => {
 });
 
 test('the session picker opens another session and keeps it in the address', async ({ page }) => {
-	await openRace(page, '/?session=9858');
+	await openRace(page, '/session?session=9858');
 
 	await page.getByRole('button', { name: 'Sessions' }).click();
 
@@ -75,7 +75,7 @@ test('the session picker opens another session and keeps it in the address', asy
 });
 
 test('⌘K finds a session by name', async ({ page }) => {
-	await openRace(page, '/?session=9858');
+	await openRace(page, '/session?session=9858');
 
 	await page.keyboard.press('Control+k');
 	await page.getByPlaceholder('Driver, dashboard, session or lap…').fill('Baku qualifying');
@@ -85,7 +85,7 @@ test('⌘K finds a session by name', async ({ page }) => {
 });
 
 test('qualifying is ordered by best lap, with the knockout lines', async ({ page }) => {
-	await openRace(page, '/?session=9854');
+	await openRace(page, '/session?session=9854');
 
 	const rows = page.getByTestId(/^timing-row-/);
 	await expect(rows.nth(0)).toHaveAttribute('data-testid', 'timing-row-NOR');
@@ -98,7 +98,7 @@ test('qualifying is ordered by best lap, with the knockout lines', async ({ page
 });
 
 test('a 22-car qualifying session cuts after 16 and shows no DRS', async ({ page }) => {
-	await openRace(page, '/?session=11373');
+	await openRace(page, '/session?session=11373');
 
 	const rows = page.getByTestId(/^timing-row-/);
 	await expect(rows).toHaveCount(22);
@@ -111,7 +111,7 @@ test('a 22-car qualifying session cuts after 16 and shows no DRS', async ({ page
 });
 
 test('a finished race opens at the start, paused, with its results hidden', async ({ page }) => {
-	await openRace(page, '/?session=9858', { spoilerProtection: true });
+	await openRace(page, '/session?session=9858', { spoilerProtection: true });
 
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 1/50');
 	await expect(page.getByTestId('spoiler-start')).toContainText('Results hidden');
@@ -132,7 +132,7 @@ test('a finished race opens at the start, paused, with its results hidden', asyn
 test('qualifying opens at the start of Q1 with no pole anywhere until revealed', async ({
 	page
 }) => {
-	await openRace(page, '/?session=11373', { spoilerProtection: true });
+	await openRace(page, '/session?session=11373', { spoilerProtection: true });
 
 	await expect(page.getByTestId('strip-part')).toHaveText('Q1');
 	await expect(page.getByTestId('spoiler-start')).toContainText('the start of Q1');
@@ -143,7 +143,7 @@ test('qualifying opens at the start of Q1 with no pole anywhere until revealed',
 	await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 	await expect(page.getByText('Pole', { exact: true })).toHaveCount(0);
 
-	await page.goto('/?session=11373');
+	await page.goto('/session?session=11373');
 	await page.getByRole('button', { name: 'Sessions' }).click();
 	const picker = page.getByTestId('session-picker');
 	await expect(picker.getByTestId('session-11373')).toContainText('Results hidden');
@@ -158,31 +158,31 @@ test('qualifying opens at the start of Q1 with no pole anywhere until revealed',
 test('a link with a position opens there, and one without follows the spoiler rule', async ({
 	page
 }) => {
-	await openRace(page, '/?session=9858&lap=30', { spoilerProtection: true });
+	await openRace(page, '/session?session=9858&lap=30', { spoilerProtection: true });
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 30/50');
 
-	await page.goto('/?session=9854');
+	await page.goto('/session?session=9854');
 	await expect(page.getByTestId('strip-part')).toHaveText('Q1');
 });
 
 test('watching to the end reveals the session', async ({ page }) => {
-	await openRace(page, '/?session=9858&lap=49', { spoilerProtection: true });
+	await openRace(page, '/session?session=9858&lap=49', { spoilerProtection: true });
 
 	await page.getByRole('button', { name: 'Next lap' }).click();
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 50/50');
 
-	await page.goto('/?session=9858');
+	await page.goto('/session?session=9858');
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 50/50');
 });
 
 test('spoiler protection off opens finished sessions at the end again', async ({ page }) => {
-	await openRace(page, '/?session=9858', { spoilerProtection: true });
+	await openRace(page, '/session?session=9858', { spoilerProtection: true });
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 1/50');
 
 	await page.getByRole('button', { name: 'Sessions' }).click();
 	await page.getByRole('switch', { name: 'Spoiler protection' }).click();
 	await page.keyboard.press('Escape');
-	await page.goto('/?session=11373');
+	await page.goto('/session?session=11373');
 
 	await expect(page.getByTestId('strip-part')).toHaveText('Q3');
 	await expect(page.getByTestId('spoiler-start')).toHaveCount(0);
@@ -191,7 +191,7 @@ test('spoiler protection off opens finished sessions at the end again', async ({
 test('a session without saved data still opens, with every panel saying why it is empty', async ({
 	page
 }) => {
-	await openRace(page, '/?session=9851');
+	await openRace(page, '/session?session=9851');
 
 	await expect(page.getByTestId('strip-session')).toContainText('Practice 1');
 	await expect(page.getByTestId('empty-note').first()).toContainText('has no timing');
@@ -202,7 +202,7 @@ test('with nothing live, the strip counts down to the next session in local time
 	page
 }) => {
 	await page.clock.setFixedTime(new Date('2025-11-21T12:00:00.000Z'));
-	await openRace(page, '/?session=9852');
+	await openRace(page, '/session?session=9852');
 
 	const next = page.getByTestId('strip-next');
 
@@ -216,7 +216,7 @@ test('with nothing live, the strip counts down to the next session in local time
 test('a qualifying driver view shows their runs and laps, and a lap its telemetry', async ({
 	page
 }) => {
-	await openRace(page, '/?session=11373&lap=62');
+	await openRace(page, '/session?session=11373&lap=62');
 
 	await page.getByTestId('timing-row-RUS').click();
 
@@ -236,7 +236,7 @@ test('a qualifying driver view shows their runs and laps, and a lap its telemetr
 });
 
 test('with results hidden, a driver view shows only what has happened so far', async ({ page }) => {
-	await openRace(page, '/?session=11373&car=63', { spoilerProtection: true });
+	await openRace(page, '/session?session=11373&car=63', { spoilerProtection: true });
 
 	const sheet = page.getByTestId('drill-sheet');
 	await expect(sheet.getByTestId('driver-view')).toBeVisible();

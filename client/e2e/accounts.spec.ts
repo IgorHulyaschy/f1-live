@@ -161,9 +161,9 @@ test('a session revealed on one device opens revealed on another signed in to th
 }) => {
 	const email = testEmail('catch-up');
 
-	await openRace(page, '/', { spoilerProtection: true });
+	await openRace(page, '/session', { spoilerProtection: true });
 	await signInWithLink(page, email);
-	await page.goto('/');
+	await page.goto('/session');
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 1/50');
 	await page.getByRole('button', { name: 'Jump to the finish (shows results)' }).first().click();
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 50/50');
@@ -183,9 +183,9 @@ test('a session revealed on one device opens revealed on another signed in to th
 		await answered;
 		await route.continue();
 	});
-	await openRace(other, '/', { spoilerProtection: true });
+	await openRace(other, '/session', { spoilerProtection: true });
 	await signInWithLink(other, email);
-	await other.goto('/');
+	await other.goto('/session');
 	await expect(other.getByTestId('lap-counter')).toHaveText('Lap 1/50');
 	answer?.();
 	// Revealed, the modelled replay moves to where it always opens.

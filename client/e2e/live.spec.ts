@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { openRace } from './fixtures.ts';
 
 test('stepping laps updates the counter and the URL', async ({ page }) => {
-	await openRace(page, '/?lap=10');
+	await openRace(page, '/session?lap=10');
 
 	await page.getByRole('button', { name: 'Next lap' }).click();
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 11/50');
@@ -16,7 +16,7 @@ test('stepping laps updates the counter and the URL', async ({ page }) => {
 
 // The timing feed's order at the flag, before both McLarens were disqualified after the race.
 test('the final lap shows the real order at the flag', async ({ page }) => {
-	await openRace(page, '/?lap=50');
+	await openRace(page, '/session?lap=50');
 
 	const rows = page.getByTestId(/^timing-row-/);
 	await expect(rows.nth(0)).toHaveAttribute('data-testid', 'timing-row-VER');
@@ -27,7 +27,7 @@ test('the final lap shows the real order at the flag', async ({ page }) => {
 test('a timing row opens the driver view, a lap opens the lap view, and Back closes them', async ({
 	page
 }) => {
-	await openRace(page, '/?lap=30');
+	await openRace(page, '/session?lap=30');
 
 	await page.getByTestId('timing-row-NOR').click();
 
@@ -55,7 +55,7 @@ test('a timing row opens the driver view, a lap opens the lap view, and Back clo
 });
 
 test('the driver view follows a driver, compares two, and Escape closes it', async ({ page }) => {
-	await openRace(page, '/?lap=30&car=4');
+	await openRace(page, '/session?lap=30&car=4');
 
 	const sheet = page.getByTestId('drill-sheet');
 	await sheet.getByRole('button', { name: 'Follow', exact: true }).click();
@@ -79,7 +79,7 @@ test('the driver view follows a driver, compares two, and Escape closes it', asy
 });
 
 test('a race-control message moves the replay to its lap', async ({ page }) => {
-	await openRace(page, '/?lap=30');
+	await openRace(page, '/session?lap=30');
 
 	const message = page
 		.getByTestId('race-control')
@@ -104,7 +104,7 @@ test('the driver picker follows the chosen driver', async ({ page }) => {
 });
 
 test('playback advances the replay and stops at the last lap', async ({ page }) => {
-	await openRace(page, '/?lap=48');
+	await openRace(page, '/session?lap=48');
 
 	await page.getByRole('button', { name: 'Play replay' }).click();
 

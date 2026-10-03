@@ -35,14 +35,14 @@ for (const viewport of VIEWPORTS) {
 			});
 
 			test('consent question', async ({ page }) => {
-				await page.goto('/?lap=30');
+				await page.goto('/session?lap=30');
 				await expect(page.getByTestId('consent-banner')).toBeVisible();
 				await shoot(page, viewport.name, 'consent', theme);
 			});
 
 			test('shell before scripts', async ({ page }) => {
 				await page.route('**/assets/*.js', (route) => route.abort());
-				await page.goto('/');
+				await page.goto('/session');
 				await expect(page.getByRole('status', { name: 'Loading' })).toBeVisible();
 				await shoot(page, viewport.name, 'shell', theme);
 			});

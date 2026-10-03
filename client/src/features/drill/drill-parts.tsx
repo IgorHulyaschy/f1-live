@@ -1,4 +1,5 @@
 import type { Driver } from '@f1-live/shared';
+import type { DrillSection } from '@f1-live/shared/dashboard';
 import * as React from 'react';
 
 import { useRaceView } from '@/data/race-context';
@@ -6,6 +7,7 @@ import { stepShowing } from '@/data/session-time';
 import type { SectorMark } from '@/insights/standings';
 import { cn } from '@/lib/utils';
 
+import { AddToDashboard } from './drill-add';
 import { useDrill } from './use-drill';
 
 export const MARK_TEXT: Record<SectorMark, string> = {
@@ -30,26 +32,65 @@ export function useJumpTo(): (moment: { lap: number; at?: string }) => void {
 	);
 }
 
+/**
+ * Where the views' parts sit. In the sheet each part can offer itself for a dashboard; in a tile
+ * of its own, the tile's header names it, so the part drops its own.
+ */
+export type SectionHost = {
+	inTile: boolean;
+	/** The driver whose parts are offered for a dashboard. */
+	addFor?: string;
+};
+
+export const SectionHostContext = React.createContext<SectionHost>({ inTile: false });
+
 /** A part of a driver or lap view: a heavy rule and a printed label, its content on hairlines. */
 export function Section({
 	title,
 	meta,
 	actions,
 	children,
-	testId
+	testId,
+	part
 }: {
 	title: string;
 	meta?: React.ReactNode;
 	actions?: React.ReactNode;
 	children: React.ReactNode;
 	testId?: string;
+	/** The tile this part can also be. */
+	part?: DrillSection;
 }) {
+	const { inTile, addFor } = React.useContext(SectionHostContext);
+
+	const add =
+		part && addFor ? <AddToDashboard settings={{ section: part, driver: addFor }} /> : null;
+
+	if (inTile) {
+		return (
+			<section aria-label={title} className="flex min-w-0 flex-col gap-2" data-testid={testId}>
+				{meta || actions ? (
+					<div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+						{meta ? <span className="type-label">{meta}</span> : null}
+						{actions ? <div className="ml-auto flex items-center gap-2">{actions}</div> : null}
+					</div>
+				) : null}
+				{children}
+			</section>
+		);
+	}
+
 	return (
 		<section aria-label={title} className="flex min-w-0 flex-col gap-2" data-testid={testId}>
 			<header className="border-rule-strong flex min-h-8 flex-wrap items-center gap-x-3 gap-y-1 border-t-2 border-b py-1">
 				<h3 className="type-wide text-xs font-bold">{title}</h3>
 				{meta ? <span className="type-label">{meta}</span> : null}
-				{actions ? <div className="ml-auto flex items-center gap-2">{actions}</div> : null}
+				{actions || add ? (
+					<div className="ml-auto flex items-center gap-2">
+						{actions}
+						{add}
+					</div>
+				) : null}
 			</header>
 			{children}
 		</section>

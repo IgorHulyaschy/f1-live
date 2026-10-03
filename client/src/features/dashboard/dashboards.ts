@@ -1,6 +1,8 @@
 import type { SessionType } from '@f1-live/shared';
 import {
 	type Dashboard,
+	type DrillSection,
+	GRID_COLUMNS,
 	isPresetId,
 	type Tile,
 	type TileKind,
@@ -9,6 +11,8 @@ import {
 
 export {
 	type Dashboard,
+	DRILL_SECTIONS,
+	type DrillSection,
 	GRID_COLUMNS,
 	parseDashboardListText,
 	parseDashboardText,
@@ -347,7 +351,26 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		size: { w: 12, h: 18 },
 		min: { w: 6, h: 12 },
 		pro: true
+	},
+	drill: {
+		group: 'Drivers',
+		title: 'Driver view',
+		description:
+			'One part of a driver’s session, from their view: laps, stints, sectors, telemetry or a comparison. For a set driver or the one you follow.',
+		size: { w: 12, h: 16 },
+		min: { w: 6, h: 8 }
 	}
+};
+
+export const DRILL_SECTION_TITLE: Record<DrillSection, string> = {
+	laps: 'Laps',
+	runs: 'Runs',
+	stints: 'Stints',
+	position: 'Position',
+	sectors: 'Best sectors',
+	telemetry: 'Best lap telemetry',
+	mentions: 'Race control and radio',
+	compare: 'Compare'
 };
 
 const METRIC_TITLE: Record<Metric, string> = {
@@ -359,6 +382,10 @@ const METRIC_TITLE: Record<Metric, string> = {
 };
 
 export function tileTitle(tile: Tile): string {
+	if (tile.kind === 'drill') {
+		return DRILL_SECTION_TITLE[tile.settings?.section ?? 'laps'];
+	}
+
 	return tile.kind === 'chart' && tile.settings?.metric
 		? `Chart: ${METRIC_TITLE[tile.settings.metric]}`
 		: TILE_INFO[tile.kind].title;
@@ -386,7 +413,7 @@ export function buildDashboard(
 
 /**
  * Ready-made dashboards. Each can be edited; edits are saved over it and can be reset. The first
- * three are the session layouts: `/` opens the one for the session on screen. Each opens with the
+ * three are the session layouts: `/session` opens the one for the session on screen. Each opens with the
  * Replay tile, the session's timeline.
  */
 export const PRESETS: readonly Dashboard[] = [
@@ -498,16 +525,57 @@ export function readingOrder(dashboard: Dashboard): Tile[] {
 	});
 }
 
+/**
+ * The order a phone stacks the tiles in: reading order, with the Replay tile first, since its
+ * clock and keys move every other tile. Edit mode keeps plain reading order, so moving a tile up
+ * or down does what it says.
+ */
+export function phoneOrder(dashboard: Dashboard): Tile[] {
+	const ordered = readingOrder(dashboard);
+
+	return [
+		...ordered.filter((tile) => tile.kind === 'replay'),
+		...ordered.filter((tile) => tile.kind !== 'replay')
+	];
+}
+
 /** Adds a tile under everything else, at its default size. */
-export function addTile(dashboard: Dashboard, kind: TileKind, id: string): Dashboard {
+export function addTile(
+	dashboard: Dashboard,
+	kind: TileKind,
+	id: string,
+	settings?: TileSettings
+): Dashboard {
 	const bottom = Math.max(0, ...dashboard.layout.map((place) => place.y + place.h));
 	const { w, h } = TILE_INFO[kind].size;
 
 	return {
 		...dashboard,
-		tiles: [...dashboard.tiles, { id, kind }],
+		tiles: [...dashboard.tiles, settings ? { id, kind, settings } : { id, kind }],
 		layout: [...dashboard.layout, { i: id, x: 0, y: bottom, w, h }]
 	};
+}
+
+/**
+ * A dashboard of driver view tiles, two to a row at their default size: what "Make a dashboard of
+ * this view" saves.
+ */
+export function drillDashboard(name: string, parts: readonly TileSettings[]): Dashboard {
+	const { w, h } = TILE_INFO.drill.size;
+	const perRow = Math.floor(GRID_COLUMNS / w);
+
+	return buildDashboard(
+		'drill',
+		name,
+		parts.map((settings, index): TileSpec => [
+			'drill',
+			(index % perRow) * w,
+			Math.floor(index / perRow) * h,
+			w,
+			h,
+			settings
+		])
+	);
 }
 
 export function removeTile(dashboard: Dashboard, tileId: string): Dashboard {

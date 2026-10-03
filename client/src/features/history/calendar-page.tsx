@@ -8,6 +8,7 @@ import { Panel, PanelHeader } from '@/components/console/panel';
 import { SeasonSwitch } from '@/components/season-switch';
 import { type CatalogSession, formatUntil, SESSION_TYPE_LABEL } from '@/data/catalog';
 import { useRace } from '@/data/race-context';
+import { SESSION_PATH } from '@/features/dashboard/paths';
 import { useNow } from '@/hooks/use-now';
 import { type CalendarRound, calendarIcs, currentRound, seasonCalendar } from '@/insights/calendar';
 import { cn } from '@/lib/utils';
@@ -97,7 +98,7 @@ function SessionLine({
 		<li className="border-b last:border-b-0" data-testid={`calendar-session-${session.key}`}>
 			{opens ? (
 				<Link
-					to={`/?session=${session.key}`}
+					to={`${SESSION_PATH}?session=${session.key}`}
 					className="hover:bg-accent focus-visible:bg-accent flex min-h-9 items-center gap-3 px-2 transition-colors focus-visible:outline-none"
 					aria-label={`${session.name}, ${localDay(session.startsAt)} ${localTime(session.startsAt)}`}
 				>

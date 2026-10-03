@@ -109,6 +109,10 @@ const GhostLapTile = React.lazy(async () => ({
 	default: (await import('@/features/gaps/ghost-lap-tile')).GhostLapTile
 }));
 
+const DrillTile = React.lazy(async () => ({
+	default: (await import('@/features/drill/drill-tile')).DrillTile
+}));
+
 const TrackMapTile = React.lazy(async () => ({
 	default: (await import('@/features/track/track-map-tile')).TrackMapTile
 }));
@@ -393,6 +397,21 @@ export function TileContent({
 			return (
 				<LazyTile tile={tile}>
 					<GhostLapTile />
+				</LazyTile>
+			);
+		}
+
+		case 'drill': {
+			return (
+				<LazyTile tile={tile}>
+					<DrillTile
+						settings={tile.settings}
+						onSettingsChange={
+							onSettingsChange
+								? (settings) => onSettingsChange({ ...tile.settings, ...settings })
+								: undefined
+						}
+					/>
 				</LazyTile>
 			);
 		}

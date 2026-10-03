@@ -18,7 +18,7 @@ const VIEWPORTS = [
 ] as const;
 
 const PAGES = [
-	{ name: 'live', path: '/' },
+	{ name: 'live', path: '/session' },
 	{ name: 'analysis', path: '/analysis' },
 	{ name: 'strategy', path: '/strategy' },
 	{ name: 'battle', path: '/d/battle' },
@@ -141,6 +141,42 @@ for (const viewport of VIEWPORTS) {
 					await shoot(page, `${output}/account-signed-in-${plan}-${theme}.png`);
 				});
 			}
+		}
+	});
+}
+
+/** The pages this work reshaped, dark and free, from a phone to an ultrawide. */
+const FOUNDATIONS = [
+	{ name: 'home', path: '/', ready: 'home' },
+	{ name: 'race', path: '/session?lap=30', ready: 'lap-counter' },
+	{ name: 'driver', path: '/session?lap=30&car=4', ready: 'lap-counter' },
+	{ name: 'driver-board', path: '/session?lap=30&car=4', ready: 'lap-counter', board: true }
+] as const;
+
+for (const viewport of [
+	{ name: 'android', width: 360, height: 800 },
+	{ name: 'laptop', width: 1280, height: 720 },
+	{ name: 'desktop', width: 1920, height: 1080 },
+	{ name: 'ultrawide', width: 3440, height: 1440 }
+] as const) {
+	test.describe(`foundations ${viewport.name}`, () => {
+		test.use({ viewport: { width: viewport.width, height: viewport.height } });
+
+		for (const screen of FOUNDATIONS) {
+			test(`${screen.name}`, async ({ page }) => {
+				await page.route('https://media.formula1.com/**', (route) => route.abort());
+				await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
+				await page.goto(screen.path);
+				await expect(page.getByTestId(screen.ready)).toBeAttached();
+
+				if ('board' in screen) {
+					await page.getByTestId('drill-make-dashboard').click();
+					await expect(page).toHaveURL(/\/d\/board-/);
+					await expect(page.getByTestId('drill-tile').first()).toBeVisible();
+				}
+
+				await shoot(page, `shots/output/foundations/${screen.name}-${viewport.name}.png`);
+			});
 		}
 	});
 }

@@ -219,7 +219,7 @@ test.describe('install and screen wake', () => {
 		// than the default 30 seconds.
 		test.slow();
 		await stubWakeLock(page);
-		await openRace(page, '/?lap=2');
+		await openRace(page, '/session?lap=2');
 
 		const wakeLog = () => page.locator('html').getAttribute('data-wake-log');
 

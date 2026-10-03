@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 
 import { KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
+import { SESSION_PATH } from '@/features/dashboard/paths';
 import { type Evidence, eventLabel, type Fact } from '@/insights/h2h-facts';
 import {
 	breakdowns,
@@ -32,7 +33,7 @@ export function sessionLink(key: number, carNumber?: string, vs?: string): strin
 		params.set('vs', vs);
 	}
 
-	return `/?${params}`;
+	return `${SESSION_PATH}?${params}`;
 }
 
 function number(value: number | null, digits = 0): string {

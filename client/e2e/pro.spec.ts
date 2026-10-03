@@ -27,7 +27,7 @@ test('the plan keys toggle Pro across pages', async ({ page }) => {
 });
 
 test('Pro shows where the followed driver would rejoin as a ghost row', async ({ page }) => {
-	await openRace(page, '/?plan=pro');
+	await openRace(page, '/session?plan=pro');
 
 	await expect(page.getByTestId('ghost-row')).toContainText('LEC if boxing now');
 });

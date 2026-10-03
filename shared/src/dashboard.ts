@@ -46,6 +46,7 @@ export const TILE_KINDS = [
 	'speed-map',
 	'gap-distance',
 	'ghost-lap',
+	'drill',
 	'season-standings'
 ] as const;
 
@@ -79,8 +80,33 @@ export const gapSettingsSchema = z.object({
 
 export type GapSettings = z.infer<typeof gapSettingsSchema>;
 
+/** The parts of the driver view a tile can show on its own; `compare` is the whole compare view. */
+export const DRILL_SECTIONS = [
+	'laps',
+	'runs',
+	'stints',
+	'position',
+	'sectors',
+	'telemetry',
+	'mentions',
+	'compare'
+] as const;
+
+export type DrillSection = (typeof DRILL_SECTIONS)[number];
+
+/** What a driver view tile keeps: the part, and whose. No driver means the one followed. */
+export const drillSettingsSchema = z.object({
+	section: z.enum(DRILL_SECTIONS).optional(),
+	driver: z.string().min(1).max(3).optional(),
+	/** For compare: the other driver. */
+	vs: z.string().min(1).max(3).optional()
+});
+
+export type DrillSettings = z.infer<typeof drillSettingsSchema>;
+
 export type TileSettings = { metric?: (typeof TILE_METRICS)[number] } & TrackMapSettings &
-	GapSettings;
+	GapSettings &
+	DrillSettings;
 
 export type Tile = { id: string; kind: TileKind; settings?: TileSettings };
 
@@ -139,6 +165,7 @@ const tileSchema = z.object({
 		.object({ metric: z.enum(TILE_METRICS).optional() })
 		.extend(trackMapSettingsSchema.shape)
 		.extend(gapSettingsSchema.shape)
+		.extend(drillSettingsSchema.shape)
 		.optional()
 });
 
@@ -238,7 +265,8 @@ export function parseDashboardListText(text: string): Dashboard[] {
 const SETTING_KEYS = [
 	'metric',
 	...trackMapSettingsSchema.keyof().options,
-	...gapSettingsSchema.keyof().options
+	...gapSettingsSchema.keyof().options,
+	...drillSettingsSchema.keyof().options
 ] as const satisfies readonly (keyof TileSettings)[];
 
 function sameSettings(a: TileSettings | undefined, b: TileSettings | undefined): boolean {

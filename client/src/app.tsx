@@ -26,6 +26,7 @@ import { useViewTitle } from '@/hooks/use-view-title';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 import { ConsentBanner, usePageViews } from '@/platform/consent';
 import { InstallBanner, InstallKey } from '@/platform/install';
+import type { ConsoleOutlet } from '@/features/home/console-outlet';
 import { usePageMeta } from '@/platform/page-meta';
 import { keepAwakeStore, useScreenWakeLock, wakeLockSupported } from '@/platform/wake-lock';
 
@@ -136,7 +137,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 						>
 							<AppHeader onOpenCommand={openCommand} />
 							<main className="px-4 pb-6 md:px-6">
-								<Outlet />
+								<Outlet context={{ openCommand } satisfies ConsoleOutlet} />
 							</main>
 							<SiteFooter
 								className="pb-24 md:pb-8"

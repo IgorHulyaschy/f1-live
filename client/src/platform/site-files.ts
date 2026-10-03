@@ -17,7 +17,6 @@ export function indexedPaths(): string[] {
 	const presets = PRESETS.map((preset) => dashboardPath(preset.id));
 
 	return [
-		// The home page shows the layout of the session on now, under its own address.
 		...new Set(['/', ...presets]),
 		'/library',
 		'/calendar',
