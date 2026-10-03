@@ -18,7 +18,7 @@ import { ROUTE_META } from './route-meta.ts';
 import {
 	documentTitle,
 	fillIndexHtml,
-	INDEXED_PATHS,
+	siteUrl,
 	robotsTxt,
 	sitemapXml,
 	THEME_COLOURS,
@@ -30,10 +30,7 @@ describe('site files', () => {
 		const sitemap = sitemapXml();
 
 		for (const preset of PRESETS) {
-			assert.ok(
-				INDEXED_PATHS.some((path) => path === dashboardPath(preset.id)),
-				preset.id
-			);
+			assert.ok(sitemap.includes(`<loc>${siteUrl(dashboardPath(preset.id))}</loc>`), preset.id);
 		}
 
 		for (const document of LEGAL_DOCUMENTS) {

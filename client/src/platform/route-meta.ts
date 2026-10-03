@@ -25,7 +25,8 @@ export type RouteMeta = (input: RouteMetaInput) => PageMeta;
 const PRESET_DESCRIPTIONS: ReadonlyMap<string, string> = new Map([
 	['battle', 'Your driver’s fight: the car ahead and the car behind, gap by gap, lap by lap.'],
 	['drivers', 'The whole grid as pictures, your driver up close and every change of position.'],
-	['wall', 'Timing, flags, gaps and stints that fill a TV or a second monitor.']
+	['wall', 'Timing, flags, gaps and stints that fill a TV or a second monitor.'],
+	['story', 'The race told lap by lap: the moves, the stops and the championship swing.']
 ]);
 
 const page =
@@ -45,11 +46,16 @@ export const ROUTE_META = {
 	dashboard: ({ params, dashboards }) => {
 		const id = params.id ?? '';
 		const name = dashboards.find((dashboard) => dashboard.id === id)?.name ?? 'Dashboard';
-		const preset = isPreset(id) ? PRESET_DESCRIPTIONS.get(id) : undefined;
 
-		return preset
-			? { title: name, description: preset, indexed: true }
-			: { title: name, description: 'A dashboard saved in this browser.', indexed: false };
+		if (!isPreset(id)) {
+			return { title: name, description: 'A dashboard saved in this browser.', indexed: false };
+		}
+
+		return {
+			title: name,
+			description: PRESET_DESCRIPTIONS.get(id) ?? `${name}: a ready-made dashboard of race tiles.`,
+			indexed: true
+		};
 	},
 	library: page(
 		'Library',

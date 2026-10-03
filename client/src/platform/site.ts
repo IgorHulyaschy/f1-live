@@ -1,4 +1,7 @@
 import { BRAND } from '../brand.ts';
+import { PRESETS } from '../features/dashboard/dashboards.ts';
+import { dashboardPath } from '../features/dashboard/paths.ts';
+import { LEGAL_DOCUMENTS } from '../legal/content.ts';
 
 /**
  * Files the build writes next to the app (web app manifest, robots.txt, sitemap) and the head of
@@ -12,18 +15,11 @@ export const THEME_COLOURS = { dark: '#0d0c0a', light: '#f8f7f3' } as const;
  * Pages worth finding in a search: the ready-made dashboards, the library and the legal pages.
  * Everything else is one viewer's: dashboards saved in their browser, shared links, pop-outs.
  */
-export const INDEXED_PATHS = [
-	'/',
-	'/analysis',
-	'/strategy',
-	'/d/battle',
-	'/d/drivers',
-	'/d/wall',
+export const INDEXED_PATHS: readonly string[] = [
+	...PRESETS.map((preset) => dashboardPath(preset.id)),
 	'/library',
-	'/legal/terms',
-	'/legal/privacy',
-	'/legal/cookies'
-] as const;
+	...LEGAL_DOCUMENTS.map((document) => `/legal/${document.slug}`)
+];
 
 export const OG_IMAGE = { path: '/og-image.png', width: 1200, height: 630 } as const;
 
