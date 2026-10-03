@@ -92,6 +92,16 @@ season, meeting and session (`?session=<key>` links to one); opening the app dur
 session goes to it. Live sessions can run behind the feed by a broadcast delay, and spoiler-free
 mode opens sessions at the start with results hidden.
 
+## Run the production build locally
+
+```sh
+docker compose up --build                 # http://localhost:8080
+docker compose --profile replay up        # also replays a saved race through ingest -> relay
+```
+
+Postgres, the relay and accounts API, and the client as static files behind Caddy. Hosting it for
+real, the CI workflow and the owner's checklist are in [docs/deploy.md](docs/deploy.md).
+
 ## Checks
 
 | Command                       | What it runs                                               |

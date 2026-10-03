@@ -320,7 +320,7 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 		if (devMailbox) {
 			scope.get('/api/dev/mailbox', async (request, reply) => {
 				// Sign-in links for any address: only ever for this machine.
-				if (!LOOPBACK_IPS.has(request.ip)) {
+				if (!config.mail.devMailboxAnyIp && !LOOPBACK_IPS.has(request.ip)) {
 					throw new HttpError(404, 'not_found', 'Not here');
 				}
 

@@ -20,9 +20,19 @@ export interface AccountsConfig {
 	/** Where browsers reach `/api`: the app's origin when it proxies `/api` to this server. */
 	publicUrl: string;
 	trustedOrigins: readonly string[];
+	/** Shares the session cookie with every subdomain, for an app and an API on sibling hosts. */
+	cookieDomain: string | null;
 	secret: string;
 	database: { kind: 'postgres'; url: string } | { kind: 'pglite'; dataDir: string | null };
-	mail: { from: string; smtpUrl: string | null };
+	mail: {
+		from: string;
+		smtpUrl: string | null;
+		/**
+		 * Serves the development mailbox to any address, not only loopback. For a stack whose ports
+		 * are published on 127.0.0.1 only (docker compose), where requests arrive from the bridge.
+		 */
+		devMailboxAnyIp: boolean;
+	};
 	social: {
 		google: { clientId: string; clientSecret: string } | null;
 		apple: { clientId: string; clientSecret: string; appBundleIdentifier?: string } | null;
@@ -67,9 +77,16 @@ const envSchema = z.object({
 	BRAND_NAME: optional,
 	APP_URL: optional.pipe(httpUrl.default('http://localhost:5173')),
 	ACCOUNTS_PUBLIC_URL: optional.pipe(httpUrl.optional()),
+	COOKIE_DOMAIN: optional.pipe(
+		z
+			.string()
+			.regex(/^[\w.-]+$/, 'must be a bare domain such as example.com')
+			.optional()
+	),
 	BETTER_AUTH_SECRET: optional,
 	MAIL_FROM: optional,
 	SMTP_URL: optional,
+	DEV_MAILBOX_ANY_IP: optional.pipe(z.stringbool().optional()),
 	GOOGLE_CLIENT_ID: optional,
 	GOOGLE_CLIENT_SECRET: optional,
 	APPLE_CLIENT_ID: optional,
@@ -197,6 +214,7 @@ export function loadAccountsConfig(
 		appUrl,
 		publicUrl,
 		trustedOrigins: [...new Set([appUrl, new URL(publicUrl).origin, ...server.corsOrigins])],
+		cookieDomain: values.COOKIE_DOMAIN ?? null,
 		secret: values.BETTER_AUTH_SECRET ?? DEVELOPMENT_SECRET,
 		database:
 			db === 'postgres'
@@ -204,7 +222,8 @@ export function loadAccountsConfig(
 				: { kind: 'pglite', dataDir: accountsDir ? path.join(accountsDir, 'pglite') : null },
 		mail: {
 			from: values.MAIL_FROM ?? `${brand} <sign-in@localhost>`,
-			smtpUrl: values.SMTP_URL ?? null
+			smtpUrl: values.SMTP_URL ?? null,
+			devMailboxAnyIp: values.DEV_MAILBOX_ANY_IP ?? false
 		},
 		social: { google, apple },
 		payments

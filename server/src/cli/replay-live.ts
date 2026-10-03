@@ -53,7 +53,7 @@ const recordings = await mkdtemp(path.join(tmpdir(), 'replay-live-'));
 const server = await createServer(
 	{
 		...base,
-		mode: 'all',
+		// MODE=ingest pushes the replay to a relay (RELAY_URL), like a real ingest box does.
 		live: { ...base.live, url: upstream.url, importOnFinish: values.import }
 	},
 	{ now: upstream.now, rawDir: recordings }

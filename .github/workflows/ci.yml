@@ -1,0 +1,140 @@
+name: CI
+
+# No deploy job and no secrets: every job runs on a fork's pull request as well.
+on:
+  push:
+    branches: [master, m1]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24
+
+jobs:
+  check:
+    name: Check and unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      # format, lint and typecheck of every workspace
+      - run: npm run check
+      - run: npm run test:unit
+
+  e2e:
+    name: Playwright e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+        working-directory: client
+      # The mock replay, the real-data fixtures and the live replay (CI=true is set by Actions, so
+      # Playwright starts its own servers and never reuses one).
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            client/test-results/
+            client/playwright-report/
+          retention-days: 7
+
+  build:
+    name: Build the client and both images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Client production build
+        run: npm run build -w client
+        env:
+          VITE_DATA_SOURCE: api
+          VITE_API_URL: https://data.example.com
+          VITE_WS_URL: wss://api.example.com/live
+      - uses: docker/setup-buildx-action@v3
+      - name: Server image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: server/Dockerfile
+          tags: pitwall-server:ci
+          load: true
+          cache-from: type=gha,scope=server
+          cache-to: type=gha,mode=max,scope=server
+      - name: Client image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: client/Dockerfile
+          tags: pitwall-web:ci
+          load: true
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+      - run: docker images --format '{{.Repository}}:{{.Tag}} {{.Size}}' | grep '^pitwall-'
+
+  stack:
+    name: Production-like stack
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+        working-directory: client
+      - name: Start the stack with the replay profile
+        run: docker compose --profile replay up -d --build --wait
+      # Saved session from the static files, sign-in with the dev mailbox, fake checkout, and a
+      # replayed race through ingest and the relay.
+      - run: npm run test:stack -w client
+        env:
+          STACK_REPLAY: '1'
+      - name: Compose logs
+        if: failure()
+        run: docker compose --profile replay logs --no-color > compose.log
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: stack-failure
+          path: |
+            compose.log
+            client/test-results/
+          retention-days: 7
+      - run: docker compose --profile replay down -v
+        if: always()
+
+  # ---------------------------------------------------------------------------------------------
+  # T10: Lighthouse CI and the accessibility/quality budgets go here, as a job of their own that
+  # needs `build` (it may reuse the client build). Keep the job independent of `e2e` and `stack`.
+  # ---------------------------------------------------------------------------------------------

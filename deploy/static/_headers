@@ -1,0 +1,12 @@
+# Cache and security headers for a static host that reads a `_headers` file (Cloudflare Pages and
+# Netlify both do). Copy it, with _redirects, into client/dist before uploading.
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  Cache-Control: no-cache
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  # A private preview: remove this line when the site goes public.
+  X-Robots-Tag: noindex
