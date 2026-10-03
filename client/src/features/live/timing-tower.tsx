@@ -1,5 +1,5 @@
 import type { Lap } from '@f1-live/shared';
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 import * as React from 'react';
 
 import { Digits } from '@/components/console/digits';
@@ -70,7 +70,7 @@ function Chip({
 			title={title}
 			className={cn(
 				'type-label shrink-0 px-1 leading-4 font-bold',
-				tone === 'flag' && 'bg-flag text-background',
+				tone === 'flag' && 'bg-flag text-foreground dark:text-background',
 				tone === 'danger' && 'bg-danger text-background',
 				tone === 'outline' && 'text-foreground border'
 			)}
@@ -160,7 +160,7 @@ function LapTime({
 
 function GhostRow({ code, position }: { code: string; position: number }) {
 	return (
-		<motion.tr
+		<m.tr
 			layout="position"
 			className="border-focus h-9 border-y border-dashed"
 			data-testid="ghost-row"
@@ -169,7 +169,7 @@ function GhostRow({ code, position }: { code: string; position: number }) {
 			<td colSpan={9}>
 				<span className="type-label text-foreground">{code} if boxing now</span>
 			</td>
-		</motion.tr>
+		</m.tr>
 	);
 }
 
@@ -367,7 +367,7 @@ export function TimingTower() {
 
 								return (
 									<React.Fragment key={row.driver.number}>
-										<motion.tr
+										<m.tr
 											layout="position"
 											transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
 											initial={false}
@@ -520,7 +520,7 @@ export function TimingTower() {
 											<td className="hidden pr-4 text-right font-mono @lg:table-cell">
 												{timed ? row.lapsCompleted : row.pitStops}
 											</td>
-										</motion.tr>
+										</m.tr>
 										{ghostHere ? ghost : null}
 										{line && view === 'full' ? <CutRow line={line} /> : null}
 									</React.Fragment>

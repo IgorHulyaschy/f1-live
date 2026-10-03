@@ -54,6 +54,8 @@ for (const viewport of VIEWPORTS) {
 					}, theme);
 					await page.goto(screen.path);
 					await expect(page.getByTestId('lap-counter')).toBeAttached();
+					// Heavy tiles below the first screen wait to be scrolled to; a print draws them all.
+					await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
 					// Telemetry and maps load after the session; wait for them so the charts are drawn.
 					await page.waitForLoadState('networkidle');
 					await page.evaluate(() => document.fonts.ready);

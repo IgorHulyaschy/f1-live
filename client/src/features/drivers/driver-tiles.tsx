@@ -127,11 +127,14 @@ export function GridWall() {
 								onClick={() => setFollowedDriver(row.driver.number)}
 								className={cn(
 									'hover:bg-accent focus-visible:bg-accent flex w-full flex-col text-left transition-colors focus-visible:outline-none',
-									followed && 'bg-accent',
-									row.state === 'out' && 'opacity-50'
+									followed && 'bg-accent'
 								)}
 							>
-								<DriverPortrait driver={row.driver} tinted={followed} className="h-24 w-full" />
+								<DriverPortrait
+									driver={row.driver}
+									tinted={followed}
+									className={cn('h-24 w-full', row.state === 'out' && 'opacity-50')}
+								/>
 								<span className="flex flex-col gap-1 px-2 py-1.5">
 									<span className="flex items-baseline gap-1.5">
 										<span className="font-mono text-xs font-bold">{row.position}</span>

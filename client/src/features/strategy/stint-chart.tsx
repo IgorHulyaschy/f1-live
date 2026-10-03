@@ -130,7 +130,7 @@ export function StintChart() {
 							>
 								<DriverTag
 									driver={row.driver}
-									className={cn(row.state === 'out' && 'opacity-40')}
+									className={cn(row.state === 'out' && 'opacity-60')}
 								/>
 								<div className="relative h-7 overflow-hidden border-b border-dashed">
 									{rulerMarks.map((mark) => (

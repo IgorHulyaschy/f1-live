@@ -1,3 +1,4 @@
+import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page } from '@playwright/test';
 import { z } from 'zod';
 
@@ -38,4 +39,18 @@ export async function signInWithLink(page: Page, email: string): Promise<void> {
 /** A fresh address per run, so a reused accounts server never mixes runs. */
 export function testEmail(name: string): string {
 	return `${name}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@example.test`;
+}
+
+/** Serious and critical axe violations on the page, one line each; the budget allows none. */
+export async function seriousViolations(page: Page): Promise<string[]> {
+	// The race number painted behind a driver photo is decoration and hidden from assistive tech;
+	// WCAG 1.4.3 sets no contrast for it.
+	const results = await new AxeBuilder({ page }).exclude('.plate-number').analyze();
+
+	return results.violations
+		.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+		.map(
+			(violation) =>
+				`${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`
+		);
 }

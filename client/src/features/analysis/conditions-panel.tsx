@@ -291,7 +291,7 @@ export function ConditionsPanel() {
 						<>
 							<div className="grid gap-6 @4xl:grid-cols-2">
 								<section className="flex flex-col gap-2" aria-label="Wind on the straights">
-									<dl className="flex flex-wrap gap-x-6 gap-y-2">
+									<div className="flex flex-wrap gap-x-6 gap-y-2">
 										<Field label="Wind">
 											{sample.windDirectionDeg === undefined
 												? `${sample.windSpeedMs.toFixed(1)} m/s`
@@ -299,7 +299,7 @@ export function ConditionsPanel() {
 										</Field>
 										<Field label="Track">{sample.trackTempC.toFixed(1)}°</Field>
 										<Field label="Air">{sample.airTempC.toFixed(1)}°</Field>
-									</dl>
+									</div>
 									{sample.windDirectionDeg === undefined ? (
 										<p className="text-muted-foreground text-sm">
 											This feed gives no wind direction.

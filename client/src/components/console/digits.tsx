@@ -15,8 +15,8 @@ export function Digits({ value, className }: { value: string; className?: string
 
 	return (
 		<span className={cn('font-mono', className)}>
-			{sign ? <span className="opacity-60">{sign}</span> : null}
-			{dim ? <span className="opacity-55">{dim}</span> : null}
+			{sign ? <span className="opacity-65">{sign}</span> : null}
+			{dim ? <span className="opacity-65">{dim}</span> : null}
 			{rest.slice(dim.length)}
 		</span>
 	);

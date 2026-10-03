@@ -55,6 +55,8 @@ for (const path of ['/', '/analysis', '/strategy', '/d/story']) {
 
 		// The widest tiles load their charts after the page; measure once they are drawn.
 		if (path === '/analysis') {
+			// It sits below the first screen, which it waits for.
+			await page.getByRole('group', { name: 'Telemetry' }).scrollIntoViewIfNeeded();
 			await expect(page.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
 		}
 

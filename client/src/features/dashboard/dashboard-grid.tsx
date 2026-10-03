@@ -22,11 +22,13 @@ import {
 	swapTiles,
 	type Tile,
 	TILE_INFO,
+	type TileKind,
 	tileTitle
 } from './dashboards';
 import { tilePath } from './paths';
 import { appliesTo, forSession } from './session-layouts';
 import { type ArrangeKey, arrangeTile } from './arrange';
+import { NearViewport } from './near-viewport';
 import { TileFillContext, TileRowsContext } from './tile-fill';
 import { TileContent } from './tiles';
 import { useCarriedSearch } from './use-carried-search';
@@ -198,6 +200,45 @@ function TileBar({
 	);
 }
 
+const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/**
+ * A tile that scrolls but holds nothing to press is a tab stop, so the keyboard can scroll it.
+ * Tiles with keys or links inside are reached through those, and add no stop of their own.
+ */
+function useScrollStop(body: React.RefObject<HTMLDivElement | null>, fill: boolean): boolean {
+	const [stop, setStop] = React.useState(false);
+
+	React.useEffect(() => {
+		const element = body.current;
+
+		if (!fill || !element) {
+			return;
+		}
+
+		const update = () =>
+			setStop(
+				element.scrollHeight > element.clientHeight &&
+					!element.firstElementChild?.querySelector(FOCUSABLE)
+			);
+
+		const observer = new ResizeObserver(update);
+
+		observer.observe(element);
+
+		if (element.firstElementChild) {
+			observer.observe(element.firstElementChild);
+		}
+
+		return () => observer.disconnect();
+	}, [body, fill]);
+
+	return fill && stop;
+}
+
+/** Tiles whose first render is heavy (a chart library, long traces): they wait until near. */
+const DEFERRED_TILES: ReadonlySet<TileKind> = new Set(['chart', 'telemetry', 'story', 'track-map']);
+
 /** A tile for another kind of session, shrunk to the line saying what it is for. */
 function AwayTile({ tile }: { tile: Tile }) {
 	return (
@@ -225,30 +266,48 @@ function TileBody({
 	away: boolean;
 	onChange: (dashboard: Dashboard) => void;
 }) {
+	const body = React.useRef<HTMLDivElement>(null);
+	const scrollStop = useScrollStop(body, fill);
+
+	const content = (
+		<TileContent
+			tile={tile}
+			onSettingsChange={(settings) =>
+				onChange({
+					...dashboard,
+					tiles: dashboard.tiles.map((entry) =>
+						entry.id === tile.id ? { ...entry, settings } : entry
+					)
+				})
+			}
+		/>
+	);
+
 	if (away) {
 		return <AwayTile tile={tile} />;
 	}
 
 	return (
 		<div
+			ref={body}
+			role={scrollStop ? 'group' : undefined}
+			aria-label={scrollStop ? tileTitle(tile) : undefined}
+			// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+			tabIndex={scrollStop ? 0 : undefined}
 			className={cn(
 				fill &&
-					'min-h-0 flex-1 overflow-auto overscroll-contain [&_[data-slot=panel-header]]:sticky [&_[data-slot=panel-header]]:top-0 [&_[data-slot=panel-header]]:z-10'
+					'min-h-0 flex-1 overflow-auto overscroll-contain focus-visible:ring-2 focus-visible:ring-(--color-ring) focus-visible:outline-none focus-visible:ring-inset [&_[data-slot=panel-header]]:sticky [&_[data-slot=panel-header]]:top-0 [&_[data-slot=panel-header]]:z-10'
 			)}
 		>
 			<TileFillContext value={fill}>
 				<TileRowsContext value={dashboard.layout.find((place) => place.i === tile.id)?.h ?? null}>
-					<TileContent
-						tile={tile}
-						onSettingsChange={(settings) =>
-							onChange({
-								...dashboard,
-								tiles: dashboard.tiles.map((entry) =>
-									entry.id === tile.id ? { ...entry, settings } : entry
-								)
-							})
-						}
-					/>
+					{DEFERRED_TILES.has(tile.kind) ? (
+						<NearViewport title={tileTitle(tile)} fill={fill}>
+							{content}
+						</NearViewport>
+					) : (
+						content
+					)}
 				</TileRowsContext>
 			</TileFillContext>
 		</div>

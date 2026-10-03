@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import '@fontsource-variable/hubot-sans/standard.css';
-@import '@fontsource-variable/hubot-sans/standard-italic.css';
+@import './fonts/hubot-sans-italic.css';
 @import '@fontsource-variable/martian-mono/standard.css';
 
 @custom-variant dark (&:is(.dark *));

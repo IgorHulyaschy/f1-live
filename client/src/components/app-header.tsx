@@ -6,14 +6,16 @@ import {
 	PlusIcon,
 	SunIcon
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import * as React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router';
 
+import { BRAND } from '@/brand';
 import { Key, KeyGroup } from '@/components/console/keys';
 import { Kbd } from '@/components/console/panel';
 import { LiveStrip } from '@/components/live-strip';
 import { TRACK_STATUS_LABEL } from '@/components/track-status-badge';
+import { Wordmark } from '@/components/wordmark';
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -35,19 +37,6 @@ const PLAN_OPTIONS = [
 	{ value: 'free', label: 'Free' },
 	{ value: 'pro', label: 'Pro' }
 ] as const;
-
-/** Two forward-cut bars: a pit board seen edge-on. The second takes the followed team's colour. */
-function Wordmark() {
-	return (
-		<span className="flex items-center gap-2">
-			<span aria-hidden className="flex gap-0.5">
-				<span className="cut-forward bg-foreground h-4 w-3" />
-				<span className="cut-forward bg-focus h-4 w-3" />
-			</span>
-			<span className="type-wide hidden text-sm font-black italic sm:inline">Pitwall</span>
-		</span>
-	);
-}
 
 /**
  * Dashboards as tabs: the session's own layout first, the ready-made ones that suit the session,
@@ -161,7 +150,7 @@ function MainNav() {
 
 function NavIndicator() {
 	return (
-		<motion.span
+		<m.span
 			layoutId="nav-indicator"
 			className="bg-focus absolute inset-x-1.5 -bottom-px h-0.75 sm:inset-x-3.5"
 			transition={{ type: 'spring', stiffness: 600, damping: 45 }}
@@ -177,7 +166,7 @@ function FlagBanner() {
 	return (
 		<AnimatePresence initial={false}>
 			{status === 'green' ? null : (
-				<motion.output
+				<m.output
 					key={status}
 					initial={{ scaleX: 0 }}
 					animate={{ scaleX: 1 }}
@@ -185,11 +174,13 @@ function FlagBanner() {
 					transition={{ duration: 0.35, ease: 'easeOut' }}
 					className={cn(
 						'type-wide flex h-7 origin-left items-center justify-center text-xs font-black italic',
-						status === 'red' ? 'bg-danger text-background' : 'bg-flag text-background'
+						status === 'red'
+							? 'bg-danger text-background'
+							: 'bg-flag text-foreground dark:text-background'
 					)}
 				>
 					{TRACK_STATUS_LABEL[status]}
-				</motion.output>
+				</m.output>
 			)}
 		</AnimatePresence>
 	);
@@ -206,9 +197,9 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 				<NavLink
 					to={{ pathname: '/' }}
 					className="flex h-10 items-center sm:h-auto"
-					aria-label="Pitwall home"
+					aria-label={`${BRAND.name} home`}
 				>
-					<Wordmark />
+					<Wordmark nameClassName="hidden sm:inline" />
 				</NavLink>
 				<MainNav />
 				<div className="ml-auto flex h-10 items-center gap-1 sm:h-auto sm:gap-2">

@@ -1,4 +1,4 @@
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 
 import { Digits } from '@/components/console/digits';
 import { Panel, PanelHeader } from '@/components/console/panel';
@@ -45,7 +45,7 @@ export function PaceRanking() {
 											<span className="type-label text-fastest pl-1 font-bold">Quickest</span>
 										) : (
 											<>
-												<motion.span
+												<m.span
 													className="bg-foreground/45 h-3 shrink-0"
 													initial={{ width: 0 }}
 													animate={{ width: `${(entry.deltaToBestSeconds / scale) * 80}%` }}

@@ -44,6 +44,9 @@ test('the telemetry tile draws the real race’s laps on the modelled replay', a
 	await openRace(page, '/analysis');
 
 	const telemetry = page.getByTestId('telemetry');
+
+	// The tile sits below the first screen, which it waits for.
+	await page.getByRole('group', { name: 'Telemetry' }).scrollIntoViewIfNeeded();
 	// A cold dev server builds the chart code and the laps on first use.
 	await expect(telemetry.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
 	await expect(telemetry.getByTestId('telemetry-slot-A')).toContainText('VER');
