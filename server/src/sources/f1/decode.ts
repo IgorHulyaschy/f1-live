@@ -258,7 +258,7 @@ function compoundOf(text: string): TyreCompound {
 	return TYRE_COMPOUNDS.find((compound) => compound === text) ?? 'UNKNOWN';
 }
 
-function sessionTypeOf(type: string, name: string): SessionType {
+export function sessionTypeOf(type: string, name: string): SessionType {
 	const sprint = name.toLowerCase().includes('sprint');
 
 	if (type === 'Race') {
@@ -273,7 +273,7 @@ function sessionTypeOf(type: string, name: string): SessionType {
 }
 
 /** Local start "2025-11-22T20:00:00" with offset "-08:00:00" in UTC. */
-function utcStart(startDate: string, gmtOffset: string): string {
+export function utcStart(startDate: string, gmtOffset: string): string {
 	const offset = /^[+-]/.test(gmtOffset) ? gmtOffset : `+${gmtOffset}`;
 
 	return new Date(`${startDate}${offset.slice(0, 6)}`).toISOString();
