@@ -3,12 +3,18 @@ import { PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from 'lucide-react
 import { Key } from '@/components/console/keys';
 import type { LiveConnection } from '@/data/live-feed';
 import { useRaceView } from '@/data/race-context';
+import { nextSpeed } from '@/data/replay-clock';
 import { stepDelay } from '@/data/viewer-settings';
 import { cn } from '@/lib/utils';
 
-/** Previous lap, play or pause, next lap. On a live session, stepping back pauses live. */
+/**
+ * Previous lap, play or pause, next lap, and the replay speed. On a live session, stepping back
+ * pauses live.
+ */
 export function Transport({ className }: { className?: string }) {
-	const { lap, steps, stepUnit, stepLap, playing, setPlaying, live } = useRaceView();
+	const { lap, steps, stepUnit, stepLap, playing, setPlaying, speed, setSpeed, live } =
+		useRaceView();
+
 	const atEnd = lap >= steps || live.following;
 	const unit = stepUnit === 'lap' ? 'lap' : 'minute';
 
@@ -33,6 +39,15 @@ export function Transport({ className }: { className?: string }) {
 				className="-ml-px"
 			>
 				<SkipForwardIcon />
+			</Key>
+			<Key
+				aria-label={`Replay speed ${speed} times real time`}
+				title="Replay speed"
+				disabled={live.following}
+				onClick={() => setSpeed(nextSpeed(speed))}
+				className="-ml-px w-11 justify-center font-mono sm:w-11"
+			>
+				{speed}×
 			</Key>
 		</div>
 	);

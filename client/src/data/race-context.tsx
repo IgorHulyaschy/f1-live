@@ -13,6 +13,8 @@ import { type StandingRow, standingsAt } from '../insights/standings.ts';
 import { isSessionOver, isTimedSession } from '../insights/qualifying.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
 import { minuteTime, sessionClock, snapshotAtTime } from './snapshot-at-time.ts';
+import { ReplayClock, type ReplaySpeed, replaySpeedStore } from './replay-clock.ts';
+import { type ReplayTimeline, replayTimeline, stepAt, stepTime } from './session-time.ts';
 import { delayStore, revealedStore, spoilerFreeStore } from './viewer-settings.ts';
 
 export type Plan = 'free' | 'pro';
@@ -69,6 +71,13 @@ type RaceContextValue = {
 	stepLap: (delta: number) => void;
 	playing: boolean;
 	setPlaying: (playing: boolean) => void;
+	/** Replay speed as a multiple of real time. */
+	speed: ReplaySpeed;
+	setSpeed: (speed: ReplaySpeed) => void;
+	/** The session time the replay shows, between its steps too. */
+	replayClock: ReplayClock;
+	/** When each step of the session on screen ends; null while nothing is shown. */
+	timeline: ReplayTimeline | null;
 	plan: Plan;
 	setPlan: (plan: Plan) => void;
 	followedDriver: string;
@@ -140,8 +149,6 @@ const followedDriverStore = createLocalStore<string | null>(
 	z.string().nullable(),
 	null
 );
-
-const PLAYBACK_INTERVAL_MS = 1500;
 
 /** Race state shared by every open Pitwall window, so tiles on other monitors stay in step. */
 const SYNC_CHANNEL = 'pitwall-race';
@@ -592,27 +599,61 @@ export function RaceProvider({
 	const drivesPlayback = playing && lap < maxLap;
 	const isPlaying = (playing || mirroring) && lap < maxLap;
 
+	const [replayClock] = React.useState(() => new ReplayClock());
+	const speed = replaySpeedStore.useValue();
+	const timeline = React.useMemo(() => (race ? replayTimeline(race) : null), [race]);
+
+	// The clock stays where it is inside the step on screen, and moves to the step's time for any
+	// other. Playing runs it at the chosen speed and steps the replay when it reaches the next one.
 	React.useEffect(() => {
-		if (!drivesPlayback) {
+		if (!timeline) {
 			return;
 		}
 
-		const timer = window.setInterval(() => {
-			const current = resolveLap(
-				new URLSearchParams(window.location.search).get('lap'),
-				maxLap,
-				defaultLap
-			);
+		const now = performance.now();
+		const current = replayClock.now(now);
+		const inStep = current >= (timeline.times[0] ?? 0) && stepAt(timeline, current) === lap;
+		const from = inStep ? current : stepTime(timeline, lap);
 
-			if (isLive && current + 1 >= maxLap) {
-				backToLive();
-			} else {
-				stepLap(1);
-			}
-		}, PLAYBACK_INTERVAL_MS);
+		replayClock.set(from, isPlaying ? speed : 0, now);
 
-		return () => window.clearInterval(timer);
-	}, [drivesPlayback, stepLap, isLive, maxLap, defaultLap, backToLive]);
+		const next = timeline.times[lap + 1];
+
+		if (!drivesPlayback || next === undefined) {
+			return;
+		}
+
+		const timer = window.setTimeout(
+			() => {
+				const onScreen = resolveLap(
+					new URLSearchParams(window.location.search).get('lap'),
+					maxLap,
+					defaultLap
+				);
+
+				if (isLive && onScreen + 1 >= maxLap) {
+					backToLive();
+				} else {
+					stepLap(1);
+				}
+			},
+			Math.max(0, (next - from) / speed)
+		);
+
+		return () => window.clearTimeout(timer);
+	}, [
+		timeline,
+		lap,
+		isPlaying,
+		drivesPlayback,
+		speed,
+		replayClock,
+		stepLap,
+		isLive,
+		maxLap,
+		defaultLap,
+		backToLive
+	]);
 
 	const setPlaying = React.useCallback(
 		(next: boolean) => {
@@ -704,6 +745,10 @@ export function RaceProvider({
 						stepLap,
 						playing: isPlaying,
 						setPlaying,
+						speed,
+						setSpeed: replaySpeedStore.set,
+						replayClock,
+						timeline,
 						plan,
 						setPlan: (nextPlan) => {
 							updateParam('plan', nextPlan);
@@ -731,6 +776,9 @@ export function RaceProvider({
 			lap,
 			isPlaying,
 			setPlaying,
+			speed,
+			replayClock,
+			timeline,
 			plan,
 			followedDriver,
 			updateParam,
