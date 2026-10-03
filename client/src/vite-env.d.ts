@@ -10,4 +10,8 @@ interface ImportMetaEnv {
 	readonly VITE_F1_MEDIA?: string;
 	/** "link" lets viewers open team radio clips from the official archive; off by default. */
 	readonly VITE_TEAM_RADIO?: string;
+	/** Which analytics provider to start after consent (src/platform/analytics.ts); unset runs none. */
+	readonly VITE_ANALYTICS_PROVIDER?: string;
+	/** "true" keeps search engines out: robots.txt disallows everything and pages say noindex. */
+	readonly VITE_SITE_NOINDEX?: string;
 }

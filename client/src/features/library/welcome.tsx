@@ -3,6 +3,7 @@ import * as React from 'react';
 import { Link, useNavigate } from 'react-router';
 import { z } from 'zod';
 
+import { BRAND } from '@/brand';
 import { DriverPortrait } from '@/components/driver-media';
 import { Key } from '@/components/console/keys';
 import { useRace } from '@/data/race-context';
@@ -49,7 +50,7 @@ export function WelcomePage() {
 		<div className="flex max-w-6xl flex-col gap-8" data-testid="welcome">
 			<header className="flex flex-col gap-2">
 				<h1 className="type-wide text-2xl leading-none font-black italic md:text-4xl">
-					Set up Pitwall
+					Set up {BRAND.name}
 				</h1>
 				<p className="text-muted-foreground max-w-2xl text-sm">
 					Two choices, both easy to change later. Your driver is tinted through every screen; your

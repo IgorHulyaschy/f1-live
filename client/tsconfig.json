@@ -10,5 +10,14 @@
 			"@/*": ["./src/*"]
 		}
 	},
-	"include": ["src", "e2e", "shots", "vite.config.ts", "playwright.config.ts"]
+	"include": [
+		"src",
+		"e2e",
+		"shots",
+		"scripts",
+		"vite.config.ts",
+		"playwright.config.ts",
+		"playwright.build.config.ts"
+	],
+	"exclude": ["src/platform/service-worker.ts"]
 }

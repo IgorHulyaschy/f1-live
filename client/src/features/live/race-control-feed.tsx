@@ -1,5 +1,5 @@
 import type { RaceControlCategory, RaceControlMessage } from '@f1-live/shared';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import * as React from 'react';
 
 import { KeyGroup } from '@/components/console/keys';
@@ -146,7 +146,7 @@ export function RaceControlFeed() {
 								).length;
 
 							return (
-								<motion.li
+								<m.li
 									key={`${message.lap}-${message.message}-${repeat}`}
 									layout
 									initial={{ opacity: 0, x: -6 }}
@@ -177,7 +177,7 @@ export function RaceControlFeed() {
 											<DriverTag driver={driver} />
 										</DriverLink>
 									) : null}
-								</motion.li>
+								</m.li>
 							);
 						})}
 					</AnimatePresence>

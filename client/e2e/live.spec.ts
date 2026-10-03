@@ -35,7 +35,7 @@ test('a timing row opens the driver view, a lap opens the lap view, and Back clo
 	await expect(page).toHaveURL(/car=4/);
 	await expect(sheet.getByRole('heading', { level: 2 })).toContainText('NOR');
 	await expect(sheet.getByTestId('drill-laps')).toBeVisible();
-	await expect(page).toHaveTitle(/^NOR, Las Vegas 2025 Race/);
+	await expect(page).toHaveTitle('NOR, Las Vegas 2025 Race | Pitwall');
 
 	await sheet.getByTestId('drill-lap-12').click();
 	await expect(page).toHaveURL(/carLap=12/);

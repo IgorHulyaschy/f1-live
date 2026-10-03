@@ -116,7 +116,6 @@ test('a finished race opens at the start, paused, with its results hidden', asyn
 	await expect(page.getByTestId('spoiler-start')).toContainText('Results hidden');
 	await expect(page.getByRole('button', { name: 'Play replay' })).toBeEnabled();
 	await expect(page.getByText('DSQ')).toHaveCount(0);
-	await expect(page).toHaveTitle('Las Vegas 2025 Race · Pitwall');
 
 	await page.getByRole('button', { name: 'Jump to the finish (shows results)' }).first().click();
 

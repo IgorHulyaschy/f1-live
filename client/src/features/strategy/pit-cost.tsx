@@ -51,7 +51,7 @@ export function PitCost() {
 			</PanelHeader>
 			<div className="flex flex-col gap-4 p-4">
 				<RaceOnly what="Pit stop cost">
-					<dl className="flex flex-wrap gap-x-6 gap-y-3">
+					<div className="flex flex-wrap gap-x-6 gap-y-3">
 						<Field label="Green stop">
 							<Digits className="text-2xl font-bold" value={seconds(cost.greenMs)} />
 						</Field>
@@ -64,7 +64,7 @@ export function PitCost() {
 						<Field label="Stationary">
 							<Digits value={seconds(cost.stationaryMs)} />
 						</Field>
-					</dl>
+					</div>
 					{costed.length === 0 ? (
 						<p className="text-muted-foreground text-sm">No stops yet.</p>
 					) : table ? (

@@ -8,7 +8,8 @@ import {
 	RadioIcon,
 	SkipBackIcon,
 	SkipForwardIcon,
-	SparklesIcon
+	SparklesIcon,
+	SunMediumIcon
 } from 'lucide-react';
 import * as React from 'react';
 import { useNavigate } from 'react-router';
@@ -35,6 +36,7 @@ import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
 import { LiveBadge, SessionPickerDialog } from '@/features/session/session-picker';
 import { toggleTheme } from '@/hooks/use-theme';
 import { OUT_LABEL } from '@/insights/standings';
+import { keepAwakeStore, wakeLockSupported } from '@/platform/wake-lock';
 
 /**
  * Sessions worth offering before the viewer types: the live one and the rest of this meeting.
@@ -89,6 +91,7 @@ export function CommandMenu({
 	const create = useCreateDashboard();
 	const [query, setQuery] = React.useState('');
 	const [picking, setPicking] = React.useState(false);
+	const keepAwake = keepAwakeStore.useValue();
 	const rows = standings;
 	const now = useNow();
 	const isRevealed = useIsRevealed();
@@ -267,6 +270,15 @@ export function CommandMenu({
 							<EyeOffIcon />
 							{spoilers.protect ? 'Turn spoiler protection off' : 'Turn spoiler protection on'}
 						</CommandItem>
+						{wakeLockSupported() ? (
+							<CommandItem
+								value="screen awake wake lock sleep"
+								onSelect={() => run(() => keepAwakeStore.set(!keepAwake))}
+							>
+								<SunMediumIcon />
+								{keepAwake ? 'Let the screen sleep' : 'Keep the screen awake while a race plays'}
+							</CommandItem>
+						) : null}
 					</CommandGroup>
 				</CommandList>
 			</CommandDialog>

@@ -141,7 +141,7 @@ export function StintChart() {
 								<DriverLink driver={row.driver}>
 									<DriverTag
 										driver={row.driver}
-										className={cn(row.state === 'out' && 'opacity-40')}
+										className={cn(row.state === 'out' && 'opacity-60')}
 									/>
 								</DriverLink>
 								<div className="relative h-7 overflow-hidden border-b border-dashed">

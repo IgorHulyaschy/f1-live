@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import { THEME_COLOURS } from '@/platform/site';
+
 const STORAGE_KEY = 'pitwall-theme';
 
 function isDark(): boolean {
@@ -14,13 +16,21 @@ function subscribe(onChange: () => void): () => void {
 	return () => observer.disconnect();
 }
 
+/** The class drives the page; the meta tag tints the browser's toolbar and an installed app's bar. */
+function applyTheme(dark: boolean): void {
+	document.documentElement.classList.toggle('dark', dark);
+	document.head
+		.querySelector('meta[name="theme-color"]')
+		?.setAttribute('content', dark ? THEME_COLOURS.dark : THEME_COLOURS.light);
+}
+
 /** Restores the viewer's saved theme before first paint; dark is the default. */
 export function restoreTheme(): void {
 	try {
 		const saved = window.localStorage.getItem(STORAGE_KEY);
 
 		if (saved === 'light' || saved === 'dark') {
-			document.documentElement.classList.toggle('dark', saved === 'dark');
+			applyTheme(saved === 'dark');
 		}
 	} catch {
 		// Storage can be unavailable (private mode); the default theme stands.
@@ -30,7 +40,7 @@ export function restoreTheme(): void {
 export function toggleTheme(): void {
 	const next = !isDark();
 
-	document.documentElement.classList.toggle('dark', next);
+	applyTheme(next);
 
 	try {
 		window.localStorage.setItem(STORAGE_KEY, next ? 'dark' : 'light');
