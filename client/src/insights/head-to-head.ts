@@ -375,3 +375,41 @@ export function rollingGap(
 		return { gap, rollingPct: recent.reduce((sum, item) => sum + item.pct, 0) / recent.length };
 	});
 }
+
+/** Ranges the comparison offers with one key. */
+export const H2H_PRESETS = ['teammates', 'season', 'career'] as const;
+
+export type H2HPreset = (typeof H2H_PRESETS)[number];
+
+/**
+ * The range a preset stands for: the rounds the two drivers shared a team, the latest season they
+ * both raced in, or every round both took part in. Null when they never met that way.
+ */
+export function presetRange(
+	seasons: readonly SeasonResults[],
+	a: Side,
+	b: Side,
+	preset: H2HPreset
+): H2HRange | null {
+	const all = sharedEvents(seasons, a, b, {
+		from: { season: 0, round: 0 },
+		to: { season: Infinity, round: Infinity }
+	});
+
+	const events =
+		preset === 'teammates'
+			? all.filter(asTeammates)
+			: preset === 'season'
+				? all.filter((event) => event.season === all.at(-1)?.season)
+				: all;
+
+	const first = events[0];
+	const last = events.at(-1);
+
+	return first && last
+		? {
+				from: { season: first.season, round: first.round.round },
+				to: { season: last.season, round: last.round.round }
+			}
+		: null;
+}

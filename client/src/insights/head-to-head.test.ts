@@ -10,6 +10,7 @@ import {
 	breakdowns,
 	headToHead,
 	hiddenSessions,
+	presetRange,
 	rollingGap,
 	sharedEvents,
 	type Side
@@ -117,5 +118,22 @@ describe('headToHead', () => {
 
 		assert.equal(result.racesTogether, 21);
 		assert.ok(result.a.points > result.b.points);
+	});
+});
+
+describe('presetRange', () => {
+	it('spans the rounds two drivers were teammates, and their whole overlap', () => {
+		const leclerc: Side = { kind: 'driver', id: 'charles-leclerc' };
+		const sainz: Side = { kind: 'driver', id: 'carlos-sainz' };
+
+		assert.deepEqual(presetRange(SEASONS, leclerc, sainz, 'teammates'), {
+			from: { season: 2021, round: 1 },
+			to: { season: 2024, round: 24 }
+		});
+		assert.deepEqual(presetRange(SEASONS, leclerc, sainz, 'career')?.from, {
+			season: 2018,
+			round: 1
+		});
+		assert.equal(presetRange(SEASONS, leclerc, sainz, 'season')?.from.season, 2026);
 	});
 });

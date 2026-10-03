@@ -67,7 +67,7 @@ test('the session picker opens another session and keeps it in the address', asy
 	await expect(page.getByTestId('dashboard-quali')).toBeVisible();
 
 	await page.getByRole('button', { name: 'Sessions' }).click();
-	await page.getByRole('radio', { name: '2026' }).click();
+	await page.getByRole('button', { name: 'Season 2026' }).click();
 	await expect(picker.getByRole('button', { name: /Azerbaijan/ })).toBeVisible();
 	await picker.getByTestId('session-11373').click();
 	await expect(page).toHaveURL(/session=11373/);

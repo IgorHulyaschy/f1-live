@@ -12,6 +12,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { RaceProvider, useRace } from '@/data/race-context';
+import { ResultsProvider } from '@/data/results-context';
 import { TelemetryProvider } from '@/data/telemetry-context';
 import { AccountFooterKey, AccountSession } from '@/features/account/account-menu';
 import { useAccountPlan } from '@/features/account/account-store';
@@ -214,7 +215,9 @@ export function AppLayout({ source, bare = false }: { source: RaceSource; bare?:
 			ErrorFallback={ErrorState}
 		>
 			<TelemetryProvider source={source.telemetry}>
-				<Console sourceKind={source.kind} bare={bare} />
+				<ResultsProvider load={source.loadResults}>
+					<Console sourceKind={source.kind} bare={bare} />
+				</ResultsProvider>
 			</TelemetryProvider>
 		</RaceProvider>
 	);
