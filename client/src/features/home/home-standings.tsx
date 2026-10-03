@@ -64,7 +64,7 @@ export function HomeStandings({
 				<div className="@container flex flex-col gap-3 px-4 py-3" data-testid="home-championship">
 					{held.rounds.length > 0 ? (
 						<p
-							className="hatch flex flex-wrap items-center gap-x-3 gap-y-1 border px-3 py-2 text-sm"
+							className="bg-card flex flex-wrap items-center gap-x-3 gap-y-2 border border-l-4 px-3 py-2 text-sm"
 							data-testid="home-held-rounds"
 						>
 							<EyeOffIcon aria-hidden className="size-4 shrink-0" />
@@ -75,6 +75,7 @@ export function HomeStandings({
 								: results you have not seen yet are left out.
 							</span>
 							<Key
+								pressed
 								className="ml-auto"
 								onClick={() => {
 									for (const session of held.sessions) {
