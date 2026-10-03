@@ -34,3 +34,16 @@ export function average(values: readonly number[]): number | null {
 
 	return total / values.length;
 }
+
+export function median(values: readonly number[]): number | null {
+	const sorted = values.toSorted((a, b) => a - b);
+	const middle = Math.floor(sorted.length / 2);
+
+	if (sorted.length === 0) {
+		return null;
+	}
+
+	return sorted.length % 2 === 1
+		? (sorted[middle] ?? null)
+		: ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+}

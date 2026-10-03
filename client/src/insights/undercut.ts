@@ -1,6 +1,6 @@
 import type { Lap, PitStop, RaceSnapshot } from '@f1-live/shared';
 
-import { isCleanLap } from './clean-laps.ts';
+import { isCleanLap, median } from './clean-laps.ts';
 
 /** Cars this close at the line before the first stop are fighting for the place. */
 const GAP_WINDOW_MS = 5000;
@@ -40,19 +40,6 @@ export interface StopExchange {
 	outcome: ExchangeOutcome;
 	/** A stop came under a Virtual Safety Car or a Safety Car, so it cost less than usual. */
 	neutralised: boolean;
-}
-
-function median(values: readonly number[]): number | null {
-	const sorted = values.toSorted((a, b) => a - b);
-	const middle = Math.floor(sorted.length / 2);
-
-	if (sorted.length === 0) {
-		return null;
-	}
-
-	return sorted.length % 2 === 1
-		? (sorted[middle] ?? null)
-		: ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
 }
 
 type LapBook = Map<string, Map<number, Lap>>;

@@ -48,7 +48,7 @@ const chartConfig: ChartConfig = {
 	paceS: { label: 'Field pace s', color: 'var(--muted-foreground)' }
 };
 
-/** The outline turned so its long side is level, as screen coordinates, with north and the wind. */
+/** The outline turned so its long side is level, as screen coordinates. */
 function useTurned(outline: TrackOutline) {
 	return React.useMemo(() => {
 		const angle = (outline.rotationDeg * Math.PI) / 180;
@@ -61,22 +61,13 @@ function useTurned(outline: TrackOutline) {
 
 		const points = outline.points.map(([x, y]) => turn(x, y));
 		const xs = points.map(([x]) => x);
-		const ys = points.map(([, y]) => y);
-		// Room around the circuit for the labels beside its straights.
-		const pad = (Math.max(...xs) - Math.min(...xs)) * 0.16;
 
-		return {
-			points,
-			turn,
-			box: {
-				x: Math.min(...xs) - pad,
-				y: Math.min(...ys) - pad,
-				width: Math.max(...xs) - Math.min(...xs) + 2 * pad,
-				height: Math.max(...ys) - Math.min(...ys) + 2 * pad
-			}
-		};
+		return { points, turn, width: Math.max(...xs) - Math.min(...xs) };
 	}, [outline]);
 }
+
+/** Monospace glyphs are about this wide for their size, to make room for a label. */
+const GLYPH_WIDTH = 0.62;
 
 /** A compass-bearing direction as a screen vector on the turned outline. */
 function screenVector(
@@ -119,11 +110,56 @@ function WindMap({
 	windFromDeg: number;
 	windSpeedMs: number;
 }) {
-	const { points, turn, box } = useTurned(outline);
+	const { points, turn, width } = useTurned(outline);
 	const markerId = React.useId();
 	const step = outline.lengthM / outline.points.length;
-	const unit = box.width / 60;
-	const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+	const unit = width / 50;
+	const fontSize = unit * 2.8;
+	const xs = points.map(([x]) => x);
+	const ys = points.map(([, y]) => y);
+
+	const centre = {
+		x: (Math.min(...xs) + Math.max(...xs)) / 2,
+		y: (Math.min(...ys) + Math.max(...ys)) / 2
+	};
+
+	const labels = winds.map((straight) => {
+		const [midX, midY] = turn(straight.midX, straight.midY);
+		const along = screenVector(turn, straight.bearingDeg);
+		// The label goes on the side of the straight away from the middle of the circuit.
+		const side = along[1] * (midX - centre.x) - along[0] * (midY - centre.y) >= 0 ? 1 : -1;
+		const across = [along[1] * side, -along[0] * side] as const;
+		const x = midX + across[0] * unit * 3;
+		const y = midY + across[1] * unit * 3;
+		const text = windWord(straight);
+		const textWidth = text.length * GLYPH_WIDTH * fontSize;
+
+		const anchor: 'start' | 'middle' | 'end' =
+			Math.abs(across[0]) < 0.5 ? 'middle' : across[0] > 0 ? 'start' : 'end';
+
+		const left = anchor === 'start' ? x : anchor === 'end' ? x - textWidth : x - textWidth / 2;
+
+		return {
+			straight,
+			midX,
+			midY,
+			along,
+			across,
+			x,
+			y,
+			text,
+			anchor,
+			left,
+			right: left + textWidth
+		};
+	});
+
+	// The circuit and every label, with a little room around.
+	const margin = unit * 2;
+	const minX = Math.min(...xs, ...labels.map((label) => label.left)) - margin;
+	const maxX = Math.max(...xs, ...labels.map((label) => label.right)) + margin;
+	const minY = Math.min(...ys, ...labels.map((label) => label.y - fontSize)) - margin;
+	const maxY = Math.max(...ys, ...labels.map((label) => label.y + fontSize)) + margin;
 
 	const stretch = (startM: number, endM: number) => {
 		const from = Math.round(startM / step);
@@ -140,7 +176,7 @@ function WindMap({
 	return (
 		<figure className="flex flex-col gap-2">
 			<svg
-				viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
+				viewBox={`${minX} ${minY} ${maxX - minX} ${maxY - minY}`}
 				className="text-foreground h-auto max-h-80 w-full"
 			>
 				<title>{`The circuit, with the wind from the ${compassPoint(windFromDeg)}`}</title>
@@ -165,48 +201,38 @@ function WindMap({
 					strokeWidth={unit * 0.6}
 					strokeLinejoin="round"
 				/>
-				{winds.map((straight) => {
-					const run = stretch(straight.startM, straight.endM);
-					const [midX, midY] = turn(straight.midX, straight.midY);
-					const along = screenVector(turn, straight.bearingDeg);
-					// The label goes on the side of the straight away from the middle of the circuit.
-					const side = along[1] * (midX - centre.x) - along[0] * (midY - centre.y) >= 0 ? 1 : -1;
-					const across = [along[1] * side, -along[0] * side] as const;
-					const anchor = Math.abs(across[0]) < 0.5 ? 'middle' : across[0] > 0 ? 'start' : 'end';
-
-					return (
-						<g key={straight.startM}>
-							<polyline
-								points={run.map(([x, y]) => `${x},${y}`).join(' ')}
-								fill="none"
-								stroke="currentColor"
-								strokeWidth={unit * (Math.abs(straight.headwindMs) < 0.3 ? 1 : 1.6)}
-								strokeDasharray={straight.headwindMs < 0 ? `${unit * 2} ${unit}` : undefined}
-							/>
-							<line
-								x1={midX - along[0] * unit * 3}
-								y1={midY - along[1] * unit * 3}
-								x2={midX + along[0] * unit * 3}
-								y2={midY + along[1] * unit * 3}
-								stroke="currentColor"
-								strokeWidth={unit * 0.5}
-								markerEnd={`url(#${CSS.escape(markerId)})`}
-							/>
-							<text
-								x={midX + across[0] * unit * 3}
-								y={midY + across[1] * unit * 3}
-								fontSize={unit * 2.6}
-								textAnchor={anchor}
-								dominantBaseline={
-									across[1] > 0.5 ? 'hanging' : across[1] < -0.5 ? 'auto' : 'middle'
-								}
-								className="fill-foreground font-mono"
-							>
-								{windWord(straight)}
-							</text>
-						</g>
-					);
-				})}
+				{labels.map(({ straight, midX, midY, along, across, x, y, text, anchor }) => (
+					<g key={straight.startM}>
+						<polyline
+							points={stretch(straight.startM, straight.endM)
+								.map(([pointX, pointY]) => `${pointX},${pointY}`)
+								.join(' ')}
+							fill="none"
+							stroke="currentColor"
+							strokeWidth={unit * (Math.abs(straight.headwindMs) < 0.3 ? 1 : 1.6)}
+							strokeDasharray={straight.headwindMs < 0 ? `${unit * 2} ${unit}` : undefined}
+						/>
+						<line
+							x1={midX - along[0] * unit * 3}
+							y1={midY - along[1] * unit * 3}
+							x2={midX + along[0] * unit * 3}
+							y2={midY + along[1] * unit * 3}
+							stroke="currentColor"
+							strokeWidth={unit * 0.5}
+							markerEnd={`url(#${CSS.escape(markerId)})`}
+						/>
+						<text
+							x={x}
+							y={y}
+							fontSize={fontSize}
+							textAnchor={anchor}
+							dominantBaseline={across[1] > 0.5 ? 'hanging' : across[1] < -0.5 ? 'auto' : 'middle'}
+							className="fill-foreground font-mono"
+						>
+							{text}
+						</text>
+					</g>
+				))}
 			</svg>
 			<figcaption className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
 				<span className="flex items-center gap-1.5">
@@ -343,81 +369,83 @@ export function ConditionsPanel() {
 												}))}
 											/>
 										) : (
-											<ChartContainer
-												config={chartConfig}
-												className="aspect-auto h-48 w-full @4xl:h-56"
-											>
-												<LineChart data={rows} margin={{ left: 4, right: 4, top: 8 }}>
-													<CartesianGrid vertical={false} />
-													<XAxis
-														dataKey="lap"
-														type="number"
-														domain={[1, 'dataMax']}
-														tickLine={false}
-														axisLine={false}
-														tickFormatter={(lap: number) => `L${lap}`}
-													/>
-													<YAxis
-														yAxisId="temp"
-														tickLine={false}
-														axisLine={false}
-														width={36}
-														domain={['auto', 'auto']}
-														tickFormatter={(value: number) => `${value.toFixed(1)}°`}
-													/>
-													<YAxis
-														yAxisId="pace"
-														orientation="right"
-														tickLine={false}
-														axisLine={false}
-														width={44}
-														domain={['auto', 'auto']}
-														tickFormatter={(value: number) => `${value.toFixed(1)}`}
-													/>
-													<ChartTooltip
-														content={
-															<ChartTooltipContent
-																labelFormatter={(lap) => `Lap ${String(lap)}`}
-																valueFormatter={(value) => value.toFixed(1)}
-															/>
-														}
-													/>
-													<Line
-														yAxisId="temp"
-														dataKey="trackTempC"
-														type="linear"
-														stroke="var(--color-trackTempC)"
-														strokeWidth={2}
-														dot={false}
-														isAnimationActive={false}
-													/>
-													<Line
-														yAxisId="pace"
-														dataKey="paceS"
-														type="linear"
-														stroke="var(--color-paceS)"
-														strokeWidth={1.5}
-														strokeDasharray="4 3"
-														dot={false}
-														connectNulls
-														isAnimationActive={false}
-													/>
-												</LineChart>
-											</ChartContainer>
+											<>
+												<ChartContainer
+													config={chartConfig}
+													className="aspect-auto h-48 w-full @4xl:h-56"
+												>
+													<LineChart data={rows} margin={{ left: 4, right: 4, top: 8 }}>
+														<CartesianGrid vertical={false} />
+														<XAxis
+															dataKey="lap"
+															type="number"
+															domain={[1, 'dataMax']}
+															tickLine={false}
+															axisLine={false}
+															tickFormatter={(lap: number) => `L${lap}`}
+														/>
+														<YAxis
+															yAxisId="temp"
+															tickLine={false}
+															axisLine={false}
+															width={36}
+															domain={['auto', 'auto']}
+															tickFormatter={(value: number) => `${value.toFixed(1)}°`}
+														/>
+														<YAxis
+															yAxisId="pace"
+															orientation="right"
+															tickLine={false}
+															axisLine={false}
+															width={44}
+															domain={['auto', 'auto']}
+															tickFormatter={(value: number) => `${value.toFixed(1)}`}
+														/>
+														<ChartTooltip
+															content={
+																<ChartTooltipContent
+																	labelFormatter={(lap) => `Lap ${String(lap)}`}
+																	valueFormatter={(value) => value.toFixed(1)}
+																/>
+															}
+														/>
+														<Line
+															yAxisId="temp"
+															dataKey="trackTempC"
+															type="linear"
+															stroke="var(--color-trackTempC)"
+															strokeWidth={2}
+															dot={false}
+															isAnimationActive={false}
+														/>
+														<Line
+															yAxisId="pace"
+															dataKey="paceS"
+															type="linear"
+															stroke="var(--color-paceS)"
+															strokeWidth={1.5}
+															strokeDasharray="4 3"
+															dot={false}
+															connectNulls
+															isAnimationActive={false}
+														/>
+													</LineChart>
+												</ChartContainer>
+												<div className="text-muted-foreground flex flex-wrap gap-x-4 text-xs">
+													<span className="flex items-center gap-1.5">
+														<span aria-hidden className="bg-foreground h-0.5 w-4" />
+														Track temperature, left
+													</span>
+													<span className="flex items-center gap-1.5">
+														<span
+															aria-hidden
+															className="border-muted-foreground w-4 border-t-2 border-dashed"
+														/>
+														Field pace, seconds, right
+													</span>
+												</div>
+											</>
 										)}
-										<div className="text-muted-foreground flex flex-wrap gap-x-4 text-xs">
-											<span className="flex items-center gap-1.5">
-												<span aria-hidden className="bg-foreground h-0.5 w-4" />
-												Track temperature, left
-											</span>
-											<span className="flex items-center gap-1.5">
-												<span
-													aria-hidden
-													className="border-muted-foreground w-4 border-t-2 border-dashed"
-												/>
-												Field pace, seconds, right
-											</span>
-										</div>
 									</section>
 								)}
 							</div>

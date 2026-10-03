@@ -94,9 +94,11 @@ test.describe('qualifying', () => {
 
 		await openRace(page, '/strategy?session=9854&plan=pro');
 
-		for (const tile of ['undercut', 'pit-cost', 'pit-crews']) {
-			await expect(page.getByTestId(tile).getByTestId('race-only')).toBeVisible();
-		}
+		await Promise.all(
+			['undercut', 'pit-cost', 'pit-crews'].map((tile) =>
+				expect(page.getByTestId(tile).getByTestId('race-only')).toBeVisible()
+			)
+		);
 
 		await expect(page.getByTestId('tyre-life-applies')).toBeVisible();
 
@@ -120,9 +122,11 @@ test.describe('practice', () => {
 
 		await openRace(page, '/strategy?session=9852&plan=pro');
 
-		for (const tile of ['undercut', 'pit-cost', 'pit-crews']) {
-			await expect(page.getByTestId(tile).getByTestId('race-only')).toBeVisible();
-		}
+		await Promise.all(
+			['undercut', 'pit-cost', 'pit-crews'].map((tile) =>
+				expect(page.getByTestId(tile).getByTestId('race-only')).toBeVisible()
+			)
+		);
 
 		// This practice had no run of five clean laps on one compound three times over.
 		await expect(page.getByTestId('degradation')).toContainText('Curves show once');

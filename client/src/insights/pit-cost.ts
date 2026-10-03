@@ -1,6 +1,6 @@
 import type { Driver, Lap, PitStop, RaceSnapshot } from '@f1-live/shared';
 
-import { isCleanLap } from './clean-laps.ts';
+import { isCleanLap, median } from './clean-laps.ts';
 
 /** Clean laps either side of a stop that set the driver's normal pace around it. */
 const REFERENCE_LAPS = 4;
@@ -29,19 +29,6 @@ export interface PitCost {
 	/** Typical time in the pit lane, and stationary in the box, of green-flag stops. */
 	laneMs: number | null;
 	stationaryMs: number | null;
-}
-
-export function median(values: readonly number[]): number | null {
-	const sorted = values.toSorted((a, b) => a - b);
-	const middle = Math.floor(sorted.length / 2);
-
-	if (sorted.length === 0) {
-		return null;
-	}
-
-	return sorted.length % 2 === 1
-		? (sorted[middle] ?? null)
-		: ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
 }
 
 function isNeutralised(lap: Lap | undefined): boolean {

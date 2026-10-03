@@ -5,7 +5,7 @@ import {
 	type WeatherSample
 } from '@f1-live/shared';
 
-import { average, isCleanLap } from './clean-laps.ts';
+import { average, isCleanLap, median } from './clean-laps.ts';
 import { fuelCorrectedLapSeconds } from './tyre-life.ts';
 
 /** Heading is measured over this much track either side of a point. */
@@ -143,19 +143,6 @@ export interface ConditionsLap {
 	airTempC: number;
 	/** The field's median clean lap, fuel burn added back, in seconds; null without clean laps. */
 	paceS: number | null;
-}
-
-function median(values: readonly number[]): number | null {
-	const sorted = values.toSorted((a, b) => a - b);
-	const middle = Math.floor(sorted.length / 2);
-
-	if (sorted.length === 0) {
-		return null;
-	}
-
-	return sorted.length % 2 === 1
-		? (sorted[middle] ?? null)
-		: ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
 }
 
 /** Track and air temperature on each lap, beside the field's pace on it. */

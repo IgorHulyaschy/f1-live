@@ -18,7 +18,7 @@ function barAt(ms: number): string {
 }
 
 function seconds(ms: number): string {
-	return `${(ms / 1000).toFixed(1)}`;
+	return (ms / 1000).toFixed(1);
 }
 
 /**
