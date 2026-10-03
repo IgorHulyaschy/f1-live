@@ -54,6 +54,9 @@ function loadTrack(
 	loaded.set(source, sessions);
 
 	if (!pending) {
+		// A map without its replay estimates instead; it is not kept, so the next map asks again.
+		let partial = false;
+
 		pending = (async () => {
 			const telemetry = await source.loadSession(sessionKey);
 			const circuit = telemetry?.circuitKey ?? circuitKey;
@@ -63,9 +66,12 @@ function loadTrack(
 				return null;
 			}
 
-			// Without its replay the map still estimates, so a failed manifest is not an error.
 			const manifest = telemetry?.replay
-				? await source.loadReplayManifest(sessionKey, telemetry.replay).catch(() => null)
+				? await source.loadReplayManifest(sessionKey, telemetry.replay).catch(() => {
+						partial = true;
+
+						return null;
+					})
 				: null;
 
 			return {
@@ -82,10 +88,28 @@ function loadTrack(
 		const done = settled.get(source) ?? new Map<string, TrackData>();
 
 		settled.set(source, done);
-		pending.then(
-			(ready) => done.set(key, ready ?? { status: 'none' }),
-			() => sessions.delete(key)
-		);
+
+		const forget = () => {
+			sessions.delete(key);
+			done.delete(key);
+		};
+
+		const loading = pending;
+
+		void (async () => {
+			try {
+				const ready = await loading;
+
+				if (partial) {
+					forget();
+				} else {
+					done.set(key, ready ?? { status: 'none' });
+				}
+			} catch {
+				forget();
+			}
+		})();
+
 		sessions.set(key, pending);
 	}
 
@@ -194,11 +218,21 @@ function useLiveBuffer(active: boolean): LiveBuffer {
 			return;
 		}
 
+		let told = false;
+
 		return feed.watchPositions((frame) => {
 			buffer.push(frame);
 
-			for (const listener of listeners.current) {
-				listener();
+			// A new watcher is handed minutes of frames at once: tell the map once, not per frame.
+			if (!told) {
+				told = true;
+				queueMicrotask(() => {
+					told = false;
+
+					for (const listener of listeners.current) {
+						listener();
+					}
+				});
 			}
 		});
 	}, [active, feed, buffer]);
@@ -316,7 +350,7 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 
 				// While the next chunk loads, the cars hold where they were rather than jump to estimates.
 				if (source === 'positions' && last && Math.abs(last.time - time) < HOLD_MS) {
-					return { ...last, waiting: true };
+					return { ...last, waiting: replay !== null && !replay.missing(time) };
 				}
 
 				return {

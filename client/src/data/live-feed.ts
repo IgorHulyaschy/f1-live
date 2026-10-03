@@ -256,10 +256,14 @@ export class LiveFeed implements LivePositionsFeed {
 		return () => {
 			this.positionListeners.delete(listener);
 
-			if (this.positionListeners.size === 0 && this.positionsAskedOn) {
-				this.positionsAskedOn.send(JSON.stringify({ type: 'unsubscribe', channel: 'positions' }));
-				this.positionsAskedOn = null;
+			if (this.positionListeners.size > 0) {
+				return;
 			}
+
+			// Unwatched, the channel stops, so what is kept would leave a gap before the next frame.
+			this.positionHistory = [];
+			this.positionsAskedOn?.send(JSON.stringify({ type: 'unsubscribe', channel: 'positions' }));
+			this.positionsAskedOn = null;
 		};
 	};
 
@@ -391,6 +395,7 @@ export class LiveFeed implements LivePositionsFeed {
 		}
 
 		this.socket = null;
+		this.positionHistory = [];
 		this.clearTimers();
 
 		const delay = Math.min(BACKOFF_MS.initial * 2 ** this.attempt, BACKOFF_MS.max);

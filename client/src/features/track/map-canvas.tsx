@@ -126,6 +126,9 @@ type CameraState = { key: string; target: CameraAim; offset: CameraAim; shown: C
  */
 const JUMP_M = 400;
 
+/** A frame at 60 Hz: a longer frame lets a followed car move further without it counting as a jump. */
+const FRAME_MS = 1000 / 60;
+
 /** A tap within this of a car picks it. */
 const PICK_RADIUS_PX = 16;
 
@@ -229,7 +232,8 @@ export function MapCanvas({
 							Math.hypot(
 								target.centre[0] - last.target.centre[0],
 								target.centre[1] - last.target.centre[1]
-							) > JUMP_M);
+							) >
+								JUMP_M * Math.max(1, elapsed / FRAME_MS));
 
 					const from: CameraAim = jumped
 						? {

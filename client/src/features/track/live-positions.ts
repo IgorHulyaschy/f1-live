@@ -10,6 +10,9 @@ export const LIVE_LAG_MS = 1000;
 
 type Frame = { at: number; cars: LivePositions['cars'] };
 
+/** The feed sends four frames a second; a wider gap is missing data. */
+const MAX_FRAME_GAP_MS = 2000;
+
 /**
  * The live feed's car positions, kept long enough to draw them behind a broadcast delay. Times
  * are the feed's own; `feedTime` maps the page's clock onto it from when the newest frame came.
@@ -69,6 +72,13 @@ export class LivePositionBuffer {
 		}
 
 		const span = next.at - previous.at;
+
+		// Frames this far apart missed a stretch (a reconnect): a straight line between them would
+		// cut across the circuit.
+		if (span > MAX_FRAME_GAP_MS) {
+			return false;
+		}
+
 		const share = span > 0 ? Math.min(1, Math.max(0, (time - previous.at) / span)) : 1;
 
 		for (const [driverNumber, [x1, y1, onTrack]] of Object.entries(next.cars)) {

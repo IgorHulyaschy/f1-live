@@ -129,7 +129,7 @@ events, as many as everything else together.
   time, and never past the next loop; before a race starts the cars are on the grid.
 - `client/src/insights/pit-window.ts` measures the circuit's pit loss on the session's green-flag stops so
   far (in-lap and out-lap against the laps around them), for Box now, the tower's ghost row and
-  the pit rejoin map; before anyone stops, `rejoin.ts` works it out from the pit lane's length.
+  the pit rejoin map; before anyone stops it assumes a typical 22.9 s.
 - `dominance.ts` times each mini sector on a lap from its telemetry, at `miniSectorStartsM`.
 - `drs-zones.ts` finds 2025 DRS zones where cars within a second of the one ahead opened the flap.
 

@@ -62,7 +62,8 @@ function useRivals(cars: readonly CarPlace[] | null, lengthM: number): Rival[] {
 function useRoadGaps(
 	places: PlacesSampler,
 	rivals: readonly Rival[],
-	time: number | null
+	time: number | null,
+	timed: boolean
 ): Map<string, number> {
 	const { followedDriver } = useRace();
 	const { placeAt } = places;
@@ -83,8 +84,11 @@ function useRoadGaps(
 					? [rival.driver.number, followedDriver]
 					: [followedDriver, rival.driver.number];
 
-			// Off a race, the car ahead on the road can be laps up: compare within the lap.
-			const lapsUp = Math.floor((progressAt(ahead, time) ?? 0) - (progressAt(behind, time) ?? 0));
+			// Off a race, the car ahead on the road can be laps up: compare within the lap. In a race
+			// a lapped car has no road gap to its rival, as in the timing.
+			const lapsUp = timed
+				? Math.floor((progressAt(ahead, time) ?? 0) - (progressAt(behind, time) ?? 0))
+				: 0;
 
 			const withinLap = (driverNumber: string, at: number) => {
 				const progress = progressAt(driverNumber, at);
@@ -100,7 +104,7 @@ function useRoadGaps(
 		}
 
 		return gaps;
-	}, [placeAt, rivals, time, followedDriver]);
+	}, [placeAt, rivals, time, timed, followedDriver]);
 }
 
 /**
@@ -211,8 +215,8 @@ function BattleMapBody({ track }: { track: TrackReady }) {
 	const bodyClass = useMapBodyClass();
 	const now = usePlacesNow(places, GAP_EVERY_MS);
 	const rivals = useRivals(now?.cars ?? null, track.outline.lengthM);
-	const gaps = useRoadGaps(places, rivals, now?.time ?? null);
 	const timed = isTimedSession(race.session.type);
+	const gaps = useRoadGaps(places, rivals, now?.time ?? null, timed);
 	const followed = race.drivers.find((driver) => driver.number === followedDriver);
 
 	const watched = React.useMemo(

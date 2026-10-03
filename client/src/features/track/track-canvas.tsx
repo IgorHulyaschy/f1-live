@@ -186,7 +186,8 @@ export function TrackCanvas({
 			ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
 			ctx.clearRect(0, 0, width, height);
 
-			const elapsed = lastPerf.current === 0 ? 0 : Math.min(250, perf - lastPerf.current);
+			const elapsed =
+				lastPerf.current === 0 ? 0 : Math.min(250, Math.max(0, perf - lastPerf.current));
 
 			lastPerf.current = perf;
 

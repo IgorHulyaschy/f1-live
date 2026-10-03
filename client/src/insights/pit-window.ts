@@ -4,8 +4,8 @@ import { isCleanLap } from './clean-laps.ts';
 import { type StandingRow, standingsAt } from './standings.ts';
 
 /**
- * Pit-lane loss at Las Vegas including the slower out-lap: what a prediction assumes until the
- * session's own stops measure the circuit's.
+ * Pit-lane loss at Las Vegas including the slower out-lap, near the middle of the usual 18 to
+ * 28 s: what a prediction assumes until the session's own stops measure the circuit's.
  */
 export const PIT_LOSS_MS = { green: 22_900, neutralised: 13_000 } as const;
 
@@ -21,7 +21,8 @@ const REFERENCE_LAPS = 4;
 /** A measured loss outside this range is a slow stop, a problem or a flag: not the circuit's. */
 const PLAUSIBLE_MS = [8_000, 45_000] as const;
 
-export type MeasuredPitLoss = { greenMs: number; neutralisedMs: number; stops: number };
+/** What a stop costs: at green-flag pace, under a Safety Car or VSC, and the stops measured (0: assumed). */
+export type PitLoss = { greenMs: number; neutralisedMs: number; stops: number };
 
 function median(values: readonly number[]): number | null {
 	const sorted = values.toSorted((a, b) => a - b);
@@ -59,10 +60,10 @@ function stopLoss(laps: ReadonlyMap<number, Lap>, inLap: number): number | null 
 }
 
 /**
- * What a stop has cost at this circuit so far: the median of the session's green-flag stops,
- * each measured on its in-lap and out-lap; null before any.
+ * What a stop costs at this circuit: the median of the session's green-flag stops so far, each
+ * measured on its in-lap and out-lap; before any, the assumed loss above.
  */
-export function measuredPitLoss(snapshot: RaceSnapshot): MeasuredPitLoss | null {
+export function pitLossOf(snapshot: RaceSnapshot): PitLoss {
 	const byDriver = new Map<string, Map<number, Lap>>();
 
 	for (const lap of snapshot.laps) {
@@ -81,7 +82,7 @@ export function measuredPitLoss(snapshot: RaceSnapshot): MeasuredPitLoss | null 
 	const greenMs = median(losses);
 
 	return greenMs === null
-		? null
+		? { greenMs: PIT_LOSS_MS.green, neutralisedMs: PIT_LOSS_MS.neutralised, stops: 0 }
 		: { greenMs, neutralisedMs: greenMs * NEUTRALISED_SHARE, stops: losses.length };
 }
 
@@ -128,9 +129,8 @@ export function predictRejoin(
 	}
 
 	const cheapStop = snapshot.trackStatus === 'vsc' || snapshot.trackStatus === 'safety_car';
-	const measured = measuredPitLoss(snapshot);
-	const green = measured?.greenMs ?? PIT_LOSS_MS.green;
-	const pitLossMs = cheapStop ? (measured?.neutralisedMs ?? PIT_LOSS_MS.neutralised) : green;
+	const loss = pitLossOf(snapshot);
+	const pitLossMs = cheapStop ? loss.neutralisedMs : loss.greenMs;
 	const rejoinGap = subjectGap + pitLossMs;
 	let carAhead: RejoinNeighbour | null = null;
 	let carBehind: RejoinNeighbour | null = null;

@@ -102,6 +102,27 @@ describe('replay positions', () => {
 		assert.equal(replay.sample(ORIGIN + 1000, places), true);
 		assert.deepEqual([...places.keys()], ['1', '44']);
 	});
+	it('asks for a chunk that failed again only after a while, not in a loop', async () => {
+		let asked = 0;
+
+		const replay = new ReplayPositions(MANIFEST, async () => {
+			asked++;
+
+			throw new Error('offline');
+		});
+
+		const failed = new Promise<void>((resolve) => {
+			replay.subscribe(resolve);
+		});
+
+		replay.want(ORIGIN, 0);
+		await failed;
+		replay.want(ORIGIN, 0);
+		replay.want(ORIGIN, 0);
+
+		assert.equal(asked, 1);
+		assert.equal(replay.missing(ORIGIN), true);
+	});
 });
 
 describe('live positions', () => {
@@ -117,5 +138,9 @@ describe('live positions', () => {
 		assert.deepEqual(places.get('44'), { x: 50, y: 50, offTrack: true });
 		assert.equal(buffer.feedTime(500), 1500);
 		assert.equal(buffer.sample(900, places), false, 'nothing is known before the first frame');
+
+		// After a reconnect the frames either side of a gap are not joined across it.
+		buffer.push({ at: 9000, cars: { '1': [400, 0, 1] } }, 8250);
+		assert.equal(buffer.sample(5000, places), false);
 	});
 });

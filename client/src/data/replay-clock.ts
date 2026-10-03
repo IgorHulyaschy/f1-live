@@ -37,7 +37,7 @@ export class ReplayClock {
 	 * clock was last set: for a picture that changes once a second.
 	 */
 	stepped = (at: number, stepMs: number): number =>
-		this.now(this.since + Math.floor((at - this.since) / stepMs) * stepMs);
+		this.now(this.since + Math.max(0, Math.floor((at - this.since) / stepMs)) * stepMs);
 
 	get running(): boolean {
 		return this.rate !== 0;

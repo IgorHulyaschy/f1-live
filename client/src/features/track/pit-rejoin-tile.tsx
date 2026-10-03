@@ -8,6 +8,7 @@ import { TeamStripe } from '@/components/driver-tag';
 import { ProGate } from '@/components/pro-gate';
 import { RaceOnly } from '@/components/race-only';
 import { useRace } from '@/data/race-context';
+import { pitLossOf } from '@/insights/pit-window';
 import { isTimedSession } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
@@ -15,7 +16,7 @@ import { useTileFill } from '../dashboard/tile-fill';
 import { typicalLap } from './estimate';
 import { type CarLook, type ExtraDraw, MapCanvas } from './map-canvas';
 import { MapNote, MapPending, useMapBodyClass, usePlacesNow } from './map-parts';
-import { pitLoss, type Rejoin, rejoinAmong } from './rejoin';
+import { type Rejoin, rejoinAmong } from './rejoin';
 import { toScreen } from './track-draw';
 import { type PlacesSampler, type TrackReady, usePlaces, useTrackData } from './use-track';
 
@@ -125,13 +126,10 @@ function PitRejoinBody({ track }: { track: TrackReady }) {
 	const places = usePlaces(track);
 	const bodyClass = useMapBodyClass();
 
-	// The stops made by the moment on screen: a replay must not learn from stops still to come.
 	const lapMs = React.useMemo(() => typicalLap(snapshot, track.outline), [snapshot, track.outline]);
 
-	const loss = React.useMemo(
-		() => pitLoss(snapshot, track.outline, track.lane, lapMs),
-		[snapshot, track.outline, track.lane, lapMs]
-	);
+	// The stops made by the moment on screen: a replay must not learn from stops still to come.
+	const loss = React.useMemo(() => pitLossOf(snapshot), [snapshot]);
 
 	const neutralised = snapshot.trackStatus === 'vsc' || snapshot.trackStatus === 'safety_car';
 	const lossMs = neutralised ? loss.neutralisedMs : loss.greenMs;
@@ -256,12 +254,9 @@ function PitRejoinBody({ track }: { track: TrackReady }) {
 			) : null}
 			<MapNote places={places}>
 				<span data-testid="pit-loss">
-					A stop costs {(lossMs / 1000).toFixed(1)}s here
-					{neutralised ? ' under the VSC or Safety Car' : ''}:{' '}
-					{loss.source === 'stops'
-						? `measured from ${loss.stops} ${loss.stops === 1 ? 'stop' : 'stops'} this session`
-						: 'worked out from the pit lane, as nobody has stopped yet'}
-					.
+					{loss.stops > 0
+						? `A stop costs ${(lossMs / 1000).toFixed(1)}s here${neutralised ? ' under the VSC or Safety Car' : ''}: measured from ${loss.stops} ${loss.stops === 1 ? 'stop' : 'stops'} this session.`
+						: `Assumes a typical ${(lossMs / 1000).toFixed(1)}s stop${neutralised ? ' under the VSC or Safety Car' : ''} until this session’s stops measure one here.`}
 				</span>
 			</MapNote>
 		</>

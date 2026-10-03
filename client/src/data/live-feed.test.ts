@@ -167,16 +167,21 @@ describe('LiveFeed', () => {
 		);
 		assert.equal(feed.getPositionsLive(), false);
 
-		server.sockets[0]?.handlers.message(
-			'{"v":1,"type":"positions","at":1763870480250,"cars":{"1":[332,198,1]}}'
-		);
-		assert.deepEqual(frames, [1_763_870_480_250]);
+		const at = 1_763_870_480_250;
 
-		// A map opened later gets the recent frames too, for a screen behind a broadcast delay.
+		for (const time of [at, at + 300_000, at + 340_000, at + 340_250]) {
+			server.sockets[0]?.handlers.message(
+				`{"v":1,"type":"positions","at":${time},"cars":{"1":[332,198,1]}}`
+			);
+		}
+
+		assert.deepEqual(frames, [at, at + 300_000, at + 340_000, at + 340_250]);
+
+		// A map opened later gets the last five and a half minutes, for a screen behind a delay.
 		const late: number[] = [];
 		const stopLate = feed.watchPositions((frame) => late.push(frame.at));
 
-		assert.deepEqual(late, [1_763_870_480_250]);
+		assert.deepEqual(late, [at + 300_000, at + 340_000, at + 340_250]);
 		stopLate();
 
 		server.sockets[0]?.handlers.closed();

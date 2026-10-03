@@ -3,13 +3,12 @@ import { describe, it } from 'node:test';
 
 import type { LapTelemetry, RaceControlMessage } from '@f1-live/shared';
 
-import { PIT_LOSS_MS } from '../../insights/pit-window.ts';
+import { PIT_LOSS_MS, pitLossOf } from '../../insights/pit-window.ts';
 import { lapsUntilInRange, roadGapMs, roadNeighbours } from './battle.ts';
 import { bestOf, dominance, miniSectorTimes } from './dominance.ts';
 import { drsZones, openStretches } from './drs-zones.ts';
 import { marshalSectorCount, marshalSpan, sectorFlags } from './flags.ts';
-import { laneGeometry } from './pit-lane.ts';
-import { pitLoss, rejoinAmong } from './rejoin.ts';
+import { rejoinAmong } from './rejoin.ts';
 import { channelAlong, speedMarks } from './speed.ts';
 import { LAS_VEGAS, lapOf, session } from './test-session.ts';
 
@@ -80,24 +79,18 @@ describe('pit rejoin', () => {
 		return lapOf('1', lap, lap * 100, sectors, { pitIn: lap === 10, pitOut: lap === 11 });
 	});
 
-	it('measures the circuit’s loss from the session’s stops', () => {
-		const loss = pitLoss(
-			session(laps, 'race', { pitStops: [{ driverNumber: '1', lap: 10, laneTimeMs: 21_000 }] }),
-			LAS_VEGAS,
-			laneGeometry(LAS_VEGAS),
-			96_000
+	it('measures the circuit’s loss from the session’s stops, and assumes a typical one before', () => {
+		const loss = pitLossOf(
+			session(laps, 'race', { pitStops: [{ driverNumber: '1', lap: 10, laneTimeMs: 21_000 }] })
 		);
 
-		assert.deepEqual([loss.source, loss.stops, loss.greenMs], ['stops', 1, 26_000]);
+		assert.deepEqual([loss.stops, loss.greenMs], [1, 26_000]);
 		assert.equal(loss.neutralisedMs, (26_000 * PIT_LOSS_MS.neutralised) / PIT_LOSS_MS.green);
-	});
-
-	it('works the loss out from the pit lane before anyone has stopped', () => {
-		const loss = pitLoss(session(laps.slice(0, 5)), LAS_VEGAS, laneGeometry(LAS_VEGAS), 96_000);
-
-		// 303 m of lane at 80 km/h, 2.5 s stopped and 3 s slowing, less 310 m of track at 96 s a lap.
-		assert.equal(loss.source, 'lane');
-		assert.ok(loss.greenMs > 13_500 && loss.greenMs < 14_500, String(loss.greenMs));
+		assert.deepEqual(pitLossOf(session(laps.slice(0, 5))), {
+			greenMs: PIT_LOSS_MS.green,
+			neutralisedMs: PIT_LOSS_MS.neutralised,
+			stops: 0
+		});
 	});
 
 	it('places the ghost among the cars by how far round they are', () => {
