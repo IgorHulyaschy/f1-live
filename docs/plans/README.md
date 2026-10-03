@@ -32,6 +32,6 @@ These are tracked here so no plan quietly decides them.
 
 - Every step is its own commit, with tests and a review pass (code, plus design from screenshots).
 - Work lands in Fybex/f1-live-private. Each task has its own branch from `master`, and the
-  coordinator merges it into `master` once its checks and review pass locally; CI then runs on
-  `master`. Task branches never push to `master` themselves.
+  coordinator squashes it into `master` as one commit once its checks and review pass locally; CI
+  then runs on `master`. Task branches never push to `master` themselves.
 - A plan is done when its "Done when" list passes on the hosted preview, not only locally.
