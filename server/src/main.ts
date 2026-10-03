@@ -1,74 +1,158 @@
+import path from 'node:path';
+
 import cors from '@fastify/cors';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import websocket from '@fastify/websocket';
 import Fastify from 'fastify';
-import { Pool } from 'pg';
+import type { FastifyInstance } from 'fastify';
 
-import { onLoad } from './api/http/onLoad.js';
-import { SessionService } from './app/services/session.service.js';
-import { handleDriverList } from './app/use-cases/driver/handleDriverList.use-case.js';
-import { handleSessionInfo } from './app/use-cases/live/handleSessionInfo.use-case.js';
-import { LiveHandlerFactory } from './app/use-cases/live/live.handler.js';
-import { config } from './config.js';
-import { Cache } from './infra/cache/Cache.js';
-import { DriverRepository } from './infra/db/repositories/driver.repository.js';
-import { LapRepository } from './infra/db/repositories/lap.repository.js';
-import { LogRepository } from './infra/db/repositories/log.repository.js';
-import { SessionRepository } from './infra/db/repositories/session.repository.js';
-import { LiveTimingClient } from './infra/f1-client/livetiming.client.js';
-import { Topic } from './infra/f1-client/types/constants.js';
-import { Logger } from './infra/logger/index.js';
-import { WSServer } from './infra/ws/WebSocketSever.js';
+import type { Config } from './config.js';
+import { registerHealth } from './http/health.js';
+import { registerIngest } from './http/ingest.js';
+import { registerLiveSocket } from './http/live-socket.js';
+import { registerStaticData } from './http/static-data.js';
+import { LiveHub } from './live/hub.js';
+import { SessionImporter } from './live/importer.js';
+import { LivePipeline } from './live/pipeline.js';
+import { RelayPusher } from './live/relay.js';
+import { LiveSession } from './live/session.js';
+import type { Backoff, EventLog } from './sources/f1/live.js';
 
-export async function main() {
-	const pool = new Pool({ connectionString: config.database.url });
-	const db = drizzle(pool);
-	const logger = new Logger();
-	const cache = new Cache();
+const RELAY_BACKOFF: Backoff = { initialMs: 500, maxMs: 15_000 };
 
-	const fastify = Fastify();
-	const websocketServer = new WSServer(config.app.wsPort);
+const FEED_BACKOFF: Backoff = { initialMs: 1000, maxMs: 30_000 };
 
-	const driverRepository = new DriverRepository(db);
-	const sessionRepository = new SessionRepository(db);
-	const lapRepository = new LapRepository(db);
-	const logRepository = new LogRepository(db);
+const FEED_STATS_INTERVAL_MS = 60_000;
 
-	const sessionService = new SessionService(cache, sessionRepository);
+/** The viewers only ever send `{"type":"resync"}`. */
+const MAX_VIEWER_MESSAGE_BYTES = 1024;
 
-	const liveTimingClient = new LiveTimingClient(logger, config.livetiming);
+export interface ServerOptions {
+	/** The clock for the recorder and snapshot frames; a replay runs it on session time. */
+	now?: () => number;
+	/** Where raw recordings go; defaults to `<DATA_DIR>/raw`. */
+	rawDir?: string;
+	fetchImpl?: typeof fetch;
+	/** Waits between reconnects to the live feed and pushes to the relay; tests shorten them. */
+	feedBackoff?: Backoff;
+	relayBackoff?: Backoff;
+	/** Replaces the importer that runs when a session ends; null turns it off. */
+	importer?: SessionImporter | null;
+}
 
-	await liveTimingClient.init();
-	liveTimingClient.onMessage(
-		{
-			[Topic.SESSION_INFO]: handleSessionInfo(sessionService, websocketServer),
-			[Topic.DRIVER_LIST]: handleDriverList(driverRepository)
+export interface LiveServer {
+	app: FastifyInstance;
+	session: LiveSession;
+	hub: LiveHub | undefined;
+	/** Starts listening and the background work; resolves to the address. */
+	listen: () => Promise<string>;
+	close: () => Promise<void>;
+}
+
+/** Builds the one server for every mode; nothing runs until `listen`. */
+export async function createServer(
+	config: Config,
+	options: ServerOptions = {}
+): Promise<LiveServer> {
+	const app = Fastify({ logger: { level: config.logLevel } });
+	const log: EventLog = (event, fields) => app.log.info({ event, ...fields }, event);
+	const session = new LiveSession(config.live.logEvents);
+	const serves = config.mode !== 'ingest';
+
+	await app.register(cors, {
+		origin: [...config.corsOrigins],
+		methods: ['GET', 'HEAD', 'OPTIONS']
+	});
+
+	let hub: LiveHub | undefined;
+
+	if (serves) {
+		await app.register(websocket, {
+			options: {
+				maxPayload: MAX_VIEWER_MESSAGE_BYTES,
+				// Browsers state where the page came from; scripts and tools send nothing.
+				verifyClient: ({ origin }, accept) =>
+					accept(!origin || config.corsOrigins.includes(origin), 403, 'origin not allowed')
+			}
+		});
+		hub = new LiveHub(session, {
+			maxBufferBytes: config.ws.maxBufferBytes,
+			pingMs: config.ws.pingMs,
+			log: (event, fields) => app.log.info({ event, ...fields }, event)
+		});
+		registerLiveSocket(app, hub);
+	}
+
+	registerHealth(app, { mode: config.mode, session, hub });
+	registerStaticData(app, config.dataDir);
+
+	if (config.mode === 'relay' && config.relay.secret) {
+		registerIngest(app, session, config.relay.secret);
+	}
+
+	const stop = new AbortController();
+	const tasks: Promise<void>[] = [];
+
+	const importer =
+		options.importer === undefined
+			? config.live.importOnFinish
+				? new SessionImporter({ delayMs: config.live.importDelayMs, log })
+				: null
+			: options.importer;
+
+	/** A background loop that ends on its own is a bug: say so instead of failing silently. */
+	const supervise = (name: string, task: Promise<void>) =>
+		task.catch((cause: unknown) => app.log.error({ err: cause }, `${name} stopped`));
+
+	const start = () => {
+		if (config.mode !== 'relay') {
+			const pipeline = new LivePipeline({
+				session,
+				rawDir: options.rawDir ?? path.join(config.dataDir, 'raw'),
+				feed: {
+					url: config.live.url,
+					stallMs: config.live.stallMs,
+					backoff: options.feedBackoff ?? FEED_BACKOFF,
+					statsIntervalMs: FEED_STATS_INTERVAL_MS,
+					accessToken: config.live.accessToken
+				},
+				log,
+				now: options.now,
+				onSessionEnded: (recording) => importer?.sessionEnded(recording)
+			});
+
+			tasks.push(supervise('live-pipeline', pipeline.run(stop.signal)));
+		}
+
+		if (config.mode === 'ingest' && config.relay.url && config.relay.secret) {
+			const pusher = new RelayPusher(session, {
+				url: config.relay.url,
+				secret: config.relay.secret,
+				backoff: options.relayBackoff ?? RELAY_BACKOFF,
+				log,
+				fetchImpl: options.fetchImpl
+			});
+
+			tasks.push(supervise('relay-pusher', pusher.run(stop.signal)));
+		}
+	};
+
+	return {
+		app,
+		session,
+		hub,
+		listen: async () => {
+			const address = await app.listen({ host: config.host, port: config.port });
+
+			start();
+
+			return address;
 		},
-		new LiveHandlerFactory({
-			cache,
-			lapRepository,
-			logRepository,
-			sessionService,
-			websocketServer
-		})
-	);
-
-	await fastify.register(cors, {
-		// TODO: restrict to the deployed client origin before going live.
-		origin: '*',
-		methods: ['GET']
-	});
-
-	fastify.get('/onLoad', onLoad({ cache, lapRepository, driverRepository, sessionRepository }));
-
-	fastify.addHook('onClose', async () => {
-		liveTimingClient.stop();
-		websocketServer.stop();
-		await pool.end();
-	});
-
-	const address = await fastify.listen({ port: config.app.port });
-
-	logger.info(`Server is running on ${address}`);
-
-	return { liveTimingClient, db };
+		close: async () => {
+			stop.abort();
+			hub?.close();
+			await Promise.all(tasks);
+			await importer?.close();
+			await app.close();
+		}
+	};
 }

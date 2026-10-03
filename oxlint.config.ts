@@ -13,7 +13,6 @@ export default defineConfig({
 		'client/shots/output/**',
 		'test-results/**',
 		'playwright-report/**',
-		'server/migrations/**',
 		'.claude/**',
 		'.agents/**',
 		'tools/oxlint/anti-slop/**'
