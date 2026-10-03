@@ -68,7 +68,7 @@ test('every Track tile reads the race', async ({ page }) => {
 		timeout: 15_000
 	});
 	await expect(page.getByTestId('dominance-legend')).toContainText(/\d+\/22 minis/);
-	await expect(page.getByTestId('flag-list')).toContainText('No yellow flags');
+	await expect(page.getByTestId('flag-list')).toContainText('No sector flags');
 	await expect(page.getByTestId('speed-map-legend')).toContainText('Top speed', {
 		timeout: 15_000
 	});

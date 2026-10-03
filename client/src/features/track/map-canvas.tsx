@@ -192,7 +192,7 @@ export function MapCanvas({
 
 	const draw = React.useCallback(
 		(frameInput: DrawFrame) => {
-			const { ctx, perf, width, height, rem, theme, reducedMotion, elapsed } = frameInput;
+			const { ctx, perf, width, height, rem, theme, reducedMotion, onScreen, elapsed } = frameInput;
 			const frame = places.sample(perf);
 			// Labels sit outside the track, so the circuit keeps room for them round its edge.
 			const fitKey = `${track.outline.circuitKey}/${width}/${height}/${rem}`;
@@ -227,7 +227,7 @@ export function MapCanvas({
 					// an offset from where it was, which dies away.
 					const last = eased.current;
 					const key = watched.join(',');
-					const decay = reducedMotion ? 0 : Math.exp(-elapsed / CAMERA_EASE_MS);
+					const decay = reducedMotion || !onScreen ? 0 : Math.exp(-elapsed / CAMERA_EASE_MS);
 
 					const jumped =
 						last !== null &&
@@ -400,12 +400,13 @@ function cameraTarget(
 
 	const spanX = Math.max(...turned.map(([x]) => x)) - Math.min(...turned.map(([x]) => x));
 	const spanY = Math.max(...turned.map(([, y]) => y)) - Math.min(...turned.map(([, y]) => y));
-	const room = 90 * (rem / 16);
+	const room = Math.min(90 * (rem / 16), Math.min(width, height) / 4);
 
 	const fit = Math.min(
 		(width - room * 2) / Math.max(spanX * base.scale, 1),
 		(height - room * 2) / Math.max(spanY * base.scale, 1)
 	);
 
-	return { centre, zoom: Math.min(6, Math.max(1.4, fit)) };
+	// Never wider than the whole circuit, which always holds every car.
+	return { centre, zoom: Math.min(6, Math.max(1, fit)) };
 }

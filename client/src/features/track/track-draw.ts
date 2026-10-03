@@ -355,8 +355,8 @@ function overlaps(box: Box, placed: readonly Box[]): boolean {
 
 /**
  * Cars as team-colour discs, labelled with their code beside the track, away from the middle of
- * the circuit. Labels that would cover another are left out, except the followed driver's; cars
- * are drawn in `cars` order, so pass the followed one last.
+ * the circuit. Labels that would cover another are left out, except the followed and highlighted
+ * drivers'; cars are drawn in `cars` order, so pass the followed one last.
  */
 export function drawCars(
 	ctx: CanvasRenderingContext2D,
@@ -369,6 +369,8 @@ export function drawCars(
 ): void {
 	const unit = rem / 16;
 	const placed: Box[] = [...reserved];
+	// What no label may cover even where room runs out: labels already set and the followed car.
+	const kept: Box[] = [];
 	const [mx, my] = toScreen(view, middle);
 	const labelFont = `700 ${Math.round(10 * unit)}px "Martian Mono Variable", ui-monospace, monospace`;
 	const screens = cars.map(({ place }) => toScreen(view, [place.x, place.y]));
@@ -379,8 +381,14 @@ export function drawCars(
 	cars.forEach(({ place, style }, index) => {
 		const [x, y] = screens[index] ?? [0, 0];
 		const radius = (style.followed ? 7.5 : style.emphasis ? 6.5 : 5.5) * unit;
+		const disc = { x0: x - radius, y0: y - radius, x1: x + radius, y1: y + radius };
 
-		placed.push({ x0: x - radius, y0: y - radius, x1: x + radius, y1: y + radius });
+		placed.push(disc);
+
+		if (style.followed) {
+			kept.push(disc);
+		}
+
 		ctx.globalAlpha = place.state === 'pit' ? 0.7 : 1;
 		ctx.beginPath();
 		ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -442,45 +450,40 @@ export function drawCars(
 			[oy, -ox]
 		];
 
-		let box: Box | null = null;
-		let fallback: Box | null = null;
-		let first: Box | null = null;
+		// Highlighted cars may set their label further out where the field is bunched.
+		const reaches = rank(style) > 0 ? [1, 2.5] : [1];
 
-		for (const [nx, ny] of sides) {
-			const gap = (style.followed ? 13 : 9) * unit;
-			const cx = x + nx * (gap + width / 2);
-			const cy = y + ny * (gap + height / 2);
+		const candidates = reaches.flatMap((reach) =>
+			sides.map(([nx, ny]): Box => {
+				const gap = (style.followed ? 13 : 9) * unit * reach;
+				const cx = x + nx * (gap + width / 2);
+				const cy = y + ny * (gap + height / 2);
 
-			const candidate = {
-				x0: cx - width / 2,
-				y0: cy - height / 2,
-				x1: cx + width / 2,
-				y1: cy + height / 2
-			};
+				return { x0: cx - width / 2, y0: cy - height / 2, x1: cx + width / 2, y1: cy + height / 2 };
+			})
+		);
 
-			const inside =
-				candidate.x0 >= 0 &&
-				candidate.y0 >= 0 &&
-				candidate.x1 <= view.width &&
-				candidate.y1 <= view.height;
+		const inside = (candidate: Box) =>
+			candidate.x0 >= 0 &&
+			candidate.y0 >= 0 &&
+			candidate.x1 <= view.width &&
+			candidate.y1 <= view.height;
 
-			if (inside && !overlaps(candidate, placed)) {
-				box = candidate;
-				break;
-			}
-
-			fallback ??= inside ? candidate : null;
-			first ??= candidate;
-		}
-
-		// The followed and highlighted cars keep a label even where it must overlap.
-		box ??= rank(style) > 0 ? (fallback ?? first) : null;
+		// A highlighted car's label may cover other cars but never the followed one or a label; the
+		// followed car's label is always drawn.
+		const box =
+			candidates.find((candidate) => inside(candidate) && !overlaps(candidate, placed)) ??
+			(rank(style) > 0
+				? candidates.find((candidate) => inside(candidate) && !overlaps(candidate, kept))
+				: undefined) ??
+			(style.followed ? (candidates.find(inside) ?? candidates[0]) : undefined);
 
 		if (!box) {
 			continue;
 		}
 
 		placed.push(box);
+		kept.push(box);
 
 		if (style.followed) {
 			// The followed driver's chip carries the forward cut that means "this is a car".

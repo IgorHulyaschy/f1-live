@@ -17,6 +17,8 @@ export type DrawFrame = {
 	rem: number;
 	theme: MapTheme;
 	reducedMotion: boolean;
+	/** Off screen no one sees a camera ease, so it lands at once. */
+	onScreen: boolean;
 	/** Milliseconds since the frame before, for easing a camera. */
 	elapsed: number;
 };
@@ -157,6 +159,7 @@ export function TrackCanvas({
 
 	const drawRef = React.useRef(draw);
 	const lastPerf = React.useRef(0);
+	const wake = React.useRef(() => {});
 
 	const paint = React.useCallback(
 		(perf: number) => {
@@ -199,6 +202,7 @@ export function TrackCanvas({
 				rem,
 				theme,
 				reducedMotion,
+				onScreen,
 				elapsed
 			});
 
@@ -209,14 +213,18 @@ export function TrackCanvas({
 
 			return again;
 		},
-		[themeKey, width, height, rem, reducedMotion]
+		[themeKey, width, height, rem, reducedMotion, onScreen]
 	);
 
 	// Every render paints as part of its commit, on screen or not, so a map is never seen blank or
 	// stale when it scrolls into view or the page is captured whole.
 	React.useLayoutEffect(() => {
 		drawRef.current = draw;
-		paint(performance.now());
+
+		// A camera that starts easing in a paused map asks for the frames that land it.
+		if (paint(performance.now()) && onScreen) {
+			wake.current();
+		}
 	});
 
 	// On screen and moving: a frame per display refresh, or once a second with reduced motion.
@@ -226,6 +234,8 @@ export function TrackCanvas({
 
 		if (animate && reducedMotion) {
 			const timer = window.setInterval(() => paint(performance.now()), REDUCED_MOTION_MS);
+
+			wake.current = () => {};
 
 			return () => window.clearInterval(timer);
 		}
@@ -238,20 +248,24 @@ export function TrackCanvas({
 			}
 		};
 
-		if (animate) {
+		// On screen, one frame more lands a camera whose easing the last effect's end cut short.
+		if (animate || onScreen) {
 			frame = requestAnimationFrame(loop);
 		}
 
-		const stop = subscribe?.(() => {
+		wake.current = () => {
 			if (!animate) {
 				cancelAnimationFrame(frame);
 				frame = requestAnimationFrame(loop);
 			}
-		});
+		};
+
+		const stop = subscribe?.(() => wake.current());
 
 		return () => {
 			cancelAnimationFrame(frame);
 			stop?.();
+			wake.current = () => {};
 		};
 	}, [onScreen, moving, reducedMotion, paint, subscribe]);
 

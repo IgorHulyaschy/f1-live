@@ -43,13 +43,13 @@ function MainNav() {
 	const nav = React.useRef<HTMLElement>(null);
 	const { pathname } = useLocation();
 
-	// On a narrow screen the tabs scroll; the one on screen is kept in view.
+	// On a narrow screen the tabs scroll; the one on screen is kept clear of the fade.
 	React.useEffect(() => {
 		const links = nav.current?.querySelectorAll('a') ?? [];
 
 		[...links]
 			.find((link) => link.pathname === pathname)
-			?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+			?.scrollIntoView({ block: 'nearest', inline: 'center' });
 	}, [pathname]);
 
 	return (

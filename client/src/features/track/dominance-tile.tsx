@@ -306,6 +306,9 @@ function DominanceBody({ track, span }: { track: TrackReady; span: DominanceSpan
 		[numbers, times]
 	);
 
+	// Before anyone has set a time there is nothing to count.
+	const decided = result?.winners.filter((winner) => winner !== null).length ?? 0;
+
 	// A second car of the same team is dashed rather than given an invented colour.
 	const dashed = React.useMemo(
 		() =>
@@ -346,20 +349,17 @@ function DominanceBody({ track, span }: { track: TrackReady; span: DominanceSpan
 			</div>
 			<div className="flex flex-wrap items-stretch border-t" data-testid="dominance-legend">
 				{chosen.map((driver) => (
-					<div
-						key={driver.number}
-						className="flex min-w-36 flex-1 items-center gap-3 border-r px-4 py-2"
-					>
+					<div key={driver.number} className="flex flex-auto items-center gap-3 border-r px-4 py-2">
 						<TeamStripe driver={driver} className={cn(dashed.has(driver.number) && 'opacity-60')} />
 						<span className="flex flex-col">
 							<span className="type-wide text-sm font-bold">{driver.code}</span>
 							<span className="type-label whitespace-nowrap">
-								{result
-									? `${result.won.get(driver.number) ?? 0}/${result.winners.filter((winner) => winner !== null).length} ${times?.source === 'sectors' ? 'sectors' : 'minis'}`
+								{result && decided > 0
+									? `${result.won.get(driver.number) ?? 0}/${decided} ${times?.source === 'sectors' ? 'sectors' : 'minis'}`
 									: '-'}
 							</span>
 						</span>
-						{result ? (
+						{result && decided > 0 ? (
 							<Digits
 								value={`+${((result.lostMs.get(driver.number) ?? 0) / 1000).toFixed(3)}`}
 								className="ml-auto text-sm"

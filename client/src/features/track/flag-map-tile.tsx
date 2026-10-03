@@ -147,7 +147,7 @@ function FlagMapBody({ track }: { track: TrackReady }) {
 				>
 					<h3 className="type-label px-4 pt-2.5">Out now</h3>
 					{flags.length === 0 ? (
-						<p className="text-muted-foreground px-4 py-2 text-sm">No yellow flags.</p>
+						<p className="text-muted-foreground px-4 py-2 text-sm">No sector flags.</p>
 					) : (
 						<ol className="flex flex-col">
 							{flags.map((flag) => (
