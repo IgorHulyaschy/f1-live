@@ -28,6 +28,9 @@ export type GapField = {
 /** A car's distance behind, and whether it came from a speed rather than its own telemetry. */
 export type MetreGap = { metres: number; estimated: boolean };
 
+/** One sector's order, from 1. */
+export type SectorGapField = { sector: number; field: GapField };
+
 /** The parts of telemetry the gap reads: the lap's own clock and how fast the car went. */
 export type GapTelemetry = Pick<LapTelemetry, 't' | 'd' | 'speed' | 'lapTimeMs'>;
 
@@ -236,7 +239,7 @@ export function raceGapField(rows: readonly StandingRow[], lengthM: number): Gap
 export function sectorGapFields(
 	laps: readonly Lap[],
 	sectorLengthsM: readonly [number, number, number]
-): [GapField, GapField, GapField] {
+): SectorGapField[] {
 	const field = (sector: 0 | 1 | 2): GapField => {
 		const timed = laps
 			.filter((lap) => lap.sectorTimesMs[sector] > 0)
@@ -262,5 +265,5 @@ export function sectorGapFields(
 		};
 	};
 
-	return [field(0), field(1), field(2)];
+	return ([0, 1, 2] as const).map((sector) => ({ sector: sector + 1, field: field(sector) }));
 }

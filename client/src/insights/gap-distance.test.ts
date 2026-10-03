@@ -123,9 +123,14 @@ describe('best laps by part', () => {
 
 		const sectors = sectorGapFields(bestLaps(bahrain, 3), lengths);
 
-		for (const sector of sectors) {
-			assert.equal(sector.cars[0]?.metres, 0);
-			assert.ok(sector.cars.every((car) => car.metres >= 0));
+		assert.deepEqual(
+			sectors.map((sector) => sector.sector),
+			[1, 2, 3]
+		);
+
+		for (const { field } of sectors) {
+			assert.equal(field.cars[0]?.metres, 0);
+			assert.ok(field.cars.every((car) => car.metres >= 0));
 		}
 	});
 });
