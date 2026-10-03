@@ -17,8 +17,8 @@ it, with the shape listed under [Backend contract](#backend-contract).
 | Strategy   | Tyres and stops          | Lap strip, Replay, Story strip, Stints, Tyre wear, Pit stops, Undercut ledger, Stop cost, Pit crews |
 | Battle     | Your driver's fight      | Lap strip, Replay, Timing, Battle chart, Gaps, Box now                                              |
 | Drivers    | Faces and cars           | Session, Replay, Grid, Driver, Positions chart                                                      |
-| Race story | What happened, and why   | Session, Replay, Story, Positions chart, Championship, Race control, Conditions                     |
 | Pit wall   | A TV or a second monitor | Timing, Focus, Race control, Gap chart, Stints; fit to screen                                       |
+| Race story | What happened, and why   | Session, Replay, Story, Positions chart, Championship, Race control, Conditions                     |
 
 Viewers can edit any of them; Reset puts it back as shipped. There are 25 tiles in 5 groups
 (Race, Drivers, Timing, Analysis, Strategy). Five of them are Pro: Box now, True pace, Tyre wear,

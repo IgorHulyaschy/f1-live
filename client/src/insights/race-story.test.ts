@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import { simulateLasVegas2025 } from '../data/mock/simulate-race.ts';
 import { snapshotAtLap } from '../data/snapshot-at-lap.ts';
+import { minuteTime, sessionClock, snapshotAtTime } from '../data/snapshot-at-time.ts';
 import { classifyPasses, type StoryMark, storyMarks } from './race-story.ts';
 import { fixtureSession } from './test-fixtures.ts';
 
@@ -138,6 +139,17 @@ describe('storyMarks on practice and qualifying', () => {
 		assert.equal(
 			flags.some((mark) => mark.step === 1),
 			false
+		);
+	});
+
+	it('keeps a red flag on every minute while a replay sits in it', () => {
+		const practice = fixtureSession('9852');
+		const clock = sessionClock(practice);
+		const flags = lane(storyMarks(snapshotAtTime(practice, minuteTime(clock, 42))), 'flags');
+
+		assert.deepEqual(
+			flags.filter((mark) => mark.tone === 'red').map((mark) => mark.step),
+			[39, 40, 41, 42]
 		);
 	});
 

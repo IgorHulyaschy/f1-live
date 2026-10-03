@@ -52,7 +52,10 @@ export const METRICS = [
 	{ value: 'versus', label: 'Versus', short: 'Vs' }
 ] as const satisfies readonly { value: Metric; label: string; short: string }[];
 
-/** Narrow tiles print the short names, so every key and the Table key fit on a phone. */
+/**
+ * Narrow tiles print the short names, so every key and the Table key fit on a phone; screen
+ * readers always hear the full one.
+ */
 const METRIC_KEYS = METRICS.map((entry) => ({
 	value: entry.value,
 	label:
@@ -60,8 +63,10 @@ const METRIC_KEYS = METRICS.map((entry) => ({
 			entry.label
 		) : (
 			<>
-				<span className="@md:hidden">{entry.short}</span>
-				<span className="hidden @md:inline">{entry.label}</span>
+				<span aria-hidden className="@md:hidden">
+					{entry.short}
+				</span>
+				<span className="sr-only @md:not-sr-only">{entry.label}</span>
 			</>
 		)
 }));

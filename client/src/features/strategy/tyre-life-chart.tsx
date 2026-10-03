@@ -72,6 +72,8 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 	const fill = useTileFill();
 	const life = React.useMemo(() => tyreLife(snapshot), [snapshot]);
 	const rows = React.useMemo(() => ageRows(life.compounds), [life]);
+	// A compound whose pace when new is not compared keeps its numbers above, off the chart.
+	const drawn = life.compounds.filter((entry) => entry.newOffsetS !== null);
 
 	if (isKnockout(snapshot.session.type)) {
 		return (
@@ -90,7 +92,7 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 	}
 
 	const config: ChartConfig = Object.fromEntries(
-		life.compounds.flatMap((entry) => [
+		drawn.flatMap((entry) => [
 			[
 				entry.compound,
 				{ label: compoundName(entry.compound), color: COMPOUND_COLOUR[entry.compound] }
@@ -140,7 +142,7 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 					className={cn(fill && 'flex-1')}
 					columns={[
 						{ key: 'age', label: 'Tyre age' },
-						...life.compounds.map((entry) => ({
+						...drawn.map((entry) => ({
 							key: entry.compound,
 							label: compoundName(entry.compound),
 							numeric: true
@@ -150,7 +152,7 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 						id: String(row.age),
 						age: `${row.age}`,
 						...Object.fromEntries(
-							life.compounds.map((entry) => {
+							drawn.map((entry) => {
 								const value = row[entry.compound];
 
 								return [entry.compound, value === undefined ? null : formatDeltaSeconds(value, 2)];
@@ -189,7 +191,7 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 								/>
 							}
 						/>
-						{life.compounds.map((entry) =>
+						{drawn.map((entry) =>
 							entry.cliff ? (
 								<ReferenceLine
 									key={`cliff-${entry.compound}`}
@@ -217,7 +219,7 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 								}}
 							/>
 						))}
-						{life.compounds.map((entry) => (
+						{drawn.map((entry) => (
 							<Line
 								key={`fit-${entry.compound}`}
 								dataKey={`fit${entry.compound}`}
@@ -230,7 +232,7 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 								isAnimationActive={false}
 							/>
 						))}
-						{life.compounds.map((entry) => (
+						{drawn.map((entry) => (
 							<Line
 								key={entry.compound}
 								dataKey={entry.compound}
@@ -254,7 +256,7 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 			)}
 			<p className="text-muted-foreground text-xs">
 				Each point is the median lap at that tyre age over every run of five or more clean laps,
-				with the fuel burnt added back and each run’s own pace taken out; dashed, the fitted wear.
+				with the fuel effect taken out and each run’s own pace too; dashed, the fitted wear.
 				{life.comparable
 					? ' Compounds compare through the drivers who ran both.'
 					: ' Practice runs start on their own fuel loads, so only the wear compares.'}

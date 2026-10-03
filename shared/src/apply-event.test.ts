@@ -382,6 +382,18 @@ describe('applyEvent', () => {
 		]);
 	});
 
+	it('puts a radio clip after the flag on the last lap', () => {
+		const snapshot = replay([
+			...started(),
+			{ kind: 'race_distance', at: at(0), totalLaps: 1 },
+			standing(90, '1', 1, 0),
+			lap(102, '1', 1),
+			{ kind: 'team_radio', at: at(200), driverNumber: '1', path: 'TeamRadio/MAXVER01_2.mp3' }
+		]);
+
+		assert.equal(snapshot.teamRadio?.[0]?.lap, 1);
+	});
+
 	it('replaces only the championship places that changed', () => {
 		const snapshot = replay([
 			{

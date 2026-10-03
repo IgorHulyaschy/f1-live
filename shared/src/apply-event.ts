@@ -150,14 +150,20 @@ function upsert<T>(items: readonly T[], item: T, matches: (existing: T) => boole
 	return index === -1 ? [...items, item] : items.with(index, item);
 }
 
-/** The lap a driver was on at `at`: one past the laps it had completed by then. */
+/**
+ * The lap a driver was on at `at`: one past the laps it had completed by then, and no later than
+ * the last lap of a race, so a clip after the flag belongs to the last lap.
+ */
 function lapAt(state: RaceSnapshot, driverNumber: string, at: string): number {
 	const done = state.laps.filter(
 		(lap) =>
 			lap.driverNumber === driverNumber && lap.completedAt !== undefined && lap.completedAt <= at
 	);
 
-	return 1 + Math.max(0, ...done.map((lap) => lap.lap));
+	const lap = 1 + Math.max(0, ...done.map((entry) => entry.lap));
+	const { totalLaps } = state.session;
+
+	return totalLaps > 0 ? Math.min(lap, totalLaps) : lap;
 }
 
 function standingOf(state: RaceSnapshot, driverNumber: string): Standing {

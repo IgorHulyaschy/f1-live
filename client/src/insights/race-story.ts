@@ -174,7 +174,17 @@ function flagMarks(snapshot: RaceSnapshot, clock: SessionClock | null): Mark[] {
 	if (clock) {
 		const log = (snapshot.trackStatusLog ?? []).toSorted((a, b) => a.at.localeCompare(b.at));
 
-		for (let minute = 1; minute <= clock.minutes; minute++) {
+		// Nobody completes a lap under a red flag, so the flags run as far as anything known.
+		const latest = Math.max(
+			minuteTime(clock, clock.minutes),
+			...log.map((change) => Date.parse(change.at)),
+			...(snapshot.statusLog ?? []).map((change) => Date.parse(change.at)),
+			...snapshot.raceControl.flatMap((message) => (message.at ? [Date.parse(message.at)] : []))
+		);
+
+		const minutes = Math.ceil((latest - clock.startMs) / MINUTE_MS);
+
+		for (let minute = 1; minute <= minutes; minute++) {
 			const from = minuteTime(clock, minute - 1);
 			const to = minuteTime(clock, minute);
 			let status: TrackStatus = 'green';

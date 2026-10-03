@@ -188,13 +188,12 @@ function pairOffset(entry: CompoundRuns, other: CompoundRuns): number | null {
 	return median(differences);
 }
 
-/**
- * Each compound's pace when new against the most-run one, linked through any chain of compounds
- * that share drivers. A compound no driver ran with the others is left out.
- */
-function linkedOffsets(entries: readonly CompoundRuns[]): Map<TyreCompound, number> {
-	const reference = entries.toSorted((a, b) => b.runs.length - a.runs.length)[0];
-	const offsets = new Map<TyreCompound, number>(reference ? [[reference.compound, 0]] : []);
+/** The compounds linked to `start` through any chain of shared drivers, with their offsets. */
+function linkedFrom(
+	start: CompoundRuns,
+	entries: readonly CompoundRuns[]
+): Map<TyreCompound, number> {
+	const offsets = new Map<TyreCompound, number>([[start.compound, 0]]);
 	let added = true;
 
 	while (added) {
@@ -222,7 +221,23 @@ function linkedOffsets(entries: readonly CompoundRuns[]): Map<TyreCompound, numb
 }
 
 /**
- * Tyre life per compound from every run of five or more clean laps: the fuel burn added back,
+ * Each compound's pace when new, within the largest group of compounds that share drivers (by
+ * runs). A compound outside that group has no comparable pace when new and is left out.
+ */
+function linkedOffsets(entries: readonly CompoundRuns[]): Map<TyreCompound, number> {
+	const runsIn = (group: ReadonlyMap<TyreCompound, number>) =>
+		entries.reduce((sum, entry) => sum + (group.has(entry.compound) ? entry.runs.length : 0), 0);
+
+	return entries
+		.map((entry) => linkedFrom(entry, entries))
+		.reduce<Map<TyreCompound, number>>(
+			(best, group) => (runsIn(group) > runsIn(best) ? group : best),
+			new Map()
+		);
+}
+
+/**
+ * Tyre life per compound from every run of five or more clean laps: the fuel effect taken out,
  * each run's own level taken out, and the median loss at each tyre age. In a race the compounds
  * share one fuel baseline, so their pace when new is compared through the drivers who ran both,
  * and so is the crossover: the age at which a new set of a compound slower when new is already

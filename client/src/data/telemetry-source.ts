@@ -160,11 +160,19 @@ export function lazyTelemetrySource(load: () => Promise<TelemetrySource>): Telem
 	let loading: Promise<TelemetrySource> | null = null;
 
 	const ready = () => {
-		loading ??= load().then((loaded) => {
-			source = loaded;
+		loading ??= load().then(
+			(loaded) => {
+				source = loaded;
 
-			return loaded;
-		});
+				return loaded;
+			},
+			(error: Error) => {
+				// Forgotten, so the next attempt loads the code again.
+				loading = null;
+
+				throw error;
+			}
+		);
 
 		return loading;
 	};
