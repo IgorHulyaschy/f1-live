@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router';
 
 import { useRace } from '@/data/race-context';
+import { sameItems, useStableValue } from '@/hooks/use-stable-value';
 import type { StandingRow } from '@/insights/standings';
 
 const DEFAULT_COMPARED = 3;
@@ -20,6 +21,11 @@ type CompareContextValue = {
 };
 
 const CompareContext = React.createContext<CompareContextValue | null>(null);
+
+type ComparedDrivers = Pick<CompareContextValue, 'compared' | 'highlighted'>;
+
+/** Only what the charts draw, so they skip changes in the running order that move nobody. */
+const ComparedContext = React.createContext<ComparedDrivers | null>(null);
 
 /**
  * Which drivers the charts compare. Every chart and the compare list share it, so tiles on a
@@ -45,11 +51,18 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
 		return followed && !codes.includes(followed) ? [...codes, followed] : codes;
 	}, [raw, running, followedDriver]);
 
+	const compared = useStableValue(
+		running.map((row) => row.driver).filter((driver) => selected.includes(driver.code)),
+		sameItems
+	);
+
+	const chartValue = React.useMemo(() => ({ compared, highlighted }), [compared, highlighted]);
+
 	const value = React.useMemo<CompareContextValue>(
 		() => ({
 			running,
 			selected,
-			compared: running.map((row) => row.driver).filter((driver) => selected.includes(driver.code)),
+			compared,
 			toggle: (code) => {
 				const next = selected.includes(code)
 					? selected.length > 1
@@ -70,10 +83,24 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
 			highlighted,
 			setHighlighted
 		}),
-		[running, selected, highlighted, setSearchParams, broadcast]
+		[running, selected, compared, highlighted, setSearchParams, broadcast]
 	);
 
-	return <CompareContext.Provider value={value}>{children}</CompareContext.Provider>;
+	return (
+		<CompareContext.Provider value={value}>
+			<ComparedContext.Provider value={chartValue}>{children}</ComparedContext.Provider>
+		</CompareContext.Provider>
+	);
+}
+
+export function useComparedDrivers(): ComparedDrivers {
+	const context = React.useContext(ComparedContext);
+
+	if (!context) {
+		throw new Error('useComparedDrivers must be used within <CompareProvider>');
+	}
+
+	return context;
 }
 
 export function useCompare(): CompareContextValue {

@@ -1,8 +1,9 @@
 import { Digits } from '@/components/console/digits';
+import { EmptyNote } from '@/components/console/empty-note';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { isCleanLap } from '@/insights/clean-laps';
 import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -11,7 +12,7 @@ const SHOWN_LAPS = 8;
 
 /** Each driver's best lap so far, quickest first. */
 export function FastestLaps() {
-	const { snapshot } = useRace();
+	const { snapshot } = useRaceView();
 	const drivers = new Map(snapshot.drivers.map((driver) => [driver.number, driver]));
 	const best = new Map<string, (typeof snapshot.laps)[number]>();
 
@@ -32,6 +33,7 @@ export function FastestLaps() {
 	return (
 		<Panel aria-label="Fastest laps">
 			<PanelHeader title="Fastest laps" meta="best per driver" />
+			{laps.length === 0 ? <EmptyNote /> : null}
 			<ol className="flex max-w-2xl flex-col px-4 py-1">
 				{laps.map((lap, index) => {
 					const driver = drivers.get(lap.driverNumber);

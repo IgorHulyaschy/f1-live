@@ -62,6 +62,8 @@ npm install
 cp client/.env.example client/.env   # VITE_DATA_SOURCE=mock
 npm run dev -w client
 
+# Client on real data: set VITE_DATA_SOURCE=api in client/.env, then run the server below
+
 # Server: live feed, WS /live and saved sessions on one port (3000); no database needed
 cp server/.env.example server/.env   # optional
 npm run dev -w server
@@ -76,21 +78,30 @@ The WebSocket protocol, the ingest/relay split for cloud hosts and the load smok
 
 The mock replay is the 2025 Las Vegas Grand Prix. Grid, stints, race control, weather, VSC laps
 and the order at the flag are real (from `server/data-examples`); lap and sector times are
-modelled and calibrated to the real gaps. Set `VITE_DATA_SOURCE=api` to read from the server.
+modelled and calibrated to the real gaps.
+
+With `VITE_DATA_SOURCE=api` the client reads `catalog.json` and saved sessions from
+`VITE_API_URL` and follows `WS /live` at `VITE_WS_URL`. The Session tile and ⌘K pick any
+season, meeting and session (`?session=<key>` links to one); opening the app during a live
+session goes to it. Live sessions can run behind the feed by a broadcast delay, and spoiler-free
+mode opens sessions at the start with results hidden.
 
 ## Checks
 
-| Command                       | What it runs                                                |
-| ----------------------------- | ----------------------------------------------------------- |
-| `npm run check`               | Typecheck (TypeScript 7), oxlint and Prettier.              |
-| `npm run lint`                | oxlint with the anti-slop and shadcn lint plugins.          |
-| `npm run format`              | Prettier.                                                   |
-| `npm run test:unit -w client` | Node test runner over the mock race and insights.           |
-| `npm run test:e2e`            | Playwright against the mock replay.                         |
-| `npm run shots`               | Screenshots of 10 screens at 6 sizes, free/Pro, dark/light. |
+| Command                       | What it runs                                               |
+| ----------------------------- | ---------------------------------------------------------- |
+| `npm run check`               | Typecheck (TypeScript 7), oxlint and Prettier.             |
+| `npm run lint`                | oxlint with the anti-slop and shadcn lint plugins.         |
+| `npm run format`              | Prettier.                                                  |
+| `npm run test:unit -w client` | Node test runner over the mock race and insights.          |
+| `npm run test:e2e`            | Playwright on the mock replay, then on real data and live. |
+| `npm run shots`               | Screenshots on the mock and on real data, dark/light.      |
 
-Shots land in `client/shots/output/<viewport>/<page>-<plan>-<theme>.png` (not committed) and are
-meant for design and quality audits. If Playwright's own browser is not installed, point it at
+Shots land in `client/shots/output/<viewport>/<page>-<plan>-<theme>.png` and, on real data, in
+`client/shots/output/real/` (not committed); they are meant for design and quality audits. The
+real-data runs (`client/playwright.real.config.ts`) read a committed fixture of the 2025 Las Vegas
+race and qualifying and 2026 Baku qualifying, derived by `client/e2e/real/derive-fixtures.ts`,
+and replay a trimmed race through `replay-live`. If Playwright's own browser is not installed, point it at
 any Chromium with `PW_CHROMIUM_PATH=/path/to/chrome`.
 
 The anti-slop oxlint plugin is vendored in `tools/oxlint/anti-slop` (see `UPSTREAM.md`). shadcn

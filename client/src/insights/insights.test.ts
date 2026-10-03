@@ -4,8 +4,9 @@ import { describe, it } from 'node:test';
 import { simulateLasVegas2025 } from '../data/mock/simulate-race.ts';
 import { snapshotAtLap } from '../data/snapshot-at-lap.ts';
 import { battleAhead } from './battle.ts';
-import { timePenalties } from './penalties.ts';
+import { pitPenalties, timePenalties } from './penalties.ts';
 import { PIT_LOSS_MS, predictRejoin } from './pit-window.ts';
+import { oneSecondAid } from './rules.ts';
 import { standingsAt } from './standings.ts';
 import { stintPaces, tyreCorrectedPace } from './tyre-pace.ts';
 
@@ -95,5 +96,47 @@ describe('timePenalties', () => {
 	it('shows a penalty once and clears it when served', () => {
 		assert.equal(timePenalties(snapshotAtLap(race, 30)).get('23'), 5);
 		assert.equal(timePenalties(snapshotAtLap(race, 40)).has('23'), false);
+	});
+});
+
+describe('pitPenalties', () => {
+	it('shows a drive-through until the lap it is served', () => {
+		const snapshot = {
+			...snapshotAtLap(race, 30),
+			penalties: [
+				{
+					driverNumber: '11',
+					kind: 'drive_through' as const,
+					reason: 'Unsafe release',
+					lap: 9,
+					status: 'served' as const,
+					servedLap: 12
+				}
+			]
+		};
+
+		assert.equal(pitPenalties({ ...snapshot, currentLap: 10 }).get('11'), 'DT');
+		assert.equal(pitPenalties({ ...snapshot, currentLap: 12 }).has('11'), false);
+	});
+});
+
+describe('oneSecondAid', () => {
+	it('is DRS until 2025 and follows race control switching it on and off', () => {
+		assert.deepEqual(oneSecondAid(snapshotAtLap(race, 1)).code, 'DRS');
+		assert.equal(oneSecondAid(snapshotAtLap(race, 30)).enabled, true);
+	});
+
+	it('is overtake mode from 2026', () => {
+		const snapshot = {
+			...snapshotAtLap(race, 30),
+			session: { ...race.session, startsAt: '2026-10-04T07:00:00.000Z' },
+			raceControl: [{ lap: 3, category: 'other' as const, message: 'OVERTAKE DISABLED' }]
+		};
+
+		assert.deepEqual(oneSecondAid(snapshot), {
+			code: 'OVT',
+			name: 'overtake mode',
+			enabled: false
+		});
 	});
 });

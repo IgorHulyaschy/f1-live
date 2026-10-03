@@ -18,11 +18,15 @@ export default defineConfig({
 		{
 			name: 'e2e',
 			testDir: './e2e',
+			// Real-data and live specs run from playwright.real.config.ts.
+			testIgnore: ['real/**', 'live/**'],
 			use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }
 		},
 		{
 			name: 'shots',
 			testDir: './shots',
+			// Real-data shots run from playwright.real.config.ts.
+			testIgnore: 'real.spec.ts',
 			// Shots are an audit artefact, not a gate: they always write fresh files.
 			use: { ...devices['Desktop Chrome'] }
 		}

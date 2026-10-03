@@ -21,7 +21,7 @@ test('the command palette follows a driver by name', async ({ page }) => {
 	await openRace(page);
 
 	await page.keyboard.press('Control+k');
-	await page.getByPlaceholder('Driver, dashboard or lap…').fill('Piastri');
+	await page.getByPlaceholder('Driver, dashboard, session or lap…').fill('Piastri');
 	await page.keyboard.press('Enter');
 
 	await expect(page).toHaveURL(/driver=81/);

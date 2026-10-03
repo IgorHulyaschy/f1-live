@@ -1,24 +1,59 @@
+import { ChevronsUpDownIcon, EyeIcon } from 'lucide-react';
+import * as React from 'react';
+
+import { Key } from '@/components/console/keys';
+import { EmptyNote } from '@/components/console/empty-note';
 import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { LapStrip } from '@/components/lap-strip';
-import { LapCounter, Transport } from '@/components/race-clock';
+import { DelayControl, LapCounter, LiveKey, Transport } from '@/components/race-clock';
 import { TrackStatusBadge } from '@/components/track-status-badge';
-import { useRace } from '@/data/race-context';
+import { formatLocalStart, SESSION_TYPE_LABEL } from '@/data/catalog';
+import { useRaceView } from '@/data/race-context';
+import { useNow } from '@/hooks/use-now';
 
-const SESSION_LABEL = {
-	race: 'Race',
-	sprint: 'Sprint',
-	qualifying: 'Qualifying',
-	sprint_qualifying: 'Sprint Qualifying',
-	practice: 'Practice'
-} as const;
+import { SessionPickerDialog } from './session-picker';
+
+/** "2 d 4 h", "3 h 20 min" or "12 min" until a start. */
+function countdown(fromMs: number, toMs: number): string {
+	const minutes = Math.max(1, Math.ceil((toMs - fromMs) / 60_000));
+	const hours = Math.floor(minutes / 60);
+	const days = Math.floor(hours / 24);
+
+	if (days > 0) {
+		return `${days} d ${hours % 24} h`;
+	}
+
+	return hours > 0 ? `${hours} h ${minutes % 60} min` : `${minutes} min`;
+}
+
+/** Where the data on screen comes from, in a word. */
+function useFeedLabel(): string {
+	const { race, live, sourceKind } = useRaceView();
+	const now = useNow();
+
+	if (live.isLive) {
+		return 'Live';
+	}
+
+	if (sourceKind === 'mock' || race.laps.length > 0) {
+		return 'Replay';
+	}
+
+	return Date.parse(race.session.startsAt) > now ? 'Upcoming' : 'No data';
+}
 
 /**
  * The race title and its facts. Like the replay and lap strip tiles it sits on the page itself,
- * not in a ruled panel: these are the screen's masthead, wherever a viewer moves them.
+ * not in a ruled panel: these are the screen's masthead, wherever a viewer moves them. Its
+ * Sessions key opens the picker for any other session.
  */
 export function SessionTile() {
-	const { race, snapshot, sourceKind } = useRace();
+	const { race, snapshot, sessionError, spoilers } = useRaceView();
+	const [picking, setPicking] = React.useState(false);
 	const year = new Date(race.session.startsAt).getUTCFullYear();
+	const feed = useFeedLabel();
+	const now = useNow();
+	const startsMs = Date.parse(race.session.startsAt);
 
 	return (
 		<section
@@ -30,31 +65,62 @@ export function SessionTile() {
 				{race.session.meetingName.replace(/ Grand Prix$/, '')}
 				<span className="text-muted-foreground"> GP {year}</span>
 			</h2>
-			<div className="flex flex-wrap gap-y-2 divide-x">
+			<div className="flex flex-wrap items-end gap-y-2 divide-x">
 				<Field label="Circuit" className="pr-4">
 					{race.session.circuit}
 				</Field>
 				<Field label="Session" className="px-4">
-					{SESSION_LABEL[race.session.type]}
+					{race.session.name ?? SESSION_TYPE_LABEL[race.session.type]}
 				</Field>
-				<Field label="Feed" className="px-4">
-					{sourceKind === 'mock' ? 'Replay' : 'Live'}
-				</Field>
-				<Field label="Track" className="pl-4">
+				{feed === 'Upcoming' ? (
+					<>
+						<Field label="Starts" className="px-4">
+							{formatLocalStart(race.session.startsAt)}
+						</Field>
+						<Field label="In" className="px-4">
+							{countdown(now, startsMs)}
+						</Field>
+					</>
+				) : (
+					<Field label="Feed" className="px-4">
+						{feed}
+					</Field>
+				)}
+				<Field label="Track" className="px-4">
 					<TrackStatusBadge status={snapshot.trackStatus} />
 				</Field>
+				<div className="flex gap-2 pl-4">
+					<Key onClick={() => setPicking(true)} aria-haspopup="dialog">
+						Sessions
+						<ChevronsUpDownIcon aria-hidden />
+					</Key>
+					{spoilers.hidden ? (
+						<Key onClick={spoilers.reveal} title="Spoiler-free: results are hidden">
+							<EyeIcon aria-hidden />
+							Show results
+						</Key>
+					) : null}
+				</div>
 			</div>
+			{sessionError ? (
+				<p role="alert" className="text-danger text-xs">
+					{sessionError}
+				</p>
+			) : null}
+			<SessionPickerDialog open={picking} onOpenChange={setPicking} />
 		</section>
 	);
 }
 
-/** Transport keys and the lap. */
+/** Transport keys and the lap; on a live session, the live key and the connection. */
 export function ReplayTile() {
 	return (
 		<section
 			aria-label="Replay"
 			className="@container flex h-full min-w-0 flex-wrap items-end justify-between gap-x-5 gap-y-3 py-2 @xs:justify-end"
 		>
+			<DelayControl />
+			<LiveKey />
 			<Transport />
 			<LapCounter />
 		</section>
@@ -62,16 +128,19 @@ export function ReplayTile() {
 }
 
 export function LapStripTile() {
+	const { race, stepUnit } = useRaceView();
+	const empty = stepUnit === 'lap' ? race.session.totalLaps === 0 : race.laps.length === 0;
+
 	return (
 		<section aria-label="Laps" className="flex h-full min-w-0 flex-col justify-end py-1">
-			<LapStrip />
+			{empty ? <EmptyNote className="px-0 py-1" /> : <LapStrip />}
 		</section>
 	);
 }
 
 /** Conditions at the selected lap. */
 export function WeatherTile() {
-	const { snapshot } = useRace();
+	const { snapshot } = useRaceView();
 	const sample = snapshot.weather.at(-1);
 
 	return (

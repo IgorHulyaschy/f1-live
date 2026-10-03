@@ -1,15 +1,16 @@
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { ProGate } from '@/components/pro-gate';
-import { useRace } from '@/data/race-context';
+import { RaceOnly } from '@/components/race-only';
+import { useRaceView } from '@/data/race-context';
 
 import { BoxNow } from './box-now';
 import { GapLadder } from './gap-ladder';
 
 function useFollowedCode() {
-	const { snapshot, followedDriver } = useRace();
+	const { snapshot, followedDriver } = useRaceView();
 	const driver = snapshot.drivers.find((entry) => entry.number === followedDriver);
 
-	return { number: followedDriver, code: driver?.code ?? followedDriver };
+	return { number: followedDriver, code: driver?.code };
 }
 
 /** The gap ladder on its own, for dashboards that keep the full focus panel elsewhere. */
@@ -32,12 +33,14 @@ export function BoxNowPanel() {
 		<Panel aria-label="Pit stop prediction">
 			<PanelHeader title="Box now" meta={code} />
 			<div className="p-4">
-				<ProGate
-					feature="Pit stop prediction"
-					teaser={`Where ${code} comes out if they box this lap, and whether it is into traffic.`}
-				>
-					<BoxNow driverNumber={number} />
-				</ProGate>
+				<RaceOnly what="Pit stop prediction">
+					<ProGate
+						feature="Pit stop prediction"
+						teaser={`Where ${code ?? 'your driver'} comes out if they box this lap, and whether it is into traffic.`}
+					>
+						<BoxNow driverNumber={number} />
+					</ProGate>
+				</RaceOnly>
 			</div>
 		</Panel>
 	);

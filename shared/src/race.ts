@@ -119,6 +119,8 @@ export interface RaceControlMessage {
 	category: RaceControlCategory;
 	message: string;
 	driverNumber?: string;
+	/** When it was published, ISO 8601 UTC. Absent on the modelled replay. */
+	at?: string;
 }
 
 export interface WeatherSample {
@@ -139,6 +141,8 @@ export interface Retirement {
 	driverNumber: string;
 	lap: number;
 	reason: string;
+	/** When the feed reported it, ISO 8601 UTC; before the start means the car did not start. */
+	at?: string;
 }
 
 /** A driver's place in the running order now, refreshed between lap crossings. */
@@ -153,6 +157,12 @@ export interface Standing {
 	inPit: boolean;
 	retired: boolean;
 	disqualified: boolean;
+}
+
+export interface SessionStatusChange {
+	/** ISO 8601, UTC. */
+	at: string;
+	status: SessionStatus;
 }
 
 export interface TrackStatusChange {
@@ -235,6 +245,8 @@ export interface RaceSnapshot {
 	startedAt?: string;
 	/** The running order now, by position. */
 	standings?: readonly Standing[];
+	/** Every change of status, in order; each part of a qualifying session starts with `started`. */
+	statusLog?: readonly SessionStatusChange[];
 	trackStatusLog?: readonly TrackStatusChange[];
 	penalties?: readonly Penalty[];
 	personalBests?: readonly PersonalBest[];

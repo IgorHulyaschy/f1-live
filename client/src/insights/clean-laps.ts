@@ -6,9 +6,14 @@ import type { Lap } from '@f1-live/shared';
  */
 export const FUEL_EFFECT_SECONDS_PER_LAP = 0.055;
 
-/** A lap that represents pace: green flag, not the opening lap, and not an in- or out-lap. */
+/**
+ * A lap that represents pace: timed, green flag, not the opening lap, and not an in- or out-lap.
+ * Outside races the feed leaves some laps untimed, at 0.
+ */
 export function isCleanLap(lap: Lap): boolean {
-	return lap.trackStatus === 'green' && lap.lap > 1 && !lap.pitIn && !lap.pitOut;
+	return (
+		lap.lapTimeMs > 0 && lap.trackStatus === 'green' && lap.lap > 1 && !lap.pitIn && !lap.pitOut
+	);
 }
 
 /** Lap time with the fuel effect removed, i.e. as if driven with an empty tank. */

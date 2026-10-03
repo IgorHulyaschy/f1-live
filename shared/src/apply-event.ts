@@ -37,6 +37,7 @@ export const EMPTY_SNAPSHOT: RaceSnapshot = {
 	retirements: [],
 	status: 'inactive',
 	standings: [],
+	statusLog: [],
 	trackStatusLog: [],
 	penalties: [],
 	personalBests: [],
@@ -52,7 +53,8 @@ export function applyEvent(state: RaceSnapshot, event: RaceEvent): RaceSnapshot 
 			return {
 				...state,
 				status: event.status,
-				startedAt: state.startedAt ?? (event.status === 'started' ? event.at : undefined)
+				startedAt: state.startedAt ?? (event.status === 'started' ? event.at : undefined),
+				statusLog: [...(state.statusLog ?? []), { at: event.at, status: event.status }]
 			};
 		case 'race_distance':
 			return { ...state, session: { ...state.session, totalLaps: event.totalLaps } };
@@ -89,7 +91,10 @@ export function applyEvent(state: RaceSnapshot, event: RaceEvent): RaceSnapshot 
 		case 'track_status':
 			return applyTrackStatus(state, event);
 		case 'race_control':
-			return { ...state, raceControl: [...state.raceControl, event.message] };
+			return {
+				...state,
+				raceControl: [...state.raceControl, { ...event.message, at: event.at }]
+			};
 		case 'weather':
 			return applyWeather(state, event);
 		case 'retirement':
@@ -431,7 +436,7 @@ function applyRetirement(state: RaceSnapshot, event: RetirementEvent): RaceSnaps
 			...state,
 			retirements: [
 				...state.retirements,
-				{ driverNumber: event.driverNumber, lap, reason: event.reason }
+				{ driverNumber: event.driverNumber, lap, reason: event.reason, at: event.at }
 			]
 		},
 		{ ...standing, retired: true }

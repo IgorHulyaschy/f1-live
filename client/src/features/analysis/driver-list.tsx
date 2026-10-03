@@ -1,3 +1,4 @@
+import { EmptyNote } from '@/components/console/empty-note';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { TeamStripe } from '@/components/driver-tag';
 import { cn } from '@/lib/utils';
@@ -11,6 +12,7 @@ export function DriverList() {
 	return (
 		<Panel aria-label="Drivers to compare">
 			<PanelHeader title="Compare" meta={`${selected.length} on chart`} />
+			{rows.length === 0 ? <EmptyNote /> : null}
 			<ul className="flex flex-col @xs:grid @xs:grid-cols-4 @2xl:grid-cols-6">
 				{rows.map((row) => {
 					const isSelected = selected.includes(row.driver.code);

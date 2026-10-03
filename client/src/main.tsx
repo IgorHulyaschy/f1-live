@@ -17,10 +17,10 @@ restoreTheme();
 
 restoreScale();
 
-const source = createRaceSource(
-	raceSourceKindFromEnv(import.meta.env.VITE_DATA_SOURCE),
-	import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
-);
+const source = createRaceSource(raceSourceKindFromEnv(import.meta.env.VITE_DATA_SOURCE), {
+	apiUrl: import.meta.env.VITE_API_URL ?? 'http://localhost:3000',
+	liveUrl: import.meta.env.VITE_WS_URL ?? 'ws://localhost:3000/live'
+});
 
 const router = createBrowserRouter([
 	{

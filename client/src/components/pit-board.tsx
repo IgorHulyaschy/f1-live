@@ -4,6 +4,7 @@ import { TyreBadge } from '@/components/tyre-badge';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useRace } from '@/data/race-context';
 import { battleAhead } from '@/insights/battle';
+import { OUT_LABEL } from '@/insights/standings';
 
 /**
  * The followed driver as a pit board, pinned to the bottom of the screen on phones so the one
@@ -46,7 +47,7 @@ export function PitBoard() {
 			style={{ '--team': `#${row.driver.teamColour}` }}
 		>
 			<span className="bg-team text-background cut-forward type-wide px-3 py-1 text-xl font-black italic">
-				{row.state === 'out' ? 'OUT' : `P${row.position}`}
+				{row.out ? OUT_LABEL[row.out] : `P${row.position}`}
 			</span>
 			<span className="flex min-w-0 flex-col">
 				<span className="type-wide text-sm font-bold">{row.driver.code}</span>
