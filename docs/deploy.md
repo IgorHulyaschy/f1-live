@@ -124,7 +124,7 @@ origin, so neither is needed.
    Check `http://127.0.0.1:3000/health` there, and the relay's `/health`: `seq` rises during a
    session.
 6. **After each session**: the ingest box imports on finish. Run
-   `deploy/scripts/upload-data.sh` there to publish the new `out/` files.
+   `DATA_DIR=<the ingest DATA_DIR> deploy/scripts/upload-data.sh` there (with the bucket variables) to publish the new `out/` files.
 
 Organizational items still open: the brand name (`BRAND_NAME`, emails and payment pages use it),
 the domain, hosting/Stripe/email/Google/Apple accounts, the F1 data-rights agreement and the
@@ -134,10 +134,10 @@ picture licence.
 
 ```sh
 fly launch --no-deploy --copy-config --config deploy/fly/fly.toml --dockerfile server/Dockerfile
-fly postgres create          # or any Postgres; attach it so DATABASE_URL is set
-fly secrets set --config deploy/fly/fly.toml RELAY_SECRET=… BETTER_AUTH_SECRET=… SMTP_URL=… \
+# Create a Postgres (Fly Managed Postgres, or any host) and put its URL in the secrets as DATABASE_URL.
+fly secrets set --config deploy/fly/fly.toml RELAY_SECRET=… DATABASE_URL=… BETTER_AUTH_SECRET=… SMTP_URL=… \
   STRIPE_SECRET_KEY=… STRIPE_WEBHOOK_SECRET=… STRIPE_PRICE_PRO_MONTHLY=… STRIPE_PRICE_PRO_YEARLY=…
-fly deploy --config deploy/fly/fly.toml --dockerfile server/Dockerfile
+fly deploy --ha=false --config deploy/fly/fly.toml --dockerfile server/Dockerfile
 fly certs add api.<domain>   # then the DNS record it prints
 ```
 

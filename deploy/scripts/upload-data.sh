@@ -24,8 +24,8 @@ revalidate='public, max-age=300, must-revalidate'
 sync() { # sync <include pattern> <more aws options...>
 	local pattern="$1"
 	shift
-	aws s3 sync "$out" "s3://$BUCKET/" "${endpoint[@]}" --exclude '*' --include "$pattern" \
-		--cache-control "$revalidate" "$@" "${EXTRA[@]}"
+	aws s3 sync "$out" "s3://$BUCKET/" ${endpoint[@]+"${endpoint[@]}"} --exclude '*' --include "$pattern" \
+		--cache-control "$revalidate" "$@" ${EXTRA[@]+"${EXTRA[@]}"}
 }
 
 EXTRA=("$@")
@@ -37,5 +37,5 @@ sync '*.ndjson.gz' --content-encoding gzip --content-type 'application/x-ndjson;
 sync '*/index.json' --content-type 'application/json; charset=utf-8'
 
 # Last, so the catalog never lists a session whose files are not there yet.
-aws s3 cp "$out/catalog.json" "s3://$BUCKET/catalog.json" "${endpoint[@]}" \
-	--cache-control 'no-cache' --content-type 'application/json; charset=utf-8' "${EXTRA[@]}"
+aws s3 cp "$out/catalog.json" "s3://$BUCKET/catalog.json" ${endpoint[@]+"${endpoint[@]}"} \
+	--cache-control 'no-cache' --content-type 'application/json; charset=utf-8' ${EXTRA[@]+"${EXTRA[@]}"}

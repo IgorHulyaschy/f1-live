@@ -4,7 +4,7 @@
 # than a site's file limits.
 
 [build]
-  command = "npm ci && npm run build -w client && node deploy/scripts/precompress.mjs client/dist && cp deploy/static/_headers deploy/static/_redirects client/dist/"
+  command = "npm ci && npm run build -w client && cp deploy/static/_headers deploy/static/_redirects client/dist/"
   publish = "client/dist"
 
 [build.environment]

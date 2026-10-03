@@ -1,7 +1,7 @@
 # The relay and accounts API on Fly.io. Run from the repository root:
 #   fly launch --no-deploy --copy-config --config deploy/fly/fly.toml --dockerfile server/Dockerfile
 #   fly secrets set --config deploy/fly/fly.toml RELAY_SECRET=... DATABASE_URL=... (docs/deploy.md)
-#   fly deploy --config deploy/fly/fly.toml --dockerfile server/Dockerfile
+#   fly deploy --ha=false --config deploy/fly/fly.toml --dockerfile server/Dockerfile
 # The relay keeps the live session in memory, so it runs as exactly one machine.
 
 app = "pitwall-relay"           # the owner's name for it; it is a global name on fly.io

@@ -11,7 +11,8 @@ services:
     dockerContext: .
     plan: starter
     numInstances: 1
-    healthCheckPath: /ready
+    # /health, not /ready: Render restarts on a failing check, and a database blip should not drop viewers.
+    healthCheckPath: /health
     envVars:
       - key: MODE
         value: relay
