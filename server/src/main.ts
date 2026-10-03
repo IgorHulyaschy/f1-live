@@ -2,7 +2,8 @@ import path from 'node:path';
 
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
-import Fastify from 'fastify';
+import { sql } from 'drizzle-orm';
+import Fastify, { LogController } from 'fastify';
 import type { FastifyInstance } from 'fastify';
 
 import { createAccounts, injectWebhook } from './accounts/accounts.js';
@@ -34,6 +35,8 @@ const MAX_VIEWER_MESSAGE_BYTES = 1024;
 /** Position and car data frames go to opted-in viewers at most this often: 4 a second. */
 const TELEMETRY_INTERVAL_MS = 250;
 
+const PROBE_PATHS: ReadonlySet<string> = new Set(['/health', '/ready']);
+
 export interface ServerOptions {
 	/** The clock for the recorder and snapshot frames; a replay runs it on session time. */
 	now?: () => number;
@@ -61,7 +64,14 @@ export async function createServer(
 	config: Config,
 	options: ServerOptions = {}
 ): Promise<LiveServer> {
-	const app = Fastify({ logger: { level: config.logLevel } });
+	const app = Fastify({
+		logger: { level: config.logLevel },
+		// Probes hit these every few seconds; logging each would bury the real requests.
+		logController: new LogController({
+			disableRequestLogging: (request) => PROBE_PATHS.has(request.url)
+		})
+	});
+
 	const log: EventLog = (event, fields) => app.log.info({ event, ...fields }, event);
 	const session = new LiveSession(config.live.logEvents);
 	const serves = config.mode !== 'ingest';
@@ -111,7 +121,28 @@ export async function createServer(
 		telemetry = new LiveTelemetry(hub, telemetryOptions);
 	}
 
-	registerHealth(app, { mode: config.mode, session, hub });
+	// Once shutdown starts, readiness fails so a load balancer stops sending new viewers here.
+	let draining = false;
+
+	const notReady = async (): Promise<string | null> => {
+		if (draining) {
+			return 'draining';
+		}
+
+		if (accounts) {
+			try {
+				await accounts.db.execute(sql`select 1`);
+			} catch (cause) {
+				app.log.warn({ err: cause }, 'accounts database unreachable');
+
+				return 'accounts database unreachable';
+			}
+		}
+
+		return null;
+	};
+
+	registerHealth(app, { mode: config.mode, session, hub, notReady });
 	registerStaticData(app, config.dataDir);
 
 	if (config.mode === 'relay' && config.relay.secret && hub) {
@@ -190,6 +221,7 @@ export async function createServer(
 			return address;
 		},
 		close: async () => {
+			draining = true;
 			stop.abort();
 			telemetry?.close();
 			hub?.close();

@@ -35,6 +35,9 @@ export function createAuth(config: AccountsConfig, db: AccountsDatabase, mailer:
 			schema: { user, session, account, verification }
 		}),
 		session: { expiresIn: SESSION_SECONDS },
+		advanced: config.cookieDomain
+			? { crossSubDomainCookies: { enabled: true, domain: config.cookieDomain } }
+			: undefined,
 		// An unset provider is left out entirely: no button, no route.
 		socialProviders: { google: google ?? undefined, apple: apple ?? undefined },
 		plugins: [

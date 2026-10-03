@@ -246,3 +246,44 @@ describe('accounts API', () => {
 		assert.deepEqual(documents.documents, []);
 	});
 });
+
+describe('the development mailbox', () => {
+	const BRIDGE_IP = '172.18.0.4';
+
+	/** A relay on a loopback app that asked for a link for one address; returns the mailbox answer. */
+	async function mailboxStatus(extra: Record<string, string>): Promise<number> {
+		const relay = await createServer(
+			testConfig({
+				MODE: 'relay',
+				RELAY_SECRET: 'unit-test-relay-secret',
+				ACCOUNTS_DB: 'memory',
+				APP_URL: APP,
+				...extra
+			})
+		);
+
+		try {
+			await relay.app.inject({
+				method: 'POST',
+				url: '/api/auth/sign-in/magic-link',
+				headers: { origin: APP, 'content-type': 'application/json' },
+				payload: JSON.stringify({ email: 'bridge@example.test', callbackURL: `${APP}/` })
+			});
+
+			const response = await relay.app.inject({
+				method: 'GET',
+				url: '/api/dev/mailbox?to=bridge@example.test',
+				remoteAddress: BRIDGE_IP
+			});
+
+			return response.statusCode;
+		} finally {
+			await relay.close();
+		}
+	}
+
+	it('answers only this machine, unless a stack that publishes on loopback opts in', async () => {
+		assert.equal(await mailboxStatus({}), 404);
+		assert.equal(await mailboxStatus({ DEV_MAILBOX_ANY_IP: 'true' }), 200);
+	});
+});

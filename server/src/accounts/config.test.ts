@@ -77,4 +77,16 @@ describe('accounts settings', () => {
 			/PAYMENTS_PROVIDER/
 		);
 	});
+
+	it('share the session cookie with sibling hosts only when COOKIE_DOMAIN is set', () => {
+		assert.equal(loadConfig({ ACCOUNTS_DB: 'memory' }).accounts?.cookieDomain, null);
+		assert.equal(
+			loadConfig({ ACCOUNTS_DB: 'memory', COOKIE_DOMAIN: 'example.com' }).accounts?.cookieDomain,
+			'example.com'
+		);
+		assert.throws(
+			() => loadConfig({ ACCOUNTS_DB: 'memory', COOKIE_DOMAIN: 'https://example.com/' }),
+			/COOKIE_DOMAIN/
+		);
+	});
 });
