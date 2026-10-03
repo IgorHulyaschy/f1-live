@@ -6,6 +6,7 @@ import { TELEMETRY_VERSION } from '@f1-live/shared';
 import type {
 	LapIndex,
 	LapTelemetry,
+	Point,
 	ReplayChunk,
 	ReplayManifest,
 	TrackOutline
