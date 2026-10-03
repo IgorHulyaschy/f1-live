@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/command';
 import { availability, formatLocalStart, type SessionEntry, sessionEntries } from '@/data/catalog';
 import { useRace } from '@/data/race-context';
+import { useIsRevealed } from '@/data/viewer-settings';
 import { useNow } from '@/hooks/use-now';
 import { useAccountPlan } from '@/features/account/account-store';
 import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
@@ -93,6 +94,7 @@ export function CommandMenu({
 	const keepAwake = keepAwakeStore.useValue();
 	const rows = standings;
 	const now = useNow();
+	const isRevealed = useIsRevealed();
 
 	const sessions = suggestedSessions(
 		catalog ? sessionEntries(catalog) : [],
@@ -120,13 +122,13 @@ export function CommandMenu({
 		}
 	};
 
-	// Neutralised laps are a race's; spoiler-free, only those already shown are offered.
+	// Neutralised laps are a race's; while what lies ahead is hidden, only those shown are offered.
 	const neutralisedLaps = byLap
 		? [
 				...new Set(
 					race.laps
 						.filter(
-							(entry) => entry.trackStatus !== 'green' && (!spoilers.hidden || entry.lap <= lap)
+							(entry) => entry.trackStatus !== 'green' && (!spoilers.hidesAhead || entry.lap <= lap)
 						)
 						.map((entry) => entry.lap)
 				)
@@ -209,7 +211,9 @@ export function CommandMenu({
 											<LiveBadge />
 										) : state === 'upcoming' ? (
 											formatLocalStart(entry.session.startsAt)
-										) : null}
+										) : isRevealed(entry.key) ? null : (
+											'Results hidden'
+										)}
 									</CommandShortcut>
 								</CommandItem>
 							);
@@ -230,7 +234,11 @@ export function CommandMenu({
 						</CommandItem>
 						<CommandItem onSelect={() => run(showLatest)}>
 							<SkipForwardIcon />
-							{byLap ? 'Latest lap' : 'Latest minute'}
+							{spoilers.hidden
+								? 'Jump to the finish (shows results)'
+								: byLap
+									? 'Latest lap'
+									: 'Latest minute'}
 						</CommandItem>
 						{neutralisedLaps.map((neutralised) => (
 							<CommandItem
@@ -256,11 +264,11 @@ export function CommandMenu({
 							Toggle theme
 						</CommandItem>
 						<CommandItem
-							value="spoiler free hide results"
-							onSelect={() => run(() => spoilers.setFree(!spoilers.free))}
+							value="spoiler protection hide results"
+							onSelect={() => run(() => spoilers.setProtect(!spoilers.protect))}
 						>
 							<EyeOffIcon />
-							{spoilers.free ? 'Show results again' : 'Hide results (no spoilers)'}
+							{spoilers.protect ? 'Turn spoiler protection off' : 'Turn spoiler protection on'}
 						</CommandItem>
 						{wakeLockSupported() ? (
 							<CommandItem

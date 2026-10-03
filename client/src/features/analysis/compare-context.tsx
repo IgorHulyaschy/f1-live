@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router';
 import { useRace } from '@/data/race-context';
 import { sameItems, useStableValue } from '@/hooks/use-stable-value';
 import type { StandingRow } from '@/insights/standings';
+import { entryState } from '@/lib/history-entry';
 
 const DEFAULT_COMPARED = 3;
 
@@ -76,7 +77,7 @@ export function CompareProvider({ children }: { children: React.ReactNode }) {
 
 						return params;
 					},
-					{ replace: true }
+					{ replace: true, state: entryState() }
 				);
 				broadcast({ compare: next.join(',') });
 			},

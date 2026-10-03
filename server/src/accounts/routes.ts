@@ -1,4 +1,5 @@
 import { dashboardSchema } from '@f1-live/shared/dashboard';
+import { viewerSettingsSchema } from '@f1-live/shared/viewer';
 import { fromNodeHeaders } from 'better-auth/node';
 import type { FastifyError, FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -14,6 +15,7 @@ import { type Accounts, WEBHOOK_PATH } from './accounts.js';
 import { applyWebhook } from './billing.js';
 import { listDocuments, type WriteOutcome, writeDocument } from './dashboards.js';
 import { customerOf, isLive, planFor, subscriptionsOf } from './entitlements.js';
+import { writeViewerSettings } from './viewer-settings.js';
 
 /** A dashboard document is a few kilobytes; this leaves room and stops abuse. */
 const DASHBOARD_BODY_LIMIT = 256 * 1024;
@@ -243,6 +245,14 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 			);
 
 			return sendOutcome(reply, outcome);
+		});
+
+		// Spoiler settings: the device sends its own, the answer is the account's after merging.
+		scope.put('/api/me/viewer', async (request, reply) => {
+			const user = await signedIn(request);
+			const incoming = viewerSettingsSchema.parse(request.body);
+
+			return reply.send(await writeViewerSettings(db, user.id, incoming));
 		});
 
 		scope.get('/api/me/export', async (request, reply) => {

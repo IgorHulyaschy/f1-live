@@ -4,6 +4,8 @@ import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
 import { useRaceView } from '@/data/race-context';
+import { ACTIONABLE, DriverLink } from '@/features/drill/drill-parts';
+import { useDrill } from '@/features/drill/use-drill';
 import { isCleanLap } from '@/insights/clean-laps';
 import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -28,6 +30,7 @@ export function FastestLaps() {
 		.toSorted((a, b) => a.lapTimeMs - b.lapTimeMs)
 		.slice(0, SHOWN_LAPS);
 
+	const { open } = useDrill();
 	const fastest = laps[0]?.lapTimeMs ?? 0;
 
 	return (
@@ -44,8 +47,21 @@ export function FastestLaps() {
 							className="flex items-center gap-3 border-b py-2 font-mono text-sm last:border-b-0"
 						>
 							<span className="text-muted-foreground w-4 text-right text-xs">{index + 1}</span>
-							{driver ? <DriverTag driver={driver} /> : null}
-							<span className="text-muted-foreground ml-auto text-xs">L{lap.lap}</span>
+							{driver ? (
+								<DriverLink driver={driver}>
+									<DriverTag driver={driver} />
+								</DriverLink>
+							) : null}
+							<button
+								type="button"
+								onClick={() =>
+									open({ kind: 'lap', driverNumber: lap.driverNumber, lap: lap.lap, vs: null })
+								}
+								aria-label={`Open lap ${lap.lap} of ${driver?.code ?? lap.driverNumber}`}
+								className={cn(ACTIONABLE, 'text-muted-foreground ml-auto px-1 text-xs')}
+							>
+								L{lap.lap}
+							</button>
 							<TyreBadge compound={lap.compound} age={lap.tyreAge} />
 							<Digits
 								className={cn('w-20 text-right', index === 0 && 'text-fastest')}

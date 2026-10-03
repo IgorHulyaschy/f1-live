@@ -2,6 +2,7 @@ import { Digits } from '@/components/console/digits';
 import { EmptyNote } from '@/components/console/empty-note';
 import { TeamStripe } from '@/components/driver-tag';
 import { useRace } from '@/data/race-context';
+import { DriverLink } from '@/features/drill/drill-parts';
 import { battleAhead } from '@/insights/battle';
 import { isTimedSession } from '@/insights/qualifying';
 import { ONE_SECOND_MS, oneSecondAid } from '@/insights/rules';
@@ -88,8 +89,10 @@ export function GapLadder() {
 					>
 						<span className="font-mono text-xs">P{row.position}</span>
 						<span className="flex min-w-0 items-center gap-2">
-							<TeamStripe driver={row.driver} />
-							<span className="type-wide text-sm font-bold">{row.driver.code}</span>
+							<DriverLink driver={row.driver} className="flex items-center gap-2">
+								<TeamStripe driver={row.driver} />
+								<span className="type-wide text-sm font-bold">{row.driver.code}</span>
+							</DriverLink>
 							{battle && !isSubject ? <Trend closing={battle.closingSecondsPerLap} /> : null}
 						</span>
 						{isSubject ? (

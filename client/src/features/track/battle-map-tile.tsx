@@ -6,6 +6,7 @@ import { EmptyNote } from '@/components/console/empty-note';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { TeamStripe } from '@/components/driver-tag';
 import { useRace } from '@/data/race-context';
+import { DriverLink } from '@/features/drill/drill-parts';
 import { battleAhead } from '@/insights/battle';
 import { isTimedSession } from '@/insights/qualifying';
 import { ONE_SECOND_MS, oneSecondAid } from '@/insights/rules';
@@ -163,8 +164,10 @@ function RivalReading({
 		<div className="flex min-w-0 flex-col gap-1 px-4 py-2.5" data-testid={`battle-${rival.side}`}>
 			<span className="type-label">{rival.side === 'ahead' ? 'Ahead' : 'Behind'}</span>
 			<span className="flex items-center gap-2">
-				<TeamStripe driver={rival.driver} />
-				<span className="type-wide text-sm font-bold">{rival.driver.code}</span>
+				<DriverLink driver={rival.driver} className="flex items-center gap-2">
+					<TeamStripe driver={rival.driver} />
+					<span className="type-wide text-sm font-bold">{rival.driver.code}</span>
+				</DriverLink>
 				{intervalS === null ? (
 					<span className="text-muted-foreground font-mono text-sm">-</span>
 				) : (

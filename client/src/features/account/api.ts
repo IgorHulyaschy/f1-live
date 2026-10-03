@@ -1,5 +1,6 @@
 import { dashboardSchema } from '@f1-live/shared/dashboard';
 import { BILLING_INTERVALS, type BillingInterval, PLAN_IDS } from '@f1-live/shared/plans';
+import { type ViewerSettings, viewerSettingsSchema } from '@f1-live/shared/viewer';
 import { z } from 'zod';
 
 import type { PushOp, PushOutcome, RemoteDoc } from './sync-rules';
@@ -231,6 +232,11 @@ export async function pushDocument(op: PushOp): Promise<PushOutcome> {
 	}
 
 	return { kind: 'saved', document: (await json(response, documentReply)).document };
+}
+
+/** Sends this device's spoiler settings; the answer is the account's, merged. */
+export async function pushViewerSettings(settings: ViewerSettings): Promise<ViewerSettings> {
+	return json(await send('PUT', '/api/me/viewer', JSON.stringify(settings)), viewerSettingsSchema);
 }
 
 /** The provider's checkout page for Pro. */

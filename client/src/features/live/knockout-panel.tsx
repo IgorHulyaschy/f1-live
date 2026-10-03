@@ -6,6 +6,7 @@ import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
 import { useRace } from '@/data/race-context';
+import { DriverLink } from '@/features/drill/drill-parts';
 import { useScreenTime } from '@/hooks/use-screen-time';
 import {
 	gapToCut,
@@ -82,7 +83,9 @@ function DropZone({ state, onTrackNow }: { state: Knockout; onTrackNow: Readonly
 									{row.position}
 								</td>
 								<td>
-									<DriverTag driver={row.driver} />
+									<DriverLink driver={row.driver}>
+										<DriverTag driver={row.driver} />
+									</DriverLink>
 								</td>
 								<td className="pr-3 text-right">
 									{gap === null ? (
@@ -134,7 +137,9 @@ function KnockedOut({ rows }: { rows: readonly StandingRow[] }) {
 								<span className="text-muted-foreground w-5 text-right font-mono text-xs">
 									{row.position}
 								</span>
-								<DriverTag driver={row.driver} />
+								<DriverLink driver={row.driver}>
+									<DriverTag driver={row.driver} />
+								</DriverLink>
 								<span className="ml-auto">
 									{own === null || cutTime === null ? (
 										<span className="type-label">{row.out ? OUT_LABEL[row.out] : 'No time'}</span>
@@ -190,7 +195,9 @@ export function KnockoutPanel() {
 				<Field label={part === 3 ? 'Pole' : `${label} fastest`} className="px-4 py-2">
 					{state.pole ? (
 						<span className="flex items-center gap-2">
-							<DriverTag driver={state.pole.driver} />
+							<DriverLink driver={state.pole.driver}>
+								<DriverTag driver={state.pole.driver} />
+							</DriverLink>
 							{poleTime === null ? null : <Digits value={formatLapTime(poleTime)} />}
 						</span>
 					) : (
@@ -200,7 +207,9 @@ export function KnockoutPanel() {
 				{state.cutRow ? (
 					<Field label={`Cut, P${state.cutAfter}`} className="px-4 py-2">
 						<span className="flex items-center gap-2">
-							<DriverTag driver={state.cutRow.driver} />
+							<DriverLink driver={state.cutRow.driver}>
+								<DriverTag driver={state.cutRow.driver} />
+							</DriverLink>
 							{cutTime === null ? null : <Digits value={formatLapTime(cutTime)} />}
 						</span>
 					</Field>
@@ -211,7 +220,9 @@ export function KnockoutPanel() {
 						className="col-span-2 border-t px-4 py-2 @sm:col-span-1 @sm:border-t-0"
 					>
 						<span className="flex items-center gap-2" data-testid="knockout-you">
-							<DriverTag driver={you.driver} />
+							<DriverLink driver={you.driver}>
+								<DriverTag driver={you.driver} />
+							</DriverLink>
 							{showToCut ? (
 								<span className="text-xs">
 									<Digits value={formatSignedGap(youToCut)} /> to cut
@@ -249,7 +260,9 @@ export function KnockoutPanel() {
 									<span className="type-label">
 										{ago < 60_000 ? 'Now' : `${Math.floor(ago / 60_000)} min`}
 									</span>
-									<DriverTag driver={entry.driver} />
+									<DriverLink driver={entry.driver}>
+										<DriverTag driver={entry.driver} />
+									</DriverLink>
 									<span className="font-mono text-xs">
 										{entry.from === null ? 'New' : `P${entry.from}`} → P{entry.to}
 									</span>

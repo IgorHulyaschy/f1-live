@@ -30,6 +30,8 @@ import { shareUrl } from '@/features/library/share';
 import { useRace, useRaceView } from '@/data/race-context';
 import { type SyncStatus, useSyncStatus } from '@/features/account/dashboard-sync';
 import { WelcomeBanner } from '@/features/library/welcome';
+import { SpoilerStart } from '@/features/session/spoiler-start';
+import { entryState } from '@/lib/history-entry';
 
 import { forgetDashboard, newId, saveDashboard, useDashboards } from './dashboard-store';
 import { DashboardGrid } from './dashboard-grid';
@@ -351,7 +353,7 @@ export function DashboardPage({ id: fixedId }: { id?: string }) {
 
 				return current;
 			},
-			{ replace: true }
+			{ replace: true, state: entryState() }
 		);
 
 	if (!dashboard) {
@@ -366,6 +368,7 @@ export function DashboardPage({ id: fixedId }: { id?: string }) {
 	return (
 		<div data-testid={`dashboard-${dashboard.id}`}>
 			{isPreset(dashboard.id) ? <WelcomeBanner /> : null}
+			<SpoilerStart />
 			<SessionOffer dashboard={dashboard} />
 			<DashboardBar
 				dashboard={dashboard}

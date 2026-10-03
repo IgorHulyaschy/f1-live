@@ -42,8 +42,13 @@ export function useRaceHotkeys(openCommand: () => void): void {
 				return;
 			}
 
-			// Leave keys alone while a menu or dialog is handling them.
-			if (document.querySelector('[role="dialog"], [role="listbox"], [role="menu"]')) {
+			// Leave keys alone while a menu or dialog is handling them; the driver and lap sheet sits
+			// beside the dashboard, so the replay keys still work with it open.
+			if (
+				document.querySelector(
+					'[role="dialog"]:not([data-drill-sheet]), [role="listbox"], [role="menu"]'
+				)
+			) {
 				return;
 			}
 
