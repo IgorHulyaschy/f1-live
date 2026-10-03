@@ -11,6 +11,7 @@
 		"record": "tsx --env-file-if-exists=.env ./src/cli/record.ts",
 		"import": "tsx --env-file-if-exists=.env ./src/cli/import.ts",
 		"rebuild": "tsx --env-file-if-exists=.env ./src/cli/rebuild.ts",
+		"telemetry": "tsx --env-file-if-exists=.env ./src/cli/telemetry.ts",
 		"typecheck": "tsc --noEmit",
 		"test:unit": "node --import tsx --test 'src/**/*.test.ts'",
 		"fetch:f1": "tsx ./src/cli/fetch-f1.ts",

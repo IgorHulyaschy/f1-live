@@ -44,7 +44,7 @@ export const F1_TOPICS = [
 ] as const;
 
 /** Collections keyed by racing number or index, without the feed's `_kf` and `_deleted` markers. */
-function keyed<T extends z.ZodType>(item: T) {
+export function keyed<T extends z.ZodType>(item: T) {
 	return z.record(z.string(), z.unknown()).transform((record, context) => {
 		const entries: [string, z.output<T>][] = [];
 
@@ -68,7 +68,7 @@ function keyed<T extends z.ZodType>(item: T) {
 }
 
 /** Lists arrive as arrays in full updates and as objects keyed by index in partial ones. */
-function indexed<T extends z.ZodType>(item: T) {
+export function indexed<T extends z.ZodType>(item: T) {
 	return z.union([
 		z.array(item).transform((items) => items.map((value, index) => [index, value] as const)),
 		keyed(item).transform((entries) => entries.map(([key, value]) => [Number(key), value] as const))

@@ -15,6 +15,7 @@ import { SessionImporter } from './live/importer.js';
 import { LivePipeline } from './live/pipeline.js';
 import { RelayPusher } from './live/relay.js';
 import { LiveSession } from './live/session.js';
+import { LiveTelemetry } from './telemetry/live.js';
 import type { Backoff, EventLog } from './sources/f1/live.js';
 
 const RELAY_BACKOFF: Backoff = { initialMs: 500, maxMs: 15_000 };
@@ -23,8 +24,11 @@ const FEED_BACKOFF: Backoff = { initialMs: 1000, maxMs: 30_000 };
 
 const FEED_STATS_INTERVAL_MS = 60_000;
 
-/** The viewers only ever send `{"type":"resync"}`. */
+/** Viewers send `resync`, `subscribe` and `unsubscribe`: all short. */
 const MAX_VIEWER_MESSAGE_BYTES = 1024;
+
+/** Position and car data frames go to opted-in viewers at most this often: 4 a second. */
+const TELEMETRY_INTERVAL_MS = 250;
 
 export interface ServerOptions {
 	/** The clock for the recorder and snapshot frames; a replay runs it on session time. */
@@ -64,6 +68,7 @@ export async function createServer(
 	});
 
 	let hub: LiveHub | undefined;
+	let telemetry: LiveTelemetry | undefined;
 
 	if (serves) {
 		await app.register(websocket, {
@@ -80,6 +85,10 @@ export async function createServer(
 			log: (event, fields) => app.log.info({ event, ...fields }, event)
 		});
 		registerLiveSocket(app, hub);
+		telemetry = new LiveTelemetry(hub, {
+			intervalMs: TELEMETRY_INTERVAL_MS,
+			onError: (reason) => app.log.warn({ reason }, 'telemetry-frame-failed')
+		});
 	}
 
 	registerHealth(app, { mode: config.mode, session, hub });
@@ -117,7 +126,8 @@ export async function createServer(
 				},
 				log,
 				now: options.now,
-				onSessionEnded: (recording) => importer?.sessionEnded(recording)
+				onSessionEnded: (recording) => importer?.sessionEnded(recording),
+				onTelemetry: (topic, payload) => telemetry?.ingest(topic, payload)
 			});
 
 			tasks.push(supervise('live-pipeline', pipeline.run(stop.signal)));
@@ -149,6 +159,7 @@ export async function createServer(
 		},
 		close: async () => {
 			stop.abort();
+			telemetry?.close();
 			hub?.close();
 			await Promise.all(tasks);
 			await importer?.close();

@@ -1,8 +1,14 @@
 import type { RaceEvent } from '@f1-live/shared';
 import type { WebSocket } from 'ws';
 
-import { PROTOCOL_VERSION, isResyncRequest } from './protocol.js';
-import type { EventsMessage, HeartbeatMessage, ResumeQuery } from './protocol.js';
+import { CHANNELS, PROTOCOL_VERSION, parseClientMessage } from './protocol.js';
+import type {
+	Channel,
+	ChannelsMessage,
+	EventsMessage,
+	HeartbeatMessage,
+	ResumeQuery
+} from './protocol.js';
 import type { LiveSession, SessionUpdate } from './session.js';
 
 export interface HubOptions {
@@ -16,6 +22,8 @@ export interface HubOptions {
 interface Viewer {
 	socket: WebSocket;
 	alive: boolean;
+	/** The opt-in channels this viewer asked for. */
+	channels: Set<Channel>;
 }
 
 /**
@@ -35,6 +43,10 @@ export class LiveHub {
 	private flushScheduled = false;
 	private stateCache: { epoch: string; seq: number; text: string } | null = null;
 	private slowDrops = 0;
+	/** Per channel: whether the feed has sent it, and the last message so a new subscriber has one. */
+	private readonly channelState = new Map<Channel, { live: boolean; latest: string | null }>(
+		CHANNELS.map((channel) => [channel, { live: false, latest: null }])
+	);
 
 	constructor(session: LiveSession, options: HubOptions) {
 		this.session = session;
@@ -55,7 +67,7 @@ export class LiveHub {
 
 	/** Greets a new viewer with the state, or with the events it missed when `resume` allows it. */
 	attach(socket: WebSocket, resume: ResumeQuery | null) {
-		const viewer: Viewer = { socket, alive: true };
+		const viewer: Viewer = { socket, alive: true, channels: new Set() };
 		const missed = resume && this.session.resume(resume.epoch, resume.since);
 
 		this.viewers.add(viewer);
@@ -65,14 +77,63 @@ export class LiveHub {
 		socket.on('message', (data) => {
 			viewer.alive = true;
 
-			if (isResyncRequest(data.toString())) {
+			const message = parseClientMessage(data.toString());
+
+			if (message?.type === 'resync') {
 				this.send(viewer, this.stateText());
+			} else if (message?.type === 'subscribe') {
+				viewer.channels.add(message.channel);
+				this.send(viewer, this.channelsText(viewer));
+
+				const latest = this.channelState.get(message.channel)?.latest;
+
+				if (latest) {
+					this.send(viewer, latest);
+				}
+			} else if (message?.type === 'unsubscribe') {
+				viewer.channels.delete(message.channel);
+				this.send(viewer, this.channelsText(viewer));
 			}
 		});
 		socket.on('close', () => this.viewers.delete(viewer));
 		socket.on('error', () => this.drop(viewer, 'error'));
 
 		this.send(viewer, missed ? JSON.stringify(missed) : this.stateText());
+	}
+
+	/** Whether any viewer receives `channel`: when none does, nobody needs it decoded. */
+	wants(channel: Channel): boolean {
+		return [...this.viewers].some((viewer) => viewer.channels.has(channel));
+	}
+
+	/** The feed sent data for `channel`; viewers are told so when they subscribe. */
+	markLive(channel: Channel) {
+		const state = this.channelState.get(channel);
+
+		if (state && !state.live) {
+			state.live = true;
+
+			for (const viewer of this.viewers) {
+				if (viewer.channels.has(channel)) {
+					this.send(viewer, this.channelsText(viewer));
+				}
+			}
+		}
+	}
+
+	/** Sends one message to the viewers subscribed to `channel`, and keeps it for the next one. */
+	publish(channel: Channel, text: string) {
+		const state = this.channelState.get(channel);
+
+		if (state) {
+			state.latest = text;
+		}
+
+		for (const viewer of this.viewers) {
+			if (viewer.channels.has(channel)) {
+				this.send(viewer, text);
+			}
+		}
 	}
 
 	close() {
@@ -119,6 +180,19 @@ export class LiveHub {
 		}
 
 		return this.stateCache.text;
+	}
+
+	private channelsText(viewer: Viewer): string {
+		const live = (channel: Channel) => this.channelState.get(channel)?.live ?? false;
+
+		const message: ChannelsMessage = {
+			v: PROTOCOL_VERSION,
+			type: 'channels',
+			subscribed: CHANNELS.filter((channel) => viewer.channels.has(channel)),
+			live: { positions: live('positions'), car_data: live('car_data') }
+		};
+
+		return JSON.stringify(message);
 	}
 
 	private send(viewer: Viewer, text: string) {
