@@ -5,7 +5,12 @@ import { runImport } from '../import/run.js';
 import { DEFAULT_DATA_DIR } from '../sinks/files.js';
 
 const { values } = parseArgs({
-	options: { 'data-dir': { type: 'string' }, now: { type: 'string' } }
+	allowNegative: true,
+	options: {
+		'data-dir': { type: 'string' },
+		now: { type: 'string' },
+		telemetry: { type: 'boolean', default: true }
+	}
 });
 
 const dataDir = values['data-dir'] ?? process.env.DATA_DIR ?? DEFAULT_DATA_DIR;
@@ -21,7 +26,10 @@ function log(message: string): void {
 }
 
 // No network: every output is derived again from the raw files and the saved OpenF1 results.
-const report = await runImport({ kind: 'local' }, { dataDir, offline: true, now, log });
+const report = await runImport(
+	{ kind: 'local' },
+	{ dataDir, offline: true, telemetry: values.telemetry, now, log }
+);
 
 log(`\n${formatReport(report, await hashOutputs(dataDir))}`);
 

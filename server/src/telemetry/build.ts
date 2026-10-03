@@ -15,7 +15,7 @@ import {
 	manifestJson,
 	readOutline,
 	replaceFolder,
-	telemetryDir,
+	sessionTelemetryDir,
 	writeOutline
 } from './files.js';
 import type { SessionManifest } from './files.js';
@@ -298,12 +298,11 @@ export async function buildTelemetry(options: BuildOptions): Promise<TelemetryRe
 	const replayFiles = replay.chunks.map(({ file, chunk }) => ({ file, bytes: gzipJson(chunk) }));
 	const hasCarData = carData.size > 0;
 
-	await replaceFolder(path.join(telemetryDir(dataDir), String(key)), async (folder) => {
+	await replaceFolder(sessionTelemetryDir(dataDir, key), async (folder) => {
 		const manifest: SessionManifest = {
 			v: TELEMETRY_VERSION,
 			sessionKey: key,
 			circuitKey,
-			builtAt: new Date().toISOString(),
 			hasCarData,
 			laps: 'laps.json.gz',
 			replay: 'replay/index.json'
@@ -398,8 +397,8 @@ function isOffLength(entry: LapIndexEntry, lengthM: number): boolean {
 
 /**
  * The circuit's outline and every car's distance along it. A saved outline is used as it is;
- * otherwise it is drawn from the session's cleanest lap, started at the line the lap crossings
- * show, and given its sectors and pit lane.
+ * otherwise it is drawn, saved, and read back, so a build that drew the outline and one that
+ * reused it measure the laps against the same points and give the same bytes.
  */
 async function findCircuit(
 	options: BuildOptions,
@@ -407,19 +406,39 @@ async function findCircuit(
 	tracks: ReadonlyMap<string, PositionTrack>,
 	circuitKey: string
 ): Promise<Circuit> {
+	const { dataDir } = options;
+	let outline = options.rebuildOutline ? null : await readOutline(dataDir, circuitKey);
+	const reused = outline !== null;
+
+	if (outline === null) {
+		await drawOutline(options, facts, tracks, circuitKey);
+		outline = await readOutline(dataDir, circuitKey);
+	}
+
+	if (outline === null) {
+		throw new Error(`The outline of circuit ${circuitKey} cannot be read back`);
+	}
+
+	const cars = carDistances(outline, tracks);
+	const { latencyMs } = locateStartFinish(outline.lengthM, cars, crossingsOf(facts.snapshot), 0);
+	const windows = lapWindows(facts.snapshot, cars, outline.lengthM, latencyMs);
+
+	return { outline, cars, windows, reused, latencyMs };
+}
+
+/**
+ * Draws the circuit from the session's cleanest lap, started at the line the lap crossings show,
+ * gives it its sectors and pit lane, and saves it.
+ */
+async function drawOutline(
+	options: BuildOptions,
+	facts: SessionFacts,
+	tracks: ReadonlyMap<string, PositionTrack>,
+	circuitKey: string
+): Promise<void> {
 	const { dataDir, key } = options;
 	const { snapshot } = facts;
 	const crossings = crossingsOf(snapshot);
-	const saved = options.rebuildOutline ? null : await readOutline(dataDir, circuitKey);
-
-	if (saved !== null) {
-		const cars = carDistances(saved, tracks);
-		const { latencyMs } = locateStartFinish(saved.lengthM, cars, crossings, 0);
-
-		const windows = lapWindows(snapshot, cars, saved.lengthM, latencyMs);
-
-		return { outline: saved, cars, windows, reused: true, latencyMs };
-	}
 
 	const lap = cleanestLap(snapshot);
 	const track = tracks.get(lap?.driverNumber ?? '');
@@ -481,8 +500,6 @@ async function findCircuit(
 	};
 
 	await writeOutline(dataDir, outline);
-
-	return { outline, cars, windows, reused: false, latencyMs: line.latencyMs };
 }
 
 /**

@@ -1,5 +1,14 @@
 import assert from 'node:assert/strict';
-import { cpSync, existsSync, mkdtempSync, readFileSync, appendFileSync, rmSync } from 'node:fs';
+import {
+	appendFileSync,
+	cpSync,
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -8,11 +17,18 @@ import { gunzipSync } from 'node:zlib';
 import type { RaceEvent, RaceSnapshot } from '@f1-live/shared';
 
 import { errorsPathOf, eventsPathOf, snapshotPathOf } from '../sinks/files.js';
+import { sessionTelemetryDir } from '../telemetry/files.js';
 import type { CorrectionSource } from './corrections.js';
 import { ingestSession } from './ingest.js';
 
 /** A trimmed copy of the 2025 Las Vegas race (key 9858): four drivers, every topic the decoder reads. */
 const FIXTURE = path.join(import.meta.dirname, '../sources/f1/fixtures/2025-las-vegas-race');
+
+/** Ten seconds of Position.z and CarData.z of the same race: telemetry without a lap to build from. */
+const TELEMETRY_FIXTURE = path.join(
+	import.meta.dirname,
+	'../sources/f1/fixtures/2025-las-vegas-telemetry'
+);
 
 const roots: string[] = [];
 
@@ -51,6 +67,16 @@ function readEvents(dataDir: string): RaceEvent[] {
 
 function readSnapshot(dataDir: string): RaceSnapshot {
 	return JSON.parse(gunzipSync(readFileSync(snapshotPathOf(dataDir, 9858))).toString('utf8'));
+}
+
+/** Leaves a session's telemetry folder behind, as an earlier build would; returns its manifest. */
+function leaveTelemetry(dataDir: string): string {
+	const index = path.join(sessionTelemetryDir(dataDir, 9858), 'index.json');
+
+	mkdirSync(path.dirname(index), { recursive: true });
+	writeFileSync(index, '{}');
+
+	return index;
 }
 
 describe('ingestSession', () => {
@@ -142,5 +168,49 @@ describe('ingestSession', () => {
 		await assert.rejects(
 			ingestSession({ rawDir: newRoot(), key: 1, dataDir: newRoot(), corrections: [] })
 		);
+	});
+
+	describe('telemetry', () => {
+		it('skips a session without Position.z and removes the folder an earlier build left', async () => {
+			const dataDir = newRoot();
+			const index = leaveTelemetry(dataDir);
+
+			const result = await ingestSession({ rawDir: FIXTURE, key: 9858, dataDir, corrections: [] });
+
+			assert.equal(result.telemetry.status, 'skipped');
+			assert.equal(existsSync(index), false);
+		});
+
+		it('leaves telemetry alone when it is turned off', async () => {
+			const dataDir = newRoot();
+			const index = leaveTelemetry(dataDir);
+
+			const result = await ingestSession({
+				rawDir: FIXTURE,
+				key: 9858,
+				dataDir,
+				corrections: [],
+				telemetry: false
+			});
+
+			assert.deepEqual(result.telemetry, { status: 'off' });
+			assert.equal(existsSync(index), true);
+		});
+
+		it('writes the events and the snapshot when the telemetry cannot be built, and keeps what was built before', async () => {
+			const dataDir = newRoot();
+			const rawDir = path.join(newRoot(), 'session');
+			const index = leaveTelemetry(dataDir);
+
+			cpSync(FIXTURE, rawDir, { recursive: true });
+			cpSync(TELEMETRY_FIXTURE, rawDir, { recursive: true });
+
+			const result = await ingestSession({ rawDir, key: 9858, dataDir, corrections: [] });
+
+			assert.equal(result.telemetry.status, 'failed');
+			assert.ok(result.events > 0);
+			assert.equal(readSnapshot(dataDir).session.id, '9858');
+			assert.equal(existsSync(index), true);
+		});
 	});
 });

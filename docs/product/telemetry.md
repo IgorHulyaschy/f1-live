@@ -13,15 +13,27 @@ npm run fetch:f1 -w server -- 9858                 # raw archive, once
 npm run telemetry -w server -- --key 9858 [--svg out.svg] [--rebuild-outline]
 ```
 
-From code (the import should call this once a session is saved; it is not wired in yet because the
-import CLI is separate work; a session without `Position.z` gives
-`{ status: 'skipped', reason }` and is not an error):
+The import builds it for you. `npm run import` and `npm run rebuild` call `buildTelemetry` for
+every session whose raw files have `Position.z`, after the events and the snapshot; the live
+server's end-of-session import does the same, since it runs the same import on the recording.
+`--no-telemetry` skips it and leaves what is on disk. A session without `Position.z`, a circuit
+key or a completed lap is reported as skipped, and the folder an earlier build left for it is
+removed; one that fails to build is listed in the report and does not fail the import. The
+catalog says per session whether it has telemetry: `outputs.telemetry`.
+
+From code:
 
 ```ts
 import { buildTelemetry } from './telemetry/build.js';
 
 await buildTelemetry({ rawDir, key, dataDir }); // rawDir: the session's raw folder
 ```
+
+The outputs are deterministic: the same raw files give the same bytes, so a rebuild from raw
+hashes the same as the import did. A circuit's outline is drawn from the first session of it that
+is built, then saved and read back, and every later session measures its laps against that saved
+outline. A rebuild forgets the saved outlines and goes in path order, so the oldest session of a circuit
+draws it.
 
 It is idempotent and rebuilds from raw only. The whole 2025 Las Vegas race takes about 4.5 s.
 Results: [docs/research/telemetry-las-vegas.md](../research/telemetry-las-vegas.md).

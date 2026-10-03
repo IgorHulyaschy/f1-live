@@ -1,11 +1,12 @@
-import { readdir, stat } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import { buildCatalog } from '../catalog/catalog.js';
 import type { IndexedSeason } from '../catalog/season-index.js';
 import { mapLimited } from '../pkg/http.js';
 import { fetchMeetingResults } from '../sources/openf1/fetch-result.js';
-import { openF1CacheOf, outputKeys, rawDirOf, writeCatalog } from '../sinks/files.js';
+import { folderBytes, openF1CacheOf, outputKeys, rawDirOf, writeCatalog } from '../sinks/files.js';
+import { removeOutlines, telemetryKeys } from '../telemetry/files.js';
 import { ArchiveMissing, fetchSeasonIndex, fetchSession } from './fetch.js';
 import { ingestSession } from './ingest.js';
 import type { IngestResult } from './ingest.js';
@@ -24,6 +25,8 @@ export interface ImportOptions {
 	dataDir: string;
 	/** No network at all: read the raw files and saved results already in the data directory. */
 	offline: boolean;
+	/** Build each session's telemetry from its Position.z and CarData.z. */
+	telemetry: boolean;
 	now: Date;
 	log: (message: string) => void;
 }
@@ -53,20 +56,6 @@ export interface ImportReport {
 	skipped: Skipped[];
 	wallMs: number;
 	rawBytes: number;
-}
-
-async function folderBytes(directory: string): Promise<number> {
-	const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
-
-	const sizes = await Promise.all(
-		entries.map((entry) =>
-			entry.isDirectory()
-				? folderBytes(path.join(directory, entry.name))
-				: stat(path.join(directory, entry.name)).then((info) => info.size)
-		)
-	);
-
-	return sizes.reduce((sum, size) => sum + size, 0);
 }
 
 /** The season indexes to pick sessions from: fetched when online, otherwise as saved. */
@@ -112,7 +101,8 @@ async function ingestRaw(
 		const result = await ingestSession({
 			rawDir: path.join(rawDirOf(options.dataDir), session.path),
 			key: session.key,
-			dataDir: options.dataDir
+			dataDir: options.dataDir,
+			telemetry: options.telemetry
 		});
 
 		return { key: session.key, label: session.label, result, failure: null, downloadedFiles };
@@ -231,7 +221,8 @@ async function writeCatalogFromRaw(options: ImportOptions): Promise<void> {
 						.map((session) => session.key)
 				),
 				events: new Set(await outputKeys(options.dataDir, 'events')),
-				snapshots: new Set(await outputKeys(options.dataDir, 'snapshots'))
+				snapshots: new Set(await outputKeys(options.dataDir, 'snapshots')),
+				telemetry: new Set(await telemetryKeys(options.dataDir))
 			},
 			options.now
 		)
@@ -313,9 +304,14 @@ async function importFromDir(
 	return { outcomes, skipped: [] };
 }
 
-/** Every session folder under the raw directory, for `rebuild`. */
+/** Every session folder under the raw directory, for `rebuild`: outputs derived again from raw alone. */
 async function importFromLocal(options: ImportOptions): Promise<Imported> {
 	const outcomes: SessionOutcome[] = [];
+
+	// A circuit is drawn from the first session built, so only a rebuild from nothing is repeatable.
+	if (options.telemetry) {
+		await removeOutlines(options.dataDir);
+	}
 
 	for (const session of await discoverSessions(rawDirOf(options.dataDir))) {
 		if (session.key === null) {
