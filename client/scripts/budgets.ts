@@ -54,10 +54,9 @@ function run(command: string, args: string[], env: Record<string, string> = {}):
 /** Like `run`, but leaves this process free to answer the requests of what it runs. */
 function runAsync(command: string, args: string[], env: Record<string, string>): Promise<boolean> {
 	return new Promise((resolve) => {
-		spawn(command, args, { cwd: CLIENT_DIR, stdio: 'inherit', env: { ...process.env, ...env } }).on(
-			'close',
-			(code) => resolve(code === 0)
-		);
+		spawn(command, args, { cwd: CLIENT_DIR, stdio: 'inherit', env: { ...process.env, ...env } })
+			.on('error', () => resolve(false))
+			.on('close', (code) => resolve(code === 0));
 	});
 }
 
@@ -135,25 +134,27 @@ const server = await serveDist(`${CLIENT_DIR}${OUT_DIR}`);
 
 const lighthouseOk: boolean[] = [];
 
-for (const formFactor of FORM_FACTORS) {
-	lighthouseOk.push(
-		// oxlint-disable-next-line no-await-in-loop -- one form factor at a time keeps timings honest.
-		await runAsync(
-			'npx',
-			[
-				'lhci',
-				'autorun',
-				'--config=lighthouserc.json',
-				`--upload.outputDir=.lighthouseci/${formFactor}`,
-				...ROUTES.map((route) => `--collect.url=${server.origin}${route}`),
-				...(formFactor === 'desktop' ? ['--collect.settings.preset=desktop'] : [])
-			],
-			{ CHROME_PATH: chromePath }
-		)
-	);
+try {
+	for (const formFactor of FORM_FACTORS) {
+		lighthouseOk.push(
+			// oxlint-disable-next-line no-await-in-loop -- one form factor at a time keeps timings honest.
+			await runAsync(
+				'npx',
+				[
+					'lhci',
+					'autorun',
+					'--config=lighthouserc.json',
+					`--upload.outputDir=.lighthouseci/${formFactor}`,
+					...ROUTES.map((route) => `--collect.url=${server.origin}${route}`),
+					...(formFactor === 'desktop' ? ['--collect.settings.preset=desktop'] : [])
+				],
+				{ CHROME_PATH: chromePath }
+			)
+		);
+	}
+} finally {
+	await server.close();
 }
-
-await server.close();
 
 console.warn(`\n${await scoreTable()}`);
 

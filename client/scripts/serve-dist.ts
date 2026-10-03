@@ -100,7 +100,7 @@ function localhostCertificate() {
 }
 
 async function fileFor(dir: string, pathname: string): Promise<string> {
-	const path = join(dir, normalize(decodeURIComponent(pathname)));
+	const path = join(dir, normalize(pathname));
 
 	try {
 		if ((await stat(path)).isFile()) {
@@ -121,6 +121,7 @@ export async function serveDist(dir: string): Promise<DistServer> {
 	const server = createSecureServer(
 		{ ...localhostCertificate(), allowHTTP1: true },
 		async (request, response) => {
+			// The URL parser has already resolved `..` and kept percent escapes, so this stays in dir.
 			const { pathname } = new URL(request.url, 'https://localhost');
 			const path = await fileFor(dir, pathname);
 			const extension = extname(path);

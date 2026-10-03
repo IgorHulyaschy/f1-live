@@ -242,3 +242,19 @@ test.describe('install and screen wake', () => {
 		);
 	});
 });
+
+test.describe('heavy tiles', () => {
+	test('wait below the screen, and render on keyboard focus without losing it', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 390, height: 700 });
+		await openRace(page, '/analysis');
+
+		const telemetry = page.getByRole('group', { name: 'Telemetry' });
+
+		await expect(telemetry).toHaveAttribute('aria-busy', 'true');
+		await telemetry.focus();
+		await expect(telemetry).toHaveAttribute('aria-busy', 'false');
+		await expect(telemetry).toBeFocused();
+	});
+});
