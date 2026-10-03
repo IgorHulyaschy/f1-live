@@ -23,11 +23,11 @@ a saved session run the same code.
 	"sessionId": "9858",
 	"seq": 1342,
 	"at": 1763870000123,
-	"snapshot": { "session": {}, "status": "started", "laps": [] }
+	"snapshot": { "session": {}, "laps": [] }
 }
 ```
 
-`snapshot` is a `RaceSnapshot` (`shared/src/race.ts`) with `session` and `status` inside it.
+`snapshot` is a `RaceSnapshot` (`shared/src/race.ts`), which carries the session and its optional `status`.
 `sessionId` is the archive key (9858 is the 2025 Las Vegas race), or `null` before the server has
 seen any session; the snapshot is then empty. `seq` is the number of the last event the snapshot
 holds. `at` is the server clock in ms since the Unix epoch.
@@ -79,7 +79,7 @@ reference for the client.
 
 A reconnecting client sends the `epoch` and `seq` it holds. If the epoch is the current one and
 the server still keeps the events after `seq` (the last `LIVE_LOG_EVENTS`, 100 000 by default,
-about 10 hours of a race), the reply is exactly the missed events. Otherwise (another epoch, an
+about 10 hours of a race), the reply is exactly the missed events (up to 5000; more gets a `state`). Otherwise (another epoch, an
 `epoch` the server does not know, a `seq` older than the log or ahead of the server) the reply is
 a full `state`. A client does not need to tell which case it is in: it handles whichever message
 comes first.
@@ -126,9 +126,11 @@ One codebase, chosen by `MODE`:
   Events it already has are skipped, so a retry is harmless.
 - `POST /ingest/state` `{ …state message }` replaces the relay's copy.
 
+The relay does not run the import, so it has no saved sessions of its own; a CDN or the ingest host serves `<DATA_DIR>/out`.
+
 The ingest keeps its own event log, which is the retry buffer: after an outage it asks where the
 relay stands and resends from there, or sends the whole state when the log no longer reaches back
-or the relay restarted. The relay keeps the ingest's epoch and numbers, so a viewer's `since`
+or the relay restarted. A catch-up longer than 5000 events is answered with a `state` instead. The relay keeps the ingest's epoch and numbers, so a viewer's `since`
 survives a relay restart.
 
 ## Try it without a live session

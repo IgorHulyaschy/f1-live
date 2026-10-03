@@ -16,6 +16,9 @@ export interface Position {
 	seq: number;
 }
 
+/** A longer catch-up costs more than the state, and would pass the viewer's buffer limit. */
+const MAX_RESUME_EVENTS = 5000;
+
 export type ReplicateResult = { applied: true } | { applied: false; position: Position };
 
 /**
@@ -98,6 +101,10 @@ export class LiveSession {
 	/** What a viewer that has everything up to `since` of `epoch` is missing, if that is known. */
 	resume(epoch: string, since: number): EventsMessage | null {
 		const events = epoch === this.currentEpoch ? this.eventsAfter(since) : null;
+
+		if (events && events.length > MAX_RESUME_EVENTS) {
+			return null;
+		}
 
 		return (
 			events && {

@@ -12,7 +12,13 @@ const server = await createServer(config);
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
 	process.once(signal, () => {
 		server.app.log.info({ signal }, 'stopping');
-		void server.close().then(() => process.exit(0));
+		server.close().then(
+			() => process.exit(0),
+			(error: Error) => {
+				console.error(error);
+				process.exit(1);
+			}
+		);
 	});
 }
 

@@ -1,6 +1,7 @@
 import { createReadStream } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
+import { pipeline } from 'node:stream';
 import { createGunzip } from 'node:zlib';
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
@@ -54,7 +55,7 @@ async function sendFile(request: FastifyRequest, reply: FastifyReply, file: stri
 		return reply.code(404).send({ error: 'not found' });
 	}
 
-	const etag = `"${info.size.toString(16)}-${Math.round(info.mtimeMs).toString(16)}"`;
+	const etag = `W/"${info.size.toString(16)}-${Math.round(info.mtimeMs).toString(16)}"`;
 
 	void reply
 		.header('ETag', etag)
@@ -62,7 +63,7 @@ async function sendFile(request: FastifyRequest, reply: FastifyReply, file: stri
 		.header('Last-Modified', info.mtime.toUTCString());
 	void reply.header('Vary', 'Accept-Encoding');
 
-	if (request.headers['if-none-match'] === etag) {
+	if (request.headers['if-none-match']?.split(/,\s*/).some((tag) => tag === etag || tag === '*')) {
 		return reply.code(304).send();
 	}
 
@@ -87,5 +88,5 @@ async function sendFile(request: FastifyRequest, reply: FastifyReply, file: stri
 			.send(stream);
 	}
 
-	return reply.send(stream.pipe(createGunzip()));
+	return reply.send(pipeline(stream, createGunzip(), () => undefined));
 }
