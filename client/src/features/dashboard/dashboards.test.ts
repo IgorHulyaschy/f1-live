@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
+import { PRESET_IDS } from '@f1-live/shared/dashboard';
+
 import { arrangeTile } from './arrange.ts';
 import {
 	addTile,
@@ -23,6 +25,13 @@ function overlaps(
 }
 
 describe('presets and library dashboards', () => {
+	it('match the preset ids the account server leaves out of the Free count', () => {
+		assert.deepEqual(
+			PRESETS.map((dashboard) => dashboard.id),
+			[...PRESET_IDS]
+		);
+	});
+
 	it('fit the grid, respect tile minimums and do not overlap', () => {
 		for (const dashboard of [...PRESETS, ...COMMUNITY.map((entry) => entry.dashboard)]) {
 			for (const place of dashboard.layout) {
