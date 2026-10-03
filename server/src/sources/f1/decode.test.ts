@@ -294,6 +294,56 @@ describe('F1Decoder', () => {
 		);
 	});
 
+	it('places the stints of a session joined midway by their own lap counts', () => {
+		const events = decodeAll([
+			started,
+			frame('TimingData', '01:30:00.000', { Lines: { '44': { NumberOfLaps: 20 } } }),
+			frame('TimingAppData', '01:30:00.000', {
+				Lines: {
+					'44': {
+						Stints: [
+							{ Compound: 'SOFT', StartLaps: 0, TotalLaps: 5 },
+							{ Compound: 'HARD', StartLaps: 2, TotalLaps: 12 },
+							{ Compound: 'MEDIUM', StartLaps: 0, TotalLaps: 5 }
+						]
+					}
+				}
+			})
+		]);
+
+		assert.deepEqual(
+			ofKind(events, 'tyres_fitted').map((event) => [event.startLap, event.compound]),
+			[
+				[1, 'SOFT'],
+				[6, 'HARD'],
+				[16, 'MEDIUM']
+			]
+		);
+	});
+
+	it('reads practice gaps to the fastest lap', () => {
+		const events = decodeAll([
+			frame('TimingData', '00:10:00.000', {
+				Lines: {
+					'4': { Position: '1', TimeDiffToFastest: '', TimeDiffToPositionAhead: '' },
+					'1': { Position: '2', TimeDiffToFastest: '+0.412', TimeDiffToPositionAhead: '+0.412' }
+				}
+			})
+		]);
+
+		assert.deepEqual(
+			ofKind(events, 'standing').map((event) => [
+				event.driverNumber,
+				event.gapToLeaderMs,
+				event.intervalMs
+			]),
+			[
+				['1', 412, 412],
+				['4', 0, 0]
+			]
+		);
+	});
+
 	it('merges TyreStintSeries into the same stints without repeating them', async () => {
 		const appOnly = decodeAll([...(await fixture('TimingAppData')), started, ...russellStop]);
 

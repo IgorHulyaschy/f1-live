@@ -421,12 +421,15 @@ describe('applyEvent', () => {
 		assert.equal(corrected.corrections?.length, 3);
 		assert.ok(corrected.standings?.slice(-2).every((entry) => entry.disqualified));
 
-		const ignored = replay([standing(9100, '4', 2, 20_741)], corrected);
+		const ignored = replay(
+			[standing(9100, '4', 2, 20_741), standing(9100, '63', 3, 23_546)],
+			corrected
+		);
 
-		assert.equal(ignored.standings?.find((entry) => entry.driverNumber === '4')?.position, 5);
+		assert.deepEqual(ignored.standings, corrected.standings);
 	});
 
-	it('takes positions from the running order outside races', () => {
+	it('takes positions from the running order outside races and leaves untimed laps at 0', () => {
 		const snapshot = replay([
 			...started(),
 			{
@@ -445,14 +448,22 @@ describe('applyEvent', () => {
 			standing(100, '4', 1, 0),
 			standing(100, '1', 2, 412),
 			lap(200, '1', 5),
-			lap(300, '4', 3)
+			lap(300, '4', 3),
+			lap(900, '4', 4, null)
 		]);
 
 		assert.deepEqual(
-			snapshot.laps.map((entry) => [entry.driverNumber, entry.position, entry.gapToLeaderMs]),
+			snapshot.laps.map((entry) => [
+				entry.driverNumber,
+				entry.lap,
+				entry.position,
+				entry.gapToLeaderMs,
+				entry.lapTimeMs
+			]),
 			[
-				['4', 1, 0],
-				['1', 2, 412]
+				['4', 3, 1, 0, 96_000],
+				['4', 4, 1, 0, 0],
+				['1', 5, 2, 412, 96_000]
 			]
 		);
 	});

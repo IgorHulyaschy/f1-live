@@ -145,15 +145,13 @@ function withStanding(state: RaceSnapshot, standing: Standing): RaceSnapshot {
 }
 
 function applyStanding(state: RaceSnapshot, event: StandingEvent): RaceSnapshot {
-	const standing = standingOf(state, event.driverNumber);
-
-	// A disqualification is final; the feed may still be sending the old order.
-	if (standing.disqualified) {
+	// Corrections are decided after the feed ends, so its order no longer stands once one is in.
+	if ((state.corrections ?? []).length > 0) {
 		return state;
 	}
 
 	return withStanding(state, {
-		...standing,
+		...standingOf(state, event.driverNumber),
 		position: event.position,
 		gapToLeaderMs: event.gapToLeaderMs,
 		intervalMs: event.intervalMs
@@ -178,7 +176,8 @@ function applyLap(state: RaceSnapshot, event: LapCompletedEvent): RaceSnapshot {
 	const standing = standingOf(state, event.driverNumber);
 	const previous = state.laps.find((lap) => isOwn(lap) && lap.lap === event.lap - 1);
 	const lapStartedAt = event.lap === 1 ? state.startedAt : previous?.completedAt;
-	const lapTimeMs = event.lapTimeMs ?? derivedLapTime(event, lapStartedAt);
+	const timedFrom = isRace(state) ? lapStartedAt : undefined;
+	const lapTimeMs = event.lapTimeMs ?? derivedLapTime(event, timedFrom);
 	const stint = stintOn(state.stints, event.driverNumber, event.lap);
 	const otherRows = state.laps.filter((lap) => lap.lap === event.lap);
 
@@ -220,9 +219,9 @@ function applyLap(state: RaceSnapshot, event: LapCompletedEvent): RaceSnapshot {
 }
 
 /**
- * A lap time the source left out: the sum of its sectors when all three are known, otherwise
- * the time since the previous crossing (for lap 1, since the start), which carries the feed's
- * publishing delay of a few tenths.
+ * A lap time the source left out: the sum of its sectors when all three are known, otherwise,
+ * in a race, the time since the previous crossing (for lap 1, since the start), which carries
+ * the feed's publishing delay of a few tenths. Outside races an untimed lap stays 0.
  */
 function derivedLapTime(event: LapCompletedEvent, lapStartedAt: string | undefined): number {
 	const [first, second, third] = event.sectorTimesMs;

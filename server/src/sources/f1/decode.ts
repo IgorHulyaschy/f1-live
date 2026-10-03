@@ -120,6 +120,8 @@ const timingDataSchema = z
 					Position: z.string(),
 					GapToLeader: z.string(),
 					IntervalToPositionAhead: value,
+					TimeDiffToFastest: z.string(),
+					TimeDiffToPositionAhead: z.string(),
 					NumberOfLaps: z.number(),
 					InPit: z.boolean(),
 					Retired: z.boolean(),
@@ -131,7 +133,9 @@ const timingDataSchema = z
 	})
 	.partial();
 
-const stintSchema = z.object({ Compound: z.string(), StartLaps: z.number() }).partial();
+const stintSchema = z
+	.object({ Compound: z.string(), StartLaps: z.number(), TotalLaps: z.number() })
+	.partial();
 
 const timingAppDataSchema = z
 	.object({
@@ -355,7 +359,8 @@ interface TimingLine {
 	lapsCompleted: number;
 	inPit: boolean;
 	sectors: [string, string, string];
-	/** The last lap time published since the previous crossing. */
+	lastLapTime: string;
+	/** A new last lap time published since the previous crossing. */
 	pendingLapTime: string | null;
 	pitEntry: { lap: number; timestamp: number } | null;
 	lastPitEntryLap: number | null;
@@ -364,6 +369,8 @@ interface TimingLine {
 interface StintEntry {
 	compound: string | undefined;
 	tyreAgeAtStart: number;
+	/** Laps on the set so far, those before the stint included. */
+	tyreAge: number;
 	startLap: number;
 	sent: string;
 }
@@ -570,9 +577,13 @@ export class F1Decoder {
 			const line = this.lineOf(driverNumber);
 			const events: RaceEvent[] = [];
 
+			// Practice publishes its gaps to the fastest lap under other names.
+			const gapToLeader = delta.GapToLeader ?? delta.TimeDiffToFastest;
+			const interval = delta.IntervalToPositionAhead?.Value ?? delta.TimeDiffToPositionAhead;
+
 			line.position = delta.Position ?? line.position;
-			line.gapToLeader = delta.GapToLeader ?? line.gapToLeader;
-			line.interval = delta.IntervalToPositionAhead?.Value ?? line.interval;
+			line.gapToLeader = gapToLeader ?? line.gapToLeader;
+			line.interval = interval ?? line.interval;
 
 			for (const [index, sector] of delta.Sectors ?? []) {
 				if (sector.Value !== undefined && index >= 0 && index < 3) {
@@ -580,17 +591,20 @@ export class F1Decoder {
 				}
 			}
 
-			if (delta.LastLapTime?.Value) {
-				line.pendingLapTime = delta.LastLapTime.Value;
+			// A keyframe after a reconnect repeats the last lap time; only a new one is pending.
+			const lastLapTime = delta.LastLapTime?.Value;
+
+			if (lastLapTime && lastLapTime !== line.lastLapTime) {
+				line.pendingLapTime = lastLapTime;
 			}
+
+			line.lastLapTime = lastLapTime ?? line.lastLapTime;
 
 			const position = parseNumber(line.position);
 
 			if (
 				position !== null &&
-				(delta.Position !== undefined ||
-					delta.GapToLeader !== undefined ||
-					delta.IntervalToPositionAhead?.Value !== undefined)
+				(delta.Position !== undefined || gapToLeader !== undefined || interval !== undefined)
 			) {
 				events.push({
 					kind: 'standing',
@@ -681,6 +695,7 @@ export class F1Decoder {
 			lapsCompleted: 0,
 			inPit: false,
 			sectors: ['', '', ''],
+			lastLapTime: '',
 			pendingLapTime: null,
 			pitEntry: null,
 			lastPitEntryLap: null
@@ -733,12 +748,14 @@ export class F1Decoder {
 			const stint = stints.get(index) ?? {
 				compound: undefined,
 				tyreAgeAtStart: 0,
+				tyreAge: 0,
 				startLap: this.nextStintStart(driverNumber, stints, index),
 				sent: ''
 			};
 
 			stint.compound = update.Compound ?? stint.compound;
 			stint.tyreAgeAtStart = update.StartLaps ?? stint.tyreAgeAtStart;
+			stint.tyreAge = update.TotalLaps ?? stint.tyreAge;
 			stints.set(index, stint);
 
 			if (stint.compound === undefined) {
@@ -778,8 +795,15 @@ export class F1Decoder {
 		const line = this.lineOf(driverNumber);
 		const latestStart = Math.max(1, ...[...stints.values()].map((stint) => stint.startLap));
 
-		return line.lastPitEntryLap !== null && line.lastPitEntryLap + 1 > latestStart
-			? line.lastPitEntryLap + 1
+		if (line.lastPitEntryLap !== null && line.lastPitEntryLap + 1 > latestStart) {
+			return line.lastPitEntryLap + 1;
+		}
+
+		// Without a pit entry, as when joining mid-session, the stint before ran its own laps.
+		const previous = stints.get(index - 1);
+
+		return previous
+			? previous.startLap + Math.max(0, previous.tyreAge - previous.tyreAgeAtStart)
 			: line.lapsCompleted + 1;
 	}
 
