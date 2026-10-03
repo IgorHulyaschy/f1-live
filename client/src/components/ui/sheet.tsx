@@ -8,10 +8,6 @@ function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
 	return <SheetPrimitive.Root data-slot="sheet" {...props} />;
 }
 
-function SheetClose({ ...props }: React.ComponentProps<typeof SheetPrimitive.Close>) {
-	return <SheetPrimitive.Close data-slot="sheet-close" {...props} />;
-}
-
 function SheetPortal({ ...props }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
 	return <SheetPrimitive.Portal data-slot="sheet-portal" {...props} />;
 }
@@ -36,7 +32,7 @@ function SheetContent({
 				{showCloseButton ? (
 					<SheetPrimitive.Close
 						data-slot="sheet-close"
-						className="focus-visible:ring-ring absolute top-3 right-3 inline-flex size-9 items-center justify-center border border-b-2 opacity-80 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:outline-hidden sm:size-7 [&_svg]:size-4"
+						className="focus-visible:ring-ring absolute top-3 right-3 inline-flex size-9 items-center justify-center border border-b-2 transition-colors hover:border-rule-strong focus-visible:ring-2 focus-visible:outline-hidden sm:size-7 [&_svg]:size-4"
 					>
 						<XIcon />
 						<span className="sr-only">Close</span>
@@ -70,4 +66,4 @@ function SheetDescription({
 	);
 }
 
-export { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle };
+export { Sheet, SheetContent, SheetDescription, SheetTitle };

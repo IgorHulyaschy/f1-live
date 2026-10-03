@@ -1,11 +1,9 @@
 import * as React from 'react';
 import { useLocation, useNavigate, useNavigationType, useSearchParams } from 'react-router';
-import { z } from 'zod';
+
+import { entryStateSchema } from '@/lib/history-entry';
 
 import { DRILL_PARAMS, type DrillView, readDrill, writeDrill } from './drill-url';
-
-/** Each view opened here adds a history entry and counts it, so Close steps back past them all. */
-const drillStateSchema = z.object({ drillDepth: z.int().positive() });
 
 /**
  * The address to come back to after Close steps back through history: the race as it is on
@@ -13,10 +11,25 @@ const drillStateSchema = z.object({ drillDepth: z.int().positive() });
  */
 let closingTo: URLSearchParams | null = null;
 
+/** What had focus when the first view opened; it gets focus back when the last one closes. */
+let opener: HTMLElement | null = null;
+
+/** Puts focus back where it was before the views opened, if that is still on the page. */
+export function returnFocusToOpener(): void {
+	if (opener?.isConnected) {
+		opener.focus();
+	}
+
+	opener = null;
+}
+
 export type Drill = {
 	view: DrillView | null;
-	/** Opens a view as a new history entry, so Back returns to what was open before. */
-	open: (view: DrillView) => void;
+	/**
+	 * Opens a view as a new history entry, so Back returns to what was open before. `replace`
+	 * swaps the view at the same level instead, as stepping to the next lap does.
+	 */
+	open: (view: DrillView, options?: { replace?: boolean }) => void;
 	/** Closes every level opened here; a view that came with the link just closes. */
 	close: () => void;
 };
@@ -25,16 +38,30 @@ export function useDrill(): Drill {
 	const [searchParams] = useSearchParams();
 	const location = useLocation();
 	const navigate = useNavigate();
-	const drillState = drillStateSchema.safeParse(location.state);
+	const drillState = entryStateSchema.safeParse(location.state);
 	const depth = drillState.success ? drillState.data.drillDepth : 0;
 	const view = React.useMemo(() => readDrill(searchParams), [searchParams]);
 
 	const open = React.useCallback(
-		(next: DrillView) => {
+		(next: DrillView, { replace = false }: { replace?: boolean } = {}) => {
 			// The address bar is current even between renders, as the replay moves it.
-			const params = writeDrill(new URLSearchParams(window.location.search), next);
+			const current = new URLSearchParams(window.location.search);
+			const params = writeDrill(current, next);
 
-			void navigate({ search: params.toString() }, { state: { drillDepth: depth + 1 } });
+			if (params.toString() === current.toString()) {
+				return;
+			}
+
+			if (readDrill(current) === null && document.activeElement instanceof HTMLElement) {
+				opener = document.activeElement;
+			}
+
+			void navigate(
+				{ search: params.toString() },
+				replace && depth > 0
+					? { replace: true, state: { drillDepth: depth } }
+					: { state: { drillDepth: depth + 1 } }
+			);
 		},
 		[navigate, depth]
 	);
@@ -75,14 +102,22 @@ export function useKeepReplayOnBack(): void {
 
 		kept.current = params;
 
-		if (navigationType !== 'POP' || !previous || drillOf(previous) === drillOf(params)) {
+		const closedTo = closingTo;
+
+		closingTo = null;
+
+		// A Back to another session is a deliberate step back to it; there is nothing to keep.
+		if (
+			navigationType !== 'POP' ||
+			!previous ||
+			drillOf(previous) === drillOf(params) ||
+			(!closedTo && previous.get('session') !== params.get('session'))
+		) {
 			return;
 		}
 
 		// A Close knows the latest state; a Back reads the last one rendered.
-		const restored = writeDrill(closingTo ?? previous, readDrill(params));
-
-		closingTo = null;
+		const restored = writeDrill(closedTo ?? previous, readDrill(params));
 
 		if (restored.toString() !== params.toString()) {
 			kept.current = restored;
@@ -107,7 +142,7 @@ export function useLinkedViewOverSession(): void {
 		if (
 			done.current ||
 			readDrill(params) === null ||
-			drillStateSchema.safeParse(arrival.state).success
+			entryStateSchema.safeParse(arrival.state).success
 		) {
 			return;
 		}

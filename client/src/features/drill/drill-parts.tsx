@@ -1,4 +1,4 @@
-import type { Driver, RaceSnapshot } from '@f1-live/shared';
+import type { Driver } from '@f1-live/shared';
 import * as React from 'react';
 
 import { useRaceView } from '@/data/race-context';
@@ -13,16 +13,6 @@ export const MARK_TEXT: Record<SectorMark, string> = {
 	'personal-best': 'text-personal-best',
 	none: ''
 };
-
-/**
- * The session the driver and lap views read: up to the replay position while its results are
- * hidden, the whole of it once revealed.
- */
-export function useDrillSession(): RaceSnapshot {
-	const { race, snapshot, spoilers } = useRaceView();
-
-	return spoilers.hidden ? snapshot : race;
-}
 
 /** Moves the replay to a moment: a race's lap, or in a session on the clock the minute it fell in. */
 export function useJumpTo(): (moment: { lap: number; at?: string }) => void {

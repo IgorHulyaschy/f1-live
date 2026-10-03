@@ -7,7 +7,8 @@ const SECTORS = [0, 1, 2] as const;
 
 /**
  * On the clock, a lap within this share of the car's best of the part is a push lap; preparation
- * laps and cool-downs, a tenth slower or more, are not.
+ * laps and cool-downs run further off it. The timing tower's wider limit only keeps out-laps and
+ * cool-downs from counting as a car's time.
  */
 const PUSH_LAP_LIMIT = 1.07;
 

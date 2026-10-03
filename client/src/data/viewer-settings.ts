@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { EVENT_FILTERS } from '../insights/timeline.ts';
 import { createLocalStore } from '../lib/local-store.ts';
 import { MAX_DELAY_SECONDS } from './broadcast-delay.ts';
-import { MAX_REVEALED, mergeRevealed, type ViewerSettings } from '@f1-live/shared/viewer';
+import { mergeRevealed, type ViewerSettings, viewerSettingsSchema } from '@f1-live/shared/viewer';
 
 import { isRevealed, type SpoilerSettings, withRevealed } from './spoilers.ts';
 
@@ -37,7 +37,7 @@ export function setSpoilerProtection(protect: boolean): void {
 /** Sessions whose results the viewer has seen, newest last. */
 export const revealedStore = createLocalStore(
 	'pitwall-revealed',
-	z.array(z.string()).max(MAX_REVEALED),
+	viewerSettingsSchema.shape.revealed,
 	[]
 );
 
@@ -78,8 +78,15 @@ export function stepDelay(seconds: number, step: number): number {
 
 /** The spoiler settings on this device, as the account keeps them. */
 export function readViewerSettings(): ViewerSettings {
+	const protect = spoilerProtectionStore.get();
+
+	// Turned off before changes were dated: date it now, or the account's default would win.
+	if (!protect && protectionChangedStore.get() === null) {
+		protectionChangedStore.set(new Date().toISOString());
+	}
+
 	return {
-		protect: spoilerProtectionStore.get(),
+		protect,
 		protectUpdatedAt: protectionChangedStore.get(),
 		revealed: revealedStore.get()
 	};

@@ -56,7 +56,11 @@ async function syncOnce(accountId: string): Promise<SyncNotice[]> {
 		}
 	}
 
-	adoptViewerSettings(await pushViewerSettings(readViewerSettings()));
+	try {
+		adoptViewerSettings(await pushViewerSettings(readViewerSettings()));
+	} catch {
+		// The dashboards went through; the settings go out with the next round.
+	}
 
 	return notices;
 }

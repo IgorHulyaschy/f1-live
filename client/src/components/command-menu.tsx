@@ -122,13 +122,13 @@ export function CommandMenu({
 		}
 	};
 
-	// Neutralised laps are a race's; spoiler-free, only those already shown are offered.
+	// Neutralised laps are a race's; while what lies ahead is hidden, only those shown are offered.
 	const neutralisedLaps = byLap
 		? [
 				...new Set(
 					race.laps
 						.filter(
-							(entry) => entry.trackStatus !== 'green' && (!spoilers.hidden || entry.lap <= lap)
+							(entry) => entry.trackStatus !== 'green' && (!spoilers.hidesAhead || entry.lap <= lap)
 						)
 						.map((entry) => entry.lap)
 				)

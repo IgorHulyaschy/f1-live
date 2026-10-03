@@ -1,9 +1,10 @@
 import { EMPTY_SNAPSHOT, type RaceSnapshot } from '@f1-live/shared';
 import * as React from 'react';
-import { useLocation, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 import { z } from 'zod';
 
 import { useStableValue } from '../hooks/use-stable-value.ts';
+import { entryState } from '../lib/history-entry.ts';
 import { createLocalStore } from '../lib/local-store.ts';
 import { type Catalog, defaultSessionKey, findSession, type SessionEntry } from './catalog.ts';
 import { delayedSnapshot, feedClock } from './broadcast-delay.ts';
@@ -56,6 +57,11 @@ type Spoilers = {
 	setProtect: (protect: boolean) => void;
 	/** Results of the session on screen are hidden now. */
 	hidden: boolean;
+	/**
+	 * What lies past the replay position stays hidden: results are hidden, or the viewer stepped
+	 * back from a live session.
+	 */
+	hidesAhead: boolean;
 	/** Shows this session's results: its end, or live. */
 	reveal: () => void;
 };
@@ -477,7 +483,7 @@ export function RaceProvider({
 
 					return params;
 				},
-				{ replace: true }
+				{ replace: true, state: entryState() }
 			);
 		}
 
@@ -543,10 +549,6 @@ export function RaceProvider({
 	const [playing, setLocalPlaying] = React.useState(false);
 	const [mirroring, setMirroring] = React.useState(false);
 
-	// Replacing the address keeps the entry's state: an open driver or lap view counts its depth
-	// there, so closing it can step back past every level it opened.
-	const { state: locationState } = useLocation();
-
 	const updateParams = React.useCallback(
 		(change: (params: URLSearchParams) => void) => {
 			setSearchParams(
@@ -555,10 +557,10 @@ export function RaceProvider({
 
 					return params;
 				},
-				{ replace: true, state: locationState }
+				{ replace: true, state: entryState() }
 			);
 		},
-		[setSearchParams, locationState]
+		[setSearchParams]
 	);
 
 	const updateParam = React.useCallback(
@@ -592,11 +594,13 @@ export function RaceProvider({
 	const spoilerSettings = useSpoilerSettings();
 	const following = isLive && !searchParams.has('lap');
 	const shownKey = shown?.key ?? null;
-	// A session watched live up to its end stays revealed, even before the reveal is saved.
+	// A session followed live up to its end stays revealed, even before the reveal is saved.
+	// Stepping back from live unmarks it: a viewer rewatching from the start has not seen the end.
 	const [watchedLive, setWatchedLive] = React.useState<string | null>(null);
+	const watching = isLive ? (following ? shownKey : null) : watchedLive;
 
-	if (following && shownKey !== null && watchedLive !== shownKey) {
-		setWatchedLive(shownKey);
+	if (watching !== watchedLive) {
+		setWatchedLive(watching);
 	}
 
 	const resultsHidden =
@@ -787,9 +791,10 @@ export function RaceProvider({
 			protect: spoilerSettings.protect,
 			setProtect: setSpoilerProtection,
 			hidden: resultsHidden,
+			hidesAhead: resultsHidden || (isLive && !following),
 			reveal
 		}),
-		[spoilerSettings.protect, resultsHidden, reveal]
+		[spoilerSettings.protect, resultsHidden, isLive, following, reveal]
 	);
 
 	const catalogValue = catalog.status === 'ready' ? catalog.value : null;
@@ -895,6 +900,16 @@ export function RaceProvider({
 			<RaceViewContext.Provider value={view}>{children}</RaceViewContext.Provider>
 		</RaceContext.Provider>
 	);
+}
+
+/**
+ * The session as far as the viewer may see it: up to the replay position while what lies ahead
+ * is hidden, the whole of it otherwise, so a replay can jump ahead.
+ */
+export function useVisibleRace(): RaceSnapshot {
+	const { race, snapshot, spoilers } = useRaceView();
+
+	return spoilers.hidesAhead ? snapshot : race;
 }
 
 /**

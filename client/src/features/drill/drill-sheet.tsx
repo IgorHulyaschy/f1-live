@@ -22,7 +22,12 @@ import { ACTIONABLE } from './drill-parts';
 import type { DrillView } from './drill-url';
 import { DriverView } from './driver-view';
 import { LapView } from './lap-view';
-import { useDrill, useKeepReplayOnBack, useLinkedViewOverSession } from './use-drill';
+import {
+	returnFocusToOpener,
+	useDrill,
+	useKeepReplayOnBack,
+	useLinkedViewOverSession
+} from './use-drill';
 
 /** Nobody picked yet, in the Compare with picker. */
 const PICK = 'pick';
@@ -199,6 +204,14 @@ export function DrillSheet() {
 
 	useKeepReplayOnBack();
 	useLinkedViewOverSession();
+
+	const open = view !== null;
+
+	React.useEffect(() => {
+		if (!open) {
+			returnFocusToOpener();
+		}
+	}, [open]);
 
 	return (
 		<>

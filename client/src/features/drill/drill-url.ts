@@ -83,8 +83,3 @@ export function writeDrill(params: URLSearchParams, view: DrillView | null): URL
 
 	return next;
 }
-
-/** How many levels deep a view sits: the driver is one, a lap or a comparison two. */
-export function drillDepth(view: DrillView | null): number {
-	return view === null ? 0 : view.kind === 'driver' ? 1 : 2;
-}

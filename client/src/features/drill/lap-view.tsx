@@ -14,6 +14,7 @@ import {
 	SelectTrigger,
 	SelectValue
 } from '@/components/ui/select';
+import { useVisibleRace } from '@/data/race-context';
 import { useSessionTelemetry } from '@/data/telemetry-context';
 import type { SessionTelemetry } from '@/data/telemetry-source';
 import { LapTraces } from '@/features/analysis/telemetry-panel';
@@ -23,7 +24,7 @@ import { isTimedSession } from '@/insights/qualifying';
 import { formatGap, formatLapTime, formatSectorTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-import { MARK_TEXT, Section, useDrillSession, useJumpTo } from './drill-parts';
+import { MARK_TEXT, Section, useJumpTo } from './drill-parts';
 import type { DrillView } from './drill-url';
 import { LapNotes, LapTimeText } from './driver-view';
 import { useDrill } from './use-drill';
@@ -104,10 +105,10 @@ function ComparePicker({
 			<Select
 				value={vs?.driverNumber ?? NOBODY}
 				onValueChange={(driverNumber) =>
-					open({
-						...view,
-						vs: driverNumber === NOBODY ? null : { driverNumber, lap: null }
-					})
+					open(
+						{ ...view, vs: driverNumber === NOBODY ? null : { driverNumber, lap: null } },
+						{ replace: true }
+					)
 				}
 			>
 				<SelectTrigger size="sm" aria-label="Compare with driver">
@@ -125,7 +126,9 @@ function ComparePicker({
 			{vs && choices.length > 0 ? (
 				<Select
 					value={lapValue === undefined ? undefined : String(lapValue)}
-					onValueChange={(lap) => open({ ...view, vs: { ...vs, lap: Number(lap) } })}
+					onValueChange={(lap) =>
+						open({ ...view, vs: { ...vs, lap: Number(lap) } }, { replace: true })
+					}
 				>
 					<SelectTrigger size="sm" aria-label="Compare with lap">
 						<SelectValue />
@@ -221,7 +224,7 @@ function LapTelemetry({ view, snapshot }: { view: LapDrill; snapshot: RaceSnapsh
 
 /** One lap: its sectors, its state, the traces, and another driver's lap beside it. */
 export function LapView({ view }: { view: LapDrill }) {
-	const snapshot = useDrillSession();
+	const snapshot = useVisibleRace();
 	const { open } = useDrill();
 	const jumpTo = useJumpTo();
 
@@ -241,7 +244,7 @@ export function LapView({ view }: { view: LapDrill }) {
 		);
 	}
 
-	const go = (target: DriverLap) => open({ ...view, lap: target.lap.lap });
+	const go = (target: DriverLap) => open({ ...view, lap: target.lap.lap }, { replace: true });
 
 	return (
 		<div className="flex flex-col gap-6 p-4" data-testid="lap-view">

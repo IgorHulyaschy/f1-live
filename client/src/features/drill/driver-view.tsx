@@ -9,7 +9,7 @@ import { Field } from '@/components/console/panel';
 import { TRACK_STATUS_LABEL } from '@/components/track-status-badge';
 import { TyreBadge, compoundName } from '@/components/tyre-badge';
 import { type ChartConfig, ChartContainer } from '@/components/ui/chart';
-import { useRace, useRaceView } from '@/data/race-context';
+import { useRace, useRaceView, useVisibleRace } from '@/data/race-context';
 import { stepShowing } from '@/data/session-time';
 import { useSessionTelemetry } from '@/data/telemetry-context';
 import { LapTraces } from '@/features/analysis/telemetry-panel';
@@ -26,7 +26,7 @@ import { OUT_LABEL, type StandingRow } from '@/insights/standings';
 import { formatGap, formatLapTime, formatSectorTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-import { ACTIONABLE, MARK_TEXT, Section, useDrillSession, useJumpTo } from './drill-parts';
+import { ACTIONABLE, MARK_TEXT, Section, useJumpTo } from './drill-parts';
 import { useDrill } from './use-drill';
 
 const SECTORS = [0, 1, 2] as const;
@@ -70,9 +70,9 @@ export function LapNotes({ entry, flag = true }: { entry: DriverLap; flag?: bool
 
 	return (
 		<span className="flex flex-wrap gap-1">
-			{notes.map((note) => (
+			{notes.map((note, index) => (
 				<span
-					key={note.text}
+					key={`${note.text}-${index}`}
 					className={cn(
 						'type-label px-1 leading-4 font-bold',
 						note.tone === 'danger'
@@ -388,10 +388,17 @@ function Stints({ snapshot, driverNumber }: { snapshot: RaceSnapshot; driverNumb
 	);
 }
 
-const POSITION_CONFIG: ChartConfig = { position: { label: 'Position', color: 'var(--focus)' } };
-
-function PositionChart({ laps, cars }: { laps: readonly DriverLap[]; cars: number }) {
+function PositionChart({
+	laps,
+	cars,
+	driver
+}: {
+	laps: readonly DriverLap[];
+	cars: number;
+	driver: Driver;
+}) {
 	const jumpTo = useJumpTo();
+	const config: ChartConfig = { position: { label: 'Position', color: `#${driver.teamColour}` } };
 
 	const points = laps
 		.filter((entry) => entry.lap.position > 0)
@@ -403,7 +410,7 @@ function PositionChart({ laps, cars }: { laps: readonly DriverLap[]; cars: numbe
 
 	return (
 		<Section title="Position" meta="Click a lap to go there" testId="drill-positions">
-			<ChartContainer config={POSITION_CONFIG} className="aspect-auto h-40 w-full cursor-pointer">
+			<ChartContainer config={config} className="aspect-auto h-40 w-full cursor-pointer">
 				<LineChart
 					data={points}
 					margin={{ left: 0, right: 8, top: 8 }}
@@ -605,7 +612,7 @@ function Mentions({ snapshot, driverNumber }: { snapshot: RaceSnapshot; driverNu
 				kind: 'Radio',
 				text: 'Team radio'
 			}))
-	].toSorted((a, b) => (a.at && b.at ? a.at.localeCompare(b.at) : a.lap - b.lap));
+	].toSorted((a, b) => a.lap - b.lap || (a.at ?? '').localeCompare(b.at ?? ''));
 
 	if (mentions.length === 0) {
 		return null;
@@ -641,7 +648,7 @@ function Mentions({ snapshot, driverNumber }: { snapshot: RaceSnapshot; driverNu
 
 /** One driver's session: the headline, every lap, runs, stints, sectors, telemetry and messages. */
 export function DriverView({ driverNumber }: { driverNumber: string }) {
-	const snapshot = useDrillSession();
+	const snapshot = useVisibleRace();
 	const { standings } = useRace();
 	const driver = snapshot.drivers.find((entry) => entry.number === driverNumber);
 	const laps = React.useMemo(() => driverLaps(snapshot, driverNumber), [snapshot, driverNumber]);
@@ -660,7 +667,7 @@ export function DriverView({ driverNumber }: { driverNumber: string }) {
 				<LapTable laps={laps} snapshot={snapshot} driver={driver} />
 			</Section>
 			<Stints snapshot={snapshot} driverNumber={driverNumber} />
-			{timed ? null : <PositionChart laps={laps} cars={snapshot.drivers.length} />}
+			{timed ? null : <PositionChart laps={laps} cars={snapshot.drivers.length} driver={driver} />}
 			<SectorsAndTraps snapshot={snapshot} driverNumber={driverNumber} />
 			<BestLapTelemetry snapshot={snapshot} driver={driver} />
 			<Mentions snapshot={snapshot} driverNumber={driverNumber} />

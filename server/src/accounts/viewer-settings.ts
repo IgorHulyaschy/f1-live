@@ -23,6 +23,11 @@ export async function writeViewerSettings(
 
 		const settings = mergeViewerSettings(stored?.settings ?? null, incoming);
 
+		// Every sync round sends the settings; most change nothing.
+		if (stored && JSON.stringify(stored.settings) === JSON.stringify(settings)) {
+			return settings;
+		}
+
 		await tx
 			.insert(viewerSettings)
 			.values({ userId, settings })

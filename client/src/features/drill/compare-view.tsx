@@ -6,7 +6,7 @@ import { EmptyNote } from '@/components/console/empty-note';
 import { Field } from '@/components/console/panel';
 import { TeamStripe } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
-import { useRace } from '@/data/race-context';
+import { useRace, useVisibleRace } from '@/data/race-context';
 import { useSessionTelemetry } from '@/data/telemetry-context';
 import { LapTraces } from '@/features/analysis/telemetry-panel';
 import { lapChoices } from '@/features/analysis/telemetry-selection';
@@ -17,7 +17,7 @@ import { OUT_LABEL } from '@/insights/standings';
 import { formatLapTime, formatSectorTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-import { Section, useDrillSession } from './drill-parts';
+import { Section } from './drill-parts';
 import { LapTimeText } from './driver-view';
 import { useDrill } from './use-drill';
 
@@ -61,7 +61,7 @@ function Side({ driver, laps }: { driver: Driver; laps: readonly DriverLap[] }) 
 
 /** Two drivers side by side: where they stand, lap against lap, sector against sector. */
 export function CompareView({ a, b }: { a: string; b: string }) {
-	const snapshot = useDrillSession();
+	const snapshot = useVisibleRace();
 	const { open } = useDrill();
 	const telemetry = useSessionTelemetry();
 	const first = snapshot.drivers.find((driver) => driver.number === a);

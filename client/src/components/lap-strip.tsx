@@ -147,7 +147,7 @@ export function LapStrip() {
 			<div className="flex h-8 items-end gap-px">
 				{slots.map((entry) => {
 					// Spoiler-free, laps ahead keep their flags and fastest laps to themselves.
-					const raced = entry.step <= (spoilers.hidden ? lap : done);
+					const raced = entry.step <= (spoilers.hidesAhead ? lap : done);
 					const selected = entry.step === lap;
 					const passed = entry.step < lap;
 
