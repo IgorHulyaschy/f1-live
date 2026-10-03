@@ -94,9 +94,11 @@ one place: the Replay tile, or the live strip's clock when the dashboard has no 
 ## Home
 
 `/` is the home page: an ask box, what is live or starts next with Watch live or Catch up, the
-championship as it stood before the session on screen, and the latest weekend. A first visit
-lands there. A viewer can make any page their start page (the default is home), and `/` then
-opens it; a link with a session or position always opens the session.
+season's standings after its latest round the viewer may see, and the latest weekend. Recent
+rounds held back as unseen are counted in a note with one key that shows them. Without the
+season's results, the open session's own table stands in. A first visit lands there. A viewer
+can make any page their start page (the default is home), and `/` then opens it; a link with a
+session or position always opens the session.
 
 ## Session layouts
 

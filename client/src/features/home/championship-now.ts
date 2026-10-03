@@ -37,8 +37,8 @@ function projected(places: readonly ProjectedPlace[]): ChampionshipRow[] {
 
 /**
  * The championship as the home page shows it, from the session the app has loaded: the latest
- * saved one or the live one. T11h's season standings replace this once they land; until then the
- * session's own table is the freshest the app holds.
+ * saved one or the live one. It stands in where the season has no results index, and while that
+ * index loads.
  */
 export function championshipNow(
 	race: RaceSnapshot,

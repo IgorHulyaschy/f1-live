@@ -41,6 +41,10 @@ const BASIS_LABEL: Record<ChampionshipBasis, string> = {
 	live: 'If it ended now'
 };
 
+const HomeStandings = React.lazy(async () => ({
+	default: (await import('./home-standings')).HomeStandings
+}));
+
 const SHOWN_DRIVERS = 5;
 
 const SHOWN_TEAMS = 3;
@@ -99,6 +103,16 @@ export function HomePage() {
 	const [picking, setPicking] = React.useState(false);
 	const weekend = catalog ? latestWeekend(catalog, live.liveKey) : [];
 
+	// The open session's own table, while the season's standings load or where they are missing.
+	const session = (
+		<ChampionshipPanel
+			className="min-[120rem]:col-span-2"
+			basis={table?.basis ?? null}
+			drivers={table?.drivers.slice(0, SHOWN_DRIVERS) ?? []}
+			teams={table?.teams.slice(0, SHOWN_TEAMS) ?? []}
+		/>
+	);
+
 	return (
 		<div className="mx-auto flex max-w-[160rem] flex-col gap-6" data-testid="home">
 			<WelcomeBanner />
@@ -111,12 +125,13 @@ export function HomePage() {
 			/>
 			<div className="grid gap-4 lg:grid-cols-3 min-[120rem]:grid-cols-4">
 				<NowPanel />
-				<ChampionshipPanel
-					className="min-[120rem]:col-span-2"
-					basis={table?.basis ?? null}
-					drivers={table?.drivers.slice(0, SHOWN_DRIVERS) ?? []}
-					teams={table?.teams.slice(0, SHOWN_TEAMS) ?? []}
-				/>
+				<React.Suspense fallback={session}>
+					<HomeStandings
+						className="min-[120rem]:col-span-2"
+						linkClassName={LINK_KEY_CLASS}
+						fallback={session}
+					/>
+				</React.Suspense>
 				<WeekendPanel weekend={weekend} />
 			</div>
 			<StartPagePicker />
