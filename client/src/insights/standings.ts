@@ -52,10 +52,10 @@ export interface StandingRow {
 const SECTOR_INDEXES = [0, 1, 2] as const;
 
 /**
- * Out-laps and cool-down laps carry a time made of their sectors, but nobody qualifies on one:
- * a lap this much slower than the fastest of its part is not counted as a part's best. Until
- * some car has done a second lap in a part, the part has only out-laps, so the part before
- * sets the pace. A part at a time keeps a wet part next to a dry one.
+ * Out-laps and cool-down laps carry a time made of their sectors, but nobody qualifies on one.
+ * In qualifying a car's first lap of a part is its out-lap, and of the rest, a lap this much
+ * slower than the fastest of its part is a cool-down. A part at a time keeps a wet part next
+ * to a dry one.
  */
 const FLYING_LAP_LIMIT = 1.12;
 
@@ -139,31 +139,34 @@ function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[]
 		(snapshot.personalBests ?? []).map((best) => [best.driverNumber, best.topSpeedsKph.speedTrap])
 	);
 
-	const parts = Array.from({ length: Math.max(1, starts.length) }, (_, index) => {
-		const laps = timedLaps.filter((lap) => partOfLap(lap, starts) === index + 1);
-		const perDriver = new Map<string, number>();
+	// A car's first lap in a part leaves the garage, as does a lap out of the pits.
+	const seen = new Set<string>();
 
-		for (const lap of laps) {
-			perDriver.set(lap.driverNumber, (perDriver.get(lap.driverNumber) ?? 0) + 1);
-		}
+	const candidates = new Set(
+		timedLaps.filter((lap) => {
+			const runKey = `${lap.driverNumber}-${partOfLap(lap, starts)}`;
+			const first = !seen.has(runKey);
 
-		return {
-			fastest: minimum(laps.map((lap) => lap.lapTimeMs)),
-			flyingLapsDone: [...perDriver.values()].some((count) => count > 1)
-		};
-	});
+			seen.add(runKey);
+
+			return !first && !lap.pitOut;
+		})
+	);
+
+	const fastestOfPart = Array.from({ length: Math.max(1, starts.length) }, (_, index) =>
+		minimum(
+			[...candidates].flatMap((lap) =>
+				partOfLap(lap, starts) === index + 1 ? [lap.lapTimeMs] : []
+			)
+		)
+	);
 
 	const isFlying = (lap: Lap) => {
-		const index = partOfLap(lap, starts) - 1;
-		const part = parts[index];
-		const previous = parts[index - 1];
+		const reference = fastestOfPart[partOfLap(lap, starts) - 1] ?? null;
 
-		const reference =
-			part?.flyingLapsDone || !previous
-				? (part?.fastest ?? null)
-				: minimum([part?.fastest, previous.fastest].flatMap((time) => time ?? []));
-
-		return reference === null || lap.lapTimeMs <= reference * FLYING_LAP_LIMIT;
+		return (
+			candidates.has(lap) && reference !== null && lap.lapTimeMs <= reference * FLYING_LAP_LIMIT
+		);
 	};
 
 	return snapshot.drivers.map((driver): RowFacts => {
@@ -171,7 +174,7 @@ function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[]
 		const lastLap = driverLaps.at(-1) ?? null;
 		const ownTimedLaps = driverLaps.filter((lap) => isTimed(lap, timedSession));
 
-		const flyingLaps = ownTimedLaps.filter(isFlying);
+		const flyingLaps = starts.length > 0 ? ownTimedLaps.filter(isFlying) : ownTimedLaps;
 
 		const lastPart = Math.max(1, ...flyingLaps.map((lap) => partOfLap(lap, starts)));
 		const bestLap = bestOf(flyingLaps.filter((lap) => partOfLap(lap, starts) === lastPart));

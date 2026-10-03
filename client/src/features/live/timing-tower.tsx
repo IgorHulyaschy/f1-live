@@ -142,9 +142,8 @@ function LapTime({
 			<span
 				className={cn(
 					'font-mono',
-					bestColumn && lap.lapTimeMs === fastestMs && 'text-fastest',
-					!bestColumn && isBest && row.hasFastestLap && 'text-fastest',
-					!bestColumn && isBest && !row.hasFastestLap && 'text-personal-best'
+					lap.lapTimeMs === fastestMs && 'text-fastest',
+					!bestColumn && isBest && lap.lapTimeMs !== fastestMs && 'text-personal-best'
 				)}
 			>
 				{formatLapTime(lap.lapTimeMs)}
@@ -199,7 +198,9 @@ export function TimingTower() {
 	const hasTraps = rows.some((row) => row.speedTrapKph !== null);
 
 	const sessionFastestMs = Math.min(
-		...rows.flatMap((row) => row.partBestsMs.flatMap((time) => time ?? []))
+		...rows.flatMap((row) =>
+			timed ? row.partBestsMs.flatMap((time) => time ?? []) : (row.bestLapMs ?? [])
+		)
 	);
 
 	const before = timed ? new Map<string, number>() : previousPositions(snapshot.laps, lap);
@@ -428,7 +429,7 @@ export function TimingTower() {
 														}
 													/>
 												) : (
-													<LapTime row={row} lap={row.lastLap} />
+													<LapTime row={row} lap={row.lastLap} fastestMs={sessionFastestMs} />
 												)}
 											</td>
 											<td className="hidden pr-4 @2xl:table-cell">
@@ -436,7 +437,7 @@ export function TimingTower() {
 											</td>
 											<td className="hidden pr-4 @4xl:table-cell">
 												{timed ? (
-													<LapTime row={row} lap={row.lastLap} />
+													<LapTime row={row} lap={row.lastLap} fastestMs={sessionFastestMs} />
 												) : (
 													<LapTrend
 														laps={trends.get(row.driver.number) ?? []}

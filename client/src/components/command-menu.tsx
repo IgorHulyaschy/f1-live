@@ -109,6 +109,7 @@ export function CommandMenu({
 			live.backToLive();
 		} else if (spoilers.hidden) {
 			spoilers.reveal();
+			setLap(steps);
 		} else {
 			setLap(steps);
 		}

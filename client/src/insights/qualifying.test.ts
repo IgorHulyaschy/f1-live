@@ -38,9 +38,13 @@ const DRIVERS = Array.from({ length: 12 }, (_, index) => String(index + 1));
  * in Q2 car 11 is slowest; in Q3 car 10 takes pole.
  */
 function qualifying(statuses: readonly [number, SessionStatus][]): RaceSnapshot {
+	// Each part: an out-lap from the garage, then a flying lap.
 	const laps = [
+		...DRIVERS.map((driver, index) => lap(driver, 1, 3, 130_000 + index * 100)),
 		...DRIVERS.map((driver, index) => lap(driver, 2, 5, 90_000 + index * 100)),
+		...DRIVERS.slice(0, 11).map((driver, index) => lap(driver, 3, 23, 130_000 + index * 100)),
 		...DRIVERS.slice(0, 11).map((driver, index) => lap(driver, 4, 25, 89_000 + index * 100)),
+		...DRIVERS.slice(0, 10).map((driver, index) => lap(driver, 5, 43, 130_000 + index * 100)),
 		...DRIVERS.slice(0, 10).map((driver, index) => lap(driver, 6, 45, 88_000 - index * 50))
 	];
 
@@ -155,6 +159,7 @@ describe('flying laps', () => {
 			[22, 'started']
 		]),
 		laps: [
+			...DRIVERS.map((driver, index) => lap(driver, 1, 3, 125_000 + index * 100)),
 			...DRIVERS.map((driver, index) => lap(driver, 2, 5, 80_000 + index * 100)),
 			// Rain in Q2: an out-lap, then a flying lap 15% slower than Q1's.
 			...DRIVERS.slice(0, 11).map((driver, index) => lap(driver, 3, 25, 130_000 + index * 100)),
@@ -169,7 +174,7 @@ describe('flying laps', () => {
 		assert.deepEqual(rows[0]?.partBestsMs, [80_000, 92_000]);
 	});
 
-	it('takes the part before as the pace while a part has only out-laps', () => {
+	it('counts no out-lap while a part has no flying lap yet', () => {
 		const outLapsOnly = { ...dryThenWet, laps: dryThenWet.laps.filter((entry) => entry.lap !== 4) };
 		const rows = standingsAt(outLapsOnly);
 
