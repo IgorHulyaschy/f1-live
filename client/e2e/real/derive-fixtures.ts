@@ -23,13 +23,16 @@ import {
 import { type Catalog, catalogSchema } from '../../src/data/catalog.ts';
 import { comparableLaps, fastestComparableLap } from '../../src/insights/telemetry-traces.ts';
 
-/** 2025 Las Vegas (a race with two disqualifications, qualifying with 20 cars) and 2026 Baku (22). */
+/**
+ * 2025 Las Vegas (a race with two disqualifications, qualifying with 20 cars), 2026 Baku (22) and
+ * 2026 Bahrain, whose qualifying the gap visuals open on.
+ */
 const MEETINGS = new Map([
-	[2025, 1274],
-	[2026, 1295]
+	[2025, [1274]],
+	[2026, [1295, 1308]]
 ]);
 
-const SESSIONS = ['9852', '9854', '9858', '11373'];
+const SESSIONS = ['9852', '9854', '9858', '11373', '11730'];
 
 /**
  * Drivers whose laps the telemetry charts open on, per session: the first three at the end and
@@ -128,8 +131,8 @@ const catalog = catalogSchema.parse(
 
 const trimmed: Catalog = {
 	seasons: catalog.seasons.flatMap((season) => {
-		const meetingKey = MEETINGS.get(season.year);
-		const meetings = season.meetings.filter((meeting) => meeting.key === meetingKey);
+		const meetingKeys = MEETINGS.get(season.year) ?? [];
+		const meetings = season.meetings.filter((meeting) => meetingKeys.includes(meeting.key));
 
 		return meetings.length === 0
 			? []

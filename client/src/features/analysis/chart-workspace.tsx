@@ -26,7 +26,7 @@ import { RaceOnly } from '@/components/race-only';
 import { useRaceView } from '@/data/race-context';
 import { DriverLink, useJumpTo } from '@/features/drill/drill-parts';
 import { isCleanLap } from '@/insights/clean-laps';
-import { isTimedSession } from '@/insights/qualifying';
+import { isKnockout, isTimedSession } from '@/insights/qualifying';
 import { hasDrs } from '@/insights/rules';
 import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -36,6 +36,7 @@ import { useTileFill } from '../dashboard/tile-fill';
 import { driverChartConfig, isSecondTeamCar } from './chart-drivers';
 import { flagBands, MarksLegend, pitDot } from './chart-marks';
 import { useComparedDrivers } from './compare-context';
+import { QUALI_NOTE, QualiChart } from './quali-chart';
 import {
 	battlePoints,
 	flagRanges,
@@ -126,8 +127,18 @@ export function ChartWorkspace({
 	const panelId = React.useId();
 	const jumpTo = useJumpTo();
 	const metricLabel = METRICS.find((entry) => entry.value === metric)?.label ?? '';
+
+	// Qualifying reads its own way: push laps on the session clock, and gaps and order by part.
+	const qualiMetric =
+		isKnockout(snapshot.session.type) &&
+		(metric === 'lapTime' || metric === 'gap' || metric === 'position')
+			? metric
+			: null;
+
 	// A race chart in practice or qualifying shows only the note that it applies to races.
-	const raceChartOnClock = metric !== 'lapTime' && isTimedSession(snapshot.session.type);
+	const raceChartOnClock =
+		metric !== 'lapTime' && isTimedSession(snapshot.session.type) && qualiMetric === null;
+
 	const flags = flagRanges(snapshot);
 	const stops = pitLaps(snapshot);
 
@@ -266,14 +277,40 @@ export function ChartWorkspace({
 				? `Gap to ${reference.code}`
 				: 'Trace';
 
-	const note =
-		metric === 'versus'
+	const note = qualiMetric
+		? QUALI_NOTE[qualiMetric]
+		: metric === 'versus'
 			? `Seconds behind ${reference?.code ?? 'the first car'} at each line crossing; above its line is ahead. Squares are stops.`
 			: metric === 'battle' && !hasDrs(snapshot.session)
 				? 'Gap to the car directly ahead. The band is the one-second overtake-mode window.'
 				: METRIC_NOTE[metric];
 
 	const margin = { left: 4, right: 12, top: 18 };
+
+	const legend = (
+		<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+			{metric === 'battle'
+				? null
+				: drivers.map((driver) => (
+						<DriverLink key={driver.number} driver={driver} className="flex items-center gap-1.5">
+							<span
+								aria-hidden
+								className={
+									isSecondTeamCar(driver, drivers)
+										? 'border-team w-4 border-t-2 border-dashed'
+										: 'bg-team h-0.5 w-4'
+								}
+								style={{ '--team': `#${driver.teamColour}` }}
+							/>
+							<span className="type-wide font-bold">{driver.code}</span>
+						</DriverLink>
+					))}
+			<MarksLegend
+				ranges={qualiMetric ? [] : flags}
+				stops={stops.size > 0 && metric !== 'lapTime' && qualiMetric === null}
+			/>
+		</div>
+	);
 
 	return (
 		<Panel aria-label="Race charts" className={cn('min-h-0', fill && 'h-full')}>
@@ -298,6 +335,17 @@ export function ChartWorkspace({
 				<p className={cn('text-muted-foreground text-xs', raceChartOnClock && 'hidden')}>{note}</p>
 				{snapshot.laps.length === 0 ? (
 					<EmptyNote className="px-0" />
+				) : qualiMetric ? (
+					<>
+						<QualiChart
+							metric={qualiMetric}
+							drivers={drivers}
+							highlighted={highlighted}
+							table={table}
+							fill={fill}
+						/>
+						{legend}
+					</>
 				) : (
 					<RaceOnly what={`The ${metricLabel.toLowerCase()} chart`} applies={metric !== 'lapTime'}>
 						{table ? (
@@ -404,29 +452,7 @@ export function ChartWorkspace({
 								)}
 							</ChartContainer>
 						)}
-						<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-							{metric === 'battle'
-								? null
-								: drivers.map((driver) => (
-										<DriverLink
-											key={driver.number}
-											driver={driver}
-											className="flex items-center gap-1.5"
-										>
-											<span
-												aria-hidden
-												className={
-													isSecondTeamCar(driver, drivers)
-														? 'border-team w-4 border-t-2 border-dashed'
-														: 'bg-team h-0.5 w-4'
-												}
-												style={{ '--team': `#${driver.teamColour}` }}
-											/>
-											<span className="type-wide font-bold">{driver.code}</span>
-										</DriverLink>
-									))}
-							<MarksLegend ranges={flags} stops={stops.size > 0 && metric !== 'lapTime'} />
-						</div>
+						{legend}
 					</RaceOnly>
 				)}
 			</div>

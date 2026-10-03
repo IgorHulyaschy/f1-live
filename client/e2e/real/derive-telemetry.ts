@@ -4,8 +4,9 @@
  * open, and the laps the DRS zones, dominance and the speed map read there. Lap indexes stay
  * whole, as derive-fixtures.ts leaves them for the telemetry charts; only the laps read are kept.
  *
- *   DATA_DIR=/path/to/data node e2e/real/derive-telemetry.ts
+ *   DATA_DIR=/path/to/data node e2e/real/derive-telemetry.ts [session key...]
  *
+ * With keys, only those sessions are derived, so one built in another data folder can be added.
  * Reads only. Run derive-fixtures.ts first: the moments come from the fixture snapshots.
  */
 import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -19,6 +20,7 @@ import { snapshotAtLap } from '../../src/data/snapshot-at-lap.ts';
 import { snapshotAtTime } from '../../src/data/snapshot-at-time.ts';
 import { lapsToRead } from '../../src/features/track/dominance.ts';
 import { lapsForZones } from '../../src/features/track/drs-zones.ts';
+import { bestLaps } from '../../src/insights/gap-distance.ts';
 import { isTimedSession } from '../../src/insights/qualifying.ts';
 import { standingsAt } from '../../src/insights/standings.ts';
 
@@ -29,6 +31,8 @@ type Plan = {
 	lastSteps: number;
 	/** Steps where dominance and the speed map are opened; -1 is the last. */
 	mapSteps: readonly number[];
+	/** Each driver's best lap in each part and overall, for the gap visuals. */
+	gaps?: boolean;
 };
 
 /** Kept round each moment: the minute before for road gaps, and the next lap or two for playing on. */
@@ -43,7 +47,9 @@ const PLANS = new Map<string, Plan>([
 	// 2025 Las Vegas race: the start, laps 10, 30 and 50; the Track tiles at the start and lap 30.
 	['9858', { steps: [1, 10, 30], lastSteps: 1, mapSteps: [1, 30] }],
 	// 2026 Baku qualifying, opened at its end: the last minutes.
-	['11373', { steps: [], lastSteps: 6, mapSteps: [-1] }]
+	['11373', { steps: [], lastSteps: 6, mapSteps: [-1] }],
+	// 2026 Bahrain qualifying: the gaps and the ghost lap.
+	['11730', { steps: [], lastSteps: 0, mapSteps: [], gaps: true }]
 ]);
 
 const dataDir = process.env.DATA_DIR;
@@ -70,7 +76,13 @@ function readJson<T>(file: string): T {
 
 mkdirSync(path.join(target, 'circuits'), { recursive: true });
 
+const only = process.argv.slice(2);
+
 for (const [key, plan] of PLANS) {
+	if (only.length > 0 && !only.includes(key)) {
+		continue;
+	}
+
 	const from = path.join(source, key);
 	const to = path.join(target, key);
 
@@ -121,6 +133,7 @@ for (const [key, plan] of PLANS) {
 
 	const read = new Set([
 		...lapsForZones(laps, snapshot.laps),
+		...(plan.gaps ? gapLaps(laps, snapshot) : []),
 		...plan.mapSteps
 			.map((step) => (step < 0 ? last + 1 + step : step))
 			.flatMap((step) => mapLaps(laps, snapshot, step, stepTime(timeline, step), circuit.lengthM))
@@ -158,4 +171,13 @@ function mapLaps(
 		...lapsToRead(laps, [FOLLOWED, ...front], 'best', moment, lengthM),
 		...lapsToRead(laps, [FOLLOWED], 'lap', moment, lengthM)
 	];
+}
+
+/** The index entries of every lap the gap visuals place cars by. */
+function gapLaps(laps: LapIndex, snapshot: RaceSnapshot): LapIndex['laps'] {
+	const wanted = (['best', 1, 2, 3] as const).flatMap((part) => bestLaps(snapshot, part));
+
+	return laps.laps.filter((entry) =>
+		wanted.some((lap) => lap.driverNumber === entry.driverNumber && lap.lap === entry.lap)
+	);
 }
