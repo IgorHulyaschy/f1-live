@@ -354,7 +354,13 @@ export function RaceProvider({
 		searchParams.get('session')
 	);
 
-	const entry = catalog.status === 'ready' && key !== null ? findSession(catalog.value, key) : null;
+	const entry = React.useMemo(
+		() => (catalog.status === 'ready' && key !== null ? findSession(catalog.value, key) : null),
+		[catalog, key]
+	);
+
+	// One placeholder per session, so the screen does not take each render for a new session.
+	const placeholder = React.useMemo(() => (entry ? placeholderSnapshot(entry) : null), [entry]);
 	const feedReplica = liveState.replica;
 	const onFeed = key !== null && feedReplica?.sessionId === key;
 	const delaySeconds = delayStore.useValue();
@@ -383,8 +389,8 @@ export function RaceProvider({
 		wanted = { key, race: saved.value, fromFeed: false };
 	} else if (saved?.status === 'error') {
 		wanted = saved;
-	} else if (entry && !saved) {
-		wanted = { key: entry.key, race: placeholderSnapshot(entry), fromFeed: false };
+	} else if (entry && placeholder && !saved) {
+		wanted = { key: entry.key, race: placeholder, fromFeed: false };
 	} else if (catalog.status === 'ready' && key !== null && !entry) {
 		wanted = { status: 'error', message: `Session ${key} is not in the catalogue.` };
 	} else if (settled && key === null) {

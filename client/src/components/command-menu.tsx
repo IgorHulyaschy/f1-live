@@ -33,6 +33,7 @@ import { dashboardPath } from '@/features/dashboard/paths';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { LiveBadge, SessionPickerDialog } from '@/features/session/session-picker';
 import { toggleTheme } from '@/hooks/use-theme';
+import { OUT_LABEL } from '@/insights/standings';
 
 /**
  * Sessions worth offering before the viewer types: the live one and the rest of this meeting.
@@ -131,8 +132,8 @@ export function CommandMenu({
 								<CommandShortcut>
 									{row.driver.number === followedDriver
 										? 'Following'
-										: row.state === 'out'
-											? 'Out'
+										: row.out
+											? OUT_LABEL[row.out]
 											: `P${row.position}`}
 								</CommandShortcut>
 							</CommandItem>

@@ -436,7 +436,7 @@ function applyRetirement(state: RaceSnapshot, event: RetirementEvent): RaceSnaps
 			...state,
 			retirements: [
 				...state.retirements,
-				{ driverNumber: event.driverNumber, lap, reason: event.reason }
+				{ driverNumber: event.driverNumber, lap, reason: event.reason, at: event.at }
 			]
 		},
 		{ ...standing, retired: true }

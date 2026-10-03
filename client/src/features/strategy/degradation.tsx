@@ -1,4 +1,5 @@
 import { Digits } from '@/components/console/digits';
+import { EmptyNote } from '@/components/console/empty-note';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { ProGate } from '@/components/pro-gate';
@@ -27,7 +28,10 @@ export function Degradation() {
 	return (
 		<Panel aria-label="Tyre wear" data-testid="degradation">
 			<PanelHeader title="Tyre wear" meta="highest first" />
-			<div className="flex flex-col gap-3 p-4">
+			{stints.length === 0 ? (
+				<EmptyNote>Wear shows once a stint has a few clean laps.</EmptyNote>
+			) : null}
+			<div className={cn('flex flex-col gap-3 p-4', stints.length === 0 && 'hidden')}>
 				<ProGate
 					feature="Degradation by stint"
 					teaser="Which cars are losing the most time per lap to their tyres, and so must stop first."

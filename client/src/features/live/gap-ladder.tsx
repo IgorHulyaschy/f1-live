@@ -1,4 +1,5 @@
 import { Digits } from '@/components/console/digits';
+import { EmptyNote } from '@/components/console/empty-note';
 import { TeamStripe } from '@/components/driver-tag';
 import { useRace } from '@/data/race-context';
 import { battleAhead } from '@/insights/battle';
@@ -48,8 +49,14 @@ export function GapLadder() {
 	const index = rows.findIndex((row) => row.driver.number === followedDriver);
 	const subject = rows[index];
 
+	if (standings.length === 0 || snapshot.laps.length === 0) {
+		return <EmptyNote />;
+	}
+
 	if (!subject) {
-		return <p className="text-muted-foreground px-4 py-3 text-sm">Not on the lead lap.</p>;
+		const followed = standings.find((row) => row.driver.number === followedDriver);
+
+		return <EmptyNote>{followed?.out ? 'Out of the race.' : 'Not on the lead lap.'}</EmptyNote>;
 	}
 
 	const rungs = rows.slice(Math.max(index - RUNGS, 0), index + RUNGS + 1);

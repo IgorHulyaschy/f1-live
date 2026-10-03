@@ -1,4 +1,5 @@
 import { Digits } from '@/components/console/digits';
+import { EmptyNote } from '@/components/console/empty-note';
 import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { ProGate } from '@/components/pro-gate';
 import { RaceOnly } from '@/components/race-only';
@@ -12,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { useRace } from '@/data/race-context';
 import { isTimedSession } from '@/insights/qualifying';
+import { OUT_LABEL } from '@/insights/standings';
 import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -25,7 +27,12 @@ export function FocusPanel() {
 	const row = rows.find((entry) => entry.driver.number === followedDriver) ?? rows[0];
 
 	if (!row) {
-		return null;
+		return (
+			<Panel data-focus-panel aria-label="Followed driver" data-testid="followed-driver">
+				<PanelHeader title="Focus" />
+				<EmptyNote />
+			</Panel>
+		);
 	}
 
 	const gained = row.positionsGained ?? 0;
@@ -56,7 +63,7 @@ export function FocusPanel() {
 				style={{ '--team': `#${row.driver.teamColour}` }}
 			>
 				<span className="bg-team text-background cut-corner type-wide flex min-w-28 items-center justify-center px-4 text-5xl font-black italic">
-					{row.out === 'disqualified' ? 'DSQ' : row.state === 'out' ? 'Out' : `P${row.position}`}
+					{row.out ? OUT_LABEL[row.out] : `P${row.position}`}
 				</span>
 				<div className="flex min-w-0 flex-col justify-center gap-2 px-4 py-3">
 					<span className="type-wide truncate text-lg leading-none font-black">

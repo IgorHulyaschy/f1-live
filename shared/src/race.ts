@@ -141,6 +141,8 @@ export interface Retirement {
 	driverNumber: string;
 	lap: number;
 	reason: string;
+	/** When the feed reported it, ISO 8601 UTC; before the start means the car did not start. */
+	at?: string;
 }
 
 /** A driver's place in the running order now, refreshed between lap crossings. */

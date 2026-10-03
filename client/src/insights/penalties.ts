@@ -54,3 +54,23 @@ export function timePenalties(snapshot: RaceSnapshot): Map<string, number> {
 
 	return penalties;
 }
+
+/** Drive-throughs and stop-and-gos the stewards gave and the car has not served yet. */
+export function pitPenalties(snapshot: RaceSnapshot): Map<string, 'DT' | 'SG'> {
+	const outstanding = new Map<string, 'DT' | 'SG'>();
+
+	for (const penalty of snapshot.penalties ?? []) {
+		const served = penalty.servedLap !== undefined && penalty.servedLap <= snapshot.currentLap;
+
+		if (
+			(penalty.kind === 'drive_through' || penalty.kind === 'stop_go') &&
+			penalty.status !== 'revoked' &&
+			penalty.lap <= snapshot.currentLap &&
+			!served
+		) {
+			outstanding.set(penalty.driverNumber, penalty.kind === 'drive_through' ? 'DT' : 'SG');
+		}
+	}
+
+	return outstanding;
+}

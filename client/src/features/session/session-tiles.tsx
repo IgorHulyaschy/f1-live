@@ -2,6 +2,7 @@ import { ChevronsUpDownIcon, EyeIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Key } from '@/components/console/keys';
+import { EmptyNote } from '@/components/console/empty-note';
 import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { LapStrip } from '@/components/lap-strip';
 import { DelayControl, LapCounter, LiveKey, Transport } from '@/components/race-clock';
@@ -11,6 +12,19 @@ import { useRace } from '@/data/race-context';
 import { useNow } from '@/hooks/use-now';
 
 import { SessionPickerDialog } from './session-picker';
+
+/** "2 d 4 h", "3 h 20 min" or "12 min" until a start. */
+function countdown(fromMs: number, toMs: number): string {
+	const minutes = Math.max(1, Math.ceil((toMs - fromMs) / 60_000));
+	const hours = Math.floor(minutes / 60);
+	const days = Math.floor(hours / 24);
+
+	if (days > 0) {
+		return `${days} d ${hours % 24} h`;
+	}
+
+	return hours > 0 ? `${hours} h ${minutes % 60} min` : `${minutes} min`;
+}
 
 /** Where the data on screen comes from, in a word. */
 function useFeedLabel(): string {
@@ -38,6 +52,8 @@ export function SessionTile() {
 	const [picking, setPicking] = React.useState(false);
 	const year = new Date(race.session.startsAt).getUTCFullYear();
 	const feed = useFeedLabel();
+	const now = useNow();
+	const startsMs = Date.parse(race.session.startsAt);
 
 	return (
 		<section
@@ -56,9 +72,20 @@ export function SessionTile() {
 				<Field label="Session" className="px-4">
 					{race.session.name ?? SESSION_TYPE_LABEL[race.session.type]}
 				</Field>
-				<Field label="Feed" className="px-4">
-					{feed === 'Upcoming' ? formatLocalStart(race.session.startsAt) : feed}
-				</Field>
+				{feed === 'Upcoming' ? (
+					<>
+						<Field label="Starts" className="px-4">
+							{formatLocalStart(race.session.startsAt)}
+						</Field>
+						<Field label="In" className="px-4">
+							{countdown(now, startsMs)}
+						</Field>
+					</>
+				) : (
+					<Field label="Feed" className="px-4">
+						{feed}
+					</Field>
+				)}
 				<Field label="Track" className="px-4">
 					<TrackStatusBadge status={snapshot.trackStatus} />
 				</Field>
@@ -101,9 +128,12 @@ export function ReplayTile() {
 }
 
 export function LapStripTile() {
+	const { race, stepUnit } = useRace();
+	const empty = stepUnit === 'lap' ? race.session.totalLaps === 0 : race.laps.length === 0;
+
 	return (
 		<section aria-label="Laps" className="flex h-full min-w-0 flex-col justify-end py-1">
-			<LapStrip />
+			{empty ? <EmptyNote className="px-0 py-1" /> : <LapStrip />}
 		</section>
 	);
 }

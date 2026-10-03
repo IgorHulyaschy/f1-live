@@ -114,3 +114,13 @@ test('spoiler-free opens at the start and shows results only when asked', async 
 	await expect(page.getByTestId('timing-row-NOR').getByText('DSQ').first()).toBeVisible();
 	await expect(page.getByRole('button', { name: 'Show results' })).toHaveCount(0);
 });
+
+test('a session without saved data still opens, with every panel saying why it is empty', async ({
+	page
+}) => {
+	await openRace(page, '/?session=9851');
+
+	await expect(page.getByTestId('session')).toContainText('Practice 1');
+	await expect(page.getByTestId('empty-note').first()).toContainText('has no timing');
+	await expect(page.getByTestId('timing-table')).toHaveCount(0);
+});

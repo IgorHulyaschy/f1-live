@@ -1,4 +1,5 @@
 import { Digits } from '@/components/console/digits';
+import { EmptyNote } from '@/components/console/empty-note';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
@@ -32,6 +33,7 @@ export function FastestLaps() {
 	return (
 		<Panel aria-label="Fastest laps">
 			<PanelHeader title="Fastest laps" meta="best per driver" />
+			{laps.length === 0 ? <EmptyNote /> : null}
 			<ol className="flex max-w-2xl flex-col px-4 py-1">
 				{laps.map((lap, index) => {
 					const driver = drivers.get(lap.driverNumber);

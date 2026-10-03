@@ -171,7 +171,8 @@ export function LapStrip() {
 									'block w-full transition-all duration-200',
 									!raced && 'bg-foreground/25 h-px',
 									raced && (selected ? 'h-full' : HEIGHT[entry.traffic]),
-									raced && entry.status !== 'green' && 'bg-flag',
+									raced && entry.status === 'red' && 'bg-danger',
+									raced && entry.status !== 'green' && entry.status !== 'red' && 'bg-flag',
 									raced && entry.status === 'green' && selected && 'bg-focus',
 									raced &&
 										entry.status === 'green' &&

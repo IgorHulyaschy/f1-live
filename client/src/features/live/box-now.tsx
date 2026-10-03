@@ -1,4 +1,5 @@
 import { Digits } from '@/components/console/digits';
+import { EmptyNote } from '@/components/console/empty-note';
 import { useRace } from '@/data/race-context';
 import { predictRejoin } from '@/insights/pit-window';
 
@@ -10,8 +11,12 @@ export function BoxNow({ driverNumber }: { driverNumber: string }) {
 	const { snapshot } = useRace();
 	const prediction = predictRejoin(snapshot, driverNumber);
 
+	if (snapshot.laps.length === 0) {
+		return <EmptyNote className="p-0" />;
+	}
+
 	if (!prediction) {
-		return <p className="text-muted-foreground text-sm">No prediction while the car is out.</p>;
+		return <EmptyNote className="p-0">No prediction while the car is out.</EmptyNote>;
 	}
 
 	const traffic =

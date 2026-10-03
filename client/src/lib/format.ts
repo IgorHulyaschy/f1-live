@@ -11,9 +11,9 @@ export function formatSectorTime(ms: number): string {
 	return (ms / 1000).toFixed(3);
 }
 
-/** 2345 → "+2.345". */
+/** 2345 → "+2.345"; a gap of a minute or more, as after a red flag, 75500 → "+1:15.500". */
 export function formatGap(ms: number): string {
-	return `+${(ms / 1000).toFixed(3)}`;
+	return ms >= 60_000 ? `+${formatLapTime(ms)}` : `+${(ms / 1000).toFixed(3)}`;
 }
 
 /** Signed seconds with one decimal: 0.42 → "+0.4s", -1.26 → "−1.3s". */

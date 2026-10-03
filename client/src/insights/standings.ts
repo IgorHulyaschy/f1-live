@@ -7,7 +7,14 @@ export type SectorMark = 'fastest' | 'personal-best' | 'none';
 export type DriverState = 'running' | 'pit' | 'out';
 
 /** Why a car is out of the running order. */
-export type OutReason = 'retired' | 'disqualified';
+export type OutReason = 'retired' | 'not_started' | 'disqualified';
+
+/** How timing screens print a car that is out. */
+export const OUT_LABEL: Record<OutReason, string> = {
+	retired: 'DNF',
+	not_started: 'DNS',
+	disqualified: 'DSQ'
+};
 
 export interface StandingRow {
 	driver: Driver;
@@ -102,7 +109,17 @@ function rowFacts(snapshot: RaceSnapshot): RowFacts[] {
 		)
 	);
 
-	const retiredNumbers = new Set(snapshot.retirements.map((retirement) => retirement.driverNumber));
+	const startedAt = snapshot.startedAt;
+
+	// A car reported out before the start signal did not start.
+	const retiredAs = new Map(
+		snapshot.retirements.map((retirement) => [
+			retirement.driverNumber,
+			!timedSession && startedAt && retirement.at && retirement.at < startedAt
+				? ('not_started' as const)
+				: ('retired' as const)
+		])
+	);
 
 	const disqualified = new Map(
 		(snapshot.corrections ?? []).flatMap((correction) =>
@@ -171,11 +188,7 @@ function rowFacts(snapshot: RaceSnapshot): RowFacts[] {
 		const dsqReason = disqualified.get(driver.number);
 
 		const out: OutReason | null =
-			dsqReason !== undefined
-				? 'disqualified'
-				: retiredNumbers.has(driver.number)
-					? 'retired'
-					: null;
+			dsqReason !== undefined ? 'disqualified' : (retiredAs.get(driver.number) ?? null);
 
 		return {
 			driver,
@@ -256,7 +269,7 @@ function feedOrder(
 			const out: OutReason | null = standing.disqualified
 				? 'disqualified'
 				: standing.retired
-					? 'retired'
+					? (row.out ?? 'retired')
 					: row.out;
 
 			return {

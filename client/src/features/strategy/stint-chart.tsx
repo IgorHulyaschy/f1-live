@@ -1,5 +1,6 @@
 import type { Stint } from '@f1-live/shared';
 
+import { EmptyNote } from '@/components/console/empty-note';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { compoundName } from '@/components/tyre-badge';
@@ -70,7 +71,8 @@ function StintBar({
 export function StintChart() {
 	const { snapshot, standings } = useRace();
 	const rows = standings;
-	const totalLaps = snapshot.session.totalLaps;
+	// Practice and qualifying have no race distance; their longest run sets the scale.
+	const totalLaps = snapshot.session.totalLaps || Math.max(1, snapshot.currentLap);
 	const now = snapshot.currentLap;
 
 	const rulerMarks = Array.from(
@@ -80,7 +82,7 @@ export function StintChart() {
 
 	return (
 		<Panel aria-label="Tyre strategies" data-testid="stint-timeline">
-			<PanelHeader title="Stints" meta={`L${now} of ${totalLaps}`}>
+			<PanelHeader title="Stints" meta={now > 0 ? `L${now} of ${totalLaps}` : undefined}>
 				<span className="type-label hidden items-center gap-3 @xl:flex">
 					{LEGEND.map((compound) => (
 						<span key={compound} className="flex items-center gap-1.5">
@@ -90,7 +92,8 @@ export function StintChart() {
 					))}
 				</span>
 			</PanelHeader>
-			<div className="flex flex-col gap-1.5 p-4">
+			{snapshot.stints.length === 0 ? <EmptyNote /> : null}
+			<div className={cn('flex flex-col gap-1.5 p-4', snapshot.stints.length === 0 && 'hidden')}>
 				<div className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-3">
 					<span />
 					<div aria-hidden className="type-label relative h-4">

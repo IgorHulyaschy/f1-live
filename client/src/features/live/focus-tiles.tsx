@@ -10,7 +10,7 @@ function useFollowedCode() {
 	const { snapshot, followedDriver } = useRace();
 	const driver = snapshot.drivers.find((entry) => entry.number === followedDriver);
 
-	return { number: followedDriver, code: driver?.code ?? followedDriver };
+	return { number: followedDriver, code: driver?.code };
 }
 
 /** The gap ladder on its own, for dashboards that keep the full focus panel elsewhere. */
@@ -36,7 +36,7 @@ export function BoxNowPanel() {
 				<RaceOnly what="Pit stop prediction">
 					<ProGate
 						feature="Pit stop prediction"
-						teaser={`Where ${code} comes out if they box this lap, and whether it is into traffic.`}
+						teaser={`Where ${code ?? 'your driver'} comes out if they box this lap, and whether it is into traffic.`}
 					>
 						<BoxNow driverNumber={number} />
 					</ProGate>

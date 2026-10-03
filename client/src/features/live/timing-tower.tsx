@@ -3,17 +3,17 @@ import { motion } from 'motion/react';
 import * as React from 'react';
 
 import { Digits } from '@/components/console/digits';
+import { EmptyNote } from '@/components/console/empty-note';
 import { KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
 import { useRace } from '@/data/race-context';
-import { useNow } from '@/hooks/use-now';
-import { timePenalties } from '@/insights/penalties';
+import { pitPenalties, timePenalties } from '@/insights/penalties';
 import { predictRejoin } from '@/insights/pit-window';
 import { type CutLine, cutLines, isTimedSession } from '@/insights/qualifying';
 import { hasDrs } from '@/insights/rules';
-import type { StandingRow } from '@/insights/standings';
+import { OUT_LABEL, type StandingRow } from '@/insights/standings';
 import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -44,8 +44,6 @@ const FLASH = {
 	gain: ['rgba(74, 222, 128, 0.2)', 'rgba(74, 222, 128, 0)'],
 	loss: ['rgba(248, 113, 113, 0.2)', 'rgba(248, 113, 113, 0)']
 } as const;
-
-const OUT_LABEL = { retired: 'DNF', disqualified: 'DSQ' } as const;
 
 function previousPositions(laps: readonly Lap[], lap: number): Map<string, number> {
 	return new Map(
@@ -173,6 +171,7 @@ export function TimingTower() {
 	const timed = isTimedSession(snapshot.session.type);
 	const before = timed ? new Map<string, number>() : previousPositions(snapshot.laps, lap);
 	const penalties = timePenalties(snapshot);
+	const pitServes = pitPenalties(snapshot);
 	const followedIndex = rows.findIndex((row) => row.driver.number === followedDriver);
 	const rejoin = plan === 'pro' && !timed ? predictRejoin(snapshot, followedDriver) : null;
 	const lines = cutLines(snapshot, rows.length);
@@ -181,7 +180,6 @@ export function TimingTower() {
 	const [openedOnLap] = React.useState(lap);
 	const flashes = lap !== openedOnLap;
 	const trends = recentLaps(snapshot.laps);
-	const now = useNow();
 
 	const visible =
 		view === 'near' && followedIndex >= 0
@@ -215,11 +213,7 @@ export function TimingTower() {
 				<KeyGroup label="Gap shown" options={GAP_OPTIONS} value={mode} onChange={setMode} />
 			</PanelHeader>
 			{rows.length === 0 ? (
-				<p className="text-muted-foreground px-4 py-6 text-sm" data-testid="timing-empty">
-					{Date.parse(race.session.startsAt) > now
-						? 'The timing fills in when the cars go out.'
-						: 'No timing in this session’s data.'}
-				</p>
+				<EmptyNote />
 			) : (
 				<div className="overflow-x-auto">
 					<table className="w-full text-sm" data-testid="timing-table">
@@ -344,7 +338,7 @@ export function TimingTower() {
 													)}
 												</span>
 											</td>
-											<td className="max-w-0 min-w-24">
+											<td>
 												<span className="flex items-center gap-2">
 													<DriverTag driver={row.driver} showName showNumber />
 													{row.state === 'pit' ? <Chip tone="flag">Pit</Chip> : null}
@@ -354,6 +348,18 @@ export function TimingTower() {
 														</Chip>
 													) : null}
 													{penalty && !row.out ? <Chip tone="danger">+{penalty}s</Chip> : null}
+													{pitServes.has(row.driver.number) && !row.out ? (
+														<Chip
+															tone="danger"
+															title={
+																pitServes.get(row.driver.number) === 'DT'
+																	? 'Drive-through to serve'
+																	: 'Stop-and-go to serve'
+															}
+														>
+															{pitServes.get(row.driver.number)}
+														</Chip>
+													) : null}
 													{row.outReason ? (
 														<span className="text-muted-foreground hidden truncate text-xs @4xl:inline">
 															{row.outReason}
