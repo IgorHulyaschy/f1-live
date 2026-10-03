@@ -8,6 +8,7 @@ import {
 	type TyreCompound
 } from '@f1-live/shared';
 
+import { minuteTime, type SessionClock, sessionClock } from '../data/snapshot-at-time.ts';
 import { isCleanLap } from './clean-laps.ts';
 import { isTimedSession } from './qualifying.ts';
 
@@ -39,6 +40,8 @@ export type StoryTone =
 	TrackStatus | TyreCompound | 'fastest' | 'lead' | 'pass' | 'danger' | 'radio';
 
 export interface StoryMark {
+	/** Stable while the replay moves: the lane and the mark's place in it. */
+	id: string;
 	lane: StoryLane;
 	/** The lap of a race, or the minute of a session on the clock. */
 	step: number;
@@ -48,6 +51,9 @@ export interface StoryMark {
 	/** A radio clip's place in the archive. */
 	clip?: string;
 }
+
+/** A mark before it is numbered in its lane. */
+type Mark = Omit<StoryMark, 'id'>;
 
 const FLAG_TEXT: Record<Exclude<TrackStatus, 'green'>, string> = {
 	yellow: 'Yellow flag',
@@ -158,30 +164,32 @@ function minutePlacer(startMs: number): Placer {
 	};
 }
 
-/** The session clock's start: the start signal, or the first lap completed. */
-function clockStart(snapshot: RaceSnapshot): number {
-	if (snapshot.startedAt) {
-		return Date.parse(snapshot.startedAt);
-	}
-
-	const first = snapshot.laps.flatMap((lap) =>
-		lap.completedAt ? [Date.parse(lap.completedAt)] : []
-	);
-
-	return first.length > 0 ? Math.min(...first) : Date.parse(snapshot.session.startsAt);
-}
-
-function flagMarks(snapshot: RaceSnapshot, timed: boolean, startMs: number): StoryMark[] {
+/**
+ * The most serious flag on each step: per lap in a race; per minute on the clock, each status held
+ * until the next change, starting from the one in force at the start.
+ */
+function flagMarks(snapshot: RaceSnapshot, clock: SessionClock | null): Mark[] {
 	const worst = new Map<number, TrackStatus>();
 
-	if (timed) {
-		for (const change of snapshot.trackStatusLog ?? []) {
-			const step = Math.max(1, Math.ceil((Date.parse(change.at) - startMs) / MINUTE_MS));
-			const known = worst.get(step) ?? 'green';
+	if (clock) {
+		const log = (snapshot.trackStatusLog ?? []).toSorted((a, b) => a.at.localeCompare(b.at));
 
-			if (severity(change.status) > severity(known)) {
-				worst.set(step, change.status);
+		for (let minute = 1; minute <= clock.minutes; minute++) {
+			const from = minuteTime(clock, minute - 1);
+			const to = minuteTime(clock, minute);
+			let status: TrackStatus = 'green';
+
+			for (const change of log) {
+				const at = Date.parse(change.at);
+
+				if (at <= from) {
+					status = change.status;
+				} else if (at < to && severity(change.status) > severity(status)) {
+					status = change.status;
+				}
 			}
+
+			worst.set(minute, status);
 		}
 	} else {
 		for (const lap of snapshot.laps) {
@@ -191,7 +199,7 @@ function flagMarks(snapshot: RaceSnapshot, timed: boolean, startMs: number): Sto
 		}
 	}
 
-	return [...worst].flatMap(([step, status]) =>
+	return [...worst].flatMap(([step, status]): Mark[] =>
 		status === 'green' ? [] : [{ lane: 'flags', step, text: FLAG_TEXT[status], tone: status }]
 	);
 }
@@ -205,7 +213,7 @@ function fastest(lapTimeMs: number): string {
  * session, which is what decides practice and qualifying.
  */
 function leadMarks(snapshot: RaceSnapshot, place: Placer, code: (number: string) => string) {
-	const marks: StoryMark[] = [];
+	const marks: Mark[] = [];
 
 	if (isTimedSession(snapshot.session.type)) {
 		let best = Infinity;
@@ -278,8 +286,10 @@ function leadMarks(snapshot: RaceSnapshot, place: Placer, code: (number: string)
  */
 export function storyMarks(snapshot: RaceSnapshot): StoryMark[] {
 	const timed = isTimedSession(snapshot.session.type);
-	const startMs = clockStart(snapshot);
-	const place = timed ? minutePlacer(startMs) : lapPlacer();
+	const sessionStart = sessionClock(snapshot);
+	const clock = timed ? sessionStart : null;
+	const startMs = sessionStart.startMs;
+	const place = clock ? minutePlacer(startMs) : lapPlacer();
 
 	const drivers = new Map<string, Driver>(
 		snapshot.drivers.map((driver) => [driver.number, driver])
@@ -291,10 +301,7 @@ export function storyMarks(snapshot: RaceSnapshot): StoryMark[] {
 		snapshot.laps.find((entry) => entry.driverNumber === driverNumber && entry.lap === lap)
 			?.completedAt;
 
-	const marks: StoryMark[] = [
-		...flagMarks(snapshot, timed, startMs),
-		...leadMarks(snapshot, place, code)
-	];
+	const marks: Mark[] = [...flagMarks(snapshot, clock), ...leadMarks(snapshot, place, code)];
 
 	if (!timed) {
 		for (const { pass, onTrack, passed } of classifyPasses(snapshot)) {
@@ -429,7 +436,19 @@ export function storyMarks(snapshot: RaceSnapshot): StoryMark[] {
 		}
 	}
 
-	return marks.toSorted(
-		(a, b) => a.step - b.step || STORY_LANES.indexOf(a.lane) - STORY_LANES.indexOf(b.lane)
-	);
+	// Each lane counts its marks in the order they happened, so a mark keeps its id as the
+	// replay moves on and more are added.
+	const counts = new Map<StoryLane, number>();
+
+	return marks
+		.map((mark) => {
+			const count = counts.get(mark.lane) ?? 0;
+
+			counts.set(mark.lane, count + 1);
+
+			return { ...mark, id: `${mark.lane}-${count}` };
+		})
+		.toSorted(
+			(a, b) => a.step - b.step || STORY_LANES.indexOf(a.lane) - STORY_LANES.indexOf(b.lane)
+		);
 }

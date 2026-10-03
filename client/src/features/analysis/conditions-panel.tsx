@@ -27,6 +27,9 @@ import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
 
+/** Below this, pace and temperature hardly moved together, so no rate is printed. */
+const MEANINGFUL_CORRELATION = 0.3;
+
 const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
 
 function compassPoint(degrees: number): string {
@@ -242,7 +245,7 @@ function WindMap({
 				<span className="flex items-center gap-1.5">
 					<LegendArrow
 						direction={screenVector(turn, windFromDeg + 180)}
-						className="text-flag-ink"
+						className="text-foreground"
 					/>
 					Wind, {windSpeedMs.toFixed(1)} m/s from the {compassPoint(windFromDeg)}
 				</span>
@@ -339,7 +342,7 @@ export function ConditionsPanel() {
 									>
 										<div className="flex flex-wrap items-end gap-x-6 gap-y-2">
 											<span className="type-label">Track temperature and the field’s pace</span>
-											{link ? (
+											{link && Math.abs(link.correlation) >= MEANINGFUL_CORRELATION ? (
 												<Field label="Pace with each °C">
 													<Digits
 														value={`${link.secondsPerDegree >= 0 ? '+' : '−'}${Math.abs(link.secondsPerDegree).toFixed(2)} s`}
@@ -452,9 +455,8 @@ export function ConditionsPanel() {
 							<p className="text-muted-foreground text-xs">
 								Straights are where the outline turns less than three degrees per 100 m; arrows show
 								the direction of travel, solid straights run into the wind and dashed ones have it
-								behind. The pace is the field’s median clean lap with the fuel burnt added back; it
-								moves with the track temperature, but also with grip building up as the race goes
-								on.
+								behind. The pace is the field’s median clean lap as if on an empty tank; it moves
+								with the track temperature, but also with grip building up as the race goes on.
 							</p>
 						</>
 					)}

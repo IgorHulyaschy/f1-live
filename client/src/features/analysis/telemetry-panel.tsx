@@ -279,7 +279,8 @@ const ChannelChart = React.memo(function ChannelChart({
 									label={{
 										value: corner.speedKph,
 										position: 'bottom',
-										className: 'fill-muted-foreground text-[10px]'
+										// Narrow tiles have no room for every corner's number.
+										className: 'fill-muted-foreground hidden text-[10px] @xl:inline'
 									}}
 								/>
 							))
@@ -321,7 +322,6 @@ function Readout({
 }) {
 	const index = React.useSyncExternalStore(hover.subscribe, hover.get);
 	const row = index === null ? null : rows[index];
-	const last = rows.at(-1);
 
 	return (
 		<div className="flex flex-col gap-1" aria-live="off" data-testid="telemetry-readout">
@@ -331,7 +331,14 @@ function Readout({
 			<ul className="flex flex-col">
 				{lines.map((line, slot) => {
 					const value = (channel: string) => row?.[`${channel}${slot}`] ?? null;
-					const delta = slot === 0 ? null : (row ?? last)?.[`delta${slot}`];
+
+					// Under the pointer, the gap at that distance; otherwise the gap in official lap time.
+					const delta =
+						slot === 0
+							? null
+							: row
+								? row[`delta${slot}`]
+								: (line.lapTimeMs - (lines[0]?.lapTimeMs ?? line.lapTimeMs)) / 1000;
 
 					return (
 						<li
@@ -413,7 +420,7 @@ function SlotPicker({
 
 	return (
 		<div
-			className="flex items-center gap-2 border-l-2 pl-2"
+			className="flex min-w-0 flex-wrap items-center gap-2 border-l-2 pl-2"
 			style={driver ? { '--team': `#${driver.teamColour}` } : undefined}
 			data-testid={`telemetry-slot-${SLOT_LETTER[index] ?? index}`}
 		>
@@ -542,23 +549,33 @@ function TelemetryBody({
 		[lapTelemetry, circuit]
 	);
 
-	const lines: SlotLine[] = lapTelemetry.flatMap((lap, slot) => {
-		const driver = snapshot.drivers.find((entry) => entry.number === lap.driverNumber);
+	// The official times, kept while they stay the same, so the charts below redraw only for new laps.
+	const officialTimes = useStableValue(
+		chosen.map((choice) => choice.lap.lapTimeMs),
+		sameItems
+	);
 
-		return driver
-			? [
-					{
-						key: `s${slot}`,
-						letter: SLOT_LETTER[slot] ?? '',
-						driver,
-						lap,
-						// The modelled replay's own times are not these laps'.
-						lapTimeMs:
-							sourceKind === 'mock' ? lap.lapTimeMs : (chosen[slot]?.lap.lapTimeMs ?? lap.lapTimeMs)
-					}
-				]
-			: [];
-	});
+	const lines = React.useMemo(
+		() =>
+			lapTelemetry.flatMap((lap, slot): SlotLine[] => {
+				const driver = snapshot.drivers.find((entry) => entry.number === lap.driverNumber);
+
+				return driver
+					? [
+							{
+								key: `s${slot}`,
+								letter: SLOT_LETTER[slot] ?? '',
+								driver,
+								lap,
+								// The modelled replay's own times are not these laps'.
+								lapTimeMs:
+									sourceKind === 'mock' ? lap.lapTimeMs : (officialTimes[slot] ?? lap.lapTimeMs)
+							}
+						]
+					: [];
+			}),
+		[lapTelemetry, snapshot.drivers, sourceKind, officialTimes]
+	);
 
 	const setSlots = (next: TraceSlot[]) => setPicked({ key: sessionKey, mode, slots: next });
 
@@ -620,7 +637,7 @@ function TelemetryBody({
 				) : null}
 				{slots.map((slot, slotIndex) => (
 					<SlotPicker
-						key={slotIndex}
+						key={SLOT_LETTER[slotIndex]}
 						slot={slot}
 						index={slotIndex}
 						mode={mode}

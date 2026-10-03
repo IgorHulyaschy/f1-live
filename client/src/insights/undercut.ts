@@ -1,15 +1,12 @@
 import type { Lap, PitStop, RaceSnapshot } from '@f1-live/shared';
 
-import { isCleanLap, median } from './clean-laps.ts';
+import { isNeutralised, median, paceAround } from './clean-laps.ts';
 
 /** Cars this close at the line before the first stop are fighting for the place. */
 const GAP_WINDOW_MS = 5000;
 
 /** A rival that answers within this many laps makes it an exchange; later is another race. */
 const ANSWER_LAPS = 6;
-
-/** Clean laps either side of a stop that set the driver's normal pace around it. */
-const REFERENCE_LAPS = 4;
 
 /** Without stops to learn from, the pit lane is taken to straddle the line evenly. */
 const DEFAULT_LANE_SHARE = 0.5;
@@ -57,15 +54,6 @@ function lapBook(snapshot: RaceSnapshot): LapBook {
 	return book;
 }
 
-/** A driver's usual lap around `lap`: the median of clean laps nearby. */
-function paceAround(own: ReadonlyMap<number, Lap>, lap: number): number | null {
-	const nearby = [...own.values()].filter(
-		(entry) => Math.abs(entry.lap - lap) <= REFERENCE_LAPS && isCleanLap(entry)
-	);
-
-	return median(nearby.map((entry) => entry.lapTimeMs));
-}
-
 /**
  * How much of a stop's pit lane time falls in the in-lap: the line crosses the pit lane, so the
  * rest falls in the out-lap. Learnt from the session's green stops, from how much slower each
@@ -78,7 +66,7 @@ export function laneShareOnInLap(snapshot: RaceSnapshot): number {
 		const own = book.get(stop.driverNumber);
 		const inLap = own?.get(stop.lap);
 		const outLap = own?.get(stop.lap + 1);
-		const pace = own ? paceAround(own, stop.lap) : null;
+		const pace = own ? paceAround([...own.values()], stop.lap) : null;
 
 		if (!inLap || !outLap || pace === null || inLap.trackStatus !== 'green') {
 			return [];
@@ -91,10 +79,6 @@ export function laneShareOnInLap(snapshot: RaceSnapshot): number {
 	});
 
 	return median(shares) ?? DEFAULT_LANE_SHARE;
-}
-
-function isNeutralised(lap: Lap | undefined): boolean {
-	return lap?.trackStatus === 'vsc' || lap?.trackStatus === 'safety_car';
 }
 
 /** Names each lap of the exchange by what happened on it. */

@@ -3,10 +3,15 @@ import { describe, it } from 'node:test';
 
 import { simulateLasVegas2025 } from '../data/mock/simulate-race.ts';
 import { snapshotAtLap } from '../data/snapshot-at-lap.ts';
-import { classifyPasses, storyMarks } from './race-story.ts';
+import { classifyPasses, type StoryMark, storyMarks } from './race-story.ts';
 import { fixtureSession } from './test-fixtures.ts';
 
 const race = fixtureSession('9858');
+
+/** Where and to whom a mark happened, whatever its words. */
+function moment(mark: StoryMark): string {
+	return `${mark.lane}/${mark.step}/${mark.driverNumber ?? ''}`;
+}
 
 function lane(marks: ReturnType<typeof storyMarks>, name: string) {
 	return marks.filter((mark) => mark.lane === name);
@@ -121,6 +126,31 @@ describe('storyMarks on practice and qualifying', () => {
 		// Norris took pole with 1:47.934
 		// (https://www.formula1.com/en/results/2025/races/1274/las-vegas/qualifying).
 		assert.equal(best?.text, 'NOR fastest lap, 107.934 s');
+	});
+
+	it('marks every minute a flag was out on the clock, not only the minute it came out', () => {
+		const flags = lane(storyMarks(fixtureSession('9852')), 'flags');
+		const red = flags.filter((mark) => mark.tone === 'red').map((mark) => mark.step);
+
+		// The red flag of second practice ran from minute 39 to minute 42.
+		assert.deepEqual(red.slice(0, 4), [39, 40, 41, 42]);
+		// A yellow before the start, cleared before it, is not the first minute's flag.
+		assert.equal(
+			flags.some((mark) => mark.step === 1),
+			false
+		);
+	});
+
+	it('keeps each mark’s id on the same moment as the replay moves on', () => {
+		const atLap50 = new Map(storyMarks(race).map((mark) => [mark.id, moment(mark)]));
+
+		// The fastest lap moves as faster ones come; everything else stays where it happened.
+		assert.ok(
+			storyMarks(snapshotAtLap(race, 20)).every(
+				(mark) => mark.tone === 'fastest' || atLap50.get(mark.id) === moment(mark)
+			)
+		);
+		assert.equal(atLap50.size, storyMarks(race).length);
 	});
 
 	it('works on the modelled race, which has no passes or radio', () => {

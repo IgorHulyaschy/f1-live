@@ -1,9 +1,6 @@
-import type { Driver, Lap, PitStop, RaceSnapshot } from '@f1-live/shared';
+import type { Driver, PitStop, RaceSnapshot } from '@f1-live/shared';
 
-import { isCleanLap, median } from './clean-laps.ts';
-
-/** Clean laps either side of a stop that set the driver's normal pace around it. */
-const REFERENCE_LAPS = 4;
+import { isNeutralised, median, paceAround } from './clean-laps.ts';
 
 /** A stop standing this many times longer than the field's usual one went wrong or served a penalty. */
 const SLOW_STOP_SHARE = 1.8;
@@ -29,10 +26,6 @@ export interface PitCost {
 	/** Typical time in the pit lane, and stationary in the box, of green-flag stops. */
 	laneMs: number | null;
 	stationaryMs: number | null;
-}
-
-function isNeutralised(lap: Lap | undefined): boolean {
-	return lap?.trackStatus === 'vsc' || lap?.trackStatus === 'safety_car';
 }
 
 /**
@@ -83,14 +76,9 @@ export function pitStopCost(snapshot: RaceSnapshot): PitCost {
 			};
 		}
 
-		const pace = median(
-			snapshot.laps.flatMap((lap) =>
-				lap.driverNumber === stop.driverNumber &&
-				Math.abs(lap.lap - stop.lap) <= REFERENCE_LAPS &&
-				isCleanLap(lap)
-					? [lap.lapTimeMs]
-					: []
-			)
+		const pace = paceAround(
+			snapshot.laps.filter((lap) => lap.driverNumber === stop.driverNumber),
+			stop.lap
 		);
 
 		return {

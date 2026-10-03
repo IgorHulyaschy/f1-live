@@ -9,16 +9,9 @@ import {
 	type TyreCompound
 } from '@f1-live/shared';
 
-import { FUEL_EFFECT_SECONDS_PER_LAP } from './clean-laps.ts';
+import { FUEL_EFFECT_SECONDS_PER_LAP, fuelCorrectedSeconds } from './clean-laps.ts';
 import { fixtureSession } from './test-fixtures.ts';
-import {
-	type CompoundLife,
-	crossoversOf,
-	findCliff,
-	fuelCorrectedLapSeconds,
-	lossAt,
-	tyreLife
-} from './tyre-life.ts';
+import { type CompoundLife, crossoversOf, findCliff, lossAt, tyreLife } from './tyre-life.ts';
 
 type Plan = { driverNumber: string; compound: TyreCompound; startLap: number; laps: number };
 
@@ -78,12 +71,12 @@ const ONE_STOP = ['1', '2', '3'].flatMap((driverNumber): Plan[] => [
 	{ driverNumber, compound: 'HARD', startLap: 20, laps: 20 }
 ]);
 
-describe('fuelCorrectedLapSeconds', () => {
-	it('adds back the fuel burnt by each lap', () => {
-		assert.equal(
-			fuelCorrectedLapSeconds({ lap: 10, lapTimeMs: 90_000 }),
-			90 + 10 * FUEL_EFFECT_SECONDS_PER_LAP
-		);
+describe('fuelCorrectedSeconds', () => {
+	it('takes out the fuel on board in a race and adds back the fuel burnt in practice', () => {
+		const lap = { lap: 10, lapTimeMs: 90_000 };
+
+		assert.equal(fuelCorrectedSeconds(lap, 50), 90 - 40 * FUEL_EFFECT_SECONDS_PER_LAP);
+		assert.equal(fuelCorrectedSeconds(lap, 0), 90 + 10 * FUEL_EFFECT_SECONDS_PER_LAP);
 	});
 });
 
@@ -99,7 +92,7 @@ describe('tyreLife', () => {
 		assert.ok(medium && hard);
 		assert.ok(Math.abs(medium.wearSecondsPerLap - 0.08) < 0.002);
 		assert.ok(Math.abs(hard.wearSecondsPerLap - 0.03) < 0.002);
-		assert.ok(Math.abs(hard.newOffsetS - 0.6) < 0.01);
+		assert.ok(Math.abs((hard.newOffsetS ?? 0) - 0.6) < 0.01);
 		assert.equal(medium.newOffsetS, 0);
 		assert.equal(life.comparable, true);
 	});
@@ -122,6 +115,62 @@ describe('tyreLife', () => {
 		assert.ok(result.compounds.every((entry) => entry.newOffsetS === 0));
 	});
 
+	it('links compounds no driver ran together through one they share', () => {
+		// Three cars go soft then hard, three medium then hard: the hard links soft and medium.
+		const plans = [
+			...['1', '2', '3'].flatMap((driverNumber): Plan[] => [
+				{ driverNumber, compound: 'SOFT', startLap: 2, laps: 12 },
+				{ driverNumber, compound: 'HARD', startLap: 14, laps: 20 }
+			]),
+			...['4', '5', '6'].flatMap((driverNumber): Plan[] => [
+				{ driverNumber, compound: 'MEDIUM', startLap: 2, laps: 18 },
+				{ driverNumber, compound: 'HARD', startLap: 20, laps: 20 }
+			])
+		];
+
+		const linked = tyreLife(
+			race(plans, {
+				SOFT: { newS: 0, wearS: 0.12 },
+				MEDIUM: { newS: 0.3, wearS: 0.06 },
+				HARD: { newS: 0.7, wearS: 0.03 }
+			})
+		);
+
+		assert.deepEqual(
+			linked.compounds.map((entry) => [entry.compound, entry.newOffsetS?.toFixed(2)]),
+			[
+				['SOFT', '0.00'],
+				['MEDIUM', '0.30'],
+				['HARD', '0.70']
+			]
+		);
+	});
+
+	it('keeps a compound nobody ran with another, with its wear but no pace when new', () => {
+		const plans = [
+			...['1', '2', '3'].map((driverNumber): Plan => ({
+				driverNumber,
+				compound: 'MEDIUM',
+				startLap: 2,
+				laps: 20
+			})),
+			...['4', '5', '6'].map((driverNumber): Plan => ({
+				driverNumber,
+				compound: 'HARD',
+				startLap: 2,
+				laps: 20
+			}))
+		];
+
+		const apart = tyreLife(
+			race(plans, { MEDIUM: { newS: 0, wearS: 0.08 }, HARD: { newS: 0.6, wearS: 0.03 } })
+		);
+
+		assert.equal(apart.compounds.length, 2);
+		assert.equal(apart.compounds.filter((entry) => entry.newOffsetS === null).length, 1);
+		assert.deepEqual(apart.crossovers, []);
+	});
+
 	it('has nothing to say about qualifying', () => {
 		const quali = race(ONE_STOP, {});
 
@@ -141,7 +190,7 @@ describe('tyreLife', () => {
 		assert.ok(realMedium && realHard);
 		assert.ok(realHard.runs > realMedium.runs);
 		assert.equal(realHard.newOffsetS, 0);
-		assert.ok(realMedium.newOffsetS > 0);
+		assert.ok((realMedium.newOffsetS ?? 0) > 0);
 		assert.ok(realMedium.wearSecondsPerLap > 0 && realMedium.wearSecondsPerLap < 0.05);
 		assert.equal(realHard.cliff, null);
 	});

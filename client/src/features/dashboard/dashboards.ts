@@ -335,15 +335,6 @@ export const PRESETS: readonly Dashboard[] = [
 		['driver', 0, 13, 8, 16],
 		['chart', 8, 13, 16, 16, { metric: 'position' }]
 	]),
-	buildDashboard('story', 'Race story', [
-		['session', 0, 0, 16, 3],
-		['replay', 16, 0, 8, 3],
-		['story', 0, 3, 24, 20],
-		['chart', 0, 23, 14, 18, { metric: 'position' }],
-		['championship', 14, 23, 10, 36],
-		['race-control', 0, 41, 14, 18],
-		['conditions', 0, 59, 24, 26]
-	]),
 	buildDashboard(
 		'wall',
 		'Pit wall',
@@ -355,7 +346,16 @@ export const PRESETS: readonly Dashboard[] = [
 			['stints', 17, 11, 7, 12]
 		],
 		{ fit: true }
-	)
+	),
+	buildDashboard('story', 'Race story', [
+		['session', 0, 0, 16, 3],
+		['replay', 16, 0, 8, 3],
+		['story', 0, 3, 24, 20],
+		['chart', 0, 23, 14, 18, { metric: 'position' }],
+		['championship', 14, 23, 10, 36],
+		['race-control', 0, 41, 14, 18],
+		['conditions', 0, 59, 24, 26]
+	])
 ];
 
 export function isPreset(id: string): boolean {

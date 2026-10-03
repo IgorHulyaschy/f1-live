@@ -45,12 +45,26 @@ import {
 } from './lap-series';
 
 export const METRICS = [
-	{ value: 'lapTime', label: 'Lap times' },
-	{ value: 'gap', label: 'Gap' },
-	{ value: 'position', label: 'Positions' },
-	{ value: 'battle', label: 'Battle' },
-	{ value: 'versus', label: 'Versus' }
-] as const satisfies readonly { value: Metric; label: string }[];
+	{ value: 'lapTime', label: 'Lap times', short: 'Laps' },
+	{ value: 'gap', label: 'Gap', short: 'Gap' },
+	{ value: 'position', label: 'Positions', short: 'Pos' },
+	{ value: 'battle', label: 'Battle', short: 'Battle' },
+	{ value: 'versus', label: 'Versus', short: 'Vs' }
+] as const satisfies readonly { value: Metric; label: string; short: string }[];
+
+/** Narrow tiles print the short names, so every key and the Table key fit on a phone. */
+const METRIC_KEYS = METRICS.map((entry) => ({
+	value: entry.value,
+	label:
+		entry.short === entry.label ? (
+			entry.label
+		) : (
+			<>
+				<span className="@md:hidden">{entry.short}</span>
+				<span className="hidden @md:inline">{entry.label}</span>
+			</>
+		)
+}));
 
 const METRIC_NOTE: Record<Exclude<Metric, 'versus'>, string> = {
 	lapTime:
@@ -248,7 +262,7 @@ export function ChartWorkspace({
 				<KeyGroup
 					label="Chart"
 					role="tablist"
-					options={METRICS}
+					options={METRIC_KEYS}
 					value={metric}
 					onChange={setMetric}
 					controls={panelId}

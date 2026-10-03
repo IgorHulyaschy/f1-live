@@ -16,10 +16,10 @@ import {
 import { teamRadioUrl } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
-import { useTileFill } from '../dashboard/tile-fill';
+import { useTileFill, useTileRows } from '../dashboard/tile-fill';
 
-/** Below this height (px) a tile shows the ribbon on its own, thin, as a strip under the replay. */
-const COMPACT_BELOW_PX = 190;
+/** A tile this many grid rows tall or shorter shows the ribbon on its own, as a strip under the replay. */
+const STRIP_ROWS = 4;
 
 const TONE_CLASS: Record<StoryTone, string> = {
 	green: 'bg-transparent',
@@ -43,32 +43,6 @@ const TONE_CLASS: Record<StoryTone, string> = {
 /** Most marks a lane stacks in one step before they fill it. */
 const STACK = 4;
 
-function useCompact(ref: React.RefObject<HTMLElement | null>, enabled: boolean): boolean {
-	const [compact, setCompact] = React.useState(false);
-
-	React.useLayoutEffect(() => {
-		const element = ref.current;
-
-		if (!enabled || !element) {
-			return;
-		}
-
-		const measure = (height: number) => setCompact(height < COMPACT_BELOW_PX);
-
-		const observer = new ResizeObserver(([entry]) =>
-			measure(entry?.contentRect.height ?? Infinity)
-		);
-
-		// Measured before the first paint too, so a short tile never flashes the full ribbon.
-		measure(element.getBoundingClientRect().height);
-		observer.observe(element);
-
-		return () => observer.disconnect();
-	}, [ref, enabled]);
-
-	return enabled && compact;
-}
-
 /** What one lane shows for one step: a band for flags, stacked blocks for the rest. */
 function LaneCell({ lane, marks }: { lane: StoryLane; marks: readonly StoryMark[] }) {
 	if (marks.length === 0) {
@@ -81,9 +55,9 @@ function LaneCell({ lane, marks }: { lane: StoryLane; marks: readonly StoryMark[
 
 	return (
 		<span className="flex h-full flex-col-reverse gap-px">
-			{marks.slice(0, STACK).map((mark, index) => (
+			{marks.slice(0, STACK).map((mark) => (
 				<span
-					key={index}
+					key={mark.id}
 					className={cn(
 						'min-h-0 flex-1',
 						TONE_CLASS[mark.tone],
@@ -103,12 +77,12 @@ function laneCell(marks: readonly StoryMark[]): React.ReactNode {
 
 	return (
 		<span className="flex flex-wrap gap-x-2">
-			{marks.map((mark, index) => {
+			{marks.map((mark) => {
 				const url = mark.clip ? teamRadioUrl(mark.clip) : null;
 
 				return url ? (
 					<a
-						key={index}
+						key={mark.id}
 						href={url}
 						target="_blank"
 						rel="noreferrer"
@@ -117,7 +91,7 @@ function laneCell(marks: readonly StoryMark[]): React.ReactNode {
 						{mark.text}
 					</a>
 				) : (
-					<span key={index}>{mark.text}</span>
+					<span key={mark.id}>{mark.text}</span>
 				);
 			})}
 		</span>
@@ -137,8 +111,8 @@ function stepWord(unit: 'lap' | 'minute', step: number): string {
 export function StoryRibbon() {
 	const { race, snapshot, lap, setLap, steps, stepUnit } = useRaceView();
 	const fill = useTileFill();
-	const box = React.useRef<HTMLDivElement>(null);
-	const compact = useCompact(box, fill);
+	const rows = useTileRows();
+	const compact = rows !== null && rows <= STRIP_ROWS;
 	const [table, setTable] = React.useState(false);
 	const [hovered, setHovered] = React.useState<number | null>(null);
 
@@ -247,16 +221,15 @@ export function StoryRibbon() {
 					})}
 				</fieldset>
 			</div>
-			<p className={cn('min-h-4 truncate text-xs', compact && 'hidden')} aria-live="polite">
+			<p className={cn('min-h-4 truncate text-xs', compact && 'hidden')}>
 				<span className="type-label mr-2">{stepWord(stepUnit, shownStep)}</span>
 				{shown.length > 0 ? shown.map((mark) => mark.text).join('; ') : 'Nothing marked.'}
 			</p>
 		</div>
 	);
 
-	// The tile's box is measured, whichever shape is inside it.
 	return (
-		<div ref={box} className={cn('min-w-0', fill && 'h-full')} data-testid="story">
+		<div className={cn('min-w-0', fill && 'h-full')} data-testid="story">
 			{compact ? (
 				<section
 					aria-label="Race story"
@@ -311,8 +284,8 @@ export function StoryRibbon() {
 								)}
 								aria-label="Key moments, latest first"
 							>
-								{moments.map((mark, index) => (
-									<li key={index} className="border-b last:border-b-0">
+								{moments.map((mark) => (
+									<li key={mark.id} className="border-b last:border-b-0">
 										<button
 											type="button"
 											onClick={() => setLap(mark.step)}

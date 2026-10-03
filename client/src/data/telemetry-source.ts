@@ -153,3 +153,26 @@ export function createTelemetrySource(apiUrl: string): TelemetrySource {
 		loadedLap: (key, entry) => laps.loaded(lapUrl(key, entry))
 	};
 }
+
+/** A source whose code loads on first use, for one that only some deployments need. */
+export function lazyTelemetrySource(load: () => Promise<TelemetrySource>): TelemetrySource {
+	let source: TelemetrySource | null = null;
+	let loading: Promise<TelemetrySource> | null = null;
+
+	const ready = () => {
+		loading ??= load().then((loaded) => {
+			source = loaded;
+
+			return loaded;
+		});
+
+		return loading;
+	};
+
+	return {
+		loadSession: async (key) => (await ready()).loadSession(key),
+		loadLap: async (key, entry) => (await ready()).loadLap(key, entry),
+		loadedSession: (key) => source?.loadedSession(key),
+		loadedLap: (key, entry) => source?.loadedLap(key, entry)
+	};
+}

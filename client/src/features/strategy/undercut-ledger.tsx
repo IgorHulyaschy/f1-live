@@ -93,7 +93,7 @@ function Ledger({ exchange }: { exchange: StopExchange }) {
 					)}
 				>
 					{OUTCOME_TEXT[exchange.outcome]}
-					{exchange.neutralised ? ', under a VSC' : ''}
+					{exchange.neutralised ? ', under a VSC or Safety Car' : ''}
 				</span>
 			</header>
 			<table className="w-full text-sm">

@@ -7,7 +7,7 @@ import type { SessionTelemetry, TelemetrySource } from './telemetry-source.ts';
 
 const TelemetryContext = React.createContext<TelemetrySource | null>(null);
 
-/** Where telemetry comes from; none for a source without saved sessions, like the modelled replay. */
+/** Where telemetry comes from; none for a source that has no telemetry files. */
 export function TelemetryProvider({
 	source,
 	children

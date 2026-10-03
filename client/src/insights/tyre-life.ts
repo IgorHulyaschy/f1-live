@@ -1,12 +1,6 @@
-import {
-	TYRE_COMPOUNDS,
-	type Lap,
-	type RaceSnapshot,
-	type Stint,
-	type TyreCompound
-} from '@f1-live/shared';
+import { TYRE_COMPOUNDS, type RaceSnapshot, type Stint, type TyreCompound } from '@f1-live/shared';
 
-import { average, FUEL_EFFECT_SECONDS_PER_LAP, isCleanLap } from './clean-laps.ts';
+import { average, fuelCorrectedSeconds, isCleanLap, median } from './clean-laps.ts';
 import { isKnockout, isTimedSession } from './qualifying.ts';
 
 /** A run shorter than this says nothing about wear. */
@@ -42,15 +36,18 @@ export interface CompoundLife {
 	points: TyreLifePoint[];
 	/** Loss per lap of tyre age with the fuel burn taken out, before any cliff. */
 	wearSecondsPerLap: number;
-	/** A new set against the quickest compound's new set; 0 for the quickest. */
-	newOffsetS: number;
+	/**
+	 * A new set against the quickest compound's new set; 0 for the quickest. Null when no driver
+	 * ran it with another compound, so its pace when new cannot be compared.
+	 */
+	newOffsetS: number | null;
 	/** The tyre age the loss steepens at, and how steep it gets; null without a cliff. */
 	cliff: { age: number; wearSecondsPerLap: number } | null;
 	runs: number;
 	laps: number;
 }
 
-/** The age of `from` at which a new set of the harder `to` is already the quicker tyre. */
+/** The age of `from` at which a new set of `to`, slower when new, is already the quicker tyre. */
 export interface Crossover {
 	from: TyreCompound;
 	to: TyreCompound;
@@ -71,23 +68,6 @@ type RunLap = { age: number; seconds: number };
 
 type Run = { stint: Stint; laps: RunLap[] };
 
-function median(values: readonly number[]): number {
-	const sorted = values.toSorted((a, b) => a - b);
-	const middle = Math.floor(sorted.length / 2);
-
-	return sorted.length % 2 === 1
-		? (sorted[middle] ?? 0)
-		: ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
-}
-
-/**
- * A lap time with the fuel burnt so far added back, so a run's laps compare as if on one fuel
- * load. Within a race this matches removing the fuel still on board, up to one constant.
- */
-export function fuelCorrectedLapSeconds(lap: Pick<Lap, 'lapTimeMs' | 'lap'>): number {
-	return lap.lapTimeMs / 1000 + FUEL_EFFECT_SECONDS_PER_LAP * lap.lap;
-}
-
 function runsOf(snapshot: RaceSnapshot): Run[] {
 	return snapshot.stints.flatMap((stint) => {
 		const laps = snapshot.laps.filter(
@@ -98,9 +78,11 @@ function runsOf(snapshot: RaceSnapshot): Run[] {
 				isCleanLap(lap)
 		);
 
+		// The fuel still on board taken out; in practice, where the distance is unknown, the fuel
+		// burnt so far added back. Either way each run's laps compare as if on one load.
 		const corrected = laps.map((lap) => ({
 			age: lap.tyreAge,
-			seconds: fuelCorrectedLapSeconds(lap)
+			seconds: fuelCorrectedSeconds(lap, snapshot.session.totalLaps)
 		}));
 
 		const quickest = Math.min(...corrected.map((lap) => lap.seconds));
@@ -189,11 +171,62 @@ export function findCliff(points: readonly TyreLifePoint[]): CompoundLife['cliff
 	return { age: best.age, wearSecondsPerLap: best.second.slope };
 }
 
+type CompoundRuns = { compound: TyreCompound; runs: Run[]; levels: number[] };
+
+/** One compound's pace when new against another's, from the drivers who ran both; null if none did. */
+function pairOffset(entry: CompoundRuns, other: CompoundRuns): number | null {
+	const differences = entry.runs.flatMap((run, index) => {
+		const theirs = other.runs.flatMap((candidate, at) =>
+			candidate.stint.driverNumber === run.stint.driverNumber ? [other.levels[at] ?? 0] : []
+		);
+
+		const level = median(theirs);
+
+		return level === null ? [] : [(entry.levels[index] ?? 0) - level];
+	});
+
+	return median(differences);
+}
+
+/**
+ * Each compound's pace when new against the most-run one, linked through any chain of compounds
+ * that share drivers. A compound no driver ran with the others is left out.
+ */
+function linkedOffsets(entries: readonly CompoundRuns[]): Map<TyreCompound, number> {
+	const reference = entries.toSorted((a, b) => b.runs.length - a.runs.length)[0];
+	const offsets = new Map<TyreCompound, number>(reference ? [[reference.compound, 0]] : []);
+	let added = true;
+
+	while (added) {
+		added = false;
+
+		for (const entry of entries) {
+			if (offsets.has(entry.compound)) {
+				continue;
+			}
+
+			for (const other of entries) {
+				const base = offsets.get(other.compound);
+				const offset = base === undefined ? null : pairOffset(entry, other);
+
+				if (base !== undefined && offset !== null) {
+					offsets.set(entry.compound, base + offset);
+					added = true;
+					break;
+				}
+			}
+		}
+	}
+
+	return offsets;
+}
+
 /**
  * Tyre life per compound from every run of five or more clean laps: the fuel burn added back,
  * each run's own level taken out, and the median loss at each tyre age. In a race the compounds
  * share one fuel baseline, so their pace when new is compared through the drivers who ran both,
- * and so is the crossover: the age at which a new set of a harder compound is already quicker.
+ * and so is the crossover: the age at which a new set of a compound slower when new is already
+ * the quicker tyre.
  */
 export function tyreLife(snapshot: RaceSnapshot): TyreLife {
 	const timed = isTimedSession(snapshot.session.type);
@@ -211,43 +244,22 @@ export function tyreLife(snapshot: RaceSnapshot): TyreLife {
 		return [{ compound, runs: own, slope, levels: own.map((run) => runLevel(run, slope)) }];
 	});
 
-	// A compound's pace when new, against the first compound, from drivers who ran both.
-	const reference = byCompound[0];
+	const offsets = timed
+		? new Map(byCompound.map((entry) => [entry.compound, 0]))
+		: linkedOffsets(byCompound);
 
-	const offsets = new Map(
-		byCompound.map((entry) => {
-			if (timed || !reference || entry === reference) {
-				return [entry.compound, 0];
-			}
-
-			const differences = entry.runs.flatMap((run, index) => {
-				const theirs = reference.runs.flatMap((other, at) =>
-					other.stint.driverNumber === run.stint.driverNumber ? [reference.levels[at] ?? 0] : []
-				);
-
-				return theirs.length > 0 ? [(entry.levels[index] ?? 0) - median(theirs)] : [];
-			});
-
-			return [entry.compound, differences.length > 0 ? median(differences) : Number.NaN];
-		})
-	);
-
-	const quickest = Math.min(...[...offsets.values()].filter(Number.isFinite), 0);
+	const quickest = Math.min(0, ...offsets.values());
 
 	const compounds = byCompound.flatMap((entry): CompoundLife[] => {
-		const offset = (offsets.get(entry.compound) ?? Number.NaN) - quickest;
-
-		if (!Number.isFinite(offset)) {
-			return [];
-		}
-
+		const linked = offsets.get(entry.compound);
+		const offset = linked === undefined ? null : linked - quickest;
 		const deltasByAge = new Map<number, number[]>();
 
 		for (const [index, run] of entry.runs.entries()) {
 			for (const lap of run.laps) {
 				const deltas = deltasByAge.get(lap.age) ?? [];
 
-				deltas.push(lap.seconds - (entry.levels[index] ?? 0) + offset);
+				deltas.push(lap.seconds - (entry.levels[index] ?? 0) + (offset ?? 0));
 				deltasByAge.set(lap.age, deltas);
 			}
 		}
@@ -255,7 +267,7 @@ export function tyreLife(snapshot: RaceSnapshot): TyreLife {
 		const points = [...deltasByAge]
 			.flatMap(([age, deltas]) =>
 				deltas.length >= MIN_RUNS_PER_AGE
-					? [{ age, deltaS: median(deltas), runs: deltas.length }]
+					? [{ age, deltaS: median(deltas) ?? 0, runs: deltas.length }]
 					: []
 			)
 			.toSorted((a, b) => a.age - b.age);
@@ -286,17 +298,22 @@ export function lossAt(life: CompoundLife, age: number): number {
 }
 
 /**
- * For each pair where the softer compound is quicker when new but wears, the first age at which
- * it has lost more than its head start: from then on, a new set of the harder one is quicker.
- * Only ages the softer compound has actually run are reported.
+ * For each pair where one compound is quicker when new but wears, the first age at which it has
+ * lost more than its head start: from then on, a new set of the other is quicker. Only ages the
+ * quicker compound has actually run are reported.
  */
 export function crossoversOf(compounds: readonly CompoundLife[]): Crossover[] {
 	return compounds.flatMap((from) =>
 		compounds.flatMap((to): Crossover[] => {
-			const headStart = to.newOffsetS - from.newOffsetS;
 			const lastAge = from.points.at(-1)?.age ?? 0;
 
-			if (to === from || headStart <= 0) {
+			if (to === from || to.newOffsetS === null || from.newOffsetS === null) {
+				return [];
+			}
+
+			const headStart = to.newOffsetS - from.newOffsetS;
+
+			if (headStart <= 0) {
 				return [];
 			}
 

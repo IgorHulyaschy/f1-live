@@ -11,8 +11,9 @@ test.describe('the race', () => {
 	}) => {
 		await openRace(page, '/analysis?session=9858');
 
+		// A cold dev server builds the chart code on first use.
 		const telemetry = page.getByTestId('telemetry');
-		await expect(telemetry.getByTestId('telemetry-charts')).toBeVisible();
+		await expect(telemetry.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
 		// Verstappen's 1:33.365 on lap 50, the fastest lap of the race.
 		await expect(telemetry.getByTestId('telemetry-slot-A')).toContainText('L50 1:33.365');
 		await expect(telemetry.getByTestId('telemetry-readout')).toContainText('VER');
@@ -89,7 +90,7 @@ test.describe('qualifying', () => {
 
 		// Norris took pole with 1:47.934.
 		await expect(page.getByTestId('telemetry-slot-A')).toContainText('1:47.934');
-		await expect(page.getByTestId('telemetry-charts')).toBeVisible();
+		await expect(page.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
 		await expect(page.getByTestId('story').getByTestId('story-ribbon')).toBeVisible();
 
 		await openRace(page, '/strategy?session=9854&plan=pro');
@@ -118,7 +119,7 @@ test.describe('practice', () => {
 	test('telemetry, the story by minute and the wind work; race tools say so', async ({ page }) => {
 		await openRace(page, '/analysis?session=9852');
 
-		await expect(page.getByTestId('telemetry-charts')).toBeVisible();
+		await expect(page.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
 
 		await openRace(page, '/strategy?session=9852&plan=pro');
 

@@ -29,22 +29,23 @@ Undercut ledger and Conditions.
 What the analysis tiles show, and what each needs. Each gives its numbers as a table too (its
 Table key, or a table to begin with), and works on a phone and a 2560 px screen alike.
 
-| Visual                   | Tile            | Shows                                                                                                          | Sessions                                         |
-| ------------------------ | --------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Telemetry traces         | Telemetry       | Speed, throttle, brake, gear and revs by distance for up to three laps, the delta, mini sectors, corner speeds | All; saved sessions with telemetry only          |
-| Race trace and lap chart | Chart           | Gap to the leader, positions, the battle and the gap to one driver, with stops and flags marked                | Races; lap times in every session                |
-| Race story ribbon        | Story           | Flags, the lead, passes made on track, stops, penalties, cars out and radio, per lap; click to jump            | All, by minute on the clock                      |
-| Undercut ledger          | Undercut ledger | Each stop exchange: in-lap, stop, out-lap and the net place, adding up                                         | Races                                            |
-| Tyre life and crossover  | Tyre wear       | Fuel-corrected loss by tyre age per compound, the cliff, the age a new harder set is quicker                   | Races; wear only in practice                     |
-| Pit stop cost            | Stop cost       | What a stop costs in race time at this circuit, under green and under a VSC                                    | Races                                            |
-| Pit crew league          | Pit crews       | Each team's stops at a standstill, ranked by their usual stop                                                  | Races                                            |
-| Championship swing       | Championship    | The standings as the race runs, each contender's deficit lap by lap, what every place is worth                 | Races and sprints; live only with an F1 TV login |
-| Weather insight          | Conditions      | Head- or tailwind on each straight, track temperature beside the field's pace                                  | All; the wind map needs telemetry                |
+| Visual                   | Tile            | Shows                                                                                                               | Sessions                                         |
+| ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Telemetry traces         | Telemetry       | Speed, throttle, brake, gear and revs by distance for up to three laps, the delta, mini sectors, corner speeds      | All; saved sessions with telemetry only          |
+| Race trace and lap chart | Chart           | Gap to the leader, positions, the battle and the gap to one driver, with stops and flags marked                     | Races; lap times in every session                |
+| Race story ribbon        | Story           | Flags, the lead, passes made on track, stops, penalties, cars out and radio, per lap; click to jump                 | All, by minute on the clock                      |
+| Undercut ledger          | Undercut ledger | Each stop exchange: in-lap, stop, out-lap and the net place, adding up                                              | Races                                            |
+| Tyre life and crossover  | Tyre wear       | Fuel-corrected loss by tyre age per compound, the cliff, the age a new set of a compound slower when new is quicker | Races; wear only in practice                     |
+| Pit stop cost            | Stop cost       | What a stop costs in race time at this circuit, under green and under a VSC                                         | Races                                            |
+| Pit crew league          | Pit crews       | Each team's stops at a standstill, ranked by their usual stop                                                       | Races                                            |
+| Championship swing       | Championship    | The standings as the race runs, each contender's deficit lap by lap, what every place is worth                      | Races and sprints; live only with an F1 TV login |
+| Weather insight          | Conditions      | Head- or tailwind on each straight, track temperature beside the field's pace                                       | All; the wind map needs telemetry                |
 
 Where the data comes from:
 
-- **Telemetry** is read from the saved session's files ([telemetry.md](telemetry.md)); the modelled
-  replay and a live session before its import have none, and the tile says so.
+- **Telemetry** is read from the saved session's files ([telemetry.md](telemetry.md)); a live
+  session has none before its import, and the tile says so. The modelled replay draws a few of the
+  real race's laps, from the real-data e2e fixture.
 - **Passes, team radio and the championship** come from the archive's `OvertakeSeries`,
   `TeamRadio` and `ChampionshipPrediction`. The live feed sends the championship only with an F1 TV
   login (`F1TV_TOKEN`), and the tile says that while live.

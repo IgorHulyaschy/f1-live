@@ -5,8 +5,7 @@ import {
 	type WeatherSample
 } from '@f1-live/shared';
 
-import { average, isCleanLap, median } from './clean-laps.ts';
-import { fuelCorrectedLapSeconds } from './tyre-life.ts';
+import { average, fuelCorrectedSeconds, isCleanLap, median } from './clean-laps.ts';
 
 /** Heading is measured over this much track either side of a point. */
 const HEADING_SPAN_M = 50;
@@ -141,7 +140,7 @@ export interface ConditionsLap {
 	lap: number;
 	trackTempC: number;
 	airTempC: number;
-	/** The field's median clean lap, fuel burn added back, in seconds; null without clean laps. */
+	/** The field's median clean lap as if on an empty tank, in seconds; null without clean laps. */
 	paceS: number | null;
 }
 
@@ -153,7 +152,9 @@ export function conditionsByLap(snapshot: RaceSnapshot): ConditionsLap[] {
 		airTempC: sample.airTempC,
 		paceS: median(
 			snapshot.laps.flatMap((lap) =>
-				lap.lap === sample.lap && isCleanLap(lap) ? [fuelCorrectedLapSeconds(lap)] : []
+				lap.lap === sample.lap && isCleanLap(lap)
+					? [fuelCorrectedSeconds(lap, snapshot.session.totalLaps)]
+					: []
 			)
 		)
 	}));

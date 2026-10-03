@@ -52,6 +52,11 @@ for (const path of ['/', '/analysis', '/strategy', '/d/story']) {
 		await page.setViewportSize({ width: 360, height: 800 });
 		await openRace(page, path);
 
+		// The widest tiles load their charts after the page; measure once they are drawn.
+		if (path === '/analysis') {
+			await expect(page.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
+		}
+
 		const overflow = await page.evaluate(
 			() => document.documentElement.scrollWidth - document.documentElement.clientWidth
 		);

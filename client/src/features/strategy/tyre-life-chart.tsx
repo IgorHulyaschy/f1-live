@@ -31,7 +31,10 @@ const COMPOUND_COLOUR: Record<TyreCompound, string> = {
 
 type AgeRow = { age: number } & Partial<Record<string, number>>;
 
-/** Measured points and the fitted line, one row per tyre age. */
+/**
+ * Measured points and the fitted line, one row per tyre age, for the compounds whose pace when
+ * new compares; a compound nobody ran with another has its wear only.
+ */
 function ageRows(compounds: readonly CompoundLife[]): AgeRow[] {
 	const last = Math.max(0, ...compounds.flatMap((life) => life.points.map((point) => point.age)));
 
@@ -41,6 +44,10 @@ function ageRows(compounds: readonly CompoundLife[]): AgeRow[] {
 
 		for (const life of compounds) {
 			const point = life.points.find((entry) => entry.age === age);
+
+			if (life.newOffsetS === null) {
+				continue;
+			}
 
 			if (point) {
 				row[life.compound] = point.deltaS;
@@ -57,7 +64,8 @@ function ageRows(compounds: readonly CompoundLife[]): AgeRow[] {
 
 /**
  * Tyre life per compound: the measured loss at each tyre age with fuel taken out, the fitted
- * wear and any cliff, and the age at which a new set of a harder compound is already quicker.
+ * wear and any cliff, and the age at which a new set of a compound slower when new is already
+ * the quicker tyre.
  */
 export function TyreLifeChart({ table }: { table: boolean }) {
 	const { snapshot } = useRaceView();
@@ -105,7 +113,11 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 						</Field>
 						{life.comparable ? (
 							<Field label="When new">
-								<Digits value={formatDeltaSeconds(entry.newOffsetS, 2)} />
+								{entry.newOffsetS === null ? (
+									'Not compared'
+								) : (
+									<Digits value={formatDeltaSeconds(entry.newOffsetS, 2)} />
+								)}
 							</Field>
 						) : null}
 						<Field label="Cliff">{entry.cliff ? `Lap ${entry.cliff.age}` : 'None'}</Field>
@@ -182,8 +194,8 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 								<ReferenceLine
 									key={`cliff-${entry.compound}`}
 									x={entry.cliff.age}
-									stroke="var(--danger)"
-									strokeDasharray="3 3"
+									stroke="var(--rule-strong)"
+									strokeDasharray="6 2"
 									label={{
 										value: `${compoundName(entry.compound)} cliff`,
 										position: 'top',
