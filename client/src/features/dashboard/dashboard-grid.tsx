@@ -220,7 +220,11 @@ function TileOptions({ dashboard, tile }: { dashboard: Dashboard; tile: Tile }) 
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Key aria-label="Tile options" className="px-1.5 sm:px-1.5" data-testid="tile-options">
+				<Key
+					aria-label={`Options for ${tileTitle(tile)}`}
+					className="px-1.5 sm:px-1.5"
+					data-testid="tile-options"
+				>
 					<EllipsisIcon aria-hidden />
 				</Key>
 			</DropdownMenuTrigger>

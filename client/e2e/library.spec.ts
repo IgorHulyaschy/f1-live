@@ -56,7 +56,7 @@ test('Free keeps three dashboards of your own and points to Pro', async ({ page 
 
 test('first run picks a driver and a starting dashboard', async ({ page }) => {
 	await page.route('https://media.formula1.com/**', (route) => route.abort());
-	await page.goto('/session');
+	await page.goto('/');
 	await page.getByRole('link', { name: 'Set up' }).click();
 
 	// The dashboard stays on screen until the setup page commits, and its driver names open views.
