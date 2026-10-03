@@ -1,9 +1,11 @@
 import * as React from 'react';
 import { useLocation } from 'react-router';
 
+import { useRaceView } from '../../data/race-context';
 import { useDashboards } from '../dashboard/dashboard-store';
 import type { Dashboard } from '../dashboard/dashboards';
 import { dashboardIdFromPath, safeDecode } from '../dashboard/paths';
+import { sessionLayoutId } from '../dashboard/session-layouts';
 import { COMMUNITY } from './community';
 import { usePublished } from './library-data';
 import { decodeShare } from './share';
@@ -12,8 +14,9 @@ import { decodeShare } from './share';
 export function useShownDashboard(): Dashboard | null {
 	const { pathname, search } = useLocation();
 	const { dashboards } = useDashboards();
+	const { race } = useRaceView();
 	const published = usePublished();
-	const id = dashboardIdFromPath(pathname);
+	const id = dashboardIdFromPath(pathname, sessionLayoutId(race.session.type));
 	const code = pathname === '/shared' ? new URLSearchParams(search).get('d') : null;
 	// The header asks on every lap; decode a shared link once per link.
 	const shared = React.useMemo(() => (code ? decodeShare(code) : null), [code]);

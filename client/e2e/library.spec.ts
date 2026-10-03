@@ -69,7 +69,7 @@ test('first run picks a driver and a starting dashboard', async ({ page }) => {
 	await expect(page.getByRole('combobox', { name: 'Followed driver' })).toHaveText(/NOR/);
 });
 
-test('without a Replay tile the lap moves from the top bar', async ({ page }) => {
+test('without a Replay tile the transport moves to the session strip', async ({ page }) => {
 	await openRace(page, '/?edit=1');
 
 	await expect(page.getByTestId('header-clock')).toHaveCount(0);

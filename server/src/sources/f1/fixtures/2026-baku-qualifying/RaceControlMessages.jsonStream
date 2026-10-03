@@ -1,0 +1,39 @@
+﻿00:09:05.946{"Messages":[{"Utc":"2026-09-25T11:56:20","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":5,"Message":"CLEAR IN TRACK SECTOR 5"}]}
+00:09:06.525{"Messages":{"1":{"Utc":"2026-09-25T11:56:20","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":11,"Message":"CLEAR IN TRACK SECTOR 11"}}}
+00:09:07.074{"Messages":{"2":{"Utc":"2026-09-25T11:56:21","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":21,"Message":"CLEAR IN TRACK SECTOR 21"}}}
+00:09:07.530{"Messages":{"3":{"Utc":"2026-09-25T11:56:21","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":9,"Message":"CLEAR IN TRACK SECTOR 9"}}}
+00:09:08.403{"Messages":{"4":{"Utc":"2026-09-25T11:56:21","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":14,"Message":"CLEAR IN TRACK SECTOR 14"}}}
+00:09:08.411{"Messages":{"5":{"Utc":"2026-09-25T11:56:21","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":16,"Message":"CLEAR IN TRACK SECTOR 16"}}}
+00:09:08.416{"Messages":{"6":{"Utc":"2026-09-25T11:56:21","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":18,"Message":"CLEAR IN TRACK SECTOR 18"}}}
+00:09:08.416{"Messages":{"7":{"Utc":"2026-09-25T11:56:22","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":17,"Message":"CLEAR IN TRACK SECTOR 17"}}}
+00:09:08.416{"Messages":{"8":{"Utc":"2026-09-25T11:56:22","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":19,"Message":"CLEAR IN TRACK SECTOR 19"}}}
+00:09:09.400{"Messages":{"9":{"Utc":"2026-09-25T11:56:22","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":8,"Message":"CLEAR IN TRACK SECTOR 8"}}}
+00:09:09.518{"Messages":{"10":{"Utc":"2026-09-25T11:56:23","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":2,"Message":"CLEAR IN TRACK SECTOR 2"}}}
+00:09:09.579{"Messages":{"11":{"Utc":"2026-09-25T11:56:23","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":7,"Message":"CLEAR IN TRACK SECTOR 7"}}}
+00:09:10.013{"Messages":{"12":{"Utc":"2026-09-25T11:56:24","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":10,"Message":"CLEAR IN TRACK SECTOR 10"}}}
+00:09:10.057{"Messages":{"13":{"Utc":"2026-09-25T11:56:24","Category":"Flag","Flag":"YELLOW","Scope":"Sector","Sector":21,"Message":"YELLOW IN TRACK SECTOR 21"}}}
+00:09:11.639{"Messages":{"14":{"Utc":"2026-09-25T11:56:26","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":6,"Message":"CLEAR IN TRACK SECTOR 6"}}}
+00:09:11.710{"Messages":{"15":{"Utc":"2026-09-25T11:56:26","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":12,"Message":"CLEAR IN TRACK SECTOR 12"}}}
+00:09:12.136{"Messages":{"16":{"Utc":"2026-09-25T11:56:26","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":21,"Message":"CLEAR IN TRACK SECTOR 21"}}}
+00:09:15.642{"Messages":{"17":{"Utc":"2026-09-25T11:56:30","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":15,"Message":"CLEAR IN TRACK SECTOR 15"}}}
+00:09:18.146{"Messages":{"18":{"Utc":"2026-09-25T11:56:32","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":3,"Message":"CLEAR IN TRACK SECTOR 3"}}}
+00:09:26.828{"Messages":{"19":{"Utc":"2026-09-25T11:56:41","Category":"Flag","Flag":"YELLOW","Scope":"Sector","Sector":21,"Message":"YELLOW IN TRACK SECTOR 21"}}}
+00:09:28.356{"Messages":{"20":{"Utc":"2026-09-25T11:56:42","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":21,"Message":"CLEAR IN TRACK SECTOR 21"}}}
+00:09:30.346{"Messages":{"21":{"Utc":"2026-09-25T11:56:44","Category":"Flag","Flag":"YELLOW","Scope":"Sector","Sector":21,"Message":"YELLOW IN TRACK SECTOR 21"}}}
+00:09:31.819{"Messages":{"22":{"Utc":"2026-09-25T11:56:46","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":21,"Message":"CLEAR IN TRACK SECTOR 21"}}}
+00:09:39.457{"Messages":{"23":{"Utc":"2026-09-25T11:56:53","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":13,"Message":"CLEAR IN TRACK SECTOR 13"}}}
+00:10:18.984{"Messages":{"24":{"Utc":"2026-09-25T11:57:33","Category":"Other","Message":"START OF QUALIFYING WILL BE DELAYED"}}}
+00:12:06.923{"Messages":{"25":{"Utc":"2026-09-25T11:59:21","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":4,"Message":"CLEAR IN TRACK SECTOR 4"}}}
+00:12:51.566{"Messages":{"26":{"Utc":"2026-09-25T12:00:05","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":20,"Message":"CLEAR IN TRACK SECTOR 20"}}}
+00:12:56.198{"Messages":{"27":{"Utc":"2026-09-25T12:00:10","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":1,"Message":"CLEAR IN TRACK SECTOR 1"}}}
+00:13:20.870{"Messages":{"28":{"Utc":"2026-09-25T12:00:34","Category":"Other","Message":"Q1 WILL START AT 16:04"}}}
+00:16:46.202{"Messages":{"29":{"Utc":"2026-09-25T12:04:00","Category":"Flag","Flag":"GREEN","Scope":"Track","Message":"GREEN LIGHT - PIT EXIT OPEN"}}}
+00:20:21.146{"Messages":{"30":{"Utc":"2026-09-25T12:07:35","Category":"Flag","Flag":"YELLOW","Scope":"Sector","Sector":9,"Message":"YELLOW IN TRACK SECTOR 9"}}}
+00:20:21.159{"Messages":{"31":{"Utc":"2026-09-25T12:07:35","Category":"Flag","Flag":"YELLOW","Scope":"Sector","Sector":8,"Message":"YELLOW IN TRACK SECTOR 8"}}}
+00:20:28.148{"Messages":{"32":{"Utc":"2026-09-25T12:07:42","Category":"Flag","Flag":"DOUBLE YELLOW","Scope":"Sector","Sector":9,"Message":"DOUBLE YELLOW IN TRACK SECTOR 9"}}}
+00:20:36.699{"Messages":{"33":{"Utc":"2026-09-25T12:07:51","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":9,"Message":"CLEAR IN TRACK SECTOR 9"}}}
+00:20:37.100{"Messages":{"34":{"Utc":"2026-09-25T12:07:51","Category":"Flag","Flag":"CLEAR","Scope":"Sector","Sector":8,"Message":"CLEAR IN TRACK SECTOR 8"}}}
+00:21:51.349{"Messages":{"35":{"Utc":"2026-09-25T12:09:05","Category":"Other","Message":"CAR 30 (LAW) TIME 2:00.207 DELETED - DOUBLE YELLOW AT TURN 7 LAP 3 16:07:45"}}}
+00:22:07.307{"Messages":{"36":{"Utc":"2026-09-25T12:09:21","Category":"Other","Message":"CAR 18 (STR) LAP DELETED - TRACK LIMITS AT TURN 7 LAP 3 16:07:34 (PIT)"}}}
+00:22:09.174{"Messages":{"37":{"Utc":"2026-09-25T12:09:23","Category":"Other","Message":"CAR 41 (LIN) TIME 2:00.079 DELETED - DOUBLE YELLOW AT TURN 7 LAP 3 16:07:42"}}}
+00:22:17.687{"Messages":{"38":{"Utc":"2026-09-25T12:09:32","Category":"Other","Message":"CAR 1 (NOR) LAP DELETED - TRACK LIMITS AT TURN 15 LAP 2 16:07:32"}}}

@@ -21,7 +21,7 @@ import { useTileFill, useTileRows } from '../dashboard/tile-fill';
 /** A tile this many grid rows tall or shorter shows the ribbon on its own, as a strip under the replay. */
 const STRIP_ROWS = 4;
 
-const TONE_CLASS: Record<StoryTone, string> = {
+export const TONE_CLASS: Record<StoryTone, string> = {
 	green: 'bg-transparent',
 	yellow: 'bg-flag/40',
 	vsc: 'bg-flag/75',

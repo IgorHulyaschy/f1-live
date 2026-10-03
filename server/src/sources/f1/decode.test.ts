@@ -116,6 +116,19 @@ describe('F1Decoder', () => {
 		);
 	});
 
+	it('sets the session clock when it is set or starts running (ExtrapolatedClock)', async () => {
+		const events = ofKind(decodeAll(await fixture('ExtrapolatedClock')), 'session_clock');
+
+		assert.deepEqual(
+			events.map((event) => [event.at, event.remainingMs, event.running]),
+			[
+				['2025-11-23T03:06:28.006Z', 0, false],
+				['2025-11-23T03:07:02.011Z', 7_200_000, false],
+				['2025-11-23T04:04:09.013Z', 7_199_000, true]
+			]
+		);
+	});
+
 	it('enters each driver once and ignores timing-order updates (DriverList)', async () => {
 		const events = ofKind(decodeAll(await fixture('DriverList')), 'driver_entry');
 

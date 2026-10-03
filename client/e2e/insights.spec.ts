@@ -5,14 +5,38 @@ import { openRace } from './fixtures.ts';
 // The modelled replay of the 2025 Las Vegas race: no passes or radio, but stops, flags,
 // penalties, the championship before the race and a few of the real race's laps of telemetry.
 
-test('the story strip under the replay jumps to a lap', async ({ page }) => {
-	await openRace(page, '/analysis');
+test('the timeline jumps to the next pit stop and to the safety car period', async ({ page }) => {
+	await openRace(page, '/?lap=10');
 
-	const story = page.getByTestId('story');
-	await expect(story.getByTestId('story-ribbon')).toBeVisible();
-	await story.getByTestId('story-step-12').click();
+	const replay = page.getByRole('region', { name: 'Replay' });
+	const note = page.getByTestId('timeline-note');
 
-	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 12/50');
+	await replay.getByRole('radio', { name: 'Stops' }).click();
+	await replay.getByRole('button', { name: 'Next event' }).click();
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 13/50');
+	await expect(note).toContainText('ALB stops for mediums');
+
+	// The keys move between flags once the filter says so.
+	await replay.getByRole('radio', { name: 'Flags' }).click();
+	await replay.getByRole('radio', { name: 'Flags' }).blur();
+	await page.keyboard.press('Shift+ArrowRight');
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 16/50');
+	await expect(note).toContainText('Virtual Safety Car');
+
+	await page.keyboard.press('Shift+ArrowLeft');
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 2/50');
+
+	// A marker says what happened and takes the replay there.
+	await expect(replay.getByTestId('timeline-event-16')).toHaveAttribute(
+		'title',
+		/Virtual Safety Car/
+	);
+	await replay.getByTestId('timeline-event-16').click();
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 16/50');
+
+	await replay.getByTestId('speed').click();
+	await replay.getByTestId('speed').click();
+	await expect(replay.getByTestId('speed')).toHaveText('4×');
 });
 
 test('the telemetry tile draws the real race’s laps on the modelled replay', async ({ page }) => {

@@ -9,6 +9,7 @@ import * as React from 'react';
 import { type Layout, ReactGridLayout, useContainerWidth } from 'react-grid-layout';
 
 import { Key } from '@/components/console/keys';
+import { useRaceView } from '@/data/race-context';
 import { useRemPixels } from '@/hooks/use-scale';
 import { cn } from '@/lib/utils';
 
@@ -17,12 +18,14 @@ import {
 	GRID_COLUMNS,
 	readingOrder,
 	removeTile,
+	sessionKind,
 	swapTiles,
 	type Tile,
 	TILE_INFO,
 	tileTitle
 } from './dashboards';
 import { tilePath } from './paths';
+import { appliesTo, forSession } from './session-layouts';
 import { type ArrangeKey, arrangeTile } from './arrange';
 import { TileFillContext, TileRowsContext } from './tile-fill';
 import { TileContent } from './tiles';
@@ -195,17 +198,37 @@ function TileBar({
 	);
 }
 
+/** A tile for another kind of session, shrunk to the line saying what it is for. */
+function AwayTile({ tile }: { tile: Tile }) {
+	return (
+		<p
+			className="flex h-full min-h-9 items-center gap-3 border border-dashed px-4"
+			data-testid="tile-away"
+		>
+			<span aria-hidden className="hatch text-rule-strong h-3 w-4 shrink-0" />
+			<span className="type-wide truncate text-xs font-bold">{tileTitle(tile)}</span>
+			<span className="type-label shrink-0">{appliesTo(tile)}</span>
+		</p>
+	);
+}
+
 function TileBody({
 	dashboard,
 	tile,
 	fill,
+	away,
 	onChange
 }: {
 	dashboard: Dashboard;
 	tile: Tile;
 	fill: boolean;
+	away: boolean;
 	onChange: (dashboard: Dashboard) => void;
 }) {
+	if (away) {
+		return <AwayTile tile={tile} />;
+	}
+
 	return (
 		<div
 			className={cn(
@@ -237,7 +260,7 @@ function TileBody({
  * in edit mode; narrow screens stack the same tiles in reading order.
  */
 export function DashboardGrid({
-	dashboard,
+	dashboard: saved,
 	editing,
 	onChange
 }: {
@@ -245,6 +268,15 @@ export function DashboardGrid({
 	editing: boolean;
 	onChange: (dashboard: Dashboard) => void;
 }) {
+	const { race } = useRaceView();
+	const shownKind = sessionKind(race.session.type);
+
+	// Editing shows the dashboard as saved; otherwise as this session shows it.
+	const { dashboard, away } = React.useMemo(
+		() => (editing ? { dashboard: saved, away: new Set<string>() } : forSession(saved, shownKind)),
+		[editing, saved, shownKind]
+	);
+
 	const { width, containerRef, mounted } = useContainerWidth({ measureBeforeMount: true });
 	const rem = useRemPixels();
 	const stacked = width < STACK_BELOW_REM * 16;
@@ -270,9 +302,17 @@ export function DashboardGrid({
 		return dashboard.layout.flatMap((place) => {
 			const kind = kinds.get(place.i);
 
-			return kind ? [{ ...place, minW: TILE_INFO[kind].min.w, minH: TILE_INFO[kind].min.h }] : [];
+			return kind
+				? [
+						{
+							...place,
+							minW: TILE_INFO[kind].min.w,
+							minH: away.has(place.i) ? place.h : TILE_INFO[kind].min.h
+						}
+					]
+				: [];
 		});
-	}, [dashboard]);
+	}, [dashboard, away]);
 
 	const onLayoutChange = (next: Layout) => {
 		if (!editing || sameLayout(dashboard, next)) {
@@ -319,7 +359,13 @@ export function DashboardGrid({
 							neighbours={{ up: ordered[index - 1]?.id, down: ordered[index + 1]?.id }}
 							onChange={onChange}
 						/>
-						<TileBody dashboard={dashboard} tile={tile} fill={false} onChange={onChange} />
+						<TileBody
+							dashboard={saved}
+							tile={tile}
+							fill={false}
+							away={away.has(tile.id)}
+							onChange={onChange}
+						/>
 					</div>
 				))}
 			</div>
@@ -364,7 +410,13 @@ export function DashboardGrid({
 										floating
 										onChange={onChange}
 									/>
-									<TileBody dashboard={dashboard} tile={tile} fill onChange={onChange} />
+									<TileBody
+										dashboard={saved}
+										tile={tile}
+										fill
+										away={away.has(tile.id)}
+										onChange={onChange}
+									/>
 								</div>
 							]
 						: [];

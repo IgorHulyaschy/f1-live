@@ -34,7 +34,10 @@ export const TILE_KINDS = [
 	'pit-cost',
 	'pit-crews',
 	'championship',
-	'conditions'
+	'conditions',
+	'knockout',
+	'sectors',
+	'long-runs'
 ] as const;
 
 export type TileKind = (typeof TILE_KINDS)[number];
@@ -55,11 +58,18 @@ export type Dashboard = {
 	layout: TilePlacement[];
 	/** Stretch rows so the whole layout fills the window height: for wall screens and TVs. */
 	fit?: boolean;
+	/**
+	 * False once the viewer said not to offer the session's own layout over this dashboard when
+	 * it holds tiles for another kind of session.
+	 */
+	sessionOffer?: false;
 };
 
 /** Ids of the ready-made dashboards. Saved under one of these, a dashboard is an edited preset. */
 export const PRESET_IDS = [
 	'live',
+	'quali',
+	'practice',
 	'analysis',
 	'strategy',
 	'battle',
@@ -114,6 +124,7 @@ export const dashboardSchema = z
 		id: z.string().min(1),
 		name: z.string(),
 		fit: z.boolean().optional(),
+		sessionOffer: z.boolean().optional(),
 		tiles: z.array(z.json()).transform((entries) =>
 			entries.flatMap((entry) => {
 				const tile = tileSchema.safeParse(entry);
@@ -143,6 +154,10 @@ export const dashboardSchema = z
 
 		if (parsed.fit) {
 			dashboard.fit = true;
+		}
+
+		if (parsed.sessionOffer === false) {
+			dashboard.sessionOffer = false;
 		}
 
 		return dashboard;
@@ -185,6 +200,7 @@ export function sameDashboard(a: Dashboard, b: Dashboard): boolean {
 		a.id === b.id &&
 		a.name === b.name &&
 		Boolean(a.fit) === Boolean(b.fit) &&
+		a.sessionOffer === b.sessionOffer &&
 		a.tiles.length === b.tiles.length &&
 		a.tiles.every((tile, index) => {
 			const other = b.tiles[index];

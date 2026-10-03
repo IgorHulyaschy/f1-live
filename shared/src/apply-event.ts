@@ -47,6 +47,7 @@ export const EMPTY_SNAPSHOT: RaceSnapshot = {
 	standings: [],
 	statusLog: [],
 	trackStatusLog: [],
+	clockLog: [],
 	penalties: [],
 	personalBests: [],
 	corrections: []
@@ -63,6 +64,14 @@ export function applyEvent(state: RaceSnapshot, event: RaceEvent): RaceSnapshot 
 				status: event.status,
 				startedAt: state.startedAt ?? (event.status === 'started' ? event.at : undefined),
 				statusLog: [...(state.statusLog ?? []), { at: event.at, status: event.status }]
+			};
+		case 'session_clock':
+			return {
+				...state,
+				clockLog: [
+					...(state.clockLog ?? []),
+					{ at: event.at, remainingMs: event.remainingMs, running: event.running }
+				]
 			};
 		case 'race_distance':
 			return { ...state, session: { ...state.session, totalLaps: event.totalLaps } };

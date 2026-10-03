@@ -28,7 +28,7 @@ const router = createBrowserRouter([
 		element: <AppLayout source={source} />,
 		hydrateFallbackElement: <LoadingState />,
 		children: [
-			{ path: '/', element: <DashboardPage id="live" /> },
+			{ path: '/', element: <DashboardPage /> },
 			{ path: '/analysis', element: <DashboardPage id="analysis" /> },
 			{ path: '/strategy', element: <DashboardPage id="strategy" /> },
 			{ path: '/d/:id', element: <DashboardPage /> },

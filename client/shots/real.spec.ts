@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 /**
  * Audit screenshots on real data (the e2e fixture: 2025 Las Vegas, 2026 Baku qualifying), at two
- * phones, a tablet, a desktop and a 2560 px monitor, dark and light. Output goes to
+ * phones, a tablet, a laptop, a desktop and a 2560 px monitor, dark and light. Output goes to
  * shots/output/real/<viewport>/<page>-<theme>.png and is not committed.
  */
 
@@ -10,11 +10,16 @@ const VIEWPORTS = [
 	{ name: 'android', width: 360, height: 800 },
 	{ name: 'mobile', width: 390, height: 844 },
 	{ name: 'tablet', width: 834, height: 1194 },
+	{ name: 'laptop', width: 1440, height: 900 },
 	{ name: 'desktop', width: 1920, height: 1080 },
 	{ name: 'qhd', width: 2560, height: 1440 }
 ] as const;
 
 const PAGES = [
+	// The session layouts: Quali in its first and second parts, Race, Practice.
+	{ name: 'quali-q1', path: '/?session=11373&lap=12' },
+	{ name: 'quali-q2', path: '/?session=11373&lap=33' },
+	{ name: 'practice', path: '/?session=9852' },
 	{ name: 'race-final', path: '/?session=9858' },
 	{ name: 'race-lap-30', path: '/?session=9858&lap=30' },
 	{ name: 'strategy', path: '/strategy?session=9858' },

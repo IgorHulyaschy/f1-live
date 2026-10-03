@@ -9,7 +9,7 @@ test('a saved session loads from the static data files', async ({ page }) => {
 	);
 
 	await openRace(page, '/?session=9854');
-	await expect(page.getByTestId('session')).not.toContainText('Live');
+	await expect(page.getByTestId('live-key')).toHaveText('Replay');
 
 	const response = await snapshot;
 

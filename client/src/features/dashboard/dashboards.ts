@@ -1,3 +1,4 @@
+import type { SessionType } from '@f1-live/shared';
 import {
 	type Dashboard,
 	isPresetId,
@@ -22,6 +23,17 @@ import type { Metric } from '../analysis/lap-series.ts';
 
 export const TILE_GROUPS = ['Race', 'Drivers', 'Timing', 'Analysis', 'Strategy'] as const;
 
+/** Sessions by what they are for: racing, a knockout for the grid, or practice. */
+export type SessionKind = 'race' | 'quali' | 'practice';
+
+export function sessionKind(type: SessionType): SessionKind {
+	if (type === 'race' || type === 'sprint') {
+		return 'race';
+	}
+
+	return type === 'practice' ? 'practice' : 'quali';
+}
+
 type TileInfo = {
 	title: string;
 	group: (typeof TILE_GROUPS)[number];
@@ -31,6 +43,8 @@ type TileInfo = {
 	pro?: boolean;
 	/** At most one per dashboard: the masthead and the lap clock. */
 	single?: boolean;
+	/** The kinds of session the tile means something in; every kind when absent. */
+	sessions?: readonly SessionKind[];
 };
 
 export const TILE_INFO: Record<TileKind, TileInfo> = {
@@ -45,8 +59,9 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 	replay: {
 		group: 'Race',
 		title: 'Replay',
-		description: 'Lap counter with previous, play and next.',
-		size: { w: 8, h: 3 },
+		description:
+			'The timeline: play at three speeds, jump between events, scrub the laps or minutes.',
+		size: { w: 24, h: 4 },
 		min: { w: 4, h: 3 },
 		single: true
 	},
@@ -83,7 +98,8 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		title: 'Gaps',
 		description: 'Two cars ahead and two behind your driver, closing or opening.',
 		size: { w: 7, h: 6 },
-		min: { w: 4, h: 4 }
+		min: { w: 4, h: 4 },
+		sessions: ['race']
 	},
 	'box-now': {
 		group: 'Strategy',
@@ -91,7 +107,8 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		description: 'Where your driver would rejoin if they pitted this lap.',
 		size: { w: 7, h: 6 },
 		min: { w: 4, h: 4 },
-		pro: true
+		pro: true,
+		sessions: ['race']
 	},
 	'race-control': {
 		group: 'Race',
@@ -120,7 +137,8 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		description: 'Pace with fuel load and tyre age taken out.',
 		size: { w: 12, h: 12 },
 		min: { w: 6, h: 5 },
-		pro: true
+		pro: true,
+		sessions: ['race', 'practice']
 	},
 	'fastest-laps': {
 		group: 'Timing',
@@ -134,7 +152,8 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		title: 'Stints',
 		description: 'Every car’s tyre history across the race.',
 		size: { w: 24, h: 16 },
-		min: { w: 6, h: 6 }
+		min: { w: 6, h: 6 },
+		sessions: ['race', 'practice']
 	},
 	degradation: {
 		group: 'Strategy',
@@ -142,14 +161,16 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		description: 'How fast each stint is losing time per lap.',
 		size: { w: 12, h: 12 },
 		min: { w: 6, h: 5 },
-		pro: true
+		pro: true,
+		sessions: ['race', 'practice']
 	},
 	'pit-stops': {
 		group: 'Strategy',
 		title: 'Pit stops',
 		description: 'Every stop against the typical stop time.',
 		size: { w: 12, h: 12 },
-		min: { w: 6, h: 5 }
+		min: { w: 6, h: 5 },
+		sessions: ['race']
 	},
 	driver: {
 		group: 'Drivers',
@@ -188,21 +209,24 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 			'Each pit stop exchange: the in-lap, stop and out-laps that won or lost the place.',
 		size: { w: 12, h: 24 },
 		min: { w: 6, h: 8 },
-		pro: true
+		pro: true,
+		sessions: ['race']
 	},
 	'pit-cost': {
 		group: 'Strategy',
 		title: 'Stop cost',
 		description: 'What a pit stop costs in race time at this circuit, under green and under a VSC.',
 		size: { w: 12, h: 12 },
-		min: { w: 6, h: 6 }
+		min: { w: 6, h: 6 },
+		sessions: ['race']
 	},
 	'pit-crews': {
 		group: 'Strategy',
 		title: 'Pit crews',
 		description: 'Every team’s stops at a standstill, ranked by their usual stop.',
 		size: { w: 12, h: 12 },
-		min: { w: 6, h: 6 }
+		min: { w: 6, h: 6 },
+		sessions: ['race']
 	},
 	championship: {
 		group: 'Analysis',
@@ -210,7 +234,8 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		description:
 			'The standings as the race runs, how far each contender is from the lead, and what each place is worth.',
 		size: { w: 12, h: 28 },
-		min: { w: 6, h: 10 }
+		min: { w: 6, h: 10 },
+		sessions: ['race']
 	},
 	conditions: {
 		group: 'Analysis',
@@ -219,6 +244,32 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		size: { w: 12, h: 24 },
 		min: { w: 6, h: 10 },
 		pro: true
+	},
+	knockout: {
+		group: 'Timing',
+		title: 'Knockout',
+		description:
+			'Qualifying as it stands: the drop zone with each car’s gap to the cut, pole, and who just improved.',
+		size: { w: 9, h: 13 },
+		min: { w: 5, h: 8 },
+		sessions: ['quali']
+	},
+	sectors: {
+		group: 'Timing',
+		title: 'Best sectors',
+		description:
+			'Who holds each fastest sector, and every driver’s ideal lap from their own best sectors.',
+		size: { w: 10, h: 12 },
+		min: { w: 5, h: 6 }
+	},
+	'long-runs': {
+		group: 'Analysis',
+		title: 'Long runs',
+		description:
+			'Practice race runs: each driver’s longest run on one set, its pace and fall-off, and laps per compound.',
+		size: { w: 9, h: 14 },
+		min: { w: 5, h: 6 },
+		sessions: ['practice']
 	}
 };
 
@@ -256,53 +307,67 @@ export function buildDashboard(
 	};
 }
 
-/** Ready-made dashboards. Each can be edited; edits are saved over it and can be reset. */
+/**
+ * Ready-made dashboards. Each can be edited; edits are saved over it and can be reset. The first
+ * three are the session layouts: `/` opens the one for the session on screen. Each opens with the
+ * Replay tile, the session's timeline.
+ *
+ * Track map slot: when the track map lands (T14), it takes x0 y29 w10 h14 in Race (Stints moving
+ * to x10 w14) and x0 y25 w12 h12 in Quali (Best sectors moving to x12 w12).
+ */
 export const PRESETS: readonly Dashboard[] = [
-	buildDashboard('live', 'Live', [
-		['session', 0, 0, 16, 3],
-		['replay', 16, 0, 8, 3],
-		['lap-strip', 0, 3, 24, 2],
-		['timing', 0, 5, 16, 23],
-		['focus', 16, 5, 8, 15],
-		['race-control', 16, 20, 8, 8]
+	// Race keeps the Live preset's id, so an edited Live opens as an edited Race.
+	buildDashboard('live', 'Race', [
+		['replay', 0, 0, 24, 4],
+		['timing', 0, 4, 15, 25],
+		['focus', 15, 4, 9, 15],
+		['race-control', 15, 19, 9, 10],
+		['stints', 0, 29, 24, 14]
+	]),
+	buildDashboard('quali', 'Quali', [
+		['timing', 0, 0, 15, 25],
+		['replay', 15, 0, 9, 6],
+		['knockout', 15, 6, 9, 12],
+		['race-control', 15, 18, 9, 7],
+		['sectors', 0, 25, 24, 12]
+	]),
+	buildDashboard('practice', 'Practice', [
+		['timing', 0, 0, 15, 25],
+		['replay', 15, 0, 9, 6],
+		['long-runs', 15, 6, 9, 10],
+		['race-control', 15, 16, 9, 9],
+		['stints', 0, 25, 24, 14]
 	]),
 	buildDashboard('analysis', 'Analysis', [
-		['lap-strip', 0, 0, 18, 3],
-		['replay', 18, 0, 6, 3],
-		['compare', 0, 6, 4, 18],
-		['chart', 4, 6, 20, 18, { metric: 'lapTime' }],
-		['pace', 0, 58, 14, 12],
-		['fastest-laps', 14, 58, 10, 12],
-		// Added after the first six so their tile ids, and pop-out links to them, stay the same.
-		['story', 0, 3, 24, 3],
-		['telemetry', 0, 24, 24, 34]
+		['replay', 0, 0, 24, 4],
+		['compare', 0, 4, 4, 18],
+		['chart', 4, 4, 20, 18, { metric: 'lapTime' }],
+		['telemetry', 0, 22, 24, 34],
+		['pace', 0, 56, 14, 12],
+		['fastest-laps', 14, 56, 10, 12]
 	]),
 	buildDashboard('strategy', 'Strategy', [
-		['lap-strip', 0, 0, 18, 3],
-		['replay', 18, 0, 6, 3],
-		['stints', 0, 6, 24, 16],
-		['degradation', 0, 22, 12, 18],
-		['pit-stops', 12, 22, 12, 18],
-		// As in Analysis, new tiles come after the first five.
-		['story', 0, 3, 24, 3],
-		['undercut', 0, 40, 12, 26],
-		['pit-cost', 12, 40, 12, 13],
-		['pit-crews', 12, 53, 12, 13]
+		['replay', 0, 0, 24, 4],
+		['stints', 0, 4, 24, 16],
+		['degradation', 0, 20, 12, 18],
+		['pit-stops', 12, 20, 12, 18],
+		['undercut', 0, 38, 12, 26],
+		['pit-cost', 12, 38, 12, 13],
+		['pit-crews', 12, 51, 12, 13]
 	]),
 	buildDashboard('battle', 'Battle', [
-		['lap-strip', 0, 0, 18, 3],
-		['replay', 18, 0, 6, 3],
-		['timing', 0, 3, 9, 23],
-		['chart', 9, 3, 15, 15, { metric: 'battle' }],
-		['gaps', 9, 18, 7, 8],
-		['box-now', 16, 18, 8, 8]
+		['replay', 0, 0, 24, 4],
+		['timing', 0, 4, 9, 23],
+		['chart', 9, 4, 15, 15, { metric: 'battle' }],
+		['gaps', 9, 19, 7, 8],
+		['box-now', 16, 19, 8, 8]
 	]),
 	buildDashboard('drivers', 'Drivers', [
-		['session', 0, 0, 16, 3],
-		['replay', 16, 0, 8, 3],
-		['grid', 0, 3, 24, 10],
-		['driver', 0, 13, 8, 16],
-		['chart', 8, 13, 16, 16, { metric: 'position' }]
+		['session', 0, 0, 24, 3],
+		['replay', 0, 3, 24, 4],
+		['grid', 0, 7, 24, 10],
+		['driver', 0, 17, 8, 16],
+		['chart', 8, 17, 16, 16, { metric: 'position' }]
 	]),
 	buildDashboard(
 		'wall',
@@ -317,13 +382,13 @@ export const PRESETS: readonly Dashboard[] = [
 		{ fit: true }
 	),
 	buildDashboard('story', 'Race story', [
-		['session', 0, 0, 16, 3],
-		['replay', 16, 0, 8, 3],
-		['story', 0, 3, 24, 20],
-		['chart', 0, 23, 14, 18, { metric: 'position' }],
-		['championship', 14, 23, 10, 36],
-		['race-control', 0, 41, 14, 18],
-		['conditions', 0, 59, 24, 26]
+		['session', 0, 0, 24, 3],
+		['replay', 0, 3, 24, 4],
+		['story', 0, 7, 24, 20],
+		['chart', 0, 27, 14, 18, { metric: 'position' }],
+		['championship', 14, 27, 10, 36],
+		['race-control', 0, 45, 14, 18],
+		['conditions', 0, 63, 24, 26]
 	])
 ];
 

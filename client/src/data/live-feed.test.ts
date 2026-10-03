@@ -154,4 +154,25 @@ describe('LiveFeed', () => {
 		assert.equal(feed.getState().replica?.seq, 10);
 		feed.stop();
 	});
+
+	it('runs on the clock the events were stamped with, as a replay of an old session does', () => {
+		mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-10-03T09:00:00.000Z') });
+
+		const server = fakeServer();
+		const feed = new LiveFeed('ws://pitwall.test/live', { createSocket: server.createSocket });
+
+		feed.start();
+		server.send(server.sockets[0], state(10));
+		assert.equal(feed.getState().clockOffsetMs, 0);
+
+		server.send(server.sockets[0], events(11, [trackStatus('red')]));
+		assert.equal(feed.getState().clockOffsetMs, -3_600_000);
+
+		// A fresh state keeps the clock: its newest stamp can be long past.
+		server.send(server.sockets[0], state(12));
+		assert.equal(feed.getState().clockOffsetMs, -3_600_000);
+
+		feed.stop();
+		mock.timers.reset();
+	});
 });

@@ -29,9 +29,8 @@ import { useRace } from '@/data/race-context';
 import { useNow } from '@/hooks/use-now';
 import { useAccountPlan } from '@/features/account/account-store';
 import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
-import { useDashboards } from '@/features/dashboard/dashboard-store';
-import { dashboardPath } from '@/features/dashboard/paths';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
+import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
 import { LiveBadge, SessionPickerDialog } from '@/features/session/session-picker';
 import { toggleTheme } from '@/hooks/use-theme';
 import { OUT_LABEL } from '@/insights/standings';
@@ -85,7 +84,7 @@ export function CommandMenu({
 
 	const navigate = useNavigate();
 	const search = useCarriedSearch();
-	const { dashboards } = useDashboards();
+	const { all: pages } = useDashboardNav();
 	const create = useCreateDashboard();
 	const [query, setQuery] = React.useState('');
 	const [picking, setPicking] = React.useState(false);
@@ -170,16 +169,14 @@ export function CommandMenu({
 					</CommandGroup>
 					<CommandSeparator />
 					<CommandGroup heading="Dashboards">
-						{dashboards.map((dashboard, index) => (
+						{pages.map((page, index) => (
 							<CommandItem
-								key={dashboard.id}
-								value={`dashboard ${dashboard.name}`}
-								onSelect={() =>
-									run(() => void navigate({ pathname: dashboardPath(dashboard.id), search }))
-								}
+								key={page.dashboard.id}
+								value={`dashboard ${page.label} ${page.dashboard.name}`}
+								onSelect={() => run(() => void navigate({ pathname: page.path, search }))}
 							>
 								<LayoutDashboardIcon />
-								{dashboard.name}
+								{page.label}
 								{index < 9 ? <CommandShortcut>{index + 1}</CommandShortcut> : null}
 							</CommandItem>
 						))}

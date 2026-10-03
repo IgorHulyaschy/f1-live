@@ -182,6 +182,17 @@ export interface TrackStatusChange {
 	status: TrackStatus;
 }
 
+/**
+ * The session clock as the feed set it: the time left at `at`, and whether it was counting down
+ * from there. It stops for a red flag and between the parts of qualifying.
+ */
+export interface SessionClockMark {
+	/** ISO 8601, UTC. */
+	at: string;
+	remainingMs: number;
+	running: boolean;
+}
+
 export const PENALTY_KINDS = ['time', 'drive_through', 'stop_go', 'grid', 'reprimand'] as const;
 
 export type PenaltyKind = (typeof PENALTY_KINDS)[number];
@@ -308,6 +319,8 @@ export interface RaceSnapshot {
 	/** Every change of status, in order; each part of a qualifying session starts with `started`. */
 	statusLog?: readonly SessionStatusChange[];
 	trackStatusLog?: readonly TrackStatusChange[];
+	/** Every time the feed set the session clock, in order. */
+	clockLog?: readonly SessionClockMark[];
 	penalties?: readonly Penalty[];
 	personalBests?: readonly PersonalBest[];
 	corrections?: readonly ClassificationCorrection[];
