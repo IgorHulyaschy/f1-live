@@ -16,7 +16,7 @@ export interface CatalogSession {
 	status: CatalogStatus;
 	circuit: string;
 	country: { code: string; name: string };
-	outputs: { raw: boolean; events: boolean; snapshot: boolean };
+	outputs: { raw: boolean; events: boolean; snapshot: boolean; telemetry: boolean };
 }
 
 export interface CatalogMeeting {
@@ -41,6 +41,7 @@ export interface AvailableOutputs {
 	raw: ReadonlySet<number>;
 	events: ReadonlySet<number>;
 	snapshots: ReadonlySet<number>;
+	telemetry: ReadonlySet<number>;
 }
 
 export function sessionStatus(session: IndexedSession, now: Date): CatalogStatus {
@@ -76,7 +77,8 @@ function catalogMeeting(
 				outputs: {
 					raw: available.raw.has(session.key),
 					events: available.events.has(session.key),
-					snapshot: available.snapshots.has(session.key)
+					snapshot: available.snapshots.has(session.key),
+					telemetry: available.telemetry.has(session.key)
 				}
 			}))
 	};

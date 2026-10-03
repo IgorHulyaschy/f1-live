@@ -66,7 +66,11 @@ export class LivePipeline {
 				const opened = event === 'session' ? recordedSessionSchema.safeParse(fields) : null;
 
 				if (opened?.success) {
-					this.recording = { key: opened.data.key, dir: path.resolve(rawDir, opened.data.path) };
+					this.recording = {
+						key: opened.data.key,
+						dir: path.resolve(rawDir, opened.data.path),
+						root: path.resolve(rawDir)
+					};
 				}
 
 				log(event, fields);

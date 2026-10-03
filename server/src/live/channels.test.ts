@@ -1,29 +1,12 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import path from 'node:path';
 import { after, describe, it } from 'node:test';
 
 import { WebSocket } from 'ws';
 import { z } from 'zod';
 
-import { parseJsonStream } from '../sources/f1/archive.js';
-import { CAR_DATA_TOPIC, POSITION_TOPIC } from '../sources/f1/telemetry.js';
-import { startPlayback, waitUntil } from './test-harness.js';
+import { startPlayback, telemetryFrames, waitUntil } from './test-harness.js';
 import type { Playback } from './test-harness.js';
 import { parseServerMessage } from './replica.js';
-
-const FIXTURES = path.join(import.meta.dirname, '../sources/f1/fixtures/2025-las-vegas-telemetry');
-
-/** The ten seconds of positions and car data, spread over ten seconds of session time. */
-function telemetryFrames() {
-	return [POSITION_TOPIC, CAR_DATA_TOPIC]
-		.flatMap((topic) =>
-			parseJsonStream(topic, readFileSync(path.join(FIXTURES, `${topic}.jsonStream`), 'utf8')).map(
-				(line) => ({ topic, data: line.data, timestamp: 1_763_870_000_000 + line.offsetMs })
-			)
-		)
-		.toSorted((a, b) => a.timestamp - b.timestamp);
-}
 
 const messageSchema = z.object({
 	v: z.number().optional(),

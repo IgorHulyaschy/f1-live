@@ -16,19 +16,20 @@ const REPOSITORY_DIR = path.resolve(SERVER_DIR, '..');
 
 const packageSchema = z.object({ scripts: z.record(z.string(), z.string()).optional() });
 
-/** A recording on disk: the session's key and the directory holding its `<Topic>.jsonStream` files. */
+/** A recording on disk: the session's key, the directory holding its `<Topic>.jsonStream` files, and the raw root that directory is under. */
 export interface Recording {
 	key: number;
 	dir: string;
+	root: string;
 }
 
 export type ImportRunner = (recording: Recording) => Promise<void>;
 
 /** Runs the importer CLI (`npm run import -w server`) on a finished recording. */
-export const runImportCli: ImportRunner = async ({ key, dir }) => {
+export const runImportCli: ImportRunner = async ({ key, root }) => {
 	await run(
 		'npm',
-		['run', 'import', '-w', 'server', '--', '--from-dir', dir, '--key', String(key)],
+		['run', 'import', '-w', 'server', '--', '--from-dir', root, '--key', String(key)],
 		{
 			cwd: REPOSITORY_DIR,
 			maxBuffer: 16 * 1024 * 1024

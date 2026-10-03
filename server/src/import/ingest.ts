@@ -1,3 +1,5 @@
+import { rm } from 'node:fs/promises';
+
 import { EMPTY_SNAPSHOT, applyEvent } from '@f1-live/shared';
 import type { RaceEvent } from '@f1-live/shared';
 
@@ -6,8 +8,10 @@ import { F1Decoder } from '../sources/f1/decode.js';
 import type { TopicFrame } from '../sources/f1/decode.js';
 import { ManualCorrections } from '../sources/manual/corrections.js';
 import { OpenF1Corrections } from '../sources/openf1/session-result.js';
-import { writeErrors, writeEvents, writeSnapshot } from '../sinks/files.js';
+import { folderBytes, writeErrors, writeEvents, writeSnapshot } from '../sinks/files.js';
 import type { TopicFailure } from '../sinks/files.js';
+import { buildTelemetry } from '../telemetry/build.js';
+import { sessionTelemetryDir } from '../telemetry/files.js';
 import { mergeCorrections } from './corrections.js';
 import type { CorrectionSource } from './corrections.js';
 
@@ -21,7 +25,16 @@ export interface IngestInput {
 	dataDir: string;
 	/** Later sources win a conflict; the default is OpenF1, then the committed manual file. */
 	corrections?: readonly CorrectionSource[];
+	/** Build the telemetry too, for a session whose raw files have Position.z. Default: yes. */
+	telemetry?: boolean;
 }
+
+/** What building a session's telemetry came to; it never fails the session's other outputs. */
+export type TelemetryOutcome =
+	| { status: 'built'; bytes: number }
+	| { status: 'skipped'; reason: string }
+	| { status: 'failed'; reason: string }
+	| { status: 'off' };
 
 export interface IngestResult {
 	key: number;
@@ -31,6 +44,7 @@ export interface IngestResult {
 	snapshotBytes: number;
 	/** Topics with a frame the decoder rejected; the rest of the session still decoded. */
 	failures: TopicFailure[];
+	telemetry: TelemetryOutcome;
 }
 
 interface DecodedFrames {
@@ -69,9 +83,34 @@ function decodeFrames(frames: readonly TopicFrame[]): DecodedFrames {
 }
 
 /**
+ * Telemetry that cannot be built is not left half there: the folder an earlier build made is
+ * removed, so the catalog never lists telemetry that the raw files no longer give.
+ */
+async function ingestTelemetry(input: IngestInput): Promise<TelemetryOutcome> {
+	const { rawDir, key, dataDir } = input;
+
+	try {
+		const report = await buildTelemetry({ rawDir, key, dataDir });
+
+		if (report.status === 'skipped') {
+			await rm(sessionTelemetryDir(dataDir, key), { recursive: true, force: true });
+
+			return { status: 'skipped', reason: report.reason };
+		}
+
+		return { status: 'built', bytes: await folderBytes(sessionTelemetryDir(dataDir, key)) };
+	} catch (error) {
+		await rm(sessionTelemetryDir(dataDir, key), { recursive: true, force: true });
+
+		return { status: 'failed', reason: error instanceof Error ? error.message : String(error) };
+	}
+}
+
+/**
  * Raw files to outputs: decodes the session, appends its corrections, folds everything into a
- * snapshot and writes the events, the snapshot and an error report. The same raw files and
- * corrections give the same bytes. A topic that fails to decode is reported, not fatal.
+ * snapshot and writes the events, the snapshot and an error report, then the telemetry. The same
+ * raw files and corrections give the same bytes. A topic that fails to decode is reported, not
+ * fatal, and neither is telemetry that cannot be built.
  */
 export async function ingestSession(input: IngestInput): Promise<IngestResult> {
 	const { rawDir, key, dataDir } = input;
@@ -112,6 +151,7 @@ export async function ingestSession(input: IngestInput): Promise<IngestResult> {
 		corrections: corrections.length,
 		eventsBytes: await writeEvents(dataDir, key, all),
 		snapshotBytes: await writeSnapshot(dataDir, key, snapshot),
-		failures
+		failures,
+		telemetry: input.telemetry === false ? { status: 'off' } : await ingestTelemetry(input)
 	};
 }

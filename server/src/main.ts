@@ -13,9 +13,10 @@ import { registerStaticData } from './http/static-data.js';
 import { LiveHub } from './live/hub.js';
 import { SessionImporter } from './live/importer.js';
 import { LivePipeline } from './live/pipeline.js';
-import { RelayPusher } from './live/relay.js';
+import { RelayChannelPusher, RelayPusher } from './live/relay.js';
 import { LiveSession } from './live/session.js';
 import { LiveTelemetry } from './telemetry/live.js';
+import type { LiveTelemetryOptions } from './telemetry/live.js';
 import type { Backoff, EventLog } from './sources/f1/live.js';
 
 const RELAY_BACKOFF: Backoff = { initialMs: 500, maxMs: 15_000 };
@@ -67,6 +68,11 @@ export async function createServer(
 		methods: ['GET', 'HEAD', 'OPTIONS']
 	});
 
+	const telemetryOptions: LiveTelemetryOptions = {
+		intervalMs: TELEMETRY_INTERVAL_MS,
+		onError: (reason) => app.log.warn({ reason }, 'telemetry-frame-failed')
+	};
+
 	let hub: LiveHub | undefined;
 	let telemetry: LiveTelemetry | undefined;
 
@@ -85,20 +91,29 @@ export async function createServer(
 			log: (event, fields) => app.log.info({ event, ...fields }, event)
 		});
 		registerLiveSocket(app, hub);
-		telemetry = new LiveTelemetry(hub, {
-			intervalMs: TELEMETRY_INTERVAL_MS,
-			onError: (reason) => app.log.warn({ reason }, 'telemetry-frame-failed')
-		});
+		telemetry = new LiveTelemetry(hub, telemetryOptions);
 	}
 
 	registerHealth(app, { mode: config.mode, session, hub });
 	registerStaticData(app, config.dataDir);
 
-	if (config.mode === 'relay' && config.relay.secret) {
-		registerIngest(app, session, config.relay.secret);
+	if (config.mode === 'relay' && config.relay.secret && hub) {
+		registerIngest(app, session, hub, config.relay.secret);
 	}
 
 	const stop = new AbortController();
+
+	// Nobody connects to an ingest, so its viewers are the relay's: it forwards what they opt in to.
+	if (config.mode === 'ingest' && config.relay.url && config.relay.secret) {
+		telemetry = new LiveTelemetry(
+			new RelayChannelPusher(
+				{ url: config.relay.url, secret: config.relay.secret, log, fetchImpl: options.fetchImpl },
+				stop.signal
+			),
+			telemetryOptions
+		);
+	}
+
 	const tasks: Promise<void>[] = [];
 
 	const importer =

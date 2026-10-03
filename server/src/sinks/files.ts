@@ -1,4 +1,4 @@
-import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
@@ -124,4 +124,19 @@ export async function outputKeys(
 
 		return key === undefined ? [] : [Number(key)];
 	});
+}
+
+/** The size of every file under `directory`; 0 when it is missing. */
+export async function folderBytes(directory: string): Promise<number> {
+	const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
+
+	const sizes = await Promise.all(
+		entries.map((entry) =>
+			entry.isDirectory()
+				? folderBytes(path.join(directory, entry.name))
+				: stat(path.join(directory, entry.name)).then((info) => info.size)
+		)
+	);
+
+	return sizes.reduce((sum, size) => sum + size, 0);
 }
