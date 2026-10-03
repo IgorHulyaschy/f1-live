@@ -5,12 +5,14 @@ import { z } from 'zod';
 
 import { createLocalStore } from '../lib/local-store.ts';
 import { type Catalog, defaultSessionKey, findSession, type SessionEntry } from './catalog.ts';
+import { delayedSnapshot } from './broadcast-delay.ts';
 import { LiveFeed, type LiveConnection, liveSessionKey, type LiveState } from './live-feed.ts';
 import type { RaceSource } from './race-source.ts';
 import { type StandingRow, standingsAt } from '../insights/standings.ts';
 import { isTimedSession } from '../insights/qualifying.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
 import { minuteTime, sessionClock, snapshotAtTime } from './snapshot-at-time.ts';
+import { delayStore, revealedStore, spoilerFreeStore } from './viewer-settings.ts';
 
 export type Plan = 'free' | 'pro';
 
@@ -23,6 +25,19 @@ type LiveView = {
 	/** The session the live feed is on while it runs, whichever one is on screen. */
 	liveKey: string | null;
 	backToLive: () => void;
+	/** Seconds the live screen runs behind the feed. */
+	delaySeconds: number;
+	setDelaySeconds: (seconds: number) => void;
+};
+
+type Spoilers = {
+	/** The viewer's setting: open sessions at the start and hide results. */
+	free: boolean;
+	setFree: (free: boolean) => void;
+	/** Results of the session on screen are hidden now. */
+	hidden: boolean;
+	/** Shows this session's results: its end, or live. */
+	reveal: () => void;
 };
 
 type RaceContextValue = {
@@ -36,6 +51,7 @@ type RaceContextValue = {
 	sessionError: string | null;
 	setSession: (key: string) => void;
 	live: LiveView;
+	spoilers: Spoilers;
 	race: RaceSnapshot;
 	/** The race as it stood at `lap`. */
 	snapshot: RaceSnapshot;
@@ -168,7 +184,7 @@ function useCatalog(source: RaceSource): Loadable<Catalog> {
 	return state;
 }
 
-const IDLE_LIVE: LiveState = { connection: 'connecting', replica: null };
+const IDLE_LIVE: LiveState = { connection: 'connecting', replica: null, arrivals: [] };
 
 /** One feed per page for the source's `WS /live`; none for a source without one. */
 function useLiveFeed(url: string | null): LiveState {
@@ -189,6 +205,25 @@ function noSubscription(): () => void {
 
 function idleLive(): LiveState {
 	return IDLE_LIVE;
+}
+
+const DELAY_TICK_MS = 250;
+
+/** The time, refreshed while `active`, for a screen that runs behind the feed. */
+function useDelayClock(active: boolean): number {
+	const [now, setNow] = React.useState(() => Date.now());
+
+	React.useEffect(() => {
+		if (!active) {
+			return;
+		}
+
+		const timer = window.setInterval(() => setNow(Date.now()), DELAY_TICK_MS);
+
+		return () => window.clearInterval(timer);
+	}, [active]);
+
+	return now;
 }
 
 /** Saved sessions loaded so far, so going back to one costs nothing. */
@@ -322,6 +357,19 @@ export function RaceProvider({
 	const entry = catalog.status === 'ready' && key !== null ? findSession(catalog.value, key) : null;
 	const feedReplica = liveState.replica;
 	const onFeed = key !== null && feedReplica?.sessionId === key;
+	const delaySeconds = delayStore.useValue();
+	const delayed = onFeed && key === liveKey && delaySeconds > 0;
+	const delayClock = useDelayClock(delayed);
+
+	const feedRace = React.useMemo(
+		() =>
+			delayed
+				? (delayedSnapshot(liveState.arrivals, delayClock, delaySeconds * 1000) ??
+					feedReplica?.snapshot)
+				: feedReplica?.snapshot,
+		[delayed, liveState.arrivals, delayClock, delaySeconds, feedReplica]
+	);
+
 	const saved = useSavedSession(source, !onFeed && entry?.session.outputs.snapshot ? key : null);
 
 	// Resolve what to show for `key`; until it is ready the previous session stays on screen.
@@ -329,8 +377,8 @@ export function RaceProvider({
 
 	if (catalog.status === 'error') {
 		wanted = catalog;
-	} else if (onFeed) {
-		wanted = { key, race: feedReplica.snapshot, fromFeed: true };
+	} else if (onFeed && feedRace) {
+		wanted = { key, race: feedRace, fromFeed: true };
 	} else if (saved?.status === 'ready' && key !== null) {
 		wanted = { key, race: saved.value, fromFeed: false };
 	} else if (saved?.status === 'error') {
@@ -399,15 +447,33 @@ export function RaceProvider({
 	const timed = race !== null && isTimedSession(race.session.type);
 	const clock = React.useMemo(() => (race && timed ? sessionClock(race) : null), [race, timed]);
 	const maxLap = clock ? clock.minutes : (race?.currentLap ?? 1);
-	const following = isLive && !searchParams.has('lap');
-	const defaultLap = source.kind === 'mock' ? DEFAULT_REPLAY_LAP : maxLap;
+	const spoilerFree = spoilerFreeStore.useValue();
+	const revealed = revealedStore.useValue();
+	const resultsHidden = spoilerFree && shown !== null && !revealed.includes(shown.key);
+	const following = isLive && !searchParams.has('lap') && !resultsHidden;
+	const defaultLap = resultsHidden ? 1 : source.kind === 'mock' ? DEFAULT_REPLAY_LAP : maxLap;
 	const lap = following ? maxLap : resolveLap(searchParams.get('lap'), maxLap, defaultLap);
 
-	const backToLive = React.useCallback(() => {
+	const shownKey = shown?.key ?? null;
+
+	// Seeing the latest state shows results, so in spoiler-free mode it reveals the session.
+	const reveal = React.useCallback(() => {
+		if (shownKey !== null) {
+			revealedStore.set(
+				[...revealedStore.get().filter((revealedKey) => revealedKey !== shownKey), shownKey].slice(
+					-50
+				)
+			);
+		}
+
 		setLocalPlaying(false);
 		updateParams((params) => params.delete('lap'));
+	}, [shownKey, updateParams]);
+
+	const backToLive = React.useCallback(() => {
+		reveal();
 		broadcast({ live: true });
-	}, [updateParams, broadcast]);
+	}, [reveal, broadcast]);
 
 	// The router hands functional updates the params of the last render, so two quick clicks would
 	// both step from the same lap. The address bar is updated as soon as a navigation commits.
@@ -491,8 +557,21 @@ export function RaceProvider({
 	const standings = React.useMemo(() => (snapshot ? standingsAt(snapshot) : []), [snapshot]);
 
 	const live = React.useMemo<LiveView>(
-		() => ({ isLive, following, connection: liveState.connection, liveKey, backToLive }),
-		[isLive, following, liveState.connection, liveKey, backToLive]
+		() => ({
+			isLive,
+			following,
+			connection: liveState.connection,
+			liveKey,
+			backToLive,
+			delaySeconds,
+			setDelaySeconds: delayStore.set
+		}),
+		[isLive, following, liveState.connection, liveKey, backToLive, delaySeconds]
+	);
+
+	const spoilers = React.useMemo<Spoilers>(
+		() => ({ free: spoilerFree, setFree: spoilerFreeStore.set, hidden: resultsHidden, reveal }),
+		[spoilerFree, resultsHidden, reveal]
 	);
 
 	const catalogValue = catalog.status === 'ready' ? catalog.value : null;
@@ -510,6 +589,7 @@ export function RaceProvider({
 						sessionError,
 						setSession,
 						live,
+						spoilers,
 						race,
 						snapshot,
 						stepUnit: clock ? 'minute' : 'lap',
@@ -545,6 +625,7 @@ export function RaceProvider({
 			sessionError,
 			setSession,
 			live,
+			spoilers,
 			race,
 			snapshot,
 			clock,

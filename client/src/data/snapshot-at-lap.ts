@@ -2,12 +2,12 @@ import type { RaceSnapshot } from '@f1-live/shared';
 
 /**
  * The race as it stood when the leader completed `lap`. The feed's running order is the order
- * now, so only the latest lap keeps it.
+ * now, and corrections are decided after the flag, so only the latest lap keeps them.
  */
 export function snapshotAtLap(race: RaceSnapshot, lap: number): RaceSnapshot {
 	const currentLap = Math.min(Math.max(lap, 1), race.currentLap);
 	const laps = race.laps.filter((entry) => entry.lap <= currentLap);
-	const { standings, ...rest } = race;
+	const { standings, corrections, ...rest } = race;
 
 	const slice: RaceSnapshot = {
 		...rest,
@@ -23,5 +23,5 @@ export function snapshotAtLap(race: RaceSnapshot, lap: number): RaceSnapshot {
 		retirements: race.retirements.filter((retirement) => retirement.lap <= currentLap)
 	};
 
-	return currentLap >= race.currentLap && standings ? { ...slice, standings } : slice;
+	return currentLap >= race.currentLap ? { ...slice, standings, corrections } : slice;
 }

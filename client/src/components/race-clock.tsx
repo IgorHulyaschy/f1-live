@@ -3,6 +3,7 @@ import { PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from 'lucide-react
 import { Key } from '@/components/console/keys';
 import type { LiveConnection } from '@/data/live-feed';
 import { useRace } from '@/data/race-context';
+import { stepDelay } from '@/data/viewer-settings';
 import { cn } from '@/lib/utils';
 
 /** Previous lap, play or pause, next lap. On a live session, stepping back pauses live. */
@@ -83,6 +84,52 @@ export function LiveKey({ className }: { className?: string }) {
 		>
 			{CONNECTION_LABEL[live.connection]}
 		</output>
+	);
+}
+
+const DELAY_STEPS = [
+	{ step: -1, label: '−1', name: 'One second less delay' },
+	{ step: -0.1, label: '−.1', name: 'A tenth less delay' },
+	{ step: 0.1, label: '+.1', name: 'A tenth more delay' },
+	{ step: 1, label: '+1', name: 'One second more delay' }
+] as const;
+
+/**
+ * Holds the live screen back so it matches the viewer's TV. The steps follow the common
+ * one-second and tenth keys; joining late with a delay set is in step at once.
+ */
+export function DelayControl({ className }: { className?: string }) {
+	const { live } = useRace();
+
+	if (!live.isLive) {
+		return null;
+	}
+
+	const keys = (from: number, to: number) =>
+		DELAY_STEPS.slice(from, to).map((entry, index) => (
+			<Key
+				key={entry.step}
+				aria-label={entry.name}
+				onClick={() => live.setDelaySeconds(stepDelay(live.delaySeconds, entry.step))}
+				disabled={entry.step < 0 && live.delaySeconds === 0}
+				className={cn('px-1.5 font-mono sm:px-1.5', index > 0 && '-ml-px')}
+			>
+				{entry.label}
+			</Key>
+		));
+
+	return (
+		<fieldset className={cn('flex items-end gap-2', className)}>
+			<legend className="sr-only">Broadcast delay</legend>
+			<div className="flex flex-col">
+				<span className="type-label">Delay</span>
+				<output data-testid="delay" className="w-14 font-mono text-sm leading-6 font-bold">
+					{live.delaySeconds.toFixed(1)}s
+				</output>
+			</div>
+			<div className="flex">{keys(0, 2)}</div>
+			<div className="flex">{keys(2, 4)}</div>
+		</fieldset>
 	);
 }
 

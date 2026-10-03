@@ -9,8 +9,8 @@
 		"preview": "vite preview",
 		"typecheck": "tsc --noEmit",
 		"test:unit": "node --test 'src/**/*.test.ts'",
-		"test:e2e": "playwright test --project=e2e",
-		"shots": "playwright test --project=shots"
+		"test:e2e": "playwright test --project=e2e && playwright test -c playwright.real.config.ts --project=real --project=live",
+		"shots": "playwright test --project=shots && playwright test -c playwright.real.config.ts --project=shots-real"
 	},
 	"dependencies": {
 		"@f1-live/shared": "0.1.0",

@@ -1,5 +1,6 @@
 import {
 	CalendarIcon,
+	EyeOffIcon,
 	FlagIcon,
 	LayoutDashboardIcon,
 	MoonIcon,
@@ -71,7 +72,8 @@ export function CommandMenu({
 		catalog,
 		sessionKey,
 		setSession,
-		live
+		live,
+		spoilers
 	} = useRace();
 
 	const navigate = useNavigate();
@@ -220,6 +222,13 @@ export function CommandMenu({
 						<CommandItem onSelect={() => run(toggleTheme)}>
 							<MoonIcon />
 							Toggle theme
+						</CommandItem>
+						<CommandItem
+							value="spoiler free hide results"
+							onSelect={() => run(() => spoilers.setFree(!spoilers.free))}
+						>
+							<EyeOffIcon />
+							{spoilers.free ? 'Show results again' : 'Hide results (no spoilers)'}
 						</CommandItem>
 					</CommandGroup>
 				</CommandList>

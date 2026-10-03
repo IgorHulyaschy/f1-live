@@ -1,10 +1,10 @@
-import { ChevronsUpDownIcon } from 'lucide-react';
+import { ChevronsUpDownIcon, EyeIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Key } from '@/components/console/keys';
 import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { LapStrip } from '@/components/lap-strip';
-import { LapCounter, LiveKey, Transport } from '@/components/race-clock';
+import { DelayControl, LapCounter, LiveKey, Transport } from '@/components/race-clock';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { formatLocalStart, SESSION_TYPE_LABEL } from '@/data/catalog';
 import { useRace } from '@/data/race-context';
@@ -34,7 +34,7 @@ function useFeedLabel(): string {
  * Sessions key opens the picker for any other session.
  */
 export function SessionTile() {
-	const { race, snapshot, sessionError } = useRace();
+	const { race, snapshot, sessionError, spoilers } = useRace();
 	const [picking, setPicking] = React.useState(false);
 	const year = new Date(race.session.startsAt).getUTCFullYear();
 	const feed = useFeedLabel();
@@ -62,11 +62,17 @@ export function SessionTile() {
 				<Field label="Track" className="px-4">
 					<TrackStatusBadge status={snapshot.trackStatus} />
 				</Field>
-				<div className="pl-4">
+				<div className="flex gap-2 pl-4">
 					<Key onClick={() => setPicking(true)} aria-haspopup="dialog">
 						Sessions
 						<ChevronsUpDownIcon aria-hidden />
 					</Key>
+					{spoilers.hidden ? (
+						<Key onClick={spoilers.reveal} title="Spoiler-free: results are hidden">
+							<EyeIcon aria-hidden />
+							Show results
+						</Key>
+					) : null}
 				</div>
 			</div>
 			{sessionError ? (
@@ -86,6 +92,7 @@ export function ReplayTile() {
 			aria-label="Replay"
 			className="@container flex h-full min-w-0 flex-wrap items-end justify-between gap-x-5 gap-y-3 py-2 @xs:justify-end"
 		>
+			<DelayControl />
 			<LiveKey />
 			<Transport />
 			<LapCounter />

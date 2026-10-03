@@ -125,7 +125,7 @@ const HEIGHT = ['h-px', 'h-2', 'h-3.5', 'h-5'] as const;
  * height the laps completed in it. Click a bar to jump the replay there.
  */
 export function LapStrip() {
-	const { race, lap, setLap, stepUnit, steps } = useRace();
+	const { race, lap, setLap, stepUnit, steps, spoilers } = useRace();
 	const timed = stepUnit === 'minute';
 	// A live session's strip spans its planned length from the start, and fills as it runs.
 	const total = timed ? Math.max(steps, plannedMinutes(race.session.type)) : race.session.totalLaps;
@@ -146,7 +146,8 @@ export function LapStrip() {
 			<legend className="sr-only">{timed ? 'Session minutes' : 'Race laps'}</legend>
 			<div className="flex h-8 items-end gap-px">
 				{slots.map((entry) => {
-					const raced = entry.step <= done;
+					// Spoiler-free, laps ahead keep their flags and fastest laps to themselves.
+					const raced = entry.step <= (spoilers.hidden ? lap : done);
 					const selected = entry.step === lap;
 					const passed = entry.step < lap;
 
@@ -155,7 +156,7 @@ export function LapStrip() {
 							key={entry.step}
 							type="button"
 							tabIndex={-1}
-							disabled={!raced}
+							disabled={entry.step > done}
 							onClick={() => setLap(entry.step)}
 							aria-label={`Go to ${unit} ${entry.step}`}
 							title={`${timed ? 'Minute' : 'Lap'} ${entry.step}${STATUS_LABEL[entry.status]}${entry.note}`}

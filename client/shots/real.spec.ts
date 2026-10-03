@@ -1,0 +1,56 @@
+import { expect, test } from '@playwright/test';
+
+/**
+ * Audit screenshots on real data (the e2e fixture: 2025 Las Vegas, 2026 Baku qualifying), at a
+ * phone, a tablet, a desktop and a 2560 px monitor, dark and light. Output goes to
+ * shots/output/real/<viewport>/<page>-<theme>.png and is not committed.
+ */
+
+const VIEWPORTS = [
+	{ name: 'mobile', width: 390, height: 844 },
+	{ name: 'tablet', width: 834, height: 1194 },
+	{ name: 'desktop', width: 1920, height: 1080 },
+	{ name: 'qhd', width: 2560, height: 1440 }
+] as const;
+
+const PAGES = [
+	{ name: 'race-final', path: '/?session=9858' },
+	{ name: 'race-lap-30', path: '/?session=9858&lap=30' },
+	{ name: 'strategy', path: '/strategy?session=9858' },
+	{ name: 'qualifying', path: '/?session=11373' },
+	{ name: 'qualifying-q2', path: '/?session=9854&lap=40' },
+	{ name: 'analysis-qualifying', path: '/analysis?session=9854' },
+	{ name: 'battle-qualifying', path: '/d/battle?session=11373' }
+] as const;
+
+const THEMES = ['dark', 'light'] as const;
+
+for (const viewport of VIEWPORTS) {
+	test.describe(viewport.name, () => {
+		test.use({ viewport: { width: viewport.width, height: viewport.height } });
+
+		for (const screen of PAGES) {
+			for (const theme of THEMES) {
+				test(`${screen.name} ${theme}`, async ({ page }) => {
+					await page.route('https://media.formula1.com/**', (route) => route.abort());
+					await page.addInitScript((chosen) => {
+						window.localStorage.setItem('pitwall-welcomed', 'true');
+						window.localStorage.setItem('pitwall-theme', chosen);
+					}, theme);
+					await page.goto(screen.path);
+					await expect(page.getByTestId('lap-counter')).toBeAttached();
+					await page.evaluate(() => document.fonts.ready);
+					await page.waitForTimeout(800);
+
+					await page.screenshot({
+						path: `shots/output/real/${viewport.name}/${screen.name}-${theme}.png`,
+						fullPage: true,
+						animations: 'disabled',
+						style:
+							'body { position: relative; } [data-pit-board] { position: absolute; bottom: 0; }'
+					});
+				});
+			}
+		}
+	});
+}

@@ -1,6 +1,8 @@
 import { applyEvent, type RaceEvent, type RaceSnapshot } from '@f1-live/shared';
 import { z } from 'zod';
 
+import { type Arrival, recordArrival } from './broadcast-delay.ts';
+
 /** docs/product/live-protocol.md; a change of shape bumps it on both sides. */
 const PROTOCOL_VERSION = 1;
 
@@ -108,6 +110,8 @@ export type LiveConnection = 'connecting' | 'live' | 'stale' | 'reconnecting';
 export type LiveState = {
 	connection: LiveConnection;
 	replica: Replica | null;
+	/** The session's states as they arrived, for a broadcast delay. */
+	arrivals: readonly Arrival[];
 };
 
 /** What the feed hears from a socket. */
@@ -155,7 +159,7 @@ export class LiveFeed {
 	private readonly notifyMs: number;
 	private readonly random: () => number;
 	private readonly listeners = new Set<() => void>();
-	private state: LiveState = { connection: 'connecting', replica: null };
+	private state: LiveState = { connection: 'connecting', replica: null, arrivals: [] };
 	private socket: SocketLike | null = null;
 	private attempt = 0;
 	private stopped = true;
@@ -228,7 +232,19 @@ export class LiveFeed {
 
 		this.attempt = 0;
 		this.watch();
-		this.update({ connection: 'live', replica }, replica === this.state.replica);
+
+		const previous = this.state.replica;
+		const sameSession = previous?.sessionId === replica?.sessionId;
+
+		const arrivals =
+			replica && replica !== previous
+				? recordArrival(sameSession ? this.state.arrivals : [], {
+						receivedAt: Date.now(),
+						snapshot: replica.snapshot
+					})
+				: this.state.arrivals;
+
+		this.update({ connection: 'live', replica, arrivals }, replica === previous);
 	}
 
 	private dropped(socket: SocketLike): void {

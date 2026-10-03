@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { KeyGroup } from '@/components/console/keys';
+import { Key, KeyGroup } from '@/components/console/keys';
 import {
 	Dialog,
 	DialogContent,
@@ -64,7 +64,7 @@ function dateRange(meeting: CatalogMeeting): string {
  * start in the viewer's time, so the picker doubles as the weekend's timetable.
  */
 export function SessionPicker({ onPicked }: { onPicked?: () => void }) {
-	const { catalog, sessionKey, setSession, live, switchingTo } = useRace();
+	const { catalog, sessionKey, setSession, live, switchingTo, spoilers } = useRace();
 	const entries = React.useMemo(() => (catalog ? sessionEntries(catalog) : []), [catalog]);
 	const current = entries.find((entry) => entry.key === sessionKey);
 	const years = catalog?.seasons.map((season) => season.year) ?? [];
@@ -89,17 +89,30 @@ export function SessionPicker({ onPicked }: { onPicked?: () => void }) {
 
 	return (
 		<div className="flex min-h-0 flex-col gap-3" data-testid="session-picker">
-			{years.length > 1 ? (
-				<KeyGroup
-					label="Season"
-					options={years.map((value) => ({ value: String(value), label: value }))}
-					value={String(year)}
-					onChange={(value) => {
-						setYear(Number(value));
-						setMeetingKey(null);
-					}}
-				/>
-			) : null}
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				{years.length > 1 ? (
+					<KeyGroup
+						label="Season"
+						options={years.map((value) => ({ value: String(value), label: value }))}
+						value={String(year)}
+						onChange={(value) => {
+							setYear(Number(value));
+							setMeetingKey(null);
+						}}
+					/>
+				) : (
+					<span />
+				)}
+				<Key
+					role="switch"
+					aria-checked={spoilers.free}
+					pressed={spoilers.free}
+					onClick={() => spoilers.setFree(!spoilers.free)}
+					title="Open sessions at the start and keep results hidden until you ask"
+				>
+					No spoilers
+				</Key>
+			</div>
 			<div className="grid min-h-0 gap-x-4 gap-y-3 sm:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
 				<section aria-label="Meetings" className="flex min-h-0 flex-col">
 					<h3 className="type-label border-rule-strong border-b-2 pb-1">Meeting</h3>
