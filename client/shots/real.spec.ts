@@ -102,3 +102,52 @@ for (const viewport of VIEWPORTS) {
 		}
 	});
 }
+
+/** Ask over a race: empty, an answer with a table, one with bars, and a held session. */
+const ASKS = [
+	{ name: 'ask-empty', question: '' },
+	{ name: 'ask-result', question: 'who won monza 2024' },
+	{ name: 'ask-standings', question: 'standings 2025' },
+	{ name: 'ask-h2h', question: 'norris vs piastri 2024' },
+	{ name: 'ask-held', question: 'who won vegas 2025', spoilers: true },
+	{ name: 'ask-search', question: 'lecler' }
+] as const;
+
+for (const viewport of VIEWPORTS.filter((entry) => ['mobile', 'laptop'].includes(entry.name))) {
+	test.describe(`${viewport.name} ask`, () => {
+		test.use({ viewport: { width: viewport.width, height: viewport.height } });
+
+		for (const shot of ASKS) {
+			for (const theme of THEMES) {
+				test(`${shot.name} ${theme}`, async ({ page }) => {
+					await page.route('https://media.formula1.com/**', (route) => route.abort());
+
+					if ('spoilers' in shot) {
+						await page.clock.setFixedTime(new Date('2025-11-24T12:00:00.000Z'));
+					}
+
+					await page.addInitScript(
+						([chosen, spoilers]) => {
+							window.localStorage.setItem('pitwall-welcomed', 'true');
+							window.localStorage.setItem('pitwall-theme', chosen);
+							window.localStorage.setItem('pitwall-spoiler-free', String(spoilers));
+						},
+						[theme, 'spoilers' in shot] as const
+					);
+					await page.goto('/session?session=9858');
+					await expect(page.getByTestId('lap-counter')).toBeAttached();
+					await page.keyboard.press('Control+k');
+					await page.getByTestId('ask-input').fill(shot.question);
+					await page.waitForLoadState('networkidle');
+					await page.evaluate(() => document.fonts.ready);
+					await page.waitForTimeout(800);
+
+					await page.screenshot({
+						path: `shots/output/real/${viewport.name}/${shot.name}-${theme}.png`,
+						animations: 'disabled'
+					});
+				});
+			}
+		}
+	});
+}

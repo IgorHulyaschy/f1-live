@@ -12,7 +12,9 @@
 		"./dashboard": "./src/dashboard.ts",
 		"./plans": "./src/plans.ts",
 		"./viewer": "./src/viewer.ts",
-		"./results": "./src/results.ts"
+		"./results": "./src/results.ts",
+		"./ask": "./src/ask.ts",
+		"./ask-match": "./src/ask-match.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",

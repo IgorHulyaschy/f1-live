@@ -30,12 +30,22 @@ function CommandDialog({
 	children,
 	className,
 	showCloseButton = true,
+	shouldFilter,
+	value,
+	onValueChange,
+	fullScreenOnPhone = false,
 	...props
 }: React.ComponentProps<typeof Dialog> & {
 	title?: string;
 	description?: string;
 	className?: string;
 	showCloseButton?: boolean;
+	shouldFilter?: boolean;
+	/** The selected item, when the caller moves the selection itself. */
+	value?: string;
+	onValueChange?: (value: string) => void;
+	/** Fills a phone's screen, for a search that is a page of its own there. */
+	fullScreenOnPhone?: boolean;
 }) {
 	return (
 		<Dialog {...props}>
@@ -44,10 +54,20 @@ function CommandDialog({
 				<DialogDescription>{description}</DialogDescription>
 			</DialogHeader>
 			<DialogContent
-				className={cn('overflow-hidden p-0', className)}
+				className={cn(
+					'overflow-hidden p-0',
+					fullScreenOnPhone &&
+						'max-sm:top-0 max-sm:left-0 max-sm:flex max-sm:h-svh max-sm:max-w-none max-sm:translate-x-0 max-sm:flex-col max-sm:rounded-none max-sm:border-0',
+					className
+				)}
 				showCloseButton={showCloseButton}
 			>
-				<Command className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-2 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
+				<Command
+					shouldFilter={shouldFilter}
+					value={value}
+					onValueChange={onValueChange}
+					className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 **:data-[slot=command-input-wrapper]:pr-10 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-2 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+				>
 					{children}
 				</Command>
 			</DialogContent>
@@ -65,7 +85,7 @@ function CommandInput({
 			<CommandPrimitive.Input
 				data-slot="command-input"
 				className={cn(
-					'placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
+					'placeholder:text-muted-foreground flex h-10 w-full rounded-md text-ellipsis bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50',
 					className
 				)}
 				{...props}

@@ -43,10 +43,14 @@ export type SeasonsState =
 	/** The seasons that have an index, oldest first. */
 	| { status: 'ready'; seasons: readonly SeasonResults[] };
 
-/** The results indexes of `years`; a year the source has none for is left out. */
-export function useSeasonResults(years: readonly number[]): SeasonsState {
+/**
+ * The results indexes of `years`; a year the source has none for is left out. A new `attempt`
+ * loads again what failed.
+ */
+export function useSeasonResults(years: readonly number[], attempt = 0): SeasonsState {
 	const load = React.use(ResultsContext);
-	const wanted = years.toSorted((a, b) => a - b).join(',');
+	const sorted = years.toSorted((a, b) => a - b).join(',');
+	const wanted = `${attempt}:${sorted}`;
 
 	const [state, setState] = React.useState<{ wanted: string; value: SeasonsState }>({
 		wanted: '',
@@ -55,7 +59,8 @@ export function useSeasonResults(years: readonly number[]): SeasonsState {
 
 	React.useEffect(() => {
 		let cancelled = false;
-		const list = wanted === '' ? [] : wanted.split(',').map(Number);
+		const asked = wanted.split(':')[1] ?? '';
+		const list = asked === '' ? [] : asked.split(',').map(Number);
 
 		async function run() {
 			try {

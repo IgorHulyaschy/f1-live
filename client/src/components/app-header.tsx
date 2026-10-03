@@ -5,6 +5,7 @@ import {
 	LibraryIcon,
 	MoonIcon,
 	PlusIcon,
+	SearchIcon,
 	SunIcon,
 	SwordsIcon,
 	TrophyIcon
@@ -255,11 +256,19 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 				<div className="ml-auto flex h-10 items-center gap-1 sm:h-auto sm:gap-2">
 					<Key
 						onClick={onOpenCommand}
-						aria-label="Search drivers, laps and pages"
+						aria-label="Ask about F1, or search drivers, races and pages"
 						className="hidden sm:inline-flex"
 					>
-						<span className="hidden lg:inline">Jump</span>
+						<span className="hidden lg:inline">Ask</span>
 						<Kbd className="border-0">⌘K</Kbd>
+					</Key>
+					<Key
+						onClick={onOpenCommand}
+						aria-label="Ask about F1, or search drivers, races and pages"
+						className="sm:hidden"
+						data-testid="ask-button"
+					>
+						<SearchIcon />
 					</Key>
 					{accountPlan === 'pro' ? null : (
 						<>

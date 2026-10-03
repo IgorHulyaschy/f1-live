@@ -1,7 +1,7 @@
 # User flows
 
 How people move through Pitwall: live during a session, catching up later without spoilers,
-digging into one driver or lap, browsing history, and arriving from a link. Each flow has its
+digging into one driver or lap, browsing history, arriving from a link, and asking a question. Each flow has its
 entry point, the steps, what the screen shows and the ways out, then the friction found when it was
 walked on real data (2026 Bahrain and Baku, 2025 Las Vegas) and what fixes it.
 
@@ -160,6 +160,43 @@ Event in any driver or lap view.
 
 ![Before: a 360 px phone on a race](../screenshots/flows/before-phone-race.png)
 
+## F. Ask a question
+
+**Entry.** ⌘K on a computer, the search key in the header on a phone (full screen there), or a
+shared `/?ask=…` link, which opens Ask on that question.
+
+**Steps.**
+
+1. Empty, Ask offers four questions to try (the placeholder cycles through them), Surprise me, the
+   last five questions asked, then the pages, the session controls, the dashboards and settings.
+2. Typing a question ("who won monza 2024", "norris vs piastri 2024", "fastest lap vegas") gets
+   an answer card: a short answer, a bar chart or table, the source, and every figure links to the
+   session, lap, standings or head to head it came from. Typos and nicknames are fine. Enter opens
+   the proof; Share copies a link to the question. An answer about the session on screen, or its
+   season's standings, adds the tile that keeps showing it (Fastest laps, Stints, Pit stops,
+   Sectors, Season standings) to a dashboard picked in the list. If the results fail to load, Ask
+   says so and offers Try again.
+   "When is the next race" or "when is quali" answers from the calendar in the viewer's time, with
+   a countdown and the weekend. "How many points is Norris behind" or "can Norris still win the
+   title" gives the points to the leader and to the place ahead, the points still available, and
+   whether the title is still open; unseen races are left out, counted as still available, and named.
+3. A question whose answer is the result of a session the viewer has not seen shows a Reveal step
+   and no result. A count that includes such sessions leaves them out and names them, with Reveal
+   to include.
+4. Anything that is not a question finds drivers, grands prix, teams, seasons, pages, sessions,
+   dashboards, tiles, laps and settings by name, grouped, the best group first. Text that almost
+   parses offers "Try asking" rewrites.
+
+**Exits.** The proof (any page of flows C and D), or Esc back where the viewer was.
+
+| Friction found                                                                         | Fix                                                                                |
+| -------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| ⌘K only jumped to things; answering "who won Monza" took four pages.                   | The palette parses questions and answers with the figure and its source.           |
+| A phone had no way in: the ⌘K key is hidden there.                                     | A search key in the phone header opens Ask on the whole screen.                    |
+| An answer could spoil a session the viewer is saving.                                  | Answers ask the same spoiler helpers; a held session needs Reveal first.           |
+| Ask's index and parser would weigh on the first page.                                  | The palette loads after the first page, when the browser is idle or on first open. |
+| A first-time fan's "when is the next race" and "can Norris still win" went unanswered. | Schedule and gap questions answer from the calendar and the standings.             |
+
 ## Spoilers
 
 One rule, in `client/src/data/spoilers.ts`:
@@ -169,7 +206,7 @@ One rule, in `client/src/data/spoilers.ts`:
 - `spoilerSafeStep(...)`: where a session opens: the position in the link, else the start when
   hidden, else the end (or live).
 
-Every place that lists sessions or results (the picker, ⌘K, the live strip, the page title, and
+Every place that lists sessions or results (the picker, ⌘K and its answers, the live strip, the page title, and
 T11a's calendar, standings and library) asks these; a list of sessions uses `useIsRevealed()` and
 `revealSession(key)` from `client/src/data/viewer-settings.ts`. Reveals are kept for the newest
 200 sessions on the device and, signed in, on the account: `PUT /api/me/viewer` sends the device's

@@ -1,10 +1,10 @@
 import { LazyMotion, MotionConfig } from 'motion/react';
 import * as React from 'react';
-import { matchPath, Outlet, useLocation, useMatch } from 'react-router';
+import { matchPath, Outlet, useLocation, useMatch, useSearchParams } from 'react-router';
 
 import { AppHeader } from '@/components/app-header';
 import { Key } from '@/components/console/keys';
-import { CommandMenu } from '@/components/command-menu';
+import type { CommandMenu as AskPalette } from '@/components/command-menu';
 import { PitBoard } from '@/components/pit-board';
 import { LoadingState, SiteFrame } from '@/components/site-frame';
 import { SiteFooter } from '@/components/site-footer';
@@ -13,6 +13,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { RaceProvider, useRace } from '@/data/race-context';
 import { ResultsProvider } from '@/data/results-context';
+import { SnapshotsProvider } from '@/data/snapshots-context';
 import { TelemetryProvider } from '@/data/telemetry-context';
 import { AccountFooterKey, AccountSession } from '@/features/account/account-menu';
 import { useAccountPlan } from '@/features/account/account-store';
@@ -93,15 +94,86 @@ async function loadMotionFeatures() {
 	return (await import('./motion-features')).default;
 }
 
+const loadCommandMenu = () => import('@/components/command-menu');
+
+// A palette that fails to load (offline, a stale deploy) leaves the page as it is.
+const CommandMenu = React.lazy(
+	async (): Promise<{ default: React.ComponentType<React.ComponentProps<typeof AskPalette>> }> => ({
+		default: await loadCommandMenu().then(
+			(module) => module.CommandMenu,
+			() => () => null
+		)
+	})
+);
+
+/**
+ * ⌘K and the header's search open Ask; a shared `?ask=` link opens it on that question. The
+ * palette loads after the first page, once the browser is idle.
+ */
+function useAsk() {
+	const [open, setOpen] = React.useState(false);
+	const [text, setText] = React.useState('');
+	const [mounted, setMounted] = React.useState(false);
+	const [params, setParams] = useSearchParams();
+	const asked = params.get('ask');
+	const [opened, setOpened] = React.useState<string | null>(null);
+
+	if (asked !== opened) {
+		setOpened(asked);
+
+		if (asked !== null) {
+			setText(asked);
+			setOpen(true);
+			setMounted(true);
+		}
+	}
+
+	React.useEffect(() => {
+		if (asked === null) {
+			return;
+		}
+
+		setParams(
+			(current) => {
+				current.delete('ask');
+
+				return current;
+			},
+			{ replace: true }
+		);
+	}, [asked, setParams]);
+
+	React.useEffect(() => {
+		const idle =
+			window.requestIdleCallback ?? ((callback: () => void) => window.setTimeout(callback, 1500));
+
+		idle(() => void loadCommandMenu().catch(() => undefined));
+	}, []);
+
+	const openAsk = React.useCallback(() => {
+		setMounted(true);
+		setOpen(true);
+	}, []);
+
+	const onOpenChange = React.useCallback((next: boolean) => {
+		setOpen(next);
+
+		if (!next) {
+			setText('');
+		}
+	}, []);
+
+	return { open, text, setText, mounted, openAsk, onOpenChange };
+}
+
 function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: boolean }) {
-	const [commandOpen, setCommandOpen] = React.useState(false);
-	const openCommand = React.useCallback(() => setCommandOpen(true), []);
+	const ask = useAsk();
 	const dark = useDarkTheme();
 	const { snapshot, followedDriver, playing, live } = useRace();
 	const focus = snapshot.drivers.find((driver) => driver.number === followedDriver);
 	const keepAwake = keepAwakeStore.useValue();
 
-	useRaceHotkeys(openCommand);
+	useRaceHotkeys(ask.openAsk);
 	useRaceAlerts();
 	useViewTitle();
 	useScreenWakeLock(keepAwake && (playing || live.isLive));
@@ -135,9 +207,9 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 							className="min-h-svh"
 							style={focus ? { '--focus': `#${focus.teamColour}` } : undefined}
 						>
-							<AppHeader onOpenCommand={openCommand} />
+							<AppHeader onOpenCommand={ask.openAsk} />
 							<main className="px-4 pb-6 md:px-6">
-								<Outlet context={{ openCommand } satisfies ConsoleOutlet} />
+								<Outlet context={{ openCommand: ask.openAsk } satisfies ConsoleOutlet} />
 							</main>
 							<SiteFooter
 								className="pb-24 md:pb-8"
@@ -187,7 +259,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 										<dd className="text-foreground">1–9</dd>
 									</div>
 									<div className="flex gap-1.5">
-										<dt>Jump</dt>
+										<dt>Ask</dt>
 										<dd className="text-foreground">⌘K</dd>
 									</div>
 								</dl>
@@ -197,7 +269,16 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 							<DrillSheet />
 						</div>
 					</CompareProvider>
-					<CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
+					{ask.mounted ? (
+						<React.Suspense fallback={null}>
+							<CommandMenu
+								open={ask.open}
+								onOpenChange={ask.onOpenChange}
+								text={ask.text}
+								onTextChange={ask.setText}
+							/>
+						</React.Suspense>
+					) : null}
 					<Toaster theme={dark ? 'dark' : 'light'} position="bottom-right" />
 				</TooltipProvider>
 			</MotionConfig>
@@ -217,7 +298,9 @@ export function AppLayout({ source, bare = false }: { source: RaceSource; bare?:
 		>
 			<TelemetryProvider source={source.telemetry}>
 				<ResultsProvider load={source.loadResults}>
-					<Console sourceKind={source.kind} bare={bare} />
+					<SnapshotsProvider load={source.loadSession}>
+						<Console sourceKind={source.kind} bare={bare} />
+					</SnapshotsProvider>
 				</ResultsProvider>
 			</TelemetryProvider>
 		</RaceProvider>

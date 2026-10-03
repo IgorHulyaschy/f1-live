@@ -78,7 +78,7 @@ test('⌘K finds a session by name', async ({ page }) => {
 	await openRace(page, '/session?session=9858');
 
 	await page.keyboard.press('Control+k');
-	await page.getByPlaceholder('Driver, dashboard, session or lap…').fill('Baku qualifying');
+	await page.getByTestId('ask-input').fill('Baku qualifying');
 	await page.keyboard.press('Enter');
 
 	await expect(page).toHaveURL(/session=11373/);
