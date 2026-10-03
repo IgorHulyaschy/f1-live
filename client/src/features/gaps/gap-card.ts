@@ -245,7 +245,7 @@ function drawLabel(
 	theme: CardTheme
 ) {
 	const colour = `#${driver.teamColour}`;
-	const chip = 1.6 * rem;
+	const chip = (car.position >= 10 ? 1.85 : 1.6) * rem;
 	const cut = 0.3 * rem;
 	const top = 0.55 * size.labelHeight;
 	const bottom = top + (size.labelHeight - top) / 2;

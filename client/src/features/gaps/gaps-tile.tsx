@@ -103,8 +103,10 @@ function GapsBody({
 	const { race, snapshot, lap, followedDriver } = useRace();
 	const fill = useTileFill();
 	const views = gapViews(snapshot);
+	// A tile on a dashboard keeps its choices there, so a reset or another window shows at once;
+	// on its own it keeps them here.
 	const [local, setLocal] = React.useState<GapSettings>({});
-	const chosen = { ...settings, ...local };
+	const chosen = onSettingsChange ? settings : { ...settings, ...local };
 	const view = chosen.view && views.includes(chosen.view) ? chosen.view : defaultGapView(views);
 	const split = view === 'race' ? 'lap' : (chosen.split ?? 'lap');
 	const fields = useGapFields(view);
@@ -119,8 +121,11 @@ function GapsBody({
 	);
 
 	const change = (next: GapSettings) => {
-		setLocal((current) => ({ ...current, ...next }));
-		onSettingsChange?.({ ...chosen, ...next });
+		if (onSettingsChange) {
+			onSettingsChange({ ...settings, ...next });
+		} else {
+			setLocal((current) => ({ ...current, ...next }));
+		}
 	};
 
 	const estimated = field.cars.some((car) => car.estimated && car.position > 1);

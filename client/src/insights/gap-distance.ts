@@ -34,7 +34,12 @@ export type SectorGapField = { sector: number; field: GapField };
 /** The parts of telemetry the gap reads: the lap's own clock and how fast the car went. */
 export type GapTelemetry = Pick<LapTelemetry, 't' | 'd' | 'speed' | 'lapTimeMs'>;
 
-function valueAtTime(times: readonly number[], values: readonly number[], at: number): number {
+/** A channel's value at `at`, between its samples at `times`; the ends hold past either side. */
+export function valueAtTime(
+	times: readonly number[],
+	values: readonly number[],
+	at: number
+): number {
 	let low = 0;
 	let high = times.length - 1;
 
@@ -65,35 +70,33 @@ function valueAtTime(times: readonly number[], values: readonly number[], at: nu
 	return t1 === t0 ? v1 : v0 + ((v1 - v0) * (at - t0)) / (t1 - t0);
 }
 
+/** Metres run by each sample, from 0, integrating a speed channel in km/h over its times in ms. */
+export function speedRun(times: readonly number[], kph: readonly number[]): number[] {
+	const run = [0];
+
+	for (let index = 1; index < times.length; index++) {
+		const seconds = ((times[index] ?? 0) - (times[index - 1] ?? 0)) / 1000;
+		const mean = ((kph[index] ?? 0) + (kph[index - 1] ?? 0)) / 2;
+
+		run.push((run[index - 1] ?? 0) + (mean / 3.6) * seconds);
+	}
+
+	return run;
+}
+
 /**
  * Metres a car covered in the last `ms` of its lap. The speed channel is integrated where there
  * is one: positions jump by several metres between samples, the speed does not.
  */
 export function distanceInLastMs(lap: GapTelemetry, ms: number): number {
-	const end = lap.t.at(-1) ?? lap.lapTimeMs;
-	const from = Math.max(0, end - ms);
-
 	if (ms <= 0) {
 		return 0;
 	}
 
-	if (!lap.speed || lap.speed.length !== lap.t.length) {
-		return (lap.d.at(-1) ?? 0) - valueAtTime(lap.t, lap.d, from);
-	}
+	const from = Math.max(0, (lap.t.at(-1) ?? lap.lapTimeMs) - ms);
+	const along = lap.speed && lap.speed.length === lap.t.length ? speedRun(lap.t, lap.speed) : lap.d;
 
-	const speed = lap.speed;
-	const times = [from, ...lap.t.filter((time) => time > from && time < end), end];
-	let metres = 0;
-
-	for (let index = 1; index < times.length; index++) {
-		const t0 = times[index - 1] ?? from;
-		const t1 = times[index] ?? end;
-		const kph = (valueAtTime(lap.t, speed, t0) + valueAtTime(lap.t, speed, t1)) / 2;
-
-		metres += ((kph / 3.6) * (t1 - t0)) / 1000;
-	}
-
-	return metres;
+	return (along.at(-1) ?? 0) - valueAtTime(lap.t, along, from);
 }
 
 /**

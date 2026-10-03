@@ -211,7 +211,7 @@ export function placeStraight(
 	});
 
 	// A figure beside the road where no label sits on it.
-	const figure = { along: 0.9 * rem, across: 2.8 * rem };
+	const figure = { along: 1.2 * rem, across: 3.2 * rem };
 
 	const ticks = Array.from(
 		{ length: Math.round(layout.metres / layout.tickM) },

@@ -16,6 +16,8 @@ import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { driverChartConfig, isSecondTeamCar } from './chart-drivers';
+import { bestLaps } from '@/insights/gap-distance';
+
 import { bestKey, partSpans, qualiLapPoints, qualiPartPoints } from './quali-series';
 
 /** The charts that mean something in qualifying. */
@@ -74,7 +76,7 @@ export function QualiChart({
 					{ key: 'part', label: 'Part' },
 					...drivers.map((driver) => ({ key: driver.code, label: driver.code, numeric: true }))
 				]}
-				rows={qualiPartPoints(snapshot, drivers, metric).map((point) => ({
+				rows={byPart.map((point) => ({
 					id: String(point.part),
 					part: partLabel(point.part ?? 1),
 					...Object.fromEntries(
@@ -145,8 +147,8 @@ export function QualiChart({
 
 	const points = qualiLapPoints(snapshot, drivers);
 	const spans = partSpans(snapshot);
-	const times = points.flatMap((point) => drivers.flatMap((driver) => point[driver.code] ?? []));
-	const pole = Math.min(...times);
+	// Pole for the whole field, whichever drivers are compared.
+	const pole = (bestLaps(snapshot, 'best')[0]?.lapTimeMs ?? Number.NaN) / 1000;
 
 	return (
 		<ChartContainer config={config} className={chartClass} data-testid="quali-chart">

@@ -224,7 +224,7 @@ export function GhostLap({
 								/>
 								<span className="type-wide font-bold">{driver?.code ?? car.driverNumber}</span>
 								<span className="text-muted-foreground ml-auto font-mono tabular-nums">
-									{index === 0 ? '' : `${Math.round(car.behindM)} m`}
+									{index === 0 ? '' : car.behindM < 0.5 ? '–' : `${Math.round(car.behindM)} m`}
 								</span>
 							</li>
 						);

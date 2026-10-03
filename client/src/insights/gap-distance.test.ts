@@ -49,7 +49,7 @@ describe('metre gaps from telemetry', () => {
 		assert.equal(hamilton?.driverNumber, '44');
 		assert.equal(hamilton?.gapMs, 298);
 		assert.equal(hamilton?.estimated, false);
-		assert.ok(Math.abs((hamilton?.metres ?? 0) - 22.08) < 0.01, `${hamilton?.metres}`);
+		assert.ok(Math.abs((hamilton?.metres ?? 0) - 22.05) < 0.01, `${hamilton?.metres}`);
 	});
 
 	it('keeps the order of the lap times, each car further back than the one ahead', () => {
@@ -63,7 +63,7 @@ describe('metre gaps from telemetry', () => {
 		);
 		// Tenth in Q3, 2.543 s back, at about 67 m a second over its last stretch: 171 m.
 		assert.equal(last?.gapMs, 2543);
-		assert.ok(Math.abs((last?.metres ?? 0) - 171.08) < 0.01, `${last?.metres}`);
+		assert.ok(Math.abs((last?.metres ?? 0) - 171.01) < 0.01, `${last?.metres}`);
 	});
 
 	it('integrates the speed rather than the jumpy distance between position samples', () => {

@@ -1,5 +1,5 @@
 import type { Driver } from '@f1-live/shared';
-import { motion, useReducedMotion } from 'motion/react';
+import { m, useReducedMotion } from 'motion/react';
 import * as React from 'react';
 
 import type { GapCar, GapField } from '@/insights/gap-distance';
@@ -103,7 +103,7 @@ export function GapStraight({
 					})}
 					<Chequer point={point} lane={size.lane} rem={rem} />
 					{slots.map((slot) => (
-						<motion.line
+						<m.line
 							key={`lead-${slot.car.driverNumber}`}
 							initial={false}
 							animate={{ x1: slot.carX, y1: slot.carY, x2: slot.anchorX, y2: slot.anchorY }}
@@ -116,7 +116,7 @@ export function GapStraight({
 						const driver = drivers.get(slot.car.driverNumber);
 
 						return driver ? (
-							<motion.g
+							<m.g
 								key={`car-${slot.car.driverNumber}`}
 								initial={false}
 								animate={{ x: slot.carX, y: slot.carY }}
@@ -128,14 +128,14 @@ export function GapStraight({
 									turned={!vertical}
 									followed={driver.number === followed}
 								/>
-							</motion.g>
+							</m.g>
 						) : null;
 					})}
 					{slots.map((slot) => {
 						const driver = drivers.get(slot.car.driverNumber);
 
 						return driver ? (
-							<motion.g
+							<m.g
 								key={`label-${slot.car.driverNumber}`}
 								initial={false}
 								animate={{ x: slot.labelX, y: slot.labelY }}
@@ -151,7 +151,7 @@ export function GapStraight({
 									labelStyle={labelStyle}
 									followed={driver.number === followed}
 								/>
-							</motion.g>
+							</m.g>
 						) : null;
 					})}
 				</svg>
@@ -304,7 +304,7 @@ function CarLabel({
 		);
 	}
 
-	const chip = 1.6 * rem;
+	const chip = (car.position >= 10 ? 1.85 : 1.6) * rem;
 	const cut = 0.3 * rem;
 	const top = 0.55 * size.labelHeight;
 	const bottom = top + (size.labelHeight - top) / 2;

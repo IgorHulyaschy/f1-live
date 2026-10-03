@@ -1,5 +1,7 @@
 import type { LapTelemetry } from '@f1-live/shared';
 
+import { speedRun, valueAtTime } from '../../insights/gap-distance.ts';
+
 /**
  * One car's lap as the ghost lap runs it: its official time, and how far along the lap it is at
  * each moment of that time. Distance comes from the speed channel, scaled to the lap's length:
@@ -27,14 +29,7 @@ export function ghostTrack(
 		return { driverNumber: telemetry.driverNumber, lapMs, t, d: [...telemetry.d] };
 	}
 
-	const run = [0];
-
-	for (let index = 1; index < telemetry.t.length; index++) {
-		const seconds = ((telemetry.t[index] ?? 0) - (telemetry.t[index - 1] ?? 0)) / 1000;
-		const kph = ((speed[index] ?? 0) + (speed[index - 1] ?? 0)) / 2;
-
-		run.push((run[index - 1] ?? 0) + (kph / 3.6) * seconds);
-	}
+	const run = speedRun(telemetry.t, speed);
 
 	const total = run.at(-1) ?? 0;
 
@@ -48,37 +43,7 @@ export function ghostTrack(
 
 /** Metres along the lap at `ms` into it; at the line once the lap is done. */
 export function ghostDistance(track: GhostTrack, ms: number): number {
-	if (ms >= track.lapMs) {
-		return track.d.at(-1) ?? 0;
-	}
-
-	if (ms <= 0) {
-		return 0;
-	}
-
-	let low = 0;
-	let high = track.t.length - 1;
-
-	while (low < high) {
-		const middle = (low + high) >> 1;
-
-		if ((track.t[middle] ?? 0) < ms) {
-			low = middle + 1;
-		} else {
-			high = middle;
-		}
-	}
-
-	if (low === 0) {
-		return track.d[0] ?? 0;
-	}
-
-	const t0 = track.t[low - 1] ?? 0;
-	const t1 = track.t[low] ?? t0;
-	const d0 = track.d[low - 1] ?? 0;
-	const d1 = track.d[low] ?? d0;
-
-	return t1 === t0 ? d1 : d0 + ((d1 - d0) * (ms - t0)) / (t1 - t0);
+	return ms >= track.lapMs ? (track.d.at(-1) ?? 0) : valueAtTime(track.t, track.d, Math.max(0, ms));
 }
 
 /** Who leads the ghost lap at `ms`, and every car's metres behind, the leader first. */
