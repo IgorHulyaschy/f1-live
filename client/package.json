@@ -5,13 +5,14 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite",
-		"build": "tsc --noEmit && vite build",
+		"build": "npm run typecheck && vite build",
 		"preview": "vite preview",
-		"typecheck": "tsc --noEmit",
+		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json",
 		"test:unit": "node --test 'src/**/*.test.ts'",
-		"test:e2e": "playwright test --project=e2e && playwright test -c playwright.real.config.ts --project=real --project=live",
+		"test:e2e": "playwright test --project=e2e && playwright test -c playwright.build.config.ts --project=pwa && playwright test -c playwright.real.config.ts --project=real --project=live",
 		"test:stack": "playwright test -c playwright.stack.config.ts",
-		"shots": "playwright test --project=shots && playwright test -c playwright.real.config.ts --project=shots-real"
+		"brand-assets": "node scripts/brand-assets.ts",
+		"shots": "playwright test --project=shots && playwright test -c playwright.build.config.ts --project=shots-build && playwright test -c playwright.real.config.ts --project=shots-real"
 	},
 	"dependencies": {
 		"@f1-live/shared": "0.1.0",
@@ -33,6 +34,8 @@
 		"zod": "4.6.5"
 	},
 	"devDependencies": {
+		"@axe-core/playwright": "4.13.0",
+		"@lhci/cli": "0.15.1",
 		"@playwright/test": "1.63.0",
 		"@tailwindcss/vite": "4.3.3",
 		"@types/react": "19.3.0",

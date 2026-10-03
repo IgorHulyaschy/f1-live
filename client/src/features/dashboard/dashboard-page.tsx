@@ -15,6 +15,7 @@ import * as React from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 
+import { BRAND, brandSlug } from '@/brand';
 import { Key, KeyGroup } from '@/components/console/keys';
 import {
 	Dialog,
@@ -120,7 +121,7 @@ function download(dashboard: Dashboard): void {
 	const link = document.createElement('a');
 
 	link.href = url;
-	link.download = `pitwall-${dashboard.name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}.json`;
+	link.download = `${brandSlug()}-${dashboard.name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}.json`;
 	link.click();
 	URL.revokeObjectURL(url);
 }
@@ -186,7 +187,7 @@ function DashboardBar({
 				toast(`Imported ${parsed.name}`);
 			}
 		} catch {
-			toast('That file is not a Pitwall dashboard.');
+			toast(`That file is not a ${BRAND.name} dashboard.`);
 		}
 	};
 

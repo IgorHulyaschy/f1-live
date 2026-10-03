@@ -1,12 +1,13 @@
 import { MotionConfig } from 'motion/react';
 import * as React from 'react';
-import { matchPath, Outlet, useLocation } from 'react-router';
+import { matchPath, Outlet, useLocation, useMatch } from 'react-router';
 
 import { AppHeader } from '@/components/app-header';
 import { Key } from '@/components/console/keys';
 import { CommandMenu } from '@/components/command-menu';
 import { PitBoard } from '@/components/pit-board';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingState, SiteFrame } from '@/components/site-frame';
+import { SiteFooter } from '@/components/site-footer';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TrackStatusBadge } from '@/components/track-status-badge';
@@ -19,16 +20,10 @@ import type { RaceSource } from '@/data/race-source';
 import { useRaceAlerts } from '@/hooks/use-race-alerts';
 import { useRaceHotkeys } from '@/hooks/use-race-hotkeys';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
-
-export function LoadingState() {
-	return (
-		<div className="mx-auto flex max-w-screen-2xl flex-col gap-4 p-6" aria-busy>
-			<Skeleton className="h-8 w-72" />
-			<Skeleton className="h-3 w-full" />
-			<Skeleton className="h-96 w-full" />
-		</div>
-	);
-}
+import { ConsentBanner, usePageViews } from '@/platform/consent';
+import { InstallBanner, InstallKey } from '@/platform/install';
+import { usePageMeta } from '@/platform/page-meta';
+import { keepAwakeStore, useScreenWakeLock, wakeLockSupported } from '@/platform/wake-lock';
 
 function ErrorState({ message }: { message: string }) {
 	return (
@@ -79,11 +74,13 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 	const [commandOpen, setCommandOpen] = React.useState(false);
 	const openCommand = React.useCallback(() => setCommandOpen(true), []);
 	const dark = useDarkTheme();
-	const { snapshot, followedDriver } = useRace();
+	const { snapshot, followedDriver, playing, live } = useRace();
 	const focus = snapshot.drivers.find((driver) => driver.number === followedDriver);
+	const keepAwake = keepAwakeStore.useValue();
 
 	useRaceHotkeys(openCommand);
 	useRaceAlerts();
+	useScreenWakeLock(keepAwake && (playing || live.isLive));
 
 	if (bare) {
 		return (
@@ -115,17 +112,32 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 						<main className="px-4 pb-6 md:px-6">
 							<Outlet />
 						</main>
-						<footer className="text-muted-foreground flex flex-wrap justify-between gap-x-8 gap-y-2 px-4 pb-24 text-xs md:px-6 md:pb-8">
-							<p className="max-w-3xl">
-								Unofficial. Not associated in any way with the Formula 1 companies.
-								{sourceKind === 'mock'
-									? ' This replay uses the real grid, strategies, race control and result; lap times are modelled from them.'
-									: null}
-							</p>
-							<span className="flex gap-2 sm:hidden">
-								<AccountFooterKey />
-								<Key onClick={toggleTheme}>{dark ? 'Light theme' : 'Dark theme'}</Key>
-							</span>
+						<SiteFooter
+							className="pb-24 md:pb-8"
+							note={
+								sourceKind === 'mock'
+									? 'This replay uses the real grid, strategies, race control and result; lap times are modelled from them.'
+									: undefined
+							}
+						>
+							<div className="flex flex-wrap items-center gap-2">
+								<span className="flex gap-2 sm:hidden">
+									<AccountFooterKey />
+									<Key onClick={toggleTheme}>{dark ? 'Light theme' : 'Dark theme'}</Key>
+								</span>
+								{wakeLockSupported() ? (
+									<Key
+										role="switch"
+										aria-checked={keepAwake}
+										pressed={keepAwake}
+										onClick={() => keepAwakeStore.set(!keepAwake)}
+										title="Keep the screen on while a race plays or runs live"
+									>
+										Screen awake
+									</Key>
+								) : null}
+								<InstallKey />
+							</div>
 							<dl className="type-label hidden gap-4 md:flex">
 								<div className="flex gap-1.5">
 									<dt>Laps</dt>
@@ -144,7 +156,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 									<dd className="text-foreground">⌘K</dd>
 								</div>
 							</dl>
-						</footer>
+						</SiteFooter>
 						<PitBoard />
 						<AccountSession />
 					</div>
@@ -168,5 +180,38 @@ export function AppLayout({ source, bare = false }: { source: RaceSource; bare?:
 		>
 			<Console sourceKind={source.kind} bare={bare} />
 		</RaceProvider>
+	);
+}
+
+/**
+ * Above every page: the tab title and share card follow the route, page views are counted once
+ * the viewer allows it, and the privacy and install questions sit on the bottom edge.
+ */
+export function Root() {
+	// A popped-out tile is a second window; the questions belong to the main one.
+	const popOut = useMatch('/tile/:dashboardId/:tileId');
+
+	usePageMeta();
+	usePageViews();
+
+	return (
+		<>
+			<Outlet />
+			{popOut ? null : (
+				<>
+					<ConsentBanner />
+					<InstallBanner />
+				</>
+			)}
+		</>
+	);
+}
+
+/** Pages outside the race console, such as the legal pages. */
+export function SiteLayout() {
+	return (
+		<SiteFrame>
+			<Outlet />
+		</SiteFrame>
 	);
 }

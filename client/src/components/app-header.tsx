@@ -2,10 +2,12 @@ import { LibraryIcon, MoonIcon, PlusIcon, SunIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
 import { NavLink } from 'react-router';
 
+import { BRAND } from '@/brand';
 import { Key, KeyGroup } from '@/components/console/keys';
 import { Kbd } from '@/components/console/panel';
 import { LapCounter, Transport } from '@/components/race-clock';
 import { TRACK_STATUS_LABEL } from '@/components/track-status-badge';
+import { Wordmark } from '@/components/wordmark';
 import { useRace } from '@/data/race-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
 import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
@@ -21,19 +23,6 @@ const PLAN_OPTIONS = [
 	{ value: 'free', label: 'Free' },
 	{ value: 'pro', label: 'Pro' }
 ] as const;
-
-/** Two forward-cut bars: a pit board seen edge-on. The second takes the followed team's colour. */
-function Wordmark() {
-	return (
-		<span className="flex items-center gap-2">
-			<span aria-hidden className="flex gap-0.5">
-				<span className="cut-forward bg-foreground h-4 w-3" />
-				<span className="cut-forward bg-focus h-4 w-3" />
-			</span>
-			<span className="type-wide hidden text-sm font-black italic sm:inline">Pitwall</span>
-		</span>
-	);
-}
 
 /** Dashboards as tabs: presets first, then the viewer's own, then a key to start a new one. */
 function MainNav() {
@@ -122,7 +111,9 @@ function FlagBanner() {
 					transition={{ duration: 0.35, ease: 'easeOut' }}
 					className={cn(
 						'type-wide flex h-7 origin-left items-center justify-center text-xs font-black italic',
-						status === 'red' ? 'bg-danger text-background' : 'bg-flag text-background'
+						status === 'red'
+							? 'bg-danger text-background'
+							: 'bg-flag text-foreground dark:text-background'
 					)}
 				>
 					{TRACK_STATUS_LABEL[status]}
@@ -141,8 +132,12 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 	return (
 		<header className="bg-background/90 sticky top-0 z-40 mb-4 border-b backdrop-blur-sm">
 			<div className="flex h-12 items-stretch gap-1 px-3 sm:gap-2 sm:px-4 md:gap-6 md:px-6">
-				<NavLink to={{ pathname: '/' }} className="flex items-center" aria-label="Pitwall home">
-					<Wordmark />
+				<NavLink
+					to={{ pathname: '/' }}
+					className="flex items-center"
+					aria-label={`${BRAND.name} home`}
+				>
+					<Wordmark nameClassName="hidden sm:inline" />
 				</NavLink>
 				<MainNav />
 				<div className="ml-auto flex items-center gap-1 sm:gap-2">

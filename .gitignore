@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+client/dist-e2e/
 *.tsbuildinfo
 
 # Playwright
