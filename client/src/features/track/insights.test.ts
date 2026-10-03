@@ -40,6 +40,12 @@ describe('battle on the road', () => {
 
 		assert.ok(gap !== null && Math.abs(gap - 1500) < 10);
 		assert.equal(roadGapMs(progressAt, '44', '1', 200_000), null);
+
+		// A stretch with no data in the window gives no gap, not a wrong one.
+		const withHole = (driverNumber: string, time: number) =>
+			time > 198_000 && time < 199_000 ? null : progressAt(driverNumber, time);
+
+		assert.equal(roadGapMs(withHole, '1', '44', 200_000), null);
 	});
 
 	it('finds the traffic round the circuit, whatever lap each car is on', () => {

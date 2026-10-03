@@ -117,7 +117,8 @@ events, as many as everything else together.
 `client/src/features/track` reads it all:
 
 - `use-track.ts` loads the session's `index.json`, the circuit (from the index, or live from
-  `session.circuitKey`, which the decoder now sets) and the replay manifest, once per page.
+  `session.circuitKey`, which the decoder now sets) and the replay manifest, once per page; a
+  manifest that failed is asked for again by the next map that opens.
 - `replay-positions.ts` expands chunks into metres and samples every car at any moment, on a
   Catmull-Rom curve through the 250 ms samples, so cars glide at any frame rate. Chunks load
   around the moment drawn and a few ahead while playing.

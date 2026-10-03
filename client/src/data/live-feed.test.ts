@@ -185,6 +185,12 @@ describe('LiveFeed', () => {
 		stopLate();
 
 		server.sockets[0]?.handlers.closed();
+
+		// A dropped socket loses frames: what was kept no longer joins up with what comes next.
+		const afterDrop: number[] = [];
+
+		feed.watchPositions((frame) => afterDrop.push(frame.at))();
+		assert.deepEqual(afterDrop, []);
 		mock.timers.tick(1000);
 		server.send(server.sockets[1], state(10));
 		assert.deepEqual(server.sockets[1]?.sent, ['{"type":"subscribe","channel":"positions"}']);

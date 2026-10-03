@@ -129,6 +129,9 @@ const JUMP_M = 400;
 /** A frame at 60 Hz: a longer frame lets a followed car move further without it counting as a jump. */
 const FRAME_MS = 1000 / 60;
 
+/** Past a few frames' wait, a long move is a scrub, not a car followed. */
+const MAX_FRAMES = 4;
+
 /** A tap within this of a car picks it. */
 const PICK_RADIUS_PX = 16;
 
@@ -224,7 +227,7 @@ export function MapCanvas({
 					// an offset from where it was, which dies away.
 					const last = eased.current;
 					const key = watched.join(',');
-					const decay = reducedMotion || elapsed === 0 ? 0 : Math.exp(-elapsed / CAMERA_EASE_MS);
+					const decay = reducedMotion ? 0 : Math.exp(-elapsed / CAMERA_EASE_MS);
 
 					const jumped =
 						last !== null &&
@@ -233,7 +236,7 @@ export function MapCanvas({
 								target.centre[0] - last.target.centre[0],
 								target.centre[1] - last.target.centre[1]
 							) >
-								JUMP_M * Math.max(1, elapsed / FRAME_MS));
+								JUMP_M * Math.min(MAX_FRAMES, Math.max(1, elapsed / FRAME_MS)));
 
 					const from: CameraAim = jumped
 						? {

@@ -31,10 +31,15 @@ export function roadGapMs(
 		return null;
 	}
 
-	// Progress only grows, so halving the window finds the moment `ahead` passed `target`.
+	// Progress only grows, so halving the window finds the moment `ahead` passed `target`. A
+	// moment with no place (a gap in the data) gives no gap rather than a wrong one.
 	for (let step = 0; step < SEARCH_STEPS; step++) {
 		const middle = (early + late) / 2;
-		const progress = progressAt(ahead, middle) ?? target;
+		const progress = progressAt(ahead, middle);
+
+		if (progress === null) {
+			return null;
+		}
 
 		if (progress < target) {
 			early = middle;

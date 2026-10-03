@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { describe, it } from 'node:test';
+import { describe, it, mock } from 'node:test';
 
 import type { ReplayChunk, ReplayManifest } from '@f1-live/shared';
 
@@ -102,7 +102,10 @@ describe('replay positions', () => {
 		assert.equal(replay.sample(ORIGIN + 1000, places), true);
 		assert.deepEqual([...places.keys()], ['1', '44']);
 	});
+
 	it('asks for a chunk that failed again only after a while, not in a loop', async () => {
+		mock.timers.enable({ apis: ['Date'], now: ORIGIN });
+
 		let asked = 0;
 
 		const replay = new ReplayPositions(MANIFEST, async () => {
@@ -111,17 +114,30 @@ describe('replay positions', () => {
 			throw new Error('offline');
 		});
 
-		const failed = new Promise<void>((resolve) => {
-			replay.subscribe(resolve);
-		});
+		const failed = () =>
+			new Promise<void>((resolve) => {
+				const stop = replay.subscribe(() => {
+					stop();
+					resolve();
+				});
+			});
+
+		const first = failed();
 
 		replay.want(ORIGIN, 0);
-		await failed;
+		await first;
 		replay.want(ORIGIN, 0);
 		replay.want(ORIGIN, 0);
-
 		assert.equal(asked, 1);
 		assert.equal(replay.missing(ORIGIN), true);
+
+		const second = failed();
+
+		mock.timers.tick(30_000);
+		replay.want(ORIGIN, 0);
+		await second;
+		assert.equal(asked, 2);
+		mock.timers.reset();
 	});
 });
 

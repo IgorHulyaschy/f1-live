@@ -33,7 +33,7 @@ Maps of the circuit, from the session's telemetry (`docs/product/telemetry.md`):
 | Track map  | Every car, the followed one emphasised; whole circuit or follow camera; sector colours; 2025 DRS zones | Free |
 | Battle map | The followed driver and the cars either side: road gaps, pace difference, laps until in range          | Free |
 | Flag map   | Yellow and double-yellow marshal sectors with the messages that raised them                            | Free |
-| Pit rejoin | A ghost where the followed car would rejoin if it boxed now, from this circuit's pit loss              | Pro  |
+| Pit rejoin | A ghost where the followed car would rejoin if it boxed now, from the session's measured pit loss      | Pro  |
 | Dominance  | The circuit painted by the quickest of two or three drivers in each mini sector                        | Pro  |
 | Speed map  | One lap painted by speed, gear, throttle or braking, with top speed and slow corners                   | Pro  |
 
