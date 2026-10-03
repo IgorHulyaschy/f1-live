@@ -22,6 +22,8 @@ export interface FakeUpstreamOptions {
 	speed: number;
 	/** Closes the connection once this many frames have been sent, as a hub restart would. */
 	dropAfter?: readonly number[];
+	/** Topics the hub already holds when a client subscribes, besides the session itself. */
+	snapshot?: JsonObject;
 }
 
 function encode(message: JsonObject): string {
@@ -163,7 +165,8 @@ export class FakeUpstream {
 	/** The topics that exist before the first frame: the session itself. */
 	private subscribeCompletion(invocationId: string): string {
 		const info = this.frames.find((frame) => frame.topic === 'SessionInfo');
-		const result = info ? `{"SessionInfo":${JSON.stringify(info.data)}}` : '{}';
+		const topics = { ...(info && { SessionInfo: info.data }), ...this.options.snapshot };
+		const result = JSON.stringify(topics);
 
 		return `{"type":3,"invocationId":${JSON.stringify(invocationId)},"result":${result}}${SEPARATOR}`;
 	}

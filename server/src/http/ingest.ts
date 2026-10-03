@@ -5,7 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
 import type { LiveHub } from '../live/hub.js';
-import { PROTOCOL_VERSION } from '../live/protocol.js';
+import { CHANNELS, PROTOCOL_VERSION } from '../live/protocol.js';
 import type { StateMessage } from '../live/protocol.js';
 import type { LiveSession } from '../live/session.js';
 
@@ -97,6 +97,10 @@ export function registerIngest(
 			const result = session.replicate(body.data.epoch, body.data.from, body.data.events);
 
 			if (result.applied) {
+				for (const event of result.skipped) {
+					request.log.warn({ event: 'ingest-event-skipped', ...event }, 'ingest-event-skipped');
+				}
+
 				return session.position;
 			}
 
@@ -129,7 +133,7 @@ export function registerIngest(
 				hub.publish(message.type, JSON.stringify(message));
 			}
 
-			return reply.code(204).send();
+			return { wanted: CHANNELS.filter((channel) => hub.wants(channel)) };
 		});
 
 		done();

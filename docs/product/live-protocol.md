@@ -70,9 +70,10 @@ first sends a channel the viewer has subscribed to:
 }
 ```
 
-`live` says whether the feed has sent that channel yet. When it stays `false` (no token), use the
-saved session's replay file instead (`docs/product/telemetry.md`). A new subscriber is then sent
-the last message of the channel, so it need not wait for the next one.
+`live` says whether the feed is sending that channel. It goes `false` when the channel has been
+silent for 30 seconds, and the channel's last message is then dropped. When it stays `false` (no
+token), use the saved session's replay file instead (`docs/product/telemetry.md`). A new
+subscriber is sent the last message of a live channel, so it need not wait for the next one.
 
 **`positions`**: at most 4 a second, whole metres, in the same frame as the circuit outline.
 
@@ -180,13 +181,20 @@ One codebase, chosen by `MODE`:
 
 - `POST /ingest/events` `{ epoch, from, events }` appends events. The relay answers `200
 { epoch, seq }`, or `409 { epoch, seq }` when it is somewhere else (a gap, another epoch).
-  Events it already has are skipped, so a retry is harmless.
+  Events it already has are skipped, so a retry is harmless. An event the reducer cannot apply is
+  skipped and logged as `ingest-event-skipped`; it keeps its number, so the ingest does not send
+  the batch again, and the gap makes the viewers resync.
 - `POST /ingest/state` `{ …state message }` replaces the relay's copy.
 - `POST /ingest/channels` `{ messages: [positions and car_data messages] }` carries the telemetry
-  channels: the messages of one 250 ms tick in one request. The relay answers `204`, marks each
-  channel live and sends the message to the viewers subscribed to it. The channels are a live
+  channels: the messages of one 250 ms tick in one request. The relay marks each channel live,
+  sends the message to the viewers subscribed to it and answers `200 { wanted: [...] }`, the
+  channels some viewer is subscribed to. The ingest decodes and pushes only those; while none is
+  wanted it sends an empty `messages` list every 3 seconds to ask again. The channels are a live
   picture, not a log: nothing is kept for an outage, a push that fails is dropped, and while one is
   in flight only the newest message of each channel waits.
+
+The secret travels with every push, so use `https` for `RELAY_URL`. The ingest logs
+`relay-url-insecure` at startup when it is plain `http` to a host other than loopback.
 
 The relay does not run the import, so it has no saved sessions of its own; a CDN or the ingest host serves `<DATA_DIR>/out`.
 

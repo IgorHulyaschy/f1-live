@@ -3,6 +3,7 @@ import { PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from 'lucide-react
 import { Key } from '@/components/console/keys';
 import { useRaceView } from '@/data/race-context';
 import { stepDelay } from '@/data/viewer-settings';
+import { sessionMinutes } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
 /** Previous lap, play or pause, next lap. On a live session, stepping back pauses live. */
@@ -88,17 +89,19 @@ export function DelayControl({ className }: { className?: string }) {
  * live strip, so the page prints it once; tests read it by its test id.
  */
 export function LapCounter({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
-	const { lap, stepUnit, steps } = useRaceView();
+	const { race, lap, stepUnit, steps } = useRaceView();
 
 	if (stepUnit === 'lap') {
 		return null;
 	}
 
+	const total = sessionMinutes(race.session.type, steps);
+
 	return (
 		<div className="flex items-baseline gap-1.5 leading-none">
 			<span className="type-label">Min</span>
 			<span className="sr-only" data-testid="lap-counter">
-				Min {lap}/{steps}
+				Min {lap}/{total}
 			</span>
 			<span
 				aria-hidden
@@ -110,7 +113,7 @@ export function LapCounter({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
 				aria-hidden
 				className={cn('text-muted-foreground font-mono', size === 'lg' ? 'text-lg' : 'text-xs')}
 			>
-				/{steps}
+				/{total}
 			</span>
 		</div>
 	);

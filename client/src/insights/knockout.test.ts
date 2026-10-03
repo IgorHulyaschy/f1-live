@@ -53,7 +53,8 @@ describe('knockout', () => {
 		assert.equal(state.cutRow?.position, 16);
 		assert.deepEqual(
 			state.dropZone.map((row) => `${row.position} ${row.driver.code}`),
-			['17 PER', '18 ALB', '19 GAS', '20 ALO', '21 BOT', '22 STR']
+			// Albon's only time was deleted for track limits, so he has none to rank by.
+			['17 PER', '18 GAS', '19 ALO', '20 BOT', '21 STR', '22 ALB']
 		);
 	});
 

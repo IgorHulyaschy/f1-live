@@ -1,9 +1,10 @@
-import { mkdir, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 import type { RaceEvent, RaceSnapshot } from '@f1-live/shared';
 
+import { parseCatalog } from '../catalog/catalog.js';
 import type { Catalog } from '../catalog/catalog.js';
 
 /** Where the importer keeps things: `raw/` is the input, `out/` is rebuilt from it. */
@@ -106,6 +107,13 @@ export async function writeErrors(
 	} else {
 		await writeAtomic(file, `${JSON.stringify(report, null, '\t')}\n`);
 	}
+}
+
+/** The saved catalog; null when there is none or it cannot be read. */
+export async function readCatalog(dataDir: string): Promise<Catalog | null> {
+	const text = await readFile(catalogPathOf(dataDir), 'utf8').catch(() => null);
+
+	return text === null ? null : parseCatalog(text);
 }
 
 export async function writeCatalog(dataDir: string, catalog: Catalog): Promise<void> {

@@ -76,6 +76,34 @@ function isTimed(lap: Lap, timedSession: boolean): boolean {
 	return timedSession ? lap.lapTimeMs > 0 : lap.lap > 1;
 }
 
+/** Laps whose time the stewards deleted and have not given back, as far as the messages go. */
+function deletedLaps(snapshot: RaceSnapshot): Set<Lap> {
+	const deleted = new Set<Lap>();
+
+	for (const { driverNumber, lapTimeRuling } of snapshot.raceControl) {
+		if (!lapTimeRuling) {
+			continue;
+		}
+
+		for (const lap of snapshot.laps) {
+			const named =
+				lapTimeRuling.lapTimeMs === undefined
+					? lap.lap === lapTimeRuling.lap
+					: lap.lapTimeMs === lapTimeRuling.lapTimeMs;
+
+			if (lap.driverNumber === driverNumber && named) {
+				if (lapTimeRuling.reinstated) {
+					deleted.delete(lap);
+				} else {
+					deleted.add(lap);
+				}
+			}
+		}
+	}
+
+	return deleted;
+}
+
 function bestOf(laps: readonly Lap[]): Lap | null {
 	let best: Lap | null = null;
 
@@ -102,7 +130,9 @@ function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[]
 		lapsByDriver.set(lap.driverNumber, driverLaps);
 	}
 
-	const timedLaps = snapshot.laps.filter((lap) => isTimed(lap, timedSession));
+	const deleted = deletedLaps(snapshot);
+	const isCounted = (lap: Lap) => isTimed(lap, timedSession) && !deleted.has(lap);
+	const timedLaps = snapshot.laps.filter(isCounted);
 	const fastestLapMs = minimum(timedLaps.map((lap) => lap.lapTimeMs));
 
 	const fastestSectors = SECTOR_INDEXES.map((index) =>
@@ -174,7 +204,7 @@ function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[]
 	return snapshot.drivers.map((driver): RowFacts => {
 		const driverLaps = lapsByDriver.get(driver.number) ?? [];
 		const lastLap = driverLaps.at(-1) ?? null;
-		const ownTimedLaps = driverLaps.filter((lap) => isTimed(lap, timedSession));
+		const ownTimedLaps = driverLaps.filter(isCounted);
 
 		const flyingLaps = starts.length > 0 ? ownTimedLaps.filter(isFlying) : ownTimedLaps;
 
@@ -273,6 +303,31 @@ function raceOrder(snapshot: RaceSnapshot, rows: RowFacts[]): RowFacts[] {
 }
 
 /**
+ * Gaps of the cars still running on the leader's lap, measured from the first of them to the car
+ * ahead: a lap's own gaps count a car that was disqualified since as the leader or as the car in
+ * front.
+ */
+function relinkedGaps(rows: RowFacts[]): RowFacts[] {
+	let leaderGapMs: number | null = null;
+	let aheadGapMs: number | null = null;
+
+	return rows.map((row) => {
+		if (row.state === 'out' || row.gapToLeaderMs === null) {
+			return row;
+		}
+
+		leaderGapMs ??= row.gapToLeaderMs;
+
+		const gapToLeaderMs = row.gapToLeaderMs - leaderGapMs;
+		const intervalMs = aheadGapMs === null ? 0 : gapToLeaderMs - aheadGapMs;
+
+		aheadGapMs = gapToLeaderMs;
+
+		return { ...row, gapToLeaderMs, intervalMs };
+	});
+}
+
+/**
  * The feed's own running order, refreshed between lap crossings and corrected after the race. In
  * a race its gaps are newer than those of the last crossing.
  */
@@ -319,7 +374,7 @@ function feedOrder(
  * Practice and qualifying: fastest first. In qualifying the cars knocked out in a part keep
  * their place under those that went through, ranked by their time in that part.
  */
-function timedOrder(rows: RowFacts[], starts: readonly string[], laps: readonly Lap[]): RowFacts[] {
+function timedOrder(rows: RowFacts[], starts: readonly string[]): RowFacts[] {
 	const byTime = (a: RowFacts, b: RowFacts) =>
 		(a.bestLapMs ?? Infinity) - (b.bestLapMs ?? Infinity) ||
 		Number(a.driver.number) - Number(b.driver.number);
@@ -358,19 +413,7 @@ function timedOrder(rows: RowFacts[], starts: readonly string[], laps: readonly 
 			break;
 		}
 
-		// Only cars that went through run in the next part; a deleted lap, which the data does
-		// not mark, cannot then move a car across the line.
-		const ranNext = new Set(
-			laps.flatMap((lap) => (partOfLap(lap, starts) === part + 1 ? [lap.driverNumber] : []))
-		);
-
-		const byPartTime = rankIn(part);
-
-		const ranked = field.toSorted(
-			(a, b) =>
-				Number(ranNext.has(b.driver.number)) - Number(ranNext.has(a.driver.number)) ||
-				byPartTime(a, b)
-		);
+		const ranked = field.toSorted(rankIn(part));
 
 		knockedOut.unshift(ranked.slice(cars));
 		field = ranked.slice(0, cars);
@@ -428,12 +471,12 @@ export function standingsAt(snapshot: RaceSnapshot): StandingRow[] {
 	const hasFeedOrder = standings.length > 0 && snapshot.laps.length > 0;
 
 	if (!timedSession) {
-		return placed(hasFeedOrder ? feedOrder(snapshot, rows, standings) : raceOrder(snapshot, rows));
+		return placed(
+			hasFeedOrder ? feedOrder(snapshot, rows, standings) : relinkedGaps(raceOrder(snapshot, rows))
+		);
 	}
 
 	return withTimedGaps(
-		placed(
-			hasFeedOrder ? feedOrder(snapshot, rows, standings) : timedOrder(rows, starts, snapshot.laps)
-		)
+		placed(hasFeedOrder ? feedOrder(snapshot, rows, standings) : timedOrder(rows, starts))
 	);
 }

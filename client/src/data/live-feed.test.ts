@@ -172,4 +172,3 @@ describe('LiveFeed', () => {
 		mock.timers.reset();
 	});
 });
-

@@ -109,8 +109,8 @@ describe('LiveSession', () => {
 
 		const { epoch } = ingest.position;
 
-		assert.deepEqual(relay.replicate(epoch, 3, events.slice(2)), { applied: true });
-		assert.deepEqual(relay.replicate(epoch, 2, events.slice(1)), { applied: true });
+		assert.deepEqual(relay.replicate(epoch, 3, events.slice(2)), { applied: true, skipped: [] });
+		assert.deepEqual(relay.replicate(epoch, 2, events.slice(1)), { applied: true, skipped: [] });
 		assert.deepEqual(relay.current, ingest.current);
 		assert.deepEqual(relay.replicate(epoch, 9, events), {
 			applied: false,

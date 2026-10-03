@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 import { test } from '@playwright/test';
 
-import { FIXTURE_DATA_DIR, LIVE_PORT } from '../../playwright.real.config.ts';
+import { FIXTURE_DATA_DIR, LIVE_APP_PORT, LIVE_PORT } from '../../playwright.real.config.ts';
 
 const server = fileURLToPath(new URL('../../../server', import.meta.url));
 
@@ -45,7 +45,7 @@ export function replaying(name: string, speed: number): void {
 					HOST: '127.0.0.1',
 					PORT: String(LIVE_PORT),
 					DATA_DIR: FIXTURE_DATA_DIR,
-					CORS_ORIGINS: 'http://localhost:4175',
+					CORS_ORIGINS: `http://localhost:${LIVE_APP_PORT}`,
 					LOG_LEVEL: 'warn'
 				}
 			}

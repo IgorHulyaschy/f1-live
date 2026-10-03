@@ -20,6 +20,8 @@ and they win over any other source for the same driver and kind.
 }
 ```
 
-`kind` is `disqualified` or `time_penalty`; a time penalty also needs `seconds`, added to the race
-time (negative when the stewards withdraw a penalty). `source` is required so every entry can be checked. Run `npm run rebuild -w server` after
+`kind` is `disqualified`, `time_penalty` or `lap_penalty` (a penalty lap: the car is classified one
+lap down). A time penalty also needs `seconds`, added to the race time (negative when the
+stewards withdraw a penalty); a lapped car is re-sorted among the cars on its lap by the time it
+crossed the line. `source` is required so every entry can be checked. Run `npm run rebuild -w server` after
 editing.

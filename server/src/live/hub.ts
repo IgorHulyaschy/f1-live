@@ -15,9 +15,13 @@ export interface HubOptions {
 	/** A viewer whose unsent data would pass this is cut off. */
 	maxBufferBytes: number;
 	pingMs: number;
+	/** A channel the feed has not sent for this long is no longer live; default 30 s. */
+	channelSilentMs?: number;
 	log: (event: string, fields: { [field: string]: string | number }) => void;
 	now?: () => number;
 }
+
+const CHANNEL_SILENT_MS = 30_000;
 
 interface Viewer {
 	socket: WebSocket;
@@ -43,10 +47,11 @@ export class LiveHub {
 	private flushScheduled = false;
 	private stateCache: { epoch: string; seq: number; text: string } | null = null;
 	private slowDrops = 0;
-	/** Per channel: whether the feed has sent it, and the last message so a new subscriber has one. */
-	private readonly channelState = new Map<Channel, { live: boolean; latest: string | null }>(
-		CHANNELS.map((channel) => [channel, { live: false, latest: null }])
-	);
+	/** Per channel: whether the feed is sending it, when it last did, and the last message so a new subscriber has one. */
+	private readonly channelState = new Map<
+		Channel,
+		{ live: boolean; latest: string | null; heardAt: number }
+	>(CHANNELS.map((channel) => [channel, { live: false, latest: null, heardAt: 0 }]));
 
 	constructor(session: LiveSession, options: HubOptions) {
 		this.session = session;
@@ -110,13 +115,35 @@ export class LiveHub {
 	markLive(channel: Channel) {
 		const state = this.channelState.get(channel);
 
-		if (state && !state.live) {
-			state.live = true;
+		if (!state) {
+			return;
+		}
 
-			for (const viewer of this.viewers) {
-				if (viewer.channels.has(channel)) {
-					this.send(viewer, this.channelsText(viewer));
-				}
+		state.heardAt = this.now();
+
+		if (!state.live) {
+			state.live = true;
+			this.tellSubscribers(channel);
+		}
+	}
+
+	private tellSubscribers(channel: Channel) {
+		for (const viewer of this.viewers) {
+			if (viewer.channels.has(channel)) {
+				this.send(viewer, this.channelsText(viewer));
+			}
+		}
+	}
+
+	/** A channel that has gone quiet is not live, and its last message is out of date. */
+	private expireChannels() {
+		const silentMs = this.options.channelSilentMs ?? CHANNEL_SILENT_MS;
+
+		for (const [channel, state] of this.channelState) {
+			if (state.live && this.now() - state.heardAt > silentMs) {
+				state.live = false;
+				state.latest = null;
+				this.tellSubscribers(channel);
 			}
 		}
 	}
@@ -127,6 +154,7 @@ export class LiveHub {
 
 		if (state) {
 			state.latest = text;
+			state.heardAt = this.now();
 		}
 
 		for (const viewer of this.viewers) {
@@ -230,6 +258,8 @@ export class LiveHub {
 	}
 
 	private keepAlive() {
+		this.expireChannels();
+
 		const { epoch, seq } = this.session.position;
 
 		const heartbeat: HeartbeatMessage = {
