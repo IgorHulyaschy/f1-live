@@ -20,7 +20,9 @@ More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](doc
 The whole screen is tiles on a 24-column grid, from a phone to a wall monitor: the race title,
 replay keys and lap strip move and resize like timing or a chart.
 
-- **Session-aware.** `/` opens the layout for the session on screen: Race, Quali or Practice,
+- **A home.** `/` asks a question, shows what is live or next, the championship and the latest
+  weekend; a returning viewer's start page is kept.
+- **Session-aware.** `/session` opens the layout for the session on screen: Race, Quali or Practice,
   named in the first tab. A live strip under the top bar says on every page whether a session is
   live, which part, the time left, the flag and who is in the drop zone, or what starts next.
 - **One timeline.** The Replay tile plays at 1×, 10× and 60× real time, jumps between events
@@ -36,8 +38,8 @@ replay keys and lap strip move and resize like timing or a chart.
 - **Ready-made.** The three session layouts, Analysis and Strategy (at `/analysis`,
   `/strategy`), Battle, Track, Drivers, Race story and Pit wall; the ones a session does not need
   wait under More. Edit any of them and Reset brings it back; **+** starts your own.
-- **36 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
-  Drivers (focus, driver, grid), Timing (with knockout and best sectors), Track (track map,
+- **37 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
+  Drivers (focus, driver, grid, driver view), Timing (with knockout and best sectors), Track (track map,
   battle map, pit rejoin, mini-sector dominance, flag map, speed map, gap distance, ghost lap),
   Analysis (charts, telemetry traces, long runs, championship, conditions) and Strategy (stints,
   tyre wear, stops, undercut ledger, stop cost, pit crews). Tiles for another kind of session

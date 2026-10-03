@@ -405,7 +405,7 @@ export function buildDashboard(
 
 /**
  * Ready-made dashboards. Each can be edited; edits are saved over it and can be reset. The first
- * three are the session layouts: `/` opens the one for the session on screen. Each opens with the
+ * three are the session layouts: `/session` opens the one for the session on screen. Each opens with the
  * Replay tile, the session's timeline.
  */
 export const PRESETS: readonly Dashboard[] = [
