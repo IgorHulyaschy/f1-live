@@ -117,6 +117,15 @@ function sameOverlays(a: readonly Overlay[], b: readonly Overlay[]): boolean {
 	);
 }
 
+/** What the camera aimed at last frame, how far off it still was, and where it looked. */
+type CameraState = { key: string; target: CameraAim; offset: CameraAim; shown: CameraAim };
+
+/**
+ * A camera target that moves more than this in a frame jumped (a scrub) rather than followed a
+ * car: at 60× a car covers about 80 m a frame.
+ */
+const JUMP_M = 400;
+
 /** A tap within this of a car picks it. */
 const PICK_RADIUS_PX = 16;
 
@@ -172,7 +181,7 @@ export function MapCanvas({
 	);
 
 	const middle = React.useMemo(() => outlineMiddle(track.outline), [track.outline]);
-	const eased = React.useRef<CameraAim | null>(null);
+	const eased = React.useRef<CameraState | null>(null);
 	const layer = React.useRef<CircuitLayer | null>(null);
 	const drawn = React.useRef<{ view: View; cars: readonly CarPlace[] } | null>(null);
 	const tint = snapshot.trackStatus;
@@ -201,29 +210,44 @@ export function MapCanvas({
 				);
 
 				if (target) {
+					// The camera rides with its cars exactly. A jump (another driver, a scrub) leaves
+					// an offset from where it was, which dies away.
 					const last = eased.current;
+					const key = watched.join(',');
+					const decay = reducedMotion || elapsed === 0 ? 0 : Math.exp(-elapsed / CAMERA_EASE_MS);
 
-					const share =
-						reducedMotion || !last || elapsed === 0 ? 1 : 1 - Math.exp(-elapsed / CAMERA_EASE_MS);
+					const jumped =
+						last !== null &&
+						(last.key !== key ||
+							Math.hypot(
+								target.centre[0] - last.target.centre[0],
+								target.centre[1] - last.target.centre[1]
+							) > JUMP_M);
 
-					const next: CameraAim = last
+					const from: CameraAim = jumped
 						? {
 								centre: [
-									last.centre[0] + (target.centre[0] - last.centre[0]) * share,
-									last.centre[1] + (target.centre[1] - last.centre[1]) * share
+									last.shown.centre[0] - target.centre[0],
+									last.shown.centre[1] - target.centre[1]
 								],
-								zoom: last.zoom + (target.zoom - last.zoom) * share
+								zoom: last.shown.zoom - target.zoom
 							}
-						: target;
+						: (last?.offset ?? { centre: [0, 0], zoom: 0 });
 
-					// Still easing towards a car that has stopped: ask for another frame.
-					settling =
-						Math.hypot(target.centre[0] - next.centre[0], target.centre[1] - next.centre[1]) *
-							view.scale *
-							next.zoom >
-						0.5;
-					eased.current = next;
-					view = zoomedView(base, next.centre, next.zoom);
+					const offset: CameraAim = {
+						centre: [from.centre[0] * decay, from.centre[1] * decay],
+						zoom: from.zoom * decay
+					};
+
+					const shown: CameraAim = {
+						centre: [target.centre[0] + offset.centre[0], target.centre[1] + offset.centre[1]],
+						zoom: target.zoom + offset.zoom
+					};
+
+					// Still easing after a jump: ask for another frame.
+					settling = Math.hypot(...offset.centre) * base.scale * shown.zoom > 0.5;
+					eased.current = { key, target, offset, shown };
+					view = zoomedView(base, shown.centre, shown.zoom);
 				}
 			}
 
