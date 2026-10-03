@@ -230,6 +230,10 @@ function ExportKey({
 	const [busy, setBusy] = React.useState(false);
 
 	async function save(size: CardSize) {
+		if (busy) {
+			return;
+		}
+
 		setBusy(true);
 
 		try {
@@ -268,7 +272,7 @@ function ExportKey({
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Key disabled={busy || field.cars.length === 0} data-testid="gap-export">
+				<Key disabled={field.cars.length === 0} aria-busy={busy} data-testid="gap-export">
 					<DownloadIcon />
 					Share
 				</Key>

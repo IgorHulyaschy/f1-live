@@ -203,7 +203,7 @@ export function GhostLap({
 					look={look}
 				/>
 				<ol
-					className="hidden w-44 shrink-0 flex-col border-l py-1 @xl:flex"
+					className="sr-only w-44 shrink-0 flex-col border-l py-1 @xl:not-sr-only @xl:flex"
 					aria-label="Order on the ghost lap"
 					data-testid="ghost-order"
 				>
