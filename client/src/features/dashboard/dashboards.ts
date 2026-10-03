@@ -25,7 +25,12 @@ export const TILE_KINDS = [
 	'pit-stops',
 	'driver',
 	'grid',
-	'track-map'
+	'track-map',
+	'battle-map',
+	'pit-rejoin',
+	'dominance',
+	'flag-map',
+	'speed-map'
 ] as const;
 
 export type TileKind = (typeof TILE_KINDS)[number];
@@ -198,6 +203,49 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 			'Every car on the circuit, live or in the replay; follow a driver or colour the sectors.',
 		size: { w: 12, h: 16 },
 		min: { w: 5, h: 8 }
+	},
+	'battle-map': {
+		group: 'Track',
+		title: 'Battle map',
+		description:
+			'Your driver and the cars either side on the circuit: road gaps, closing rate and laps until in range.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 }
+	},
+	'pit-rejoin': {
+		group: 'Track',
+		title: 'Pit rejoin',
+		description:
+			'Where your driver would come out if they boxed now, drawn among the cars, from this circuit’s pit loss.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 },
+		pro: true
+	},
+	dominance: {
+		group: 'Track',
+		title: 'Dominance',
+		description:
+			'The circuit painted by who is quickest in each mini sector, for two or three drivers.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 },
+		pro: true
+	},
+	'flag-map': {
+		group: 'Track',
+		title: 'Flag map',
+		description:
+			'Yellow and double-yellow marshal sectors on the circuit, with the messages that raised them.',
+		size: { w: 12, h: 14 },
+		min: { w: 5, h: 8 }
+	},
+	'speed-map': {
+		group: 'Track',
+		title: 'Speed map',
+		description:
+			'One lap painted by speed, gear, throttle or braking, with top speed and the slowest corners.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 },
+		pro: true
 	}
 };
 
@@ -271,8 +319,12 @@ export const PRESETS: readonly Dashboard[] = [
 		['session', 0, 0, 16, 3],
 		['replay', 16, 0, 8, 3],
 		['lap-strip', 0, 3, 24, 2],
-		['track-map', 0, 5, 16, 24],
-		['timing', 16, 5, 8, 24]
+		['track-map', 0, 5, 14, 24],
+		['battle-map', 14, 5, 10, 12],
+		['pit-rejoin', 14, 17, 10, 12],
+		['dominance', 0, 29, 8, 16],
+		['flag-map', 8, 29, 8, 16],
+		['speed-map', 16, 29, 8, 16]
 	]),
 	buildDashboard('drivers', 'Drivers', [
 		['session', 0, 0, 16, 3],
@@ -285,11 +337,11 @@ export const PRESETS: readonly Dashboard[] = [
 		'wall',
 		'Pit wall',
 		[
-			['timing', 0, 0, 10, 23],
-			['focus', 10, 0, 7, 13],
-			['race-control', 10, 13, 7, 10],
-			['chart', 17, 0, 7, 11, { metric: 'gap' }],
-			['stints', 17, 11, 7, 12]
+			['timing', 0, 0, 8, 23],
+			['track-map', 8, 0, 9, 14],
+			['chart', 8, 14, 9, 9, { metric: 'gap' }],
+			['focus', 17, 0, 7, 13],
+			['race-control', 17, 13, 7, 10]
 		],
 		{ fit: true }
 	)

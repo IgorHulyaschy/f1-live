@@ -153,6 +153,8 @@ export type PlacesSampler = {
 	moving: boolean;
 	/** Subscribes to anything that changes a still picture: a chunk arriving, a live frame. */
 	subscribe: (listener: () => void) => () => void;
+	/** One car at any moment: for gaps on the road and where a stop would put it. */
+	placeAt: (driverNumber: string, time: number) => CarPlace | null;
 };
 
 type LiveBuffer = {
@@ -207,6 +209,9 @@ function unknown(): null {
 /** Reduced motion updates the picture once a second instead of gliding. */
 const STILL_STEP_MS = 1000;
 
+/** While a chunk loads, the last places are held this long before estimates stand in. */
+const HOLD_MS = 2000;
+
 /**
  * Where every car is at the moment the screen shows: from the replay's positions, the live
  * feed's, or timing alone when there are none. Read with `sample` from a drawing loop.
@@ -238,6 +243,24 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 	const source: PlaceSource =
 		useLivePositions || (replay && replayCovers) ? 'positions' : 'estimated';
 
+	const held = React.useRef<Places | null>(null);
+
+	/** A car from its sampled position, unless it had retired by then. */
+	const fromPosition = React.useCallback(
+		(driverNumber: string, point: CarSample, time: number, hint: number | undefined) => {
+			const retiredAt = model.retiredAt.get(driverNumber);
+
+			if (retiredAt !== undefined && retiredAt <= time) {
+				return null;
+			}
+
+			const { done, agoMs } = lapsAt(model.crossings, driverNumber, time);
+
+			return placeFromPosition(track.outline, track.lane, driverNumber, point, done, agoMs, hint);
+		},
+		[model, track.outline, track.lane]
+	);
+
 	const sample = React.useCallback(
 		(perf: number): Places => {
 			let time: number;
@@ -248,71 +271,65 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 						? liveBuffer.buffer.feedTime(perf) - delayMs - LIVE_LAG_MS
 						: Date.now() - delayMs;
 			} else {
-				time = replayClock.now(perf);
-			}
-
-			if (reducedMotion && replayClock.running && !followingLive) {
-				time = replayClock.now(Math.floor(perf / STILL_STEP_MS) * STILL_STEP_MS);
+				time = replayClock.now(
+					reducedMotion && replayClock.running
+						? Math.floor(perf / STILL_STEP_MS) * STILL_STEP_MS
+						: perf
+				);
 			}
 
 			const samples = new Map<string, CarSample>();
 			let positions = false;
-			let waiting = false;
 
 			if (useLivePositions && liveBuffer.buffer) {
 				positions = liveBuffer.buffer.sample(time, samples);
 			} else if (replay && source === 'positions') {
 				replay.want(time, playing ? 3 : 1);
 				positions = replay.sample(time, samples);
-				waiting = !positions && !replay.failed;
 			}
 
 			if (!positions) {
+				const last = held.current;
+
+				// While the next chunk loads, the cars hold where they were rather than jump to estimates.
+				if (source === 'positions' && last && Math.abs(last.time - time) < HOLD_MS) {
+					return { ...last, waiting: true };
+				}
+
 				return {
 					time,
 					cars: estimatedPlaces(model, driverNumbers, time).toSorted(
 						(a, b) => b.progress - a.progress
 					),
 					source: 'estimated',
-					waiting
+					waiting: source === 'positions' && !replay?.failed
 				};
 			}
 
-			const cars: CarPlace[] = [];
-
-			for (const driverNumber of driverNumbers) {
+			const cars = driverNumbers.flatMap((driverNumber) => {
 				const point = samples.get(driverNumber);
-				const retiredAt = model.retiredAt.get(driverNumber);
 
-				if (!point || (retiredAt !== undefined && retiredAt <= time)) {
-					continue;
-				}
+				const place = point
+					? fromPosition(driverNumber, point, time, hints.current.get(driverNumber))
+					: null;
 
-				const { done, agoMs } = lapsAt(model.crossings, driverNumber, time);
-
-				const place = placeFromPosition(
-					track.outline,
-					track.lane,
-					driverNumber,
-					point,
-					done,
-					agoMs,
-					hints.current.get(driverNumber)
-				);
-
-				if (place.distanceM !== null) {
+				if (place?.distanceM !== null && place?.distanceM !== undefined) {
 					hints.current.set(driverNumber, place.distanceM);
 				}
 
-				cars.push(place);
-			}
+				return place ?? [];
+			});
 
-			return {
+			const places: Places = {
 				time,
 				cars: cars.toSorted((a, b) => b.progress - a.progress),
 				source: 'positions',
-				waiting
+				waiting: false
 			};
+
+			held.current = places;
+
+			return places;
 		},
 		[
 			followingLive,
@@ -326,9 +343,34 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 			playing,
 			model,
 			driverNumbers,
-			track.outline,
-			track.lane
+			fromPosition
 		]
+	);
+
+	const placeAt = React.useCallback(
+		(driverNumber: string, time: number): CarPlace | null => {
+			if (source === 'estimated') {
+				return estimatedPlaces(model, [driverNumber], time)[0] ?? null;
+			}
+
+			if (useLivePositions && liveBuffer.buffer) {
+				const samples = new Map<string, CarSample>();
+
+				liveBuffer.buffer.sample(time, samples);
+
+				const point = samples.get(driverNumber);
+
+				return point ? fromPosition(driverNumber, point, time, undefined) : null;
+			}
+
+			// A moment in the past may need its chunk: ask for it, and the next reading has it.
+			replay?.want(time, 0);
+
+			const point = replay?.sampleCar(driverNumber, time);
+
+			return point ? fromPosition(driverNumber, point, time, undefined) : null;
+		},
+		[source, model, useLivePositions, liveBuffer.buffer, replay, fromPosition]
 	);
 
 	const liveSubscribe = liveBuffer.subscribe;
@@ -356,6 +398,7 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 		live: followingLive,
 		positionsLive: liveBuffer.positionsLive,
 		moving: followingLive || playing,
-		subscribe
+		subscribe,
+		placeAt
 	};
 }

@@ -20,6 +20,11 @@ import {
 import { Degradation } from '@/features/strategy/degradation';
 import { PitStops } from '@/features/strategy/pit-stops';
 import { StintChart } from '@/features/strategy/stint-chart';
+import { BattleMapTile } from '@/features/track/battle-map-tile';
+import { DominanceTile } from '@/features/track/dominance-tile';
+import { FlagMapTile } from '@/features/track/flag-map-tile';
+import { PitRejoinTile } from '@/features/track/pit-rejoin-tile';
+import { SpeedMapTile } from '@/features/track/speed-map-tile';
 import { TrackMapTile } from '@/features/track/track-map-tile';
 
 import type { Tile, TileSettings } from './dashboards';
@@ -135,6 +140,36 @@ export function TileContent({
 				<TrackMapTile
 					settings={tile.settings}
 					onSettingsChange={(settings) => onSettingsChange?.({ ...tile.settings, ...settings })}
+				/>
+			);
+		}
+
+		case 'battle-map': {
+			return <BattleMapTile />;
+		}
+
+		case 'pit-rejoin': {
+			return <PitRejoinTile />;
+		}
+
+		case 'dominance': {
+			return (
+				<DominanceTile
+					span={tile.settings?.span}
+					onSpanChange={(span) => onSettingsChange?.({ ...tile.settings, span })}
+				/>
+			);
+		}
+
+		case 'flag-map': {
+			return <FlagMapTile />;
+		}
+
+		case 'speed-map': {
+			return (
+				<SpeedMapTile
+					channel={tile.settings?.channel}
+					onChannelChange={(channel) => onSettingsChange?.({ ...tile.settings, channel })}
 				/>
 			);
 		}

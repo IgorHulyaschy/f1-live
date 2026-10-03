@@ -8,7 +8,9 @@ import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
 import type { CarPlace } from './track-frames';
-import type { PlacesSampler, TrackData } from './use-track';
+import type { Places, PlacesSampler, TrackData } from './use-track';
+
+const NO_CARS: readonly CarPlace[] = [];
 
 /**
  * A map fills its tile on a dashboard; stacked on a phone it takes a height from its width, so the
@@ -98,27 +100,37 @@ export function MapNote({
 const LIST_EVERY_MS = 2000;
 
 /**
- * The text alternative to a map: cars in their order on the road, refreshed every couple of
- * seconds rather than every frame. Wide tiles show it as a legend whose rows follow a driver.
+ * The places a reading beside a map shows, read again every `everyMs` while the cars move and
+ * whenever a still picture changes; text never redraws every frame.
  */
-export function CarOrder({ places, visible }: { places: PlacesSampler; visible: boolean }) {
-	const { race, followedDriver, setFollowedDriver } = useRace();
-	const [cars, setCars] = React.useState<readonly CarPlace[]>([]);
+export function usePlacesNow(places: PlacesSampler, everyMs: number): Places | null {
+	const [now, setNow] = React.useState<Places | null>(null);
 	const { sample, moving, subscribe } = places;
 
 	React.useEffect(() => {
-		const read = () => setCars(sample(performance.now()).cars);
+		const read = () => setNow(sample(performance.now()));
 
 		read();
 
-		const timer = moving ? window.setInterval(read, LIST_EVERY_MS) : undefined;
+		const timer = moving ? window.setInterval(read, everyMs) : undefined;
 		const stop = subscribe(read);
 
 		return () => {
 			window.clearInterval(timer);
 			stop();
 		};
-	}, [sample, moving, subscribe]);
+	}, [sample, moving, subscribe, everyMs]);
+
+	return now;
+}
+
+/**
+ * The text alternative to a map: cars in their order on the road, refreshed every couple of
+ * seconds rather than every frame. Wide tiles show it as a legend whose rows follow a driver.
+ */
+export function CarOrder({ places, visible }: { places: PlacesSampler; visible: boolean }) {
+	const { race, followedDriver, setFollowedDriver } = useRace();
+	const cars = usePlacesNow(places, LIST_EVERY_MS)?.cars ?? NO_CARS;
 
 	const drivers = new Map<string, Driver>(race.drivers.map((driver) => [driver.number, driver]));
 
