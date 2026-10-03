@@ -9,7 +9,6 @@ import { z } from 'zod';
 
 import { isKnockout } from '../insights/qualifying.ts';
 import { type Catalog, catalogSchema } from './catalog.ts';
-import { simulateLasVegas2025 } from './mock/simulate-race.ts';
 
 export type RaceSourceKind = 'mock' | 'api';
 
@@ -138,10 +137,14 @@ export function createRaceSource(
 	return {
 		kind,
 		loadCatalog: () => Promise.resolve(MOCK_CATALOG),
-		loadSession: (key) =>
-			key === MOCK_SESSION_KEY
-				? Promise.resolve(simulateLasVegas2025())
-				: Promise.reject(new Error(`The offline replay has only session ${MOCK_SESSION_KEY}`)),
+		// The modelled race stays out of the main bundle for real data.
+		loadSession: async (key) => {
+			if (key !== MOCK_SESSION_KEY) {
+				throw new Error(`The offline replay has only session ${MOCK_SESSION_KEY}`);
+			}
+
+			return (await import('./mock/simulate-race.ts')).simulateLasVegas2025();
+		},
 		liveUrl: null
 	};
 }

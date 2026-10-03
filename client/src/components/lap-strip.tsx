@@ -1,7 +1,7 @@
 import { TRACK_STATUSES, type RaceSnapshot, type TrackStatus } from '@f1-live/shared';
 import * as React from 'react';
 
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { minuteTime, sessionClock } from '@/data/snapshot-at-time';
 import { isCleanLap } from '@/insights/clean-laps';
 import { plannedMinutes } from '@/insights/qualifying';
@@ -125,7 +125,7 @@ const HEIGHT = ['h-px', 'h-2', 'h-3.5', 'h-5'] as const;
  * height the laps completed in it. Click a bar to jump the replay there.
  */
 export function LapStrip() {
-	const { race, lap, setLap, stepUnit, steps, spoilers } = useRace();
+	const { race, lap, setLap, stepUnit, steps, spoilers } = useRaceView();
 	const timed = stepUnit === 'minute';
 	// A live session's strip spans its planned length from the start, and fills as it runs.
 	const total = timed ? Math.max(steps, plannedMinutes(race.session.type)) : race.session.totalLaps;

@@ -1,7 +1,7 @@
 import type * as React from 'react';
 
 import { SESSION_TYPE_LABEL } from '@/data/catalog';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { isTimedSession } from '@/insights/qualifying';
 
 /**
@@ -18,7 +18,7 @@ export function RaceOnly({
 	applies?: boolean;
 	children: React.ReactNode;
 }) {
-	const { race } = useRace();
+	const { race } = useRaceView();
 
 	if (!applies || !isTimedSession(race.session.type)) {
 		return children;

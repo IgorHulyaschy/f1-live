@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useSearchParams } from 'react-router';
 import { z } from 'zod';
 
+import { useStableValue } from '../hooks/use-stable-value.ts';
 import { createLocalStore } from '../lib/local-store.ts';
 import { type Catalog, defaultSessionKey, findSession, type SessionEntry } from './catalog.ts';
 import { delayedSnapshot } from './broadcast-delay.ts';
@@ -78,7 +79,53 @@ type RaceContextValue = {
 	broadcast: (message: SyncMessage) => void;
 };
 
+/** A driver in the running order, for panels that only need the order. */
+export type RunningSlot = { number: string; out: boolean };
+
+/**
+ * The race without the running order, which moves many times a lap. `race` and `snapshot` are
+ * kept while only the order and personal bests change, so their `standings` and
+ * `personalBests` may be behind: read those through `useRace`.
+ */
+export type RaceView = Omit<RaceContextValue, 'standings'> & {
+	order: readonly RunningSlot[];
+};
+
 const RaceContext = React.createContext<RaceContextValue | null>(null);
+
+const RaceViewContext = React.createContext<RaceView | null>(null);
+
+/** Snapshots that differ at most in the running order and personal bests. */
+function sameExceptOrder(kept: RaceSnapshot, next: RaceSnapshot): boolean {
+	return (
+		kept.laps === next.laps &&
+		kept.stints === next.stints &&
+		kept.pitStops === next.pitStops &&
+		kept.raceControl === next.raceControl &&
+		kept.weather === next.weather &&
+		kept.retirements === next.retirements &&
+		kept.drivers === next.drivers &&
+		kept.startingGrid === next.startingGrid &&
+		kept.session === next.session &&
+		kept.currentLap === next.currentLap &&
+		kept.trackStatus === next.trackStatus &&
+		kept.trackStatusLog === next.trackStatusLog &&
+		kept.status === next.status &&
+		kept.statusLog === next.statusLog &&
+		kept.startedAt === next.startedAt &&
+		kept.penalties === next.penalties &&
+		kept.corrections === next.corrections
+	);
+}
+
+function sameOrder(kept: readonly RunningSlot[], next: readonly RunningSlot[]): boolean {
+	return (
+		kept.length === next.length &&
+		kept.every(
+			(slot, index) => slot.number === next[index]?.number && slot.out === next[index]?.out
+		)
+	);
+}
 
 const DEFAULT_REPLAY_LAP = 30;
 
@@ -561,6 +608,13 @@ export function RaceProvider({
 	const followedDriver = searchParams.get('driver') ?? storedDriver ?? DEFAULT_FOLLOWED_DRIVER;
 
 	const standings = React.useMemo(() => (snapshot ? standingsAt(snapshot) : []), [snapshot]);
+	const viewRace = useStableValue(race ?? EMPTY_SNAPSHOT, sameExceptOrder);
+	const viewSnapshot = useStableValue(snapshot ?? EMPTY_SNAPSHOT, sameExceptOrder);
+
+	const order = useStableValue(
+		standings.map((row) => ({ number: row.driver.number, out: row.state === 'out' })),
+		sameOrder
+	);
 
 	const live = React.useMemo<LiveView>(
 		() => ({
@@ -584,21 +638,23 @@ export function RaceProvider({
 	const sessionError = 'message' in wanted ? wanted.message : null;
 	const switchingTo = key !== null && shown && shown.key !== key && !sessionError ? key : null;
 
-	const value = React.useMemo<RaceContextValue | null>(
+	type RaceBase = Omit<RaceContextValue, 'race' | 'snapshot' | 'standings'>;
+
+	// Everything but the data, so the view below can skip updates that only move the order.
+	const base = React.useMemo<RaceBase | null>(
 		() =>
-			shown && race && snapshot
-				? {
+			shownKey === null
+				? null
+				: {
 						sourceKind: source.kind,
 						catalog: catalogValue,
-						sessionKey: shown.key,
+						sessionKey: shownKey,
 						switchingTo,
 						sessionError,
 						setSession,
 						live,
 						spoilers,
-						race,
-						snapshot,
-						stepUnit: clock ? 'minute' : 'lap',
+						stepUnit: timed ? 'minute' : 'lap',
 						steps: maxLap,
 						lap,
 						setLap: (nextLap) => {
@@ -619,22 +675,18 @@ export function RaceProvider({
 							updateParam('driver', driverNumber);
 							broadcast({ driver: driverNumber });
 						},
-						standings,
 						broadcast
-					}
-				: null,
+					},
 		[
 			source.kind,
 			catalogValue,
-			shown,
+			shownKey,
 			switchingTo,
 			sessionError,
 			setSession,
 			live,
 			spoilers,
-			race,
-			snapshot,
-			clock,
+			timed,
 			maxLap,
 			lap,
 			isPlaying,
@@ -643,9 +695,20 @@ export function RaceProvider({
 			followedDriver,
 			updateParam,
 			stepLap,
-			standings,
 			broadcast
 		]
+	);
+
+	const value = React.useMemo<RaceContextValue | null>(
+		() => (base && race && snapshot ? { ...base, race, snapshot, standings } : null),
+		[base, race, snapshot, standings]
+	);
+
+	const hasValue = value !== null;
+
+	const view = React.useMemo<RaceView | null>(
+		() => (base && hasValue ? { ...base, race: viewRace, snapshot: viewSnapshot, order } : null),
+		[base, hasValue, viewRace, viewSnapshot, order]
 	);
 
 	if (!value && sessionError !== null) {
@@ -656,7 +719,25 @@ export function RaceProvider({
 		return loadingFallback;
 	}
 
-	return <RaceContext.Provider value={value}>{children}</RaceContext.Provider>;
+	return (
+		<RaceContext.Provider value={value}>
+			<RaceViewContext.Provider value={view}>{children}</RaceViewContext.Provider>
+		</RaceContext.Provider>
+	);
+}
+
+/**
+ * The race for panels that do not show the running order: they skip the many updates between
+ * lap crossings that only move it.
+ */
+export function useRaceView(): RaceView {
+	const context = React.useContext(RaceViewContext);
+
+	if (!context) {
+		throw new Error('useRaceView must be used within <RaceProvider>');
+	}
+
+	return context;
 }
 
 export function useRace(): RaceContextValue {

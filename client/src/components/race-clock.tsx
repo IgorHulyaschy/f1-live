@@ -2,13 +2,13 @@ import { PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from 'lucide-react
 
 import { Key } from '@/components/console/keys';
 import type { LiveConnection } from '@/data/live-feed';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { stepDelay } from '@/data/viewer-settings';
 import { cn } from '@/lib/utils';
 
 /** Previous lap, play or pause, next lap. On a live session, stepping back pauses live. */
 export function Transport({ className }: { className?: string }) {
-	const { lap, steps, stepUnit, stepLap, playing, setPlaying, live } = useRace();
+	const { lap, steps, stepUnit, stepLap, playing, setPlaying, live } = useRaceView();
 	const atEnd = lap >= steps || live.following;
 	const unit = stepUnit === 'lap' ? 'lap' : 'minute';
 
@@ -51,7 +51,7 @@ const CONNECTION_LABEL: Record<LiveConnection, string> = {
  * when the connection drops.
  */
 export function LiveKey({ className }: { className?: string }) {
-	const { live } = useRace();
+	const { live } = useRaceView();
 
 	if (!live.isLive) {
 		return null;
@@ -99,7 +99,7 @@ const DELAY_STEPS = [
  * one-second and tenth keys; joining late with a delay set is in step at once.
  */
 export function DelayControl({ className }: { className?: string }) {
-	const { live } = useRace();
+	const { live } = useRaceView();
 
 	if (!live.isLive) {
 		return null;
@@ -138,7 +138,7 @@ export function DelayControl({ className }: { className?: string }) {
  * is rendered per page; tests read it by its test id.
  */
 export function LapCounter({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
-	const { race, lap, stepUnit, steps } = useRace();
+	const { race, lap, stepUnit, steps } = useRaceView();
 	const label = stepUnit === 'lap' ? 'Lap' : 'Min';
 	const total = stepUnit === 'lap' ? race.session.totalLaps : steps;
 

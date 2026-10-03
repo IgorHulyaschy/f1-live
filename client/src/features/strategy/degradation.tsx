@@ -4,7 +4,7 @@ import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { ProGate } from '@/components/pro-gate';
 import { TyreBadge } from '@/components/tyre-badge';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { stintPaces } from '@/insights/tyre-pace';
 import { formatDeltaSeconds, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -18,7 +18,7 @@ const WEAR_SCALE_SECONDS = 0.08;
 const HIGH_WEAR_SECONDS = 0.04;
 
 export function Degradation() {
-	const { snapshot } = useRace();
+	const { snapshot } = useRaceView();
 	const drivers = new Map(snapshot.drivers.map((driver) => [driver.number, driver]));
 
 	const stints = stintPaces(snapshot)

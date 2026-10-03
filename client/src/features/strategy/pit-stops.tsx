@@ -2,7 +2,7 @@ import { Digits } from '@/components/console/digits';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { cn } from '@/lib/utils';
 
 /** Bars span this much either side of the median green-flag stop. */
@@ -23,7 +23,7 @@ function median(values: readonly number[]): number | null {
 
 /** Every stop against the typical green-flag stop: quicker to the left, slower to the right. */
 export function PitStops() {
-	const { snapshot } = useRace();
+	const { snapshot } = useRaceView();
 	const drivers = new Map(snapshot.drivers.map((driver) => [driver.number, driver]));
 	const stops = snapshot.pitStops.toReversed();
 

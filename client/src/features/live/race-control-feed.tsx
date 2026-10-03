@@ -4,7 +4,7 @@ import * as React from 'react';
 
 import { KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { isTimedSession } from '@/insights/qualifying';
 import { isAidSwitch } from '@/insights/rules';
 import { cn } from '@/lib/utils';
@@ -66,7 +66,7 @@ function matches(message: RaceControlMessage, filter: Filter, driverNumber: stri
 }
 
 function Conditions() {
-	const { snapshot } = useRace();
+	const { snapshot } = useRaceView();
 	const weather = snapshot.weather.at(-1);
 
 	if (!weather) {
@@ -104,7 +104,7 @@ function stamp(message: RaceControlMessage, startMs: number | null): string {
 }
 
 export function RaceControlFeed() {
-	const { snapshot, followedDriver } = useRace();
+	const { snapshot, followedDriver } = useRaceView();
 	const [filter, setFilter] = React.useState<Filter>('all');
 
 	const startMs =

@@ -5,7 +5,7 @@ import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { compoundName } from '@/components/tyre-badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { cn } from '@/lib/utils';
 
 const LEGEND = ['SOFT', 'MEDIUM', 'HARD'] as const;
@@ -69,9 +69,16 @@ function StintBar({
 }
 
 export function StintChart() {
-	const { snapshot, standings } = useRace();
-	const rows = standings;
+	const { snapshot, order } = useRaceView();
+	const drivers = new Map(snapshot.drivers.map((driver) => [driver.number, driver]));
+
+	const rows = order.flatMap((slot) => {
+		const driver = drivers.get(slot.number);
+
+		return driver ? [{ driver, state: slot.out ? 'out' : 'running' }] : [];
+	});
 	// Practice and qualifying have no race distance; their longest run sets the scale.
+
 	const totalLaps = snapshot.session.totalLaps || Math.max(1, snapshot.currentLap);
 	const now = snapshot.currentLap;
 

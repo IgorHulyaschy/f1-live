@@ -21,7 +21,7 @@ import {
 	ChartTooltipContent
 } from '@/components/ui/chart';
 import { RaceOnly } from '@/components/race-only';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { isCleanLap } from '@/insights/clean-laps';
 import { hasDrs } from '@/insights/rules';
 import { formatLapTime } from '@/lib/format';
@@ -30,7 +30,7 @@ import { cn } from '@/lib/utils';
 import { useTileFill } from '../dashboard/tile-fill';
 
 import { driverChartConfig, isSecondTeamCar } from './chart-drivers';
-import { useCompare } from './compare-context';
+import { useComparedDrivers } from './compare-context';
 import { battlePoints, type Metric, neutralisedRanges, toPoints } from './lap-series';
 
 export const METRICS = [
@@ -73,8 +73,8 @@ export function ChartWorkspace({
 	metric?: Metric;
 	onMetricChange?: (metric: Metric) => void;
 }) {
-	const { snapshot, followedDriver } = useRace();
-	const { compared: drivers, highlighted } = useCompare();
+	const { snapshot, followedDriver } = useRaceView();
+	const { compared: drivers, highlighted } = useComparedDrivers();
 	const fill = useTileFill();
 	const [metric, setLocalMetric] = React.useState<Metric>(initialMetric);
 

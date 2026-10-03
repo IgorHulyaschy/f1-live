@@ -8,7 +8,7 @@ import { LapStrip } from '@/components/lap-strip';
 import { DelayControl, LapCounter, LiveKey, Transport } from '@/components/race-clock';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { formatLocalStart, SESSION_TYPE_LABEL } from '@/data/catalog';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { useNow } from '@/hooks/use-now';
 
 import { SessionPickerDialog } from './session-picker';
@@ -28,7 +28,7 @@ function countdown(fromMs: number, toMs: number): string {
 
 /** Where the data on screen comes from, in a word. */
 function useFeedLabel(): string {
-	const { race, live, sourceKind } = useRace();
+	const { race, live, sourceKind } = useRaceView();
 	const now = useNow();
 
 	if (live.isLive) {
@@ -48,7 +48,7 @@ function useFeedLabel(): string {
  * Sessions key opens the picker for any other session.
  */
 export function SessionTile() {
-	const { race, snapshot, sessionError, spoilers } = useRace();
+	const { race, snapshot, sessionError, spoilers } = useRaceView();
 	const [picking, setPicking] = React.useState(false);
 	const year = new Date(race.session.startsAt).getUTCFullYear();
 	const feed = useFeedLabel();
@@ -128,7 +128,7 @@ export function ReplayTile() {
 }
 
 export function LapStripTile() {
-	const { race, stepUnit } = useRace();
+	const { race, stepUnit } = useRaceView();
 	const empty = stepUnit === 'lap' ? race.session.totalLaps === 0 : race.laps.length === 0;
 
 	return (
@@ -140,7 +140,7 @@ export function LapStripTile() {
 
 /** Conditions at the selected lap. */
 export function WeatherTile() {
-	const { snapshot } = useRace();
+	const { snapshot } = useRaceView();
 	const sample = snapshot.weather.at(-1);
 
 	return (

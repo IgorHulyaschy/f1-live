@@ -1,13 +1,13 @@
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { ProGate } from '@/components/pro-gate';
 import { RaceOnly } from '@/components/race-only';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 
 import { BoxNow } from './box-now';
 import { GapLadder } from './gap-ladder';
 
 function useFollowedCode() {
-	const { snapshot, followedDriver } = useRace();
+	const { snapshot, followedDriver } = useRaceView();
 	const driver = snapshot.drivers.find((entry) => entry.number === followedDriver);
 
 	return { number: followedDriver, code: driver?.code };

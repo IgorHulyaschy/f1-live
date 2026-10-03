@@ -1,10 +1,10 @@
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { useNow } from '@/hooks/use-now';
 import { cn } from '@/lib/utils';
 
 /** Why a panel is empty: the session has not started, has no timing, or no laps are done yet. */
 export function useEmptyReason(): string {
-	const { race } = useRace();
+	const { race } = useRaceView();
 	const now = useNow();
 
 	if (race.drivers.length === 0) {

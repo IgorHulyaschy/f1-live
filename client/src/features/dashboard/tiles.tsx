@@ -1,4 +1,7 @@
-import { ChartWorkspace } from '@/features/analysis/chart-workspace';
+import * as React from 'react';
+
+import { Panel, PanelHeader } from '@/components/console/panel';
+import { Skeleton } from '@/components/ui/skeleton';
 import { DriverList } from '@/features/analysis/driver-list';
 import { FastestLaps } from '@/features/analysis/fastest-laps';
 import type { Metric } from '@/features/analysis/lap-series';
@@ -19,6 +22,24 @@ import { PitStops } from '@/features/strategy/pit-stops';
 import { StintChart } from '@/features/strategy/stint-chart';
 
 import type { Tile, TileSettings } from './dashboards';
+
+// The chart library is the heaviest part of the app; it loads only with a chart tile.
+const ChartWorkspace = React.lazy(async () => ({
+	default: (await import('@/features/analysis/chart-workspace')).ChartWorkspace
+}));
+
+/** A tile whose code is still loading: its ruled header and a quiet placeholder. */
+function LoadingTile({ title }: { title: string }) {
+	return (
+		<Panel aria-label={title} aria-busy>
+			<PanelHeader title={title} />
+			<div className="flex flex-col gap-3 p-4">
+				<Skeleton className="h-3 w-2/3" />
+				<Skeleton className="h-40 w-full" />
+			</div>
+		</Panel>
+	);
+}
 
 /** The panel a tile shows. Panels read race state themselves; tiles only add their settings. */
 export function TileContent({
@@ -75,10 +96,12 @@ export function TileContent({
 
 		case 'chart': {
 			return (
-				<ChartWorkspace
-					metric={tile.settings?.metric}
-					onMetricChange={(metric: Metric) => onSettingsChange?.({ ...tile.settings, metric })}
-				/>
+				<React.Suspense fallback={<LoadingTile title="Trace" />}>
+					<ChartWorkspace
+						metric={tile.settings?.metric}
+						onMetricChange={(metric: Metric) => onSettingsChange?.({ ...tile.settings, metric })}
+					/>
+				</React.Suspense>
 			);
 		}
 
