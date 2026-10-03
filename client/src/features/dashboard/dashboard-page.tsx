@@ -29,7 +29,6 @@ import { type Scale, SCALES, setScale, useScale } from '@/hooks/use-scale';
 import { shareUrl } from '@/features/library/share';
 import { useRace, useRaceView } from '@/data/race-context';
 import { type SyncStatus, useSyncStatus } from '@/features/account/dashboard-sync';
-import { WelcomeBanner } from '@/features/library/welcome';
 import { SpoilerStart } from '@/features/session/spoiler-start';
 import { entryState } from '@/lib/history-entry';
 
@@ -44,9 +43,10 @@ import {
 	TILE_INFO,
 	TILE_KINDS
 } from './dashboards';
+import { SESSION_PATH } from './paths';
 import { SessionOffer } from './session-offer';
 import { sessionLayoutId } from './session-layouts';
-import { useAddDashboard } from './use-add-dashboard';
+import { useAddDashboard, useCreateDashboard } from './use-add-dashboard';
 import { useCarriedSearch } from './use-carried-search';
 
 const SYNC_LABEL: Record<SyncStatus, string> = {
@@ -128,20 +128,6 @@ function download(dashboard: Dashboard): void {
 	link.download = `${brandSlug()}-${dashboard.name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}.json`;
 	link.click();
 	URL.revokeObjectURL(url);
-}
-
-/** Starts a new dashboard, empty or copied from another, and opens it in edit mode. */
-export function useCreateDashboard(): (from?: Dashboard) => void {
-	const add = useAddDashboard();
-
-	return (from) => {
-		add(
-			from
-				? { ...from, name: `${from.name} copy`.slice(0, 40) }
-				: { id: 'new', name: 'My dashboard', tiles: [], layout: [] },
-			{ edit: true }
-		);
-	};
 }
 
 async function copyShareLink(dashboard: Dashboard, sessionKey: string): Promise<void> {
@@ -251,7 +237,7 @@ function DashboardBar({
 						<Key
 							onClick={() => {
 								forgetDashboard(dashboard.id);
-								void navigate({ pathname: '/', search });
+								void navigate({ pathname: SESSION_PATH, search });
 							}}
 						>
 							<Trash2Icon />
@@ -367,7 +353,6 @@ export function DashboardPage({ id: fixedId }: { id?: string }) {
 
 	return (
 		<div data-testid={`dashboard-${dashboard.id}`}>
-			{isPreset(dashboard.id) ? <WelcomeBanner /> : null}
 			<SpoilerStart />
 			<SessionOffer dashboard={dashboard} />
 			<DashboardBar

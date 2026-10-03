@@ -18,7 +18,7 @@ const VIEWPORTS = [
 ] as const;
 
 const PAGES = [
-	{ name: 'live', path: '/' },
+	{ name: 'live', path: '/session' },
 	{ name: 'analysis', path: '/analysis' },
 	{ name: 'strategy', path: '/strategy' },
 	{ name: 'battle', path: '/d/battle' },

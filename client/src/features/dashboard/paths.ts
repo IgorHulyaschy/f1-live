@@ -1,5 +1,5 @@
-/** The session's own layout: Race, Quali or Practice, whichever session is on screen. */
-export const SESSION_PATH = '/';
+/** The session's own layout: Race, Quali or Practice, whichever session is on screen. The home is `/`. */
+export const SESSION_PATH = '/session';
 
 /** Presets that kept the address they had before dashboards existed. */
 const LEGACY_PATHS = new Map([

@@ -10,7 +10,7 @@ import { openRace } from '../fixtures.ts';
 
 /** Opens the Quali layout on Bahrain and brings its gap tile, the last one, into view. */
 async function openGaps(page: Page, plan: 'free' | 'pro' = 'pro') {
-	await openRace(page, `/?session=11730&plan=${plan}`);
+	await openRace(page, `/session?session=11730&plan=${plan}`);
 	await page.getByTestId('tile-gap-distance').scrollIntoViewIfNeeded();
 
 	const tile = page.getByTestId('gap-distance');
@@ -119,7 +119,7 @@ test('qualifying analysis plots push laps by session time and gaps by part', asy
 
 test('the race layout shows the track map without scrolling on a laptop', async ({ page }) => {
 	await page.setViewportSize({ width: 1600, height: 1000 });
-	await openRace(page, '/?session=9858&lap=30');
+	await openRace(page, '/session?session=9858&lap=30');
 
 	const box = await page.getByTestId('tile-track-map').boundingBox();
 

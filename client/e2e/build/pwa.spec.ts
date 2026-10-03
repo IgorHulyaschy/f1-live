@@ -47,7 +47,7 @@ test('asks about usage counting once, and counts only after a yes', async ({ pag
 		}
 	});
 
-	await openApp(page, '/');
+	await openApp(page, '/session');
 
 	const banner = page.getByTestId('consent-banner');
 
@@ -72,7 +72,7 @@ test('asks about usage counting once, and counts only after a yes', async ({ pag
 
 test('opens offline from the kept shell', async ({ page, context }) => {
 	await page.addInitScript(() => window.localStorage.setItem('pitwall-consent', '"denied"'));
-	await openApp(page, '/');
+	await openApp(page, '/session');
 	await page.evaluate(async () => {
 		await navigator.serviceWorker.ready;
 	});

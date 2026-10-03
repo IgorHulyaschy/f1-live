@@ -11,6 +11,7 @@ import {
 	parseDashboardListText,
 	parseDashboardText,
 	PRESETS,
+	phoneOrder,
 	readingOrder,
 	swapTiles,
 	TILE_INFO
@@ -75,6 +76,18 @@ describe('dashboard edits', () => {
 		assert.deepEqual(
 			readingOrder(live).map((tile) => tile.kind),
 			['session', 'replay', 'lap-strip', 'timing', 'focus', 'race-control']
+		);
+	});
+
+	it('stacks the Replay tile first on a phone', () => {
+		const quali = PRESETS.find((preset) => preset.id === 'quali');
+
+		assert.ok(quali);
+		assert.deepEqual(
+			phoneOrder(quali)
+				.slice(0, 2)
+				.map((tile) => tile.kind),
+			['replay', 'timing']
 		);
 	});
 

@@ -1,5 +1,5 @@
 import { AxeBuilder } from '@axe-core/playwright';
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { z } from 'zod';
 
 /**
@@ -10,7 +10,7 @@ import { z } from 'zod';
  */
 export async function openRace(
 	page: Page,
-	path = '/',
+	path = '/session',
 	{ spoilerProtection = false }: { spoilerProtection?: boolean } = {}
 ): Promise<void> {
 	await page.route('https://media.formula1.com/**', (route) => route.abort());
@@ -64,4 +64,26 @@ export async function seriousViolations(page: Page): Promise<string[]> {
 			(violation) =>
 				`${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`
 		);
+}
+
+/** The sizes every page must fit: a phone, a laptop, a desktop and an ultrawide. */
+export const FIT_SIZES = [
+	{ width: 360, height: 800 },
+	{ width: 1280, height: 720 },
+	{ width: 1920, height: 1080 },
+	{ width: 3440, height: 1440 }
+] as const;
+
+/** No sideways scroll, and each key control on the first screen. */
+export async function expectFits(page: Page, controls: readonly Locator[]): Promise<void> {
+	const overflow = await page.evaluate(
+		() => document.documentElement.scrollWidth - window.innerWidth
+	);
+
+	expect(overflow).toBeLessThanOrEqual(0);
+
+	for (const control of controls) {
+		// oxlint-disable-next-line no-await-in-loop -- a few controls, each checked once.
+		await expect(control).toBeInViewport();
+	}
 }

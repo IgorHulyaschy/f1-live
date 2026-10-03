@@ -3,9 +3,9 @@ import { expect, test } from '@playwright/test';
 import { openRace, seriousViolations } from './fixtures.ts';
 
 const RACE_ROUTES = [
-	'/',
+	'/session',
 	// Lap 16 runs under the virtual safety car: the flag banner and yellow badges are up.
-	'/?lap=16',
+	'/session?lap=16',
 	'/analysis',
 	'/strategy',
 	'/d/battle',
@@ -16,9 +16,9 @@ const RACE_ROUTES = [
 	'/library/tv-wall',
 	'/welcome',
 	// The driver, lap and compare views, open beside the dashboard.
-	'/?lap=30&car=4',
-	'/?lap=30&car=4&carLap=12',
-	'/?lap=30&car=4&vs=81'
+	'/session?lap=30&car=4',
+	'/session?lap=30&car=4&carLap=12',
+	'/session?lap=30&car=4&vs=81'
 ] as const;
 
 const SITE_ROUTES = ['/legal/terms', '/legal/privacy', '/legal/cookies', '/no-such-page'] as const;
@@ -41,7 +41,7 @@ for (const theme of ['dark', 'light'] as const) {
 		}
 
 		test('a session with its results hidden', async ({ page }) => {
-			await openRace(page, '/', { spoilerProtection: true });
+			await openRace(page, '/session', { spoilerProtection: true });
 			await expect(page.getByTestId('spoiler-start')).toBeVisible();
 
 			expect(await seriousViolations(page)).toEqual([]);

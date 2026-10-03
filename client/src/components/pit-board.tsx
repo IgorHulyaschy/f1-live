@@ -1,6 +1,7 @@
 import { useNavigate, useSearchParams } from 'react-router';
 
 import { TyreBadge } from '@/components/tyre-badge';
+import { SESSION_PATH } from '@/features/dashboard/paths';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useRace } from '@/data/race-context';
 import { battleAhead } from '@/insights/battle';
@@ -37,7 +38,7 @@ export function PitBoard() {
 			return;
 		}
 
-		void navigate({ pathname: '/', search });
+		void navigate({ pathname: SESSION_PATH, search });
 	};
 
 	return (

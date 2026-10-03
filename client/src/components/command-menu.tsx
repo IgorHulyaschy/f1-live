@@ -30,7 +30,7 @@ import { useRace } from '@/data/race-context';
 import { useIsRevealed } from '@/data/viewer-settings';
 import { useNow } from '@/hooks/use-now';
 import { useAccountPlan } from '@/features/account/account-store';
-import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
+import { useCreateDashboard } from '@/features/dashboard/use-add-dashboard';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
 import { LiveBadge, SessionPickerDialog } from '@/features/session/session-picker';

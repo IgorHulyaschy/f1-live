@@ -490,6 +490,20 @@ export function readingOrder(dashboard: Dashboard): Tile[] {
 	});
 }
 
+/**
+ * The order a phone stacks the tiles in: reading order, with the Replay tile first, since its
+ * clock and keys move every other tile. Edit mode keeps plain reading order, so moving a tile up
+ * or down does what it says.
+ */
+export function phoneOrder(dashboard: Dashboard): Tile[] {
+	const ordered = readingOrder(dashboard);
+
+	return [
+		...ordered.filter((tile) => tile.kind === 'replay'),
+		...ordered.filter((tile) => tile.kind !== 'replay')
+	];
+}
+
 /** Adds a tile under everything else, at its default size. */
 export function addTile(dashboard: Dashboard, kind: TileKind, id: string): Dashboard {
 	const bottom = Math.max(0, ...dashboard.layout.map((place) => place.y + place.h));

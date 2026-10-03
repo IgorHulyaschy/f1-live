@@ -9,6 +9,7 @@ import { AppLayout, Root, SiteLayout } from './app';
 import { LoadingState } from './components/site-frame';
 import { createRaceSource, raceSourceKindFromEnv } from './data/race-source';
 import { DashboardPage } from './features/dashboard/dashboard-page';
+import { HomeRoute } from './features/home/home-page';
 import { LibraryEntryPage, LibraryPage, SharedPage } from './features/library/library-page';
 import { WelcomePage } from './features/library/welcome';
 import { AccountPage } from './features/account/account-page';
@@ -57,7 +58,8 @@ const router = createBrowserRouter([
 			{
 				element: <AppLayout source={source} />,
 				children: [
-					{ path: '/', element: <DashboardPage />, handle: handle(ROUTE_META.live) },
+					{ path: '/', element: <HomeRoute />, handle: handle(ROUTE_META.home) },
+					{ path: '/session', element: <DashboardPage />, handle: handle(ROUTE_META.session) },
 					{
 						path: '/analysis',
 						element: <DashboardPage id="analysis" />,

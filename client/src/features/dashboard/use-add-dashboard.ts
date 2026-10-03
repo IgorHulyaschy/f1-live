@@ -50,3 +50,17 @@ export function useAddDashboard(): (dashboard: Dashboard, options?: { edit?: boo
 		return true;
 	};
 }
+
+/** Starts a new dashboard, empty or copied from another, and opens it in edit mode. */
+export function useCreateDashboard(): (from?: Dashboard) => void {
+	const add = useAddDashboard();
+
+	return (from) => {
+		add(
+			from
+				? { ...from, name: `${from.name} copy`.slice(0, 40) }
+				: { id: 'new', name: 'My dashboard', tiles: [], layout: [] },
+			{ edit: true }
+		);
+	};
+}

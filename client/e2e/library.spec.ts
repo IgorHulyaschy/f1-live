@@ -56,7 +56,7 @@ test('Free keeps three dashboards of your own and points to Pro', async ({ page 
 
 test('first run picks a driver and a starting dashboard', async ({ page }) => {
 	await page.route('https://media.formula1.com/**', (route) => route.abort());
-	await page.goto('/');
+	await page.goto('/session');
 	await page.getByRole('link', { name: 'Set up' }).click();
 
 	// The dashboard stays on screen until the setup page commits, and its driver names open views.
@@ -69,13 +69,13 @@ test('first run picks a driver and a starting dashboard', async ({ page }) => {
 	await setup.getByRole('button', { name: 'Start watching' }).click();
 
 	await expect(page).toHaveURL(/\/strategy\?.*driver=4/);
-	await page.goto('/');
+	await page.goto('/session');
 	await expect(page.getByRole('link', { name: 'Set up' })).toHaveCount(0);
 	await expect(page.getByRole('combobox', { name: 'Followed driver' })).toHaveText(/NOR/);
 });
 
 test('without a Replay tile the transport moves to the session strip', async ({ page }) => {
-	await openRace(page, '/?edit=1');
+	await openRace(page, '/session?edit=1');
 
 	await expect(page.getByTestId('header-clock')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Remove Replay' }).click();

@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import {
 	type Dashboard,
 	GRID_COLUMNS,
+	phoneOrder,
 	readingOrder,
 	removeTile,
 	sessionKind,
@@ -407,7 +408,7 @@ export function DashboardGrid({
 	}
 
 	if (stacked) {
-		const ordered = readingOrder(dashboard);
+		const ordered = editing ? readingOrder(dashboard) : phoneOrder(dashboard);
 
 		return (
 			<div ref={containerRef} className="flex flex-col gap-6" data-testid="dashboard-stack">

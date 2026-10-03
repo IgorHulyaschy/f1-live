@@ -11,12 +11,12 @@ import {
 	formatLocalStart,
 	formatUntil,
 	nextSession,
-	SESSION_TYPE_LABEL,
-	type SessionEntry
+	SESSION_TYPE_LABEL
 } from '@/data/catalog';
 import type { LiveConnection } from '@/data/live-feed';
 import { useRace } from '@/data/race-context';
 import { sessionKind } from '@/features/dashboard/dashboards';
+import { sessionTitle } from '@/features/home/latest-weekend';
 import { SessionPickerDialog } from '@/features/session/session-picker';
 import { useShownDashboard } from '@/features/library/shown-dashboard';
 import { useFeedLabel } from '@/features/session/session-tiles';
@@ -176,10 +176,6 @@ function StripClock() {
 			<Transport />
 		</div>
 	);
-}
-
-function sessionTitle(entry: SessionEntry): string {
-	return `${entry.meeting.name.replace(/ Grand Prix$/, '')} ${entry.session.name}`;
 }
 
 /** Where to go when this session is not the one that matters now: the live one, or the next. */
