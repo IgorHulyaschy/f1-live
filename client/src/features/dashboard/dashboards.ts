@@ -195,7 +195,8 @@ const METRIC_TITLE: Record<Metric, string> = {
 	lapTime: 'Lap times',
 	gap: 'Gap',
 	position: 'Positions',
-	battle: 'Battle'
+	battle: 'Battle',
+	versus: 'Versus'
 };
 
 export function tileTitle(tile: Tile): string {
@@ -350,7 +351,7 @@ const tileSchema = z.object({
 	id: z.string(),
 	kind: z.enum(TILE_KINDS),
 	settings: z
-		.object({ metric: z.enum(['lapTime', 'gap', 'position', 'battle']).optional() })
+		.object({ metric: z.enum(['lapTime', 'gap', 'position', 'battle', 'versus']).optional() })
 		.optional()
 });
 
