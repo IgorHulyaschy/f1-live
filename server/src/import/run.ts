@@ -1,4 +1,4 @@
-import { stat, statfs } from 'node:fs/promises';
+import { mkdir, stat, statfs } from 'node:fs/promises';
 import path from 'node:path';
 
 import { buildCatalog, mergeCatalogs } from '../catalog/catalog.js';
@@ -204,6 +204,9 @@ function topicsFor(target: ImportTarget, options: ImportOptions): TopicSet {
 }
 
 async function freeBytes(directory: string): Promise<number> {
+	// A fresh data folder has no raw/ yet; its disk is the nearest folder that exists.
+	await mkdir(directory, { recursive: true });
+
 	const { bavail, bsize } = await statfs(directory);
 
 	return bavail * bsize;

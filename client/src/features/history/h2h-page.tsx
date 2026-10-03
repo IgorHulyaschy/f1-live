@@ -40,6 +40,7 @@ import {
 	type H2HMode
 } from './h2h-picker';
 import {
+	countedSeasons,
 	HiddenNote,
 	includedKeys,
 	PageTitle,
@@ -130,9 +131,10 @@ export function HeadToHeadPage() {
 	const counts = useHistoryFilter();
 	const mode: H2HMode = params.get('mode') === 'teams' ? 'teams' : 'drivers';
 	const seasons = React.useMemo(() => (state.status === 'ready' ? state.seasons : []), [state]);
-	const list = React.useMemo(() => contenders(seasons, mode), [seasons, mode]);
 	const include = React.useMemo(() => includedKeys(seasons, counts), [seasons, counts]);
-	const fallback = mode === 'drivers' ? defaultPair(seasons, followedDriver) : null;
+	const counted = React.useMemo(() => countedSeasons(seasons, include), [seasons, include]);
+	const list = React.useMemo(() => contenders(counted, mode), [counted, mode]);
+	const fallback = mode === 'drivers' ? defaultPair(counted, followedDriver) : null;
 	const idA = params.get('a') ?? fallback?.[0] ?? list[0]?.id ?? null;
 	const idB = params.get('b') ?? fallback?.[1] ?? list[1]?.id ?? null;
 	const listedA = contenderOf(list, idA);
@@ -157,10 +159,10 @@ export function HeadToHeadPage() {
 			new Map(
 				H2H_PRESETS.map((preset) => [
 					preset,
-					sides ? presetRange(seasons, sides.a, sides.b, preset) : null
+					sides ? presetRange(counted, sides.a, sides.b, preset) : null
 				])
 			),
-		[seasons, sides]
+		[counted, sides]
 	);
 
 	const from = readRef(params.get('from'));
@@ -315,7 +317,7 @@ export function HeadToHeadPage() {
 				<div className="flex flex-col gap-2 sm:flex-row">
 					<ContenderPicker
 						label="First"
-						seasons={seasons}
+						seasons={counted}
 						list={list}
 						mode={mode}
 						value={a}
@@ -324,7 +326,7 @@ export function HeadToHeadPage() {
 					/>
 					<ContenderPicker
 						label="Second"
-						seasons={seasons}
+						seasons={counted}
 						list={list}
 						mode={mode}
 						value={b}

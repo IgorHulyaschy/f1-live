@@ -69,6 +69,20 @@ export function includedKeys(
 	return (key) => !held.has(key);
 }
 
+/** The seasons without the sessions that do not count: pickers, defaults and teammates cannot leak them. */
+export function countedSeasons(
+	seasons: readonly SeasonResults[],
+	include: (key: number) => boolean
+): SeasonResults[] {
+	return seasons.map((season) => ({
+		...season,
+		rounds: season.rounds.map((round) => ({
+			...round,
+			sessions: round.sessions.filter((session) => include(session.key))
+		}))
+	}));
+}
+
 /** A driver as the newest season that has them names them. */
 export function driverInfo(seasons: readonly SeasonResults[], id: string): ResultDriver | null {
 	return seasons.findLast((season) => season.drivers[id])?.drivers[id] ?? null;

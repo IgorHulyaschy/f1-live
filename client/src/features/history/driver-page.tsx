@@ -13,6 +13,7 @@ import { sessionLink } from './h2h-sections';
 import {
 	driverInfo,
 	driverName,
+	countedSeasons,
 	HiddenNote,
 	includedKeys,
 	PageTitle,
@@ -67,7 +68,7 @@ export function DriverPage() {
 	const weekends = driverWeekends(seasons, id, include);
 	const ownYears = summaries.map((summary) => summary.season);
 	const year = Number(params.get('season')) || (ownYears.at(-1) ?? 0);
-	const mates = teammates(seasons, id);
+	const mates = teammates(countedSeasons(seasons, include), id);
 
 	const hidden = driverWeekends(seasons, id).flatMap((weekend) =>
 		Object.values(weekend.sessions).flatMap((session) =>
