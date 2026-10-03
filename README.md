@@ -15,6 +15,11 @@ Working name only; the product must not use "F1" or "Formula 1" in its brand.
 
 More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](docs/screenshots.md). The whole dashboard flow, step by step: [docs/flow.md](docs/flow.md).
 
+## History
+
+Seasons from 2018 on: a calendar with `.ics` export, standings after any round, driver pages and a
+head to head for any two drivers or teams. See [docs/product/history.md](docs/product/history.md).
+
 ## Dashboards
 
 The whole screen is tiles on a 24-column grid, from a phone to a wall monitor: the race title,

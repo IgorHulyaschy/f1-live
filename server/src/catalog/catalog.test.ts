@@ -86,6 +86,27 @@ describe('parseSeasonIndex', () => {
 		assert.equal(lusail?.sessions[0]?.path, null);
 	});
 
+	it('leaves out placeholder sessions and sessions filed under the test server', () => {
+		const index = JSON.parse(INDEX.slice(1));
+
+		index.Meetings[1].Sessions.push(
+			{ Key: -1, Type: 'Race', StartDate: '2025-11-30T16:00:00', GmtOffset: '03:00:00' },
+			{
+				Key: 12001,
+				Type: 'Race',
+				Name: 'High Speed Track Test',
+				StartDate: '2025-11-27T19:00:00',
+				GmtOffset: '03:00:00',
+				Path: '../uat/static/2025/2025-11-30_Qatar_Grand_Prix/2025-11-27_Test/'
+			}
+		);
+
+		assert.deepEqual(
+			parseSeasonIndex(JSON.stringify(index)).meetings[1]?.sessions.map((session) => session.key),
+			[9900]
+		);
+	});
+
 	it('rejects an index that does not match the format', () => {
 		assert.throws(() => parseSeasonIndex('{"Year":2025}'));
 	});
@@ -128,7 +149,7 @@ describe('buildCatalog', () => {
 		);
 	});
 
-	it('carries the circuit, the country and the start time of each session', () => {
+	it('carries the circuit, the country and the start and end of each session', () => {
 		const session = buildCatalog([parseSeasonIndex(INDEX)], NO_OUTPUTS, now).seasons[0]?.meetings[0]
 			?.sessions[1];
 
@@ -137,6 +158,7 @@ describe('buildCatalog', () => {
 			type: 'race',
 			name: 'Race',
 			startsAt: '2025-11-23T04:00:00.000Z',
+			endsAt: '2025-11-23T06:00:00.000Z',
 			status: 'finished',
 			circuit: 'Las Vegas',
 			country: { code: 'USA', name: 'United States' },

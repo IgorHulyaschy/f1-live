@@ -6,6 +6,7 @@ import type { RaceEvent } from '@f1-live/shared';
 import { readArchive } from '../sources/f1/archive.js';
 import { F1Decoder } from '../sources/f1/decode.js';
 import type { TopicFrame } from '../sources/f1/decode.js';
+import { UnservedPenalties } from '../sources/f1/unserved-penalties.js';
 import { ManualCorrections } from '../sources/manual/corrections.js';
 import { OpenF1Corrections } from '../sources/openf1/session-result.js';
 import { folderBytes, writeErrors, writeEvents, writeSnapshot } from '../sinks/files.js';
@@ -23,7 +24,10 @@ export interface IngestInput {
 	/** The archive key, e.g. 9858. */
 	key: number;
 	dataDir: string;
-	/** Later sources win a conflict; the default is OpenF1, then the committed manual file. */
+	/**
+	 * Later sources win a conflict; the default is unserved penalties from the feed, then OpenF1,
+	 * then the committed manual file.
+	 */
 	corrections?: readonly CorrectionSource[];
 	/** Build the telemetry too, for a session whose raw files have Position.z. Default: yes. */
 	telemetry?: boolean;
@@ -121,10 +125,20 @@ export async function ingestSession(input: IngestInput): Promise<IngestResult> {
 		throw new Error(`${rawDir} decoded to no events`);
 	}
 
-	const sources = input.corrections ?? [new OpenF1Corrections(dataDir), new ManualCorrections()];
+	const sources = input.corrections ?? [
+		new UnservedPenalties(dataDir),
+		new OpenF1Corrections(dataDir),
+		new ManualCorrections()
+	];
 
 	const ended = events.reduce(applyEvent, EMPTY_SNAPSHOT);
-	const target = { key, endedAt: last.at, standings: ended.standings ?? [] };
+
+	const target = {
+		key,
+		endedAt: last.at,
+		standings: ended.standings ?? [],
+		snapshot: ended
+	};
 
 	const corrections = mergeCorrections(
 		await Promise.all(sources.map((source) => source.load(target)))

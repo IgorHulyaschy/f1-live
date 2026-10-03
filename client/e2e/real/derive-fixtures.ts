@@ -7,7 +7,14 @@
  *
  * Reads only; the outputs are small enough to commit.
  */
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+	copyFileSync,
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	writeFileSync
+} from 'node:fs';
 import path from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 
@@ -129,10 +136,25 @@ const catalog = catalogSchema.parse(
 	JSON.parse(readFileSync(path.join(out, 'catalog.json'), 'utf8'))
 );
 
+// The history pages list the seasons the catalogue has, so every season with a results index
+// stays, its meetings cut to the ones the tests open. 2026 keeps its whole calendar, with this
+// weekend's race (11731) still to come.
+const resultYears = new Set(
+	existsSync(path.join(out, 'results'))
+		? readdirSync(path.join(out, 'results')).map((name) => Number.parseInt(name, 10))
+		: []
+);
+
 const trimmed: Catalog = {
 	seasons: catalog.seasons.flatMap((season) => {
 		const meetingKeys = MEETINGS.get(season.year) ?? [];
-		const meetings = season.meetings.filter((meeting) => meetingKeys.includes(meeting.key));
+
+		const meetings = season.meetings.filter(
+			(meeting) =>
+				meetingKeys.includes(meeting.key) ||
+				season.year === 2026 ||
+				(resultYears.has(season.year) && meeting.key === season.meetings.at(-1)?.key)
+		);
 
 		return meetings.length === 0
 			? []
@@ -156,3 +178,14 @@ const trimmed: Catalog = {
 };
 
 writeFileSync(path.join(target, 'catalog.json'), `${JSON.stringify(trimmed, null, '\t')}\n`);
+
+// The results index per season, for the history pages (calendar, standings, head to head).
+const resultsDir = path.join(out, 'results');
+
+if (existsSync(resultsDir)) {
+	mkdirSync(path.join(target, 'results'), { recursive: true });
+
+	for (const file of readdirSync(resultsDir).filter((name) => name.endsWith('.json.gz'))) {
+		copyFileSync(path.join(resultsDir, file), path.join(target, 'results', file));
+	}
+}

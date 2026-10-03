@@ -1,0 +1,32 @@
+{
+	"Year": 2021,
+	"Meetings": [
+		{
+			"Key": 1065,
+			"Name": "Emilia Romagna Grand Prix",
+			"OfficialName": "Emilia Romagna Grand Prix",
+			"Location": "Imola",
+			"Country": {
+				"Key": 13,
+				"Code": "ITA",
+				"Name": "Italy"
+			},
+			"Circuit": {
+				"Key": 6,
+				"ShortName": "Imola"
+			},
+			"Sessions": [
+				{
+					"Key": 6215,
+					"Type": "Practice",
+					"Number": 1,
+					"Name": "Practice 1",
+					"StartDate": "2021-04-16T11:00:00",
+					"EndDate": "2021-04-16T12:00:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2021/2021-04-18_Emilia_Romagna_Grand_Prix/2021-04-16_Practice_1/"
+				}
+			]
+		}
+	]
+}

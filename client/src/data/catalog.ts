@@ -7,6 +7,7 @@ const catalogSessionSchema = z.object({
 	type: z.enum(SESSION_TYPES),
 	name: z.string(),
 	startsAt: z.iso.datetime(),
+	endsAt: z.iso.datetime().optional(),
 	status: z.enum(['upcoming', 'live', 'finished']),
 	circuit: z.string(),
 	country: z.object({ code: z.string(), name: z.string() }),

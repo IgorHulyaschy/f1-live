@@ -24,14 +24,26 @@ const TARGET: ImportTarget = {
 const SESSION_INDEX = `﻿${JSON.stringify({
 	Feeds: {
 		SessionInfo: { KeyFramePath: 'SessionInfo.json', StreamPath: 'SessionInfo.jsonStream' },
-		TimingData: { KeyFramePath: 'TimingData.json', StreamPath: 'TimingData.jsonStream' }
+		TimingData: { KeyFramePath: 'TimingData.json', StreamPath: 'TimingData.jsonStream' },
+		'Position.z': { KeyFramePath: 'Position.z.json', StreamPath: 'Position.z.jsonStream' }
 	}
 })}`;
+
+/** A 2018 session: the archive has its streams but no Index.json. */
+const UNLISTED: ImportTarget = {
+	...TARGET,
+	key: 2,
+	path: '2018/2018-03-25_Test_Grand_Prix/2018-03-25_Race'
+};
 
 const FILES = new Map([
 	[`/${TARGET.path}/Index.json`, SESSION_INDEX],
 	[`/${TARGET.path}/SessionInfo.jsonStream`, '﻿00:00:01.000{"Key":1}\n'],
-	[`/${TARGET.path}/TimingData.jsonStream`, '﻿00:00:02.000{"Lines":{}}\n']
+	[`/${TARGET.path}/TimingData.jsonStream`, '﻿00:00:02.000{"Lines":{}}\n'],
+	[`/${TARGET.path}/Position.z.jsonStream`, '﻿00:00:02.000"7ZTBb"\n'],
+	[`/${UNLISTED.path}/SessionInfo.jsonStream`, '﻿00:00:01.000{"Key":2}\n'],
+	[`/${UNLISTED.path}/TimingData.jsonStream`, '﻿00:00:02.000{"Lines":{}}\n'],
+	[`/${UNLISTED.path}/CarData.z.jsonStream`, '﻿00:00:02.000"7ZTBb"\n']
 ]);
 
 const SETTLED = new Date('2025-01-02T12:00:00Z');
@@ -90,9 +102,9 @@ function newRoot(): string {
 describe('fetchSession', () => {
 	it('saves Index.json and every stream it lists, bytes as served', async () => {
 		const root = newRoot();
-		const stats = await fetchSession(TARGET, root, SETTLED, baseUrl);
+		const stats = await fetchSession(TARGET, root, SETTLED, { baseUrl });
 
-		assert.deepEqual([stats.files, stats.downloaded], [3, 3]);
+		assert.deepEqual([stats.files, stats.downloaded], [4, 4]);
 		assert.equal(
 			readFileSync(path.join(root, TARGET.path, 'SessionInfo.jsonStream'), 'utf8'),
 			'﻿00:00:01.000{"Key":1}\n'
@@ -103,10 +115,10 @@ describe('fetchSession', () => {
 	it('skips a settled session that is complete, without a request', async () => {
 		const root = newRoot();
 
-		await fetchSession(TARGET, root, SETTLED, baseUrl);
+		await fetchSession(TARGET, root, SETTLED, { baseUrl });
 		requests = [];
 
-		const stats = await fetchSession(TARGET, root, SETTLED, baseUrl);
+		const stats = await fetchSession(TARGET, root, SETTLED, { baseUrl });
 
 		assert.equal(stats.downloaded, 0);
 		assert.deepEqual(requests, []);
@@ -115,11 +127,11 @@ describe('fetchSession', () => {
 	it('resumes a half-finished session by fetching only the files it lacks', async () => {
 		const root = newRoot();
 
-		await fetchSession(TARGET, root, SETTLED, baseUrl);
+		await fetchSession(TARGET, root, SETTLED, { baseUrl });
 		rmSync(path.join(root, TARGET.path, 'TimingData.jsonStream'));
 		requests = [];
 
-		const stats = await fetchSession(TARGET, root, SETTLED, baseUrl);
+		const stats = await fetchSession(TARGET, root, SETTLED, { baseUrl });
 
 		assert.equal(stats.downloaded, 2);
 		assert.deepEqual(requests.toSorted(), [
@@ -128,27 +140,66 @@ describe('fetchSession', () => {
 		]);
 	});
 
+	it('keeps only the streams results need, leaving positions and car data out', async () => {
+		const root = newRoot();
+		const stats = await fetchSession(TARGET, root, SETTLED, { baseUrl, topics: 'results' });
+
+		assert.equal(stats.downloaded, 3);
+		assert.equal(existsSync(path.join(root, TARGET.path, 'Position.z.jsonStream')), false);
+
+		requests = [];
+
+		assert.equal(
+			(await fetchSession(TARGET, root, SETTLED, { baseUrl, topics: 'results' })).downloaded,
+			0
+		);
+		assert.deepEqual(requests, []);
+		assert.equal((await fetchSession(TARGET, root, SETTLED, { baseUrl })).downloaded, 2);
+	});
+
+	it('asks for each stream of a session without Index.json and notes the ones refused', async () => {
+		const root = newRoot();
+		const stats = await fetchSession(UNLISTED, root, SETTLED, { baseUrl, topics: 'results' });
+
+		assert.deepEqual([stats.files, stats.downloaded], [2, 2]);
+		assert.equal(existsSync(path.join(root, UNLISTED.path, 'CarData.z.jsonStream')), false);
+		assert.ok(
+			JSON.parse(
+				readFileSync(path.join(root, UNLISTED.path, '_archive.json'), 'utf8')
+			).absent.includes('LapCount.jsonStream')
+		);
+
+		requests = [];
+
+		assert.equal(
+			(await fetchSession(UNLISTED, root, SETTLED, { baseUrl, topics: 'results' })).downloaded,
+			0
+		);
+		assert.deepEqual(requests, []);
+		assert.equal((await fetchSession(UNLISTED, root, SETTLED, { baseUrl })).downloaded, 1);
+	});
+
 	it('fetches a session that ended minutes ago whole again, because its files still grow', async () => {
 		const root = newRoot();
 		const justAfter = new Date('2025-01-01T14:10:00Z');
 
-		await fetchSession(TARGET, root, justAfter, baseUrl);
+		await fetchSession(TARGET, root, justAfter, { baseUrl });
 		requests = [];
 
-		assert.equal((await fetchSession(TARGET, root, justAfter, baseUrl)).downloaded, 3);
+		assert.equal((await fetchSession(TARGET, root, justAfter, { baseUrl })).downloaded, 4);
 	});
 
 	it('fetches again a file saved while the session ran, once the session has settled', async () => {
 		const root = newRoot();
 
-		await fetchSession(TARGET, root, SETTLED, baseUrl);
+		await fetchSession(TARGET, root, SETTLED, { baseUrl });
 
 		const cutShort = new Date('2025-01-01T15:00:00Z');
 
 		utimesSync(path.join(root, TARGET.path, 'TimingData.jsonStream'), cutShort, cutShort);
 		requests = [];
 
-		const stats = await fetchSession(TARGET, root, SETTLED, baseUrl);
+		const stats = await fetchSession(TARGET, root, SETTLED, { baseUrl });
 
 		assert.equal(stats.downloaded, 2);
 		assert.deepEqual(requests.toSorted(), [
@@ -159,7 +210,7 @@ describe('fetchSession', () => {
 
 	it('says the archive has nothing for a session it answers 403 for', async () => {
 		await assert.rejects(
-			fetchSession({ ...TARGET, path: '2025/missing' }, newRoot(), SETTLED, baseUrl),
+			fetchSession({ ...TARGET, path: '2025/missing' }, newRoot(), SETTLED, { baseUrl }),
 			ArchiveMissing
 		);
 	});
@@ -167,11 +218,11 @@ describe('fetchSession', () => {
 	it('refuses a folder that holds a live recording', async () => {
 		const root = newRoot();
 
-		await fetchSession(TARGET, root, SETTLED, baseUrl);
+		await fetchSession(TARGET, root, SETTLED, { baseUrl });
 		rmSync(path.join(root, TARGET.path, 'Index.json'));
 		writeFileSync(path.join(root, TARGET.path, '_recording.json'), '{}');
 
-		await assert.rejects(fetchSession(TARGET, root, SETTLED, baseUrl), /live recording/);
+		await assert.rejects(fetchSession(TARGET, root, SETTLED, { baseUrl }), /live recording/);
 	});
 });
 

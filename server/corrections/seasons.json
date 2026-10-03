@@ -1,0 +1,18 @@
+[
+	{
+		"season": 2018,
+		"team": "Force India",
+		"round": 13,
+		"points": -59,
+		"reason": "The team entered administration and was excluded from the constructors' championship; its successor scored from Belgium on",
+		"source": "https://www.formula1.com/en/results/2018/team"
+	},
+	{
+		"season": 2020,
+		"team": "Racing Point",
+		"round": 5,
+		"points": -15,
+		"reason": "Brake ducts designed from another team's parts: 7.5 points deducted for each of two races",
+		"source": "https://www.formula1.com/en/results/2020/team"
+	}
+]

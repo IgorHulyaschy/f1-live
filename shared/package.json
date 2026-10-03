@@ -11,7 +11,8 @@
 		".": "./src/index.ts",
 		"./dashboard": "./src/dashboard.ts",
 		"./plans": "./src/plans.ts",
-		"./viewer": "./src/viewer.ts"
+		"./viewer": "./src/viewer.ts",
+		"./results": "./src/results.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",

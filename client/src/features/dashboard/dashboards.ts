@@ -237,6 +237,14 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		min: { w: 6, h: 10 },
 		sessions: ['race']
 	},
+	'season-standings': {
+		group: 'Analysis',
+		title: 'Season standings',
+		description:
+			'The drivers’ or constructors’ championship of this session’s season after the latest round you have seen.',
+		size: { w: 10, h: 18 },
+		min: { w: 5, h: 10 }
+	},
 	conditions: {
 		group: 'Analysis',
 		title: 'Conditions',

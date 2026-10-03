@@ -127,7 +127,8 @@ Event in any driver or lap view.
 3. A driver across a weekend: open the driver, then the next session from the picker; the driver
    view stays open on the same car (`car` is kept in the address).
 
-**Exits.** Any session; the calendar and standings come with T11a and use the same spoiler helper.
+**Exits.** Any session; the calendar, standings, driver pages and head to head are described in
+[history.md](history.md) and use the same spoiler helper (30 day window).
 
 | Friction found                                                                   | Fix                                                                     |
 | -------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |

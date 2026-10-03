@@ -5,3 +5,5 @@ export * from './events.ts';
 export * from './apply-event.ts';
 
 export * from './telemetry.ts';
+
+export * from './points.ts';

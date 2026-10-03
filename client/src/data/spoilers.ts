@@ -55,3 +55,24 @@ export function spoilerSafeStep({
 export function withRevealed(revealed: readonly string[], sessionKey: string): string[] {
 	return [...revealed.filter((key) => key !== sessionKey), sessionKey].slice(-MAX_REVEALED);
 }
+
+/** Results older than this count in standings, driver pages and comparisons without a reveal. */
+export const HISTORY_SPOILER_DAYS = 30;
+
+/**
+ * Whether a session's result is held back from the history views (standings, driver pages,
+ * head-to-head): the viewer has not revealed it and it started within the last
+ * `HISTORY_SPOILER_DAYS`. Older results are history, and asking for a reveal of each of hundreds of
+ * sessions would make those views unusable.
+ */
+export function heldFromHistory(
+	settings: SpoilerSettings,
+	sessionKey: string,
+	startsAt: string,
+	now: number
+): boolean {
+	return (
+		!isRevealed(settings, sessionKey) &&
+		now - Date.parse(startsAt) < HISTORY_SPOILER_DAYS * 24 * 60 * 60 * 1000
+	);
+}

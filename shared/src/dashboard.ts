@@ -45,7 +45,8 @@ export const TILE_KINDS = [
 	'flag-map',
 	'speed-map',
 	'gap-distance',
-	'ghost-lap'
+	'ghost-lap',
+	'season-standings'
 ] as const;
 
 export type TileKind = (typeof TILE_KINDS)[number];

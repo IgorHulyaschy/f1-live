@@ -1,0 +1,586 @@
+{
+	"Year": 2024,
+	"Meetings": [
+		{
+			"Key": 1229,
+			"Name": "Bahrain Grand Prix",
+			"OfficialName": "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2024",
+			"Location": "Sakhir",
+			"Country": {
+				"Key": 36,
+				"Code": "BRN",
+				"Name": "Bahrain"
+			},
+			"Circuit": {
+				"Key": 63,
+				"ShortName": "Sakhir"
+			},
+			"Sessions": [
+				{
+					"Key": 9465,
+					"Type": "Practice",
+					"Number": 1,
+					"Name": "Practice 1",
+					"StartDate": "2024-02-29T14:30:00",
+					"EndDate": "2024-02-29T15:30:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2024/2024-03-02_Bahrain_Grand_Prix/2024-02-29_Practice_1/"
+				},
+				{
+					"Key": 9466,
+					"Type": "Practice",
+					"Number": 2,
+					"Name": "Practice 2",
+					"StartDate": "2024-02-29T18:00:00",
+					"EndDate": "2024-02-29T19:00:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2024/2024-03-02_Bahrain_Grand_Prix/2024-02-29_Practice_2/"
+				},
+				{
+					"Key": 9467,
+					"Type": "Practice",
+					"Number": 3,
+					"Name": "Practice 3",
+					"StartDate": "2024-03-01T15:30:00",
+					"EndDate": "2024-03-01T16:30:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2024/2024-03-02_Bahrain_Grand_Prix/2024-03-01_Practice_3/"
+				},
+				{
+					"Key": 9468,
+					"Type": "Qualifying",
+					"Name": "Qualifying",
+					"StartDate": "2024-03-01T19:00:00",
+					"EndDate": "2024-03-01T20:00:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2024/2024-03-02_Bahrain_Grand_Prix/2024-03-01_Qualifying/"
+				},
+				{
+					"Key": 9472,
+					"Type": "Race",
+					"Name": "Race",
+					"StartDate": "2024-03-02T18:00:00",
+					"EndDate": "2024-03-02T20:00:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2024/2024-03-02_Bahrain_Grand_Prix/2024-03-02_Race/"
+				}
+			]
+		},
+		{
+			"Key": 1230,
+			"Name": "Saudi Arabian Grand Prix",
+			"OfficialName": "FORMULA 1 STC SAUDI ARABIAN GRAND PRIX 2024",
+			"Location": "Jeddah",
+			"Country": {
+				"Key": 153,
+				"Code": "KSA",
+				"Name": "Saudi Arabia"
+			},
+			"Circuit": {
+				"Key": 149,
+				"ShortName": "Jeddah"
+			},
+			"Sessions": [
+				{
+					"Key": 9473,
+					"Type": "Practice",
+					"Number": 1,
+					"Name": "Practice 1",
+					"StartDate": "2024-03-07T16:30:00",
+					"EndDate": "2024-03-07T17:30:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2024/2024-03-09_Saudi_Arabian_Grand_Prix/2024-03-07_Practice_1/"
+				},
+				{
+					"Key": 9474,
+					"Type": "Practice",
+					"Number": 2,
+					"Name": "Practice 2",
+					"StartDate": "2024-03-07T20:00:00",
+					"EndDate": "2024-03-07T21:00:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2024/2024-03-09_Saudi_Arabian_Grand_Prix/2024-03-07_Practice_2/"
+				},
+				{
+					"Key": 9475,
+					"Type": "Practice",
+					"Number": 3,
+					"Name": "Practice 3",
+					"StartDate": "2024-03-08T16:30:00",
+					"EndDate": "2024-03-08T17:30:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2024/2024-03-09_Saudi_Arabian_Grand_Prix/2024-03-08_Practice_3/"
+				},
+				{
+					"Key": 9476,
+					"Type": "Qualifying",
+					"Name": "Qualifying",
+					"StartDate": "2024-03-08T20:00:00",
+					"EndDate": "2024-03-08T21:00:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2024/2024-03-09_Saudi_Arabian_Grand_Prix/2024-03-08_Qualifying/"
+				},
+				{
+					"Key": 9480,
+					"Type": "Race",
+					"Name": "Race",
+					"StartDate": "2024-03-09T20:00:00",
+					"EndDate": "2024-03-09T22:00:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2024/2024-03-09_Saudi_Arabian_Grand_Prix/2024-03-09_Race/"
+				}
+			]
+		},
+		{
+			"Key": 1231,
+			"Name": "Australian Grand Prix",
+			"OfficialName": "FORMULA 1 ROLEX AUSTRALIAN GRAND PRIX 2024",
+			"Location": "Melbourne",
+			"Country": {
+				"Key": 5,
+				"Code": "AUS",
+				"Name": "Australia"
+			},
+			"Circuit": {
+				"Key": 10,
+				"ShortName": "Melbourne"
+			},
+			"Sessions": [
+				{
+					"Key": 9481,
+					"Type": "Practice",
+					"Number": 1,
+					"Name": "Practice 1",
+					"StartDate": "2024-03-22T12:30:00",
+					"EndDate": "2024-03-22T13:30:00",
+					"GmtOffset": "11:00:00",
+					"Path": "2024/2024-03-24_Australian_Grand_Prix/2024-03-22_Practice_1/"
+				},
+				{
+					"Key": 9482,
+					"Type": "Practice",
+					"Number": 2,
+					"Name": "Practice 2",
+					"StartDate": "2024-03-22T16:00:00",
+					"EndDate": "2024-03-22T17:00:00",
+					"GmtOffset": "11:00:00",
+					"Path": "2024/2024-03-24_Australian_Grand_Prix/2024-03-22_Practice_2/"
+				},
+				{
+					"Key": 9483,
+					"Type": "Practice",
+					"Number": 3,
+					"Name": "Practice 3",
+					"StartDate": "2024-03-23T12:30:00",
+					"EndDate": "2024-03-23T13:30:00",
+					"GmtOffset": "11:00:00",
+					"Path": "2024/2024-03-24_Australian_Grand_Prix/2024-03-23_Practice_3/"
+				},
+				{
+					"Key": 9484,
+					"Type": "Qualifying",
+					"Name": "Qualifying",
+					"StartDate": "2024-03-23T16:00:00",
+					"EndDate": "2024-03-23T17:00:00",
+					"GmtOffset": "11:00:00",
+					"Path": "2024/2024-03-24_Australian_Grand_Prix/2024-03-23_Qualifying/"
+				},
+				{
+					"Key": 9488,
+					"Type": "Race",
+					"Name": "Race",
+					"StartDate": "2024-03-24T15:00:00",
+					"EndDate": "2024-03-24T17:00:00",
+					"GmtOffset": "11:00:00",
+					"Path": "2024/2024-03-24_Australian_Grand_Prix/2024-03-24_Race/"
+				}
+			]
+		},
+		{
+			"Key": 1232,
+			"Name": "Japanese Grand Prix",
+			"OfficialName": "FORMULA 1 MSC CRUISES JAPANESE GRAND PRIX 2024",
+			"Location": "Suzuka",
+			"Country": {
+				"Key": 4,
+				"Code": "JPN",
+				"Name": "Japan"
+			},
+			"Circuit": {
+				"Key": 46,
+				"ShortName": "Suzuka"
+			},
+			"Sessions": [
+				{
+					"Key": 9489,
+					"Type": "Practice",
+					"Number": 1,
+					"Name": "Practice 1",
+					"StartDate": "2024-04-05T11:30:00",
+					"EndDate": "2024-04-05T12:30:00",
+					"GmtOffset": "09:00:00",
+					"Path": "2024/2024-04-07_Japanese_Grand_Prix/2024-04-05_Practice_1/"
+				},
+				{
+					"Key": 9490,
+					"Type": "Practice",
+					"Number": 2,
+					"Name": "Practice 2",
+					"StartDate": "2024-04-05T15:00:00",
+					"EndDate": "2024-04-05T16:00:00",
+					"GmtOffset": "09:00:00",
+					"Path": "2024/2024-04-07_Japanese_Grand_Prix/2024-04-05_Practice_2/"
+				},
+				{
+					"Key": 9491,
+					"Type": "Practice",
+					"Number": 3,
+					"Name": "Practice 3",
+					"StartDate": "2024-04-06T11:30:00",
+					"EndDate": "2024-04-06T12:30:00",
+					"GmtOffset": "09:00:00",
+					"Path": "2024/2024-04-07_Japanese_Grand_Prix/2024-04-06_Practice_3/"
+				},
+				{
+					"Key": 9492,
+					"Type": "Qualifying",
+					"Name": "Qualifying",
+					"StartDate": "2024-04-06T15:00:00",
+					"EndDate": "2024-04-06T16:00:00",
+					"GmtOffset": "09:00:00",
+					"Path": "2024/2024-04-07_Japanese_Grand_Prix/2024-04-06_Qualifying/"
+				},
+				{
+					"Key": 9496,
+					"Type": "Race",
+					"Name": "Race",
+					"StartDate": "2024-04-07T14:00:00",
+					"EndDate": "2024-04-07T16:00:00",
+					"GmtOffset": "09:00:00",
+					"Path": "2024/2024-04-07_Japanese_Grand_Prix/2024-04-07_Race/"
+				}
+			]
+		},
+		{
+			"Key": 1233,
+			"Name": "Chinese Grand Prix",
+			"OfficialName": "FORMULA 1 LENOVO CHINESE GRAND PRIX 2024",
+			"Location": "Shanghai",
+			"Country": {
+				"Key": 53,
+				"Code": "CHN",
+				"Name": "China"
+			},
+			"Circuit": {
+				"Key": 49,
+				"ShortName": "Shanghai"
+			},
+			"Sessions": [
+				{
+					"Key": 9663,
+					"Type": "Practice",
+					"Number": 1,
+					"Name": "Practice 1",
+					"StartDate": "2024-04-19T11:30:00",
+					"EndDate": "2024-04-19T12:30:00",
+					"GmtOffset": "08:00:00",
+					"Path": "2024/2024-04-21_Chinese_Grand_Prix/2024-04-19_Practice_1/"
+				},
+				{
+					"Key": 9668,
+					"Type": "Qualifying",
+					"Name": "Sprint Qualifying",
+					"StartDate": "2024-04-19T15:30:00",
+					"EndDate": "2024-04-19T16:14:00",
+					"GmtOffset": "08:00:00",
+					"Path": "2024/2024-04-21_Chinese_Grand_Prix/2024-04-19_Sprint_Qualifying/"
+				},
+				{
+					"Key": 9672,
+					"Type": "Race",
+					"Name": "Sprint",
+					"StartDate": "2024-04-20T11:00:00",
+					"EndDate": "2024-04-20T11:30:00",
+					"GmtOffset": "08:00:00",
+					"Path": "2024/2024-04-21_Chinese_Grand_Prix/2024-04-20_Sprint/"
+				},
+				{
+					"Key": 9664,
+					"Type": "Qualifying",
+					"Name": "Qualifying",
+					"StartDate": "2024-04-20T15:00:00",
+					"EndDate": "2024-04-20T16:00:00",
+					"GmtOffset": "08:00:00",
+					"Path": "2024/2024-04-21_Chinese_Grand_Prix/2024-04-20_Qualifying/"
+				},
+				{
+					"Key": 9673,
+					"Type": "Race",
+					"Name": "Race",
+					"StartDate": "2024-04-21T15:00:00",
+					"EndDate": "2024-04-21T17:00:00",
+					"GmtOffset": "08:00:00",
+					"Path": "2024/2024-04-21_Chinese_Grand_Prix/2024-04-21_Race/"
+				}
+			]
+		},
+		{
+			"Key": 1234,
+			"Name": "Miami Grand Prix",
+			"OfficialName": "FORMULA 1 CRYPTO.COM MIAMI GRAND PRIX 2024",
+			"Location": "Miami",
+			"Country": {
+				"Key": 19,
+				"Code": "USA",
+				"Name": "United States"
+			},
+			"Circuit": {
+				"Key": 151,
+				"ShortName": "Miami"
+			},
+			"Sessions": [
+				{
+					"Key": 9497,
+					"Type": "Practice",
+					"Number": 1,
+					"Name": "Practice 1",
+					"StartDate": "2024-05-03T12:30:00",
+					"EndDate": "2024-05-03T13:30:00",
+					"GmtOffset": "-04:00:00",
+					"Path": "2024/2024-05-05_Miami_Grand_Prix/2024-05-03_Practice_1/"
+				},
+				{
+					"Key": 9502,
+					"Type": "Qualifying",
+					"Name": "Sprint Qualifying",
+					"StartDate": "2024-05-03T16:30:00",
+					"EndDate": "2024-05-03T17:14:00",
+					"GmtOffset": "-04:00:00",
+					"Path": "2024/2024-05-05_Miami_Grand_Prix/2024-05-03_Sprint_Qualifying/"
+				},
+				{
+					"Key": 9506,
+					"Type": "Race",
+					"Name": "Sprint",
+					"StartDate": "2024-05-04T12:00:00",
+					"EndDate": "2024-05-04T12:30:00",
+					"GmtOffset": "-04:00:00",
+					"Path": "2024/2024-05-05_Miami_Grand_Prix/2024-05-04_Sprint/"
+				},
+				{
+					"Key": 9498,
+					"Type": "Qualifying",
+					"Name": "Qualifying",
+					"StartDate": "2024-05-04T16:00:00",
+					"EndDate": "2024-05-04T17:00:00",
+					"GmtOffset": "-04:00:00",
+					"Path": "2024/2024-05-05_Miami_Grand_Prix/2024-05-04_Qualifying/"
+				},
+				{
+					"Key": 9507,
+					"Type": "Race",
+					"Name": "Race",
+					"StartDate": "2024-05-05T16:00:00",
+					"EndDate": "2024-05-05T18:00:00",
+					"GmtOffset": "-04:00:00",
+					"Path": "2024/2024-05-05_Miami_Grand_Prix/2024-05-05_Race/"
+				}
+			]
+		},
+		{
+			"Key": 1235,
+			"Name": "Emilia Romagna Grand Prix",
+			"OfficialName": "FORMULA 1 MSC CRUISES GRAN PREMIO DEL MADE IN ITALY E DELL'EMILIA-ROMAGNA 2024",
+			"Location": "Imola",
+			"Country": {
+				"Key": 13,
+				"Code": "ITA",
+				"Name": "Italy"
+			},
+			"Circuit": {
+				"Key": 6,
+				"ShortName": "Imola"
+			},
+			"Sessions": [
+				{
+					"Key": 9508,
+					"Type": "Practice",
+					"Number": 1,
+					"Name": "Practice 1",
+					"StartDate": "2024-05-17T13:30:00",
+					"EndDate": "2024-05-17T14:30:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2024/2024-05-19_Emilia_Romagna_Grand_Prix/2024-05-17_Practice_1/"
+				},
+				{
+					"Key": 9509,
+					"Type": "Practice",
+					"Number": 2,
+					"Name": "Practice 2",
+					"StartDate": "2024-05-17T17:00:00",
+					"EndDate": "2024-05-17T18:00:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2024/2024-05-19_Emilia_Romagna_Grand_Prix/2024-05-17_Practice_2/"
+				},
+				{
+					"Key": 9510,
+					"Type": "Practice",
+					"Number": 3,
+					"Name": "Practice 3",
+					"StartDate": "2024-05-18T12:30:00",
+					"EndDate": "2024-05-18T13:30:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2024/2024-05-19_Emilia_Romagna_Grand_Prix/2024-05-18_Practice_3/"
+				},
+				{
+					"Key": 9511,
+					"Type": "Qualifying",
+					"Name": "Qualifying",
+					"StartDate": "2024-05-18T16:00:00",
+					"EndDate": "2024-05-18T17:00:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2024/2024-05-19_Emilia_Romagna_Grand_Prix/2024-05-18_Qualifying/"
+				},
+				{
+					"Key": 9515,
+					"Type": "Race",
+					"Name": "Race",
+					"StartDate": "2024-05-19T15:00:00",
+					"EndDate": "2024-05-19T17:00:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2024/2024-05-19_Emilia_Romagna_Grand_Prix/2024-05-19_Race/"
+				}
+			]
+		},
+		{
+			"Key": 1236,
+			"Name": "Monaco Grand Prix",
+			"OfficialName": "FORMULA 1 GRAND PRIX DE MONACO 2024",
+			"Location": "Monaco",
+			"Country": {
+				"Key": 114,
+				"Code": "MON",
+				"Name": "Monaco"
+			},
+			"Circuit": {
+				"Key": 22,
+				"ShortName": "Monte Carlo"
+			},
+			"Sessions": [
+				{
+					"Key": 9516,
+					"Type": "Practice",
+					"Number": 1,
+					"Name": "Practice 1",
+					"StartDate": "2024-05-24T13:30:00",
+					"EndDate": "2024-05-24T14:30:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2024/2024-05-26_Monaco_Grand_Prix/2024-05-24_Practice_1/"
+				},
+				{
+					"Key": 9517,
+					"Type": "Practice",
+					"Number": 2,
+					"Name": "Practice 2",
+					"StartDate": "2024-05-24T17:00:00",
+					"EndDate": "2024-05-24T18:00:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2024/2024-05-26_Monaco_Grand_Prix/2024-05-24_Practice_2/"
+				},
+				{
+					"Key": 9518,
+					"Type": "Practice",
+					"Number": 3,
+					"Name": "Practice 3",
+					"StartDate": "2024-05-25T12:30:00",
+					"EndDate": "2024-05-25T13:30:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2024/2024-05-26_Monaco_Grand_Prix/2024-05-25_Practice_3/"
+				},
+				{
+					"Key": 9519,
+					"Type": "Qualifying",
+					"Name": "Qualifying",
+					"StartDate": "2024-05-25T16:00:00",
+					"EndDate": "2024-05-25T17:00:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2024/2024-05-26_Monaco_Grand_Prix/2024-05-25_Qualifying/"
+				},
+				{
+					"Key": 9523,
+					"Type": "Race",
+					"Name": "Race",
+					"StartDate": "2024-05-26T15:00:00",
+					"EndDate": "2024-05-26T17:00:00",
+					"GmtOffset": "02:00:00",
+					"Path": "2024/2024-05-26_Monaco_Grand_Prix/2024-05-26_Race/"
+				}
+			]
+		},
+		{
+			"Key": 1237,
+			"Name": "Canadian Grand Prix",
+			"OfficialName": "FORMULA 1 AWS GRAND PRIX DU CANADA 2024",
+			"Location": "Montréal",
+			"Country": {
+				"Key": 46,
+				"Code": "CAN",
+				"Name": "Canada"
+			},
+			"Circuit": {
+				"Key": 23,
+				"ShortName": "Montreal"
+			},
+			"Sessions": [
+				{
+					"Key": 9524,
+					"Type": "Practice",
+					"Number": 1,
+					"Name": "Practice 1",
+					"StartDate": "2024-06-07T13:30:00",
+					"EndDate": "2024-06-07T14:30:00",
+					"GmtOffset": "-04:00:00",
+					"Path": "2024/2024-06-09_Canadian_Grand_Prix/2024-06-07_Practice_1/"
+				},
+				{
+					"Key": 9525,
+					"Type": "Practice",
+					"Number": 2,
+					"Name": "Practice 2",
+					"StartDate": "2024-06-07T17:00:00",
+					"EndDate": "2024-06-07T18:00:00",
+					"GmtOffset": "-04:00:00",
+					"Path": "2024/2024-06-09_Canadian_Grand_Prix/2024-06-07_Practice_2/"
+				},
+				{
+					"Key": 9526,
+					"Type": "Practice",
+					"Number": 3,
+					"Name": "Practice 3",
+					"StartDate": "2024-06-08T12:30:00",
+					"EndDate": "2024-06-08T13:30:00",
+					"GmtOffset": "-04:00:00",
+					"Path": "2024/2024-06-09_Canadian_Grand_Prix/2024-06-08_Practice_3/"
+				},
+				{
+					"Key": 9527,
+					"Type": "Qualifying",
+					"Name": "Qualifying",
+					"StartDate": "2024-06-08T16:00:00",
+					"EndDate": "2024-06-08T17:00:00",
+					"GmtOffset": "-04:00:00",
+					"Path": "2024/2024-06-09_Canadian_Grand_Prix/2024-06-08_Qualifying/"
+				},
+				{
+					"Key": 9531,
+					"Type": "Race",
+					"Name": "Race",
+					"StartDate": "2024-06-09T14:00:00",
+					"EndDate": "2024-06-09T16:00:00",
+					"GmtOffset": "-04:00:00",
+					"Path": "2024/2024-06-09_Canadian_Grand_Prix/2024-06-09_Race/"
+				}
+			]
+		}
+	]
+}

@@ -1,4 +1,4 @@
-import type { ClassificationCorrectionEvent, Standing } from '@f1-live/shared';
+import type { ClassificationCorrectionEvent, RaceSnapshot, Standing } from '@f1-live/shared';
 
 /** Where a session's corrections come from; one source per provider or file. */
 export interface CorrectionSource {
@@ -12,6 +12,8 @@ export interface CorrectionTarget {
 	endedAt: string;
 	/** The running order the session's own events ended with, for sources that publish the official one. */
 	standings: readonly Standing[];
+	/** The session as its own events left it. */
+	snapshot: RaceSnapshot;
 }
 
 function conflictKey(event: ClassificationCorrectionEvent): string {
