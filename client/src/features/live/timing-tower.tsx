@@ -79,7 +79,11 @@ function Chip({
 
 function GapReading({ row, mode, timed }: { row: StandingRow; mode: GapMode; timed: boolean }) {
 	if (row.out) {
-		return <span className="type-label">{OUT_LABEL[row.out]}</span>;
+		return (
+			<span className="type-label text-danger font-bold" title={row.outReason ?? undefined}>
+				{OUT_LABEL[row.out]}
+			</span>
+		);
 	}
 
 	if (timed) {
@@ -343,11 +347,6 @@ export function TimingTower() {
 												<span className="flex items-center gap-2">
 													<DriverTag driver={row.driver} showName showNumber />
 													{row.state === 'pit' ? <Chip tone="flag">Pit</Chip> : null}
-													{row.out ? (
-														<Chip tone="danger" title={row.outReason ?? undefined}>
-															{OUT_LABEL[row.out]}
-														</Chip>
-													) : null}
 													{penalty && !row.out ? <Chip tone="danger">+{penalty}s</Chip> : null}
 													{pitServes.has(row.driver.number) && !row.out ? (
 														<Chip
