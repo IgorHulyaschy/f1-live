@@ -2,6 +2,7 @@ import type {
 	ChampionshipEvent,
 	ClassificationCorrectionEvent,
 	LapCompletedEvent,
+	MiniSectorEvent,
 	PenaltyEvent,
 	PitExitEvent,
 	PitLaneTimeEvent,
@@ -16,6 +17,7 @@ import { TRACK_STATUSES } from './race.ts';
 import type {
 	ClassificationCorrection,
 	Lap,
+	MiniSectorRecord,
 	RaceSnapshot,
 	Standing,
 	Stint,
@@ -50,7 +52,9 @@ export const EMPTY_SNAPSHOT: RaceSnapshot = {
 	clockLog: [],
 	penalties: [],
 	personalBests: [],
-	corrections: []
+	corrections: [],
+	miniSectors: [],
+	miniSectorLeaders: []
 };
 
 /** Folds one event into the snapshot. Pure: `state` is never changed. */
@@ -127,6 +131,8 @@ export function applyEvent(state: RaceSnapshot, event: RaceEvent): RaceSnapshot 
 					(best) => best.driverNumber === event.best.driverNumber
 				)
 			};
+		case 'mini_sector':
+			return applyMiniSector(state, event);
 		case 'classification_correction':
 			return applyCorrection(state, event);
 		case 'overtake':
@@ -556,6 +562,86 @@ function applyChampionship(state: RaceSnapshot, event: ChampionshipEvent): RaceS
 			)
 		}
 	};
+}
+
+/** When a car's lap began: the line crossing that ended the lap before. */
+function lapStartMs(state: RaceSnapshot, driverNumber: string, lap: number): number | null {
+	const before = state.laps.find(
+		(entry) => entry.driverNumber === driverNumber && entry.lap === lap - 1
+	);
+
+	return before?.completedAt === undefined ? null : Date.parse(before.completedAt);
+}
+
+/**
+ * A pass is timed from the loop before it on the same lap, or for the first mini sector from the
+ * line. A loop the feed missed leaves the next pass untimed rather than doubled.
+ */
+function applyMiniSector(state: RaceSnapshot, event: MiniSectorEvent): RaceSnapshot {
+	const records = state.miniSectors ?? [];
+	const kept = records.find((record) => record.driverNumber === event.driverNumber);
+
+	// A loop from a lap the car has left arrives too late to place.
+	if (kept && (event.lap < kept.lap || (event.lap === kept.lap && event.index <= kept.index))) {
+		return state;
+	}
+
+	const sameLap = kept?.lap === event.lap;
+	const atMs = Date.parse(event.at);
+
+	const fromMs =
+		event.index === 0
+			? lapStartMs(state, event.driverNumber, event.lap)
+			: sameLap && kept.index === event.index - 1
+				? Date.parse(kept.at)
+				: null;
+
+	const ms = fromMs === null || atMs <= fromMs ? null : atMs - fromMs;
+	const bestMs = [...(kept?.bestMs ?? [])];
+	const best = bestMs[event.index] ?? null;
+
+	if (ms !== null && event.mark !== 'pit' && (best === null || ms < best)) {
+		bestMs[event.index] = ms;
+	}
+
+	const record: MiniSectorRecord = {
+		driverNumber: event.driverNumber,
+		lap: event.lap,
+		index: event.index,
+		at: event.at,
+		ms: placed([...(sameLap ? kept.ms : [])], event.index, ms),
+		marks: placed([...(sameLap ? kept.marks : [])], event.index, event.mark),
+		lastMs: sameLap ? kept.lastMs : kept && kept.lap === event.lap - 1 ? kept.ms : [],
+		bestMs: Array.from(bestMs, (value) => value ?? null)
+	};
+
+	const leaders = [...(state.miniSectorLeaders ?? [])];
+
+	if (event.mark === 'fastest') {
+		leaders[event.index] = event.driverNumber;
+	}
+
+	return {
+		...state,
+		miniSectors: upsert(
+			records,
+			record,
+			(existing) => existing.driverNumber === event.driverNumber
+		),
+		miniSectorLeaders: Array.from(leaders, (value) => value ?? null)
+	};
+}
+
+/** `items` with `value` at `index`, and null in any gap before it. */
+function placed<T>(items: (T | null)[], index: number, value: T | null): (T | null)[] {
+	const filled: (T | null)[] = Array.from(
+		{ length: Math.max(items.length, index + 1) },
+		(_, at) => items[at] ?? null
+	);
+
+	filled[index] = value;
+
+	return filled;
 }
 
 function applyCorrection(state: RaceSnapshot, event: ClassificationCorrectionEvent): RaceSnapshot {

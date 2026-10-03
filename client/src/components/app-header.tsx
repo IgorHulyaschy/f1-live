@@ -7,6 +7,7 @@ import {
 	SunIcon
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
+import * as React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router';
 
 import { Key, KeyGroup } from '@/components/console/keys';
@@ -59,11 +60,23 @@ function MainNav() {
 	const navigate = useNavigate();
 	const { pathname } = useLocation();
 	const moreActive = more.some((entry) => entry.path === pathname);
+	const nav = React.useRef<HTMLElement>(null);
+
+	// From a tablet up to a laptop the tabs scroll: the one on screen, or More, is kept in view.
+	React.useEffect(() => {
+		const links = [...(nav.current?.querySelectorAll('a') ?? [])];
+
+		(
+			links.find((link) => link.pathname === pathname) ??
+			nav.current?.querySelector('[data-current]')
+		)?.scrollIntoView({ block: 'nearest', inline: 'center' });
+	}, [pathname]);
 
 	return (
 		<nav
+			ref={nav}
 			aria-label="Main"
-			className="order-last flex w-full flex-wrap items-stretch pb-1 sm:order-none sm:h-full sm:w-auto sm:min-w-0 sm:flex-nowrap sm:overflow-x-auto sm:pb-0 sm:[scrollbar-width:none]"
+			className="order-last flex w-full flex-wrap items-stretch pb-1 sm:order-none sm:h-full sm:w-auto sm:min-w-0 sm:flex-nowrap sm:overflow-x-auto sm:mask-r-from-90% sm:pb-0 sm:[scrollbar-width:none] lg:mask-none"
 		>
 			{tabs.map((entry) => (
 				<NavLink
@@ -94,6 +107,7 @@ function MainNav() {
 								'type-wide relative flex h-8 shrink-0 items-center gap-1 px-1.5 text-xs font-bold whitespace-nowrap transition-colors outline-none focus-visible:underline sm:h-auto sm:px-3.5',
 								moreActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
 							)}
+							data-current={moreActive || undefined}
 						>
 							More
 							<ChevronDownIcon aria-hidden className="size-3.5" />

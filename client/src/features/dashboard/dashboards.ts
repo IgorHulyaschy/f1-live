@@ -21,7 +21,7 @@ export {
 
 import type { Metric } from '../analysis/lap-series.ts';
 
-export const TILE_GROUPS = ['Race', 'Drivers', 'Timing', 'Analysis', 'Strategy'] as const;
+export const TILE_GROUPS = ['Race', 'Drivers', 'Timing', 'Track', 'Analysis', 'Strategy'] as const;
 
 /** Sessions by what they are for: racing, a knockout for the grid, or practice. */
 export type SessionKind = 'race' | 'quali' | 'practice';
@@ -270,6 +270,58 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		size: { w: 9, h: 14 },
 		min: { w: 5, h: 6 },
 		sessions: ['practice']
+	},
+	'track-map': {
+		group: 'Track',
+		title: 'Track map',
+		description:
+			'Every car on the circuit, live or in the replay; follow a driver or colour the sectors.',
+		size: { w: 12, h: 16 },
+		min: { w: 5, h: 8 }
+	},
+	'battle-map': {
+		group: 'Track',
+		title: 'Battle map',
+		description:
+			'Your driver and the cars either side on the circuit: road gaps, closing rate and laps until in range.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 }
+	},
+	'pit-rejoin': {
+		group: 'Track',
+		title: 'Pit rejoin',
+		description:
+			'Where your driver would come out if they boxed now, drawn among the cars, from this circuit’s pit loss.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 },
+		pro: true,
+		sessions: ['race']
+	},
+	dominance: {
+		group: 'Track',
+		title: 'Dominance',
+		description:
+			'The circuit painted by who is quickest in each mini sector, for two or three drivers.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 },
+		pro: true
+	},
+	'flag-map': {
+		group: 'Track',
+		title: 'Flag map',
+		description:
+			'Yellow and double-yellow marshal sectors on the circuit, with the messages that raised them.',
+		size: { w: 12, h: 14 },
+		min: { w: 5, h: 8 }
+	},
+	'speed-map': {
+		group: 'Track',
+		title: 'Speed map',
+		description:
+			'One lap painted by speed, gear, throttle or braking, with top speed and the slowest corners.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 },
+		pro: true
 	}
 };
 
@@ -311,9 +363,6 @@ export function buildDashboard(
  * Ready-made dashboards. Each can be edited; edits are saved over it and can be reset. The first
  * three are the session layouts: `/` opens the one for the session on screen. Each opens with the
  * Replay tile, the session's timeline.
- *
- * Track map slot: when the track map lands (T14), it takes x0 y29 w10 h14 in Race (Stints moving
- * to x10 w14) and x0 y25 w12 h12 in Quali (Best sectors moving to x12 w12).
  */
 export const PRESETS: readonly Dashboard[] = [
 	// Race keeps the Live preset's id, so an edited Live opens as an edited Race.
@@ -322,21 +371,24 @@ export const PRESETS: readonly Dashboard[] = [
 		['timing', 0, 4, 15, 25],
 		['focus', 15, 4, 9, 15],
 		['race-control', 15, 19, 9, 10],
-		['stints', 0, 29, 24, 14]
+		['track-map', 0, 29, 10, 14],
+		['stints', 10, 29, 14, 14]
 	]),
 	buildDashboard('quali', 'Quali', [
 		['timing', 0, 0, 15, 25],
 		['replay', 15, 0, 9, 6],
 		['knockout', 15, 6, 9, 12],
 		['race-control', 15, 18, 9, 7],
-		['sectors', 0, 25, 24, 12]
+		['track-map', 0, 25, 12, 12],
+		['sectors', 12, 25, 12, 12]
 	]),
 	buildDashboard('practice', 'Practice', [
 		['timing', 0, 0, 15, 25],
 		['replay', 15, 0, 9, 6],
 		['long-runs', 15, 6, 9, 10],
 		['race-control', 15, 16, 9, 9],
-		['stints', 0, 25, 24, 14]
+		['track-map', 0, 25, 10, 14],
+		['stints', 10, 25, 14, 14]
 	]),
 	buildDashboard('analysis', 'Analysis', [
 		['replay', 0, 0, 24, 4],
@@ -362,6 +414,15 @@ export const PRESETS: readonly Dashboard[] = [
 		['gaps', 9, 19, 7, 8],
 		['box-now', 16, 19, 8, 8]
 	]),
+	buildDashboard('track', 'Track', [
+		['replay', 0, 0, 24, 4],
+		['track-map', 0, 4, 14, 24],
+		['battle-map', 14, 4, 10, 12],
+		['pit-rejoin', 14, 16, 10, 12],
+		['dominance', 0, 28, 8, 16],
+		['flag-map', 8, 28, 8, 16],
+		['speed-map', 16, 28, 8, 16]
+	]),
 	buildDashboard('drivers', 'Drivers', [
 		['session', 0, 0, 24, 3],
 		['replay', 0, 3, 24, 4],
@@ -373,11 +434,11 @@ export const PRESETS: readonly Dashboard[] = [
 		'wall',
 		'Pit wall',
 		[
-			['timing', 0, 0, 10, 23],
-			['focus', 10, 0, 7, 13],
-			['race-control', 10, 13, 7, 10],
-			['chart', 17, 0, 7, 11, { metric: 'gap' }],
-			['stints', 17, 11, 7, 12]
+			['timing', 0, 0, 8, 23],
+			['track-map', 8, 0, 9, 14],
+			['chart', 8, 14, 9, 9, { metric: 'gap' }],
+			['focus', 17, 0, 7, 13],
+			['race-control', 17, 13, 7, 10]
 		],
 		{ fit: true }
 	),

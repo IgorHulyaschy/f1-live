@@ -121,3 +121,38 @@ on screen. The Conditions tile uses the outline to find the straights for the wi
 the throttled `positions` and `car_data` messages. An `ingest` server sends them on to the relay
 (`POST /ingest/channels`), which gives them to the viewers that subscribed. Without a token neither arrives, and a viewer
 sees `live: false` in the `channels` answer.
+
+## Mini sectors in the snapshot
+
+The timing loops' `TimingData` segments are race events too: the decoder sends a `mini_sector`
+event each time a car leaves a mini sector, with the loop's mark (the session's fastest, the
+driver's best, neither, or the pit lane). The snapshot keeps, per car, the lap in progress, the
+lap before and the best pass through each mini sector (`miniSectors`), and who holds the
+session's fastest time in each (`miniSectorLeaders`). Like the running order they are as of
+now, so a cut of the session drops them. Times between the feed's messages are a tenth or so
+either way; positions, where a session has them, are better. A race adds about 20 000 of these
+events, as many as everything else together.
+
+## In the client
+
+`client/src/features/track` reads it all:
+
+- `use-track.ts` loads the session's `index.json`, the circuit (from the index, or live from
+  `session.circuitKey`, which the decoder now sets) and the replay manifest, once per page; a
+  manifest that failed is asked for again by the next map that opens.
+- `replay-positions.ts` expands chunks into metres and samples every car at any moment, on a
+  Catmull-Rom curve through the 250 ms samples, so cars glide at any frame rate. Chunks load
+  around the moment drawn and a few ahead while playing.
+- `live-positions.ts` buffers the `positions` channel (`docs/product/live-protocol.md`) and
+  draws a second behind the newest frame, and behind the broadcast delay.
+- `estimate.ts` places cars from timing alone when there are no positions: a known lap is driven
+  at the pace of its sectors, with the pit lane at the end of an in-lap and the start of an
+  out-lap; a lap in progress runs on from the last mini sector at the pace the car did it last
+  time, and never past the next loop; before a race starts the cars are on the grid.
+- `client/src/insights/pit-window.ts` measures the circuit's pit loss on the session's green-flag stops so
+  far (in-lap and out-lap against the laps around them), for Box now, the tower's ghost row and
+  the pit rejoin map; before anyone stops it assumes a typical 22.9 s.
+- `dominance.ts` times each mini sector on a lap from its telemetry, at `miniSectorStartsM`.
+- `drs-zones.ts` finds 2025 DRS zones where cars within a second of the one ahead opened the flap.
+
+The e2e fixture keeps only what its tests open (`client/e2e/real/derive-telemetry.ts`).

@@ -34,9 +34,10 @@ test('the timeline jumps to the next pit stop and to the safety car period', asy
 	await replay.getByTestId('timeline-event-16').click();
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 16/50');
 
+	// 60× by default, then 1× and 10×.
 	await replay.getByTestId('speed').click();
 	await replay.getByTestId('speed').click();
-	await expect(replay.getByTestId('speed')).toHaveText('4×');
+	await expect(replay.getByTestId('speed')).toHaveText('10×');
 });
 
 test('the telemetry tile draws the real race’s laps on the modelled replay', async ({ page }) => {

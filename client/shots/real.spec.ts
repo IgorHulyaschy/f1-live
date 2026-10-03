@@ -31,7 +31,11 @@ const PAGES = [
 	{ name: 'strategy-pro', path: '/strategy?session=9858&plan=pro' },
 	{ name: 'race-story', path: '/d/story?session=9858&plan=pro' },
 	{ name: 'story-qualifying', path: '/d/story?session=9854&plan=pro' },
-	{ name: 'analysis-practice', path: '/analysis?session=9852&plan=pro' }
+	{ name: 'analysis-practice', path: '/analysis?session=9852&plan=pro' },
+	{ name: 'track-race', path: '/d/track?session=9858&lap=30&plan=pro' },
+	{ name: 'track-start', path: '/d/track?session=9858&lap=1&plan=pro' },
+	{ name: 'track-qualifying', path: '/d/track?session=11373&plan=pro' },
+	{ name: 'wall-race', path: '/d/wall?session=9858&lap=30' }
 ] as const;
 
 const THEMES = ['dark', 'light'] as const;
@@ -50,7 +54,7 @@ for (const viewport of VIEWPORTS) {
 					}, theme);
 					await page.goto(screen.path);
 					await expect(page.getByTestId('lap-counter')).toBeAttached();
-					// Telemetry loads after the session; wait for it so the charts are drawn.
+					// Telemetry and maps load after the session; wait for them so the charts are drawn.
 					await page.waitForLoadState('networkidle');
 					await page.evaluate(() => document.fonts.ready);
 					await page.waitForTimeout(800);

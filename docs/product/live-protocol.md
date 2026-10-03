@@ -135,7 +135,7 @@ reference for the client.
 
 A reconnecting client sends the `epoch` and `seq` it holds. If the epoch is the current one and
 the server still keeps the events after `seq` (the last `LIVE_LOG_EVENTS`, 100 000 by default,
-about 10 hours of a race), the reply is exactly the missed events (up to 5000; more gets a `state`). Otherwise (another epoch, an
+about 5 hours of racing, mini sectors included), the reply is exactly the missed events (up to 5000; more gets a `state`). Otherwise (another epoch, an
 `epoch` the server does not know, a `seq` older than the log or ahead of the server) the reply is
 a full `state`. A client does not need to tell which case it is in: it handles whichever message
 comes first.

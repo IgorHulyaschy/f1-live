@@ -35,7 +35,7 @@ test('clicking the lap strip jumps to that lap', async ({ page }) => {
 	await page.getByRole('button', { name: 'Go to lap 16' }).click();
 
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 16/50');
-	await expect(page.getByTestId('track-status')).toBeVisible();
+	await expect(page.getByTestId('live-strip').getByTestId('track-status')).toBeVisible();
 });
 
 test('the analysis chart switches metric', async ({ page }) => {

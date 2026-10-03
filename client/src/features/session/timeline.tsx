@@ -4,7 +4,8 @@ import * as React from 'react';
 import { Key, KeyGroup } from '@/components/console/keys';
 import { LapStrip } from '@/components/lap-strip';
 import { DelayControl, LapCounter, Transport } from '@/components/race-clock';
-import { PLAYBACK_SPEEDS, useRaceView } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
+import { nextSpeed } from '@/data/replay-clock';
 import { eventFilterStore } from '@/data/viewer-settings';
 import { sessionMinutes } from '@/insights/qualifying';
 import {
@@ -109,16 +110,17 @@ function EventKeys({ events, compact }: { events: readonly TimelineEvent[]; comp
 	);
 }
 
-/** One key that cycles the playback speed: 1×, 2×, 4×. */
+/** One key that cycles the playback speed, as multiples of real time: 1×, 10×, 60×. */
 function SpeedKey() {
-	const { speed, setSpeed } = useRaceView();
-	const next = PLAYBACK_SPEEDS[(PLAYBACK_SPEEDS.indexOf(speed) + 1) % PLAYBACK_SPEEDS.length] ?? 1;
+	const { speed, setSpeed, live } = useRaceView();
+	const next = nextSpeed(speed);
 
 	return (
 		<Key
 			aria-label={`Playback speed ${speed}×; press for ${next}×`}
 			title="Playback speed"
-			className="w-10 justify-center font-mono"
+			className="w-11 justify-center font-mono"
+			disabled={live.following}
 			onClick={() => setSpeed(next)}
 			data-testid="speed"
 		>

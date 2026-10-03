@@ -8,6 +8,7 @@ import type {
 	ChampionshipStandings,
 	ClassificationCorrection,
 	Driver,
+	MiniSectorMark,
 	Penalty,
 	PersonalBest,
 	PitStop,
@@ -160,6 +161,18 @@ export interface PersonalBestEvent {
 	best: PersonalBest;
 }
 
+/** A car left a mini sector: the timing loop at its end gave the pass a mark. */
+export interface MiniSectorEvent {
+	kind: 'mini_sector';
+	at: string;
+	driverNumber: string;
+	/** The lap the car is running. */
+	lap: number;
+	/** Mini sectors count from the line, from 0, across all three sectors. */
+	index: number;
+	mark: MiniSectorMark;
+}
+
 export interface ClassificationCorrectionEvent {
 	kind: 'classification_correction';
 	at: string;
@@ -210,6 +223,7 @@ export type RaceEvent =
 	| RetirementEvent
 	| PenaltyEvent
 	| PersonalBestEvent
+	| MiniSectorEvent
 	| ClassificationCorrectionEvent
 	| OvertakeEvent
 	| TeamRadioEvent

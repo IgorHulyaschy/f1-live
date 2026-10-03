@@ -22,6 +22,7 @@ const PAGES = [
 	{ name: 'analysis', path: '/analysis' },
 	{ name: 'strategy', path: '/strategy' },
 	{ name: 'battle', path: '/d/battle' },
+	{ name: 'track', path: '/d/track' },
 	{ name: 'wall', path: '/d/wall' },
 	{ name: 'drivers', path: '/d/drivers' },
 	{ name: 'story', path: '/d/story' },

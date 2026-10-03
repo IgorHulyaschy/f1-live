@@ -78,7 +78,7 @@ describe('the top bar', () => {
 		);
 		assert.deepEqual(
 			more.map((entry) => entry.label),
-			['Race', 'Practice', 'Strategy', 'Battle', 'Drivers', 'Pit wall', 'Race story']
+			['Race', 'Practice', 'Strategy', 'Battle', 'Track', 'Drivers', 'Pit wall', 'Race story']
 		);
 	});
 

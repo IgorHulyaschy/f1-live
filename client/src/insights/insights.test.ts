@@ -5,7 +5,7 @@ import { simulateLasVegas2025 } from '../data/mock/simulate-race.ts';
 import { snapshotAtLap } from '../data/snapshot-at-lap.ts';
 import { battleAhead } from './battle.ts';
 import { pitPenalties, timePenalties } from './penalties.ts';
-import { PIT_LOSS_MS, predictRejoin } from './pit-window.ts';
+import { PIT_LOSS_MS, pitLossOf, predictRejoin } from './pit-window.ts';
 import { oneSecondAid } from './rules.ts';
 import { standingsAt } from './standings.ts';
 import { stintPaces, tyreCorrectedPace } from './tyre-pace.ts';
@@ -92,6 +92,14 @@ describe('predictRejoin', () => {
 
 		assert.equal(prediction?.cheapStop, true);
 		assert.equal(prediction?.pitLossMs, PIT_LOSS_MS.neutralised);
+	});
+
+	it('measures the stop on the session’s own green-flag stops once there are some', () => {
+		const snapshot = snapshotAtLap(race, 40);
+		const measured = pitLossOf(snapshot);
+
+		assert.ok(measured.stops > 0);
+		assert.equal(predictRejoin(snapshot, '1')?.pitLossMs, measured.greenMs);
 	});
 
 	it('returns null for a retired driver', () => {

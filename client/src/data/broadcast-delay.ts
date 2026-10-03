@@ -19,8 +19,24 @@ export function recordArrival(history: readonly Arrival[], arrival: Arrival): Ar
 	return [...history.slice(Math.max(firstKept, 0)), arrival];
 }
 
-/** The newest moment a snapshot knows about, by the feed's own clock. */
+const feedTimes = new WeakMap<RaceSnapshot, number | null>();
+
+/** The newest moment a snapshot knows about, by the feed's own clock; worked out once per snapshot. */
 export function feedTimeOf(snapshot: RaceSnapshot): number | null {
+	const known = feedTimes.get(snapshot);
+
+	if (known !== undefined) {
+		return known;
+	}
+
+	const time = newestTime(snapshot);
+
+	feedTimes.set(snapshot, time);
+
+	return time;
+}
+
+function newestTime(snapshot: RaceSnapshot): number | null {
 	const times = [
 		...snapshot.laps.map((lap) => lap.completedAt),
 		...(snapshot.trackStatusLog ?? []).map((change) => change.at),
@@ -78,4 +94,21 @@ export function delayedSnapshot(
 	const cut = anchor - (first.receivedAt - target);
 
 	return cutOnce(first.snapshot, Math.floor(cut / 1000) * 1000);
+}
+
+/**
+ * The feed's clock at `now` for a screen `delayMs` behind, to draw between its messages. A live
+ * feed's clock is the wall clock; a replay's is its own, so it is read off the state on screen:
+ * the newest moment that state knows, run on since it arrived.
+ */
+export function feedClock(history: readonly Arrival[], now: number, delayMs: number): number {
+	const target = now - delayMs;
+	const shown = history.findLast((entry) => entry.receivedAt <= target) ?? history[0];
+	const feedTime = shown ? feedTimeOf(shown.snapshot) : null;
+
+	if (!shown || feedTime === null || Math.abs(shown.receivedAt - feedTime) < SAME_CLOCK_MS) {
+		return target;
+	}
+
+	return feedTime + (target - shown.receivedAt);
 }

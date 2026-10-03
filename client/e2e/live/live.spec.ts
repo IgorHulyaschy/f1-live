@@ -9,6 +9,20 @@ test.describe('a live race', () => {
 	// starts about 23 s after the replay does, and the session ends 32 s later.
 	replaying('2025-las-vegas-race', 150);
 
+	test('without car positions estimates the map from timing, and says why', async ({ page }) => {
+		await openRace(page, '/d/track');
+
+		await expect(page.getByTestId('live-key')).toHaveText('Live');
+
+		const map = page.getByTestId('track-map');
+
+		await expect(map.getByText('Estimated', { exact: true })).toBeVisible();
+		await expect(map.getByTestId('map-note')).toContainText(
+			'live car positions need an F1 TV login'
+		);
+		await expect(map.getByTestId('map-car-list').getByRole('listitem')).not.toHaveCount(0);
+	});
+
 	test('updates the tower, steps back and returns, and runs behind with a delay', async ({
 		page,
 		browser

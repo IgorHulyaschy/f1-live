@@ -7,7 +7,7 @@ test('presets open as tabs and render their tiles in a grid', async ({ page }) =
 
 	await expect(page.getByTestId('dashboard-grid')).toBeVisible();
 	await expect(page.getByTestId('tile-timing')).toBeVisible();
-	await expect(page.getByTestId('tile-stints')).toBeVisible();
+	await expect(page.getByTestId('tile-track-map')).toBeVisible();
 	await expect(page.getByTestId('chart-gap')).toBeVisible();
 });
 

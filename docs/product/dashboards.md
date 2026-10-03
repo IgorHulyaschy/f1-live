@@ -36,7 +36,7 @@ zone on a second.
 The Replay tile is the session's timeline, at the top of every ready-made dashboard:
 
 - **Play, speed and steps.** Previous and next lap (or minute), play and pause, and one key that
-  cycles the speed: 1×, 2×, 4×.
+  cycles the speed in multiples of real time: 1×, 10×, 60× (the default).
 - **Events.** The start (each part's start in qualifying), each flag as it comes out, the lead
   and fastest laps, passes made on track, stops, penalties and cars out, as markers over the
   barcode in their own colours. Hover one for what happened; click it to go there. The event keys
@@ -58,11 +58,11 @@ and sprints), Quali (qualifying and sprint qualifying) or Practice. Opening the 
 session runs lands on it; when a session goes live with nothing in the address, the screen moves
 to it and its layout.
 
-| Layout   | For                        | Tiles                                                                   |
-| -------- | -------------------------- | ----------------------------------------------------------------------- |
-| Race     | The order and the strategy | Replay, Timing, Focus, Race control, Stints                             |
-| Quali    | Who is through, who is out | Timing with the cut lines, Replay, Knockout, Race control, Best sectors |
-| Practice | Pace, race runs and tyres  | Timing, Replay, Long runs, Race control, Stints                         |
+| Layout   | For                        | Tiles                                                                              |
+| -------- | -------------------------- | ---------------------------------------------------------------------------------- |
+| Race     | The order and the strategy | Replay, Timing, Focus, Race control, Track map, Stints                             |
+| Quali    | Who is through, who is out | Timing with the cut lines, Replay, Knockout, Race control, Track map, Best sectors |
+| Practice | Pace, race runs and tyres  | Timing, Replay, Long runs, Race control, Track map, Stints                         |
 
 - **Tiles for another kind of session** are left out of the session layouts. On the viewer's
   own dashboards and the other ready-made ones they shrink to one line saying what they are
@@ -75,27 +75,27 @@ to it and its layout.
   (it holds tiles that mean nothing in this one), a line offers "Switch to the Quali layout", Not
   now, or Don't ask again. The answer is saved on that dashboard (`sessionOffer: false`), so it
   syncs with the account like the rest of it.
-- **Track map slot.** The track map (T14) has its place kept in the Race and Quali layouts; see
-  the comment above `PRESETS` in `client/src/features/dashboard/dashboards.ts`.
+- **The track map** sits under the timing in all three layouts, beside Stints or Best sectors.
 
 ## What ships by default
 
 | Ready-made | For                      | Tiles                                                                           |
 | ---------- | ------------------------ | ------------------------------------------------------------------------------- |
-| Race       | Race day on one screen   | Replay, Timing, Focus, Race control, Stints                                     |
-| Quali      | Qualifying on one screen | Timing, Replay, Knockout, Race control, Best sectors                            |
-| Practice   | Practice on one screen   | Timing, Replay, Long runs, Race control, Stints                                 |
+| Race       | Race day on one screen   | Replay, Timing, Focus, Race control, Track map, Stints                          |
+| Quali      | Qualifying on one screen | Timing, Replay, Knockout, Race control, Track map, Best sectors                 |
+| Practice   | Practice on one screen   | Timing, Replay, Long runs, Race control, Track map, Stints                      |
 | Analysis   | Lap charts               | Replay, Compare, Chart, Telemetry, True pace, Fastest laps                      |
 | Strategy   | Tyres and stops          | Replay, Stints, Tyre wear, Pit stops, Undercut ledger, Stop cost, Pit crews     |
 | Battle     | Your driver's fight      | Replay, Timing, Battle chart, Gaps, Box now                                     |
+| Track      | The race on the circuit  | Replay, the six Track tiles                                                     |
 | Drivers    | Faces and cars           | Session, Replay, Grid, Driver, Positions chart                                  |
-| Pit wall   | A TV or a second monitor | Timing, Focus, Race control, Gap chart, Stints; fit to screen                   |
+| Pit wall   | A TV or a second monitor | Timing, Track map, Gap chart, Focus, Race control; fit to screen                |
 | Race story | What happened, and why   | Session, Replay, Story, Positions chart, Championship, Race control, Conditions |
 
 Viewers can edit any of them; Reset puts it back as shipped. Race keeps the id the Live preset
-had (`live`), so an edited Live opens as an edited Race. There are 28 tiles in 5 groups (Race,
-Drivers, Timing, Analysis, Strategy). Five of them are Pro: Box now, True pace, Tyre wear,
-Undercut ledger and Conditions.
+had (`live`), so an edited Live opens as an edited Race. There are 34 tiles in 6 groups (Race,
+Drivers, Timing, Track, Analysis, Strategy). Eight of them are Pro: Box now, True pace, Tyre wear,
+Undercut ledger, Conditions, Pit rejoin, Dominance and Speed map.
 
 The three tiles the session layouts added:
 
@@ -110,6 +110,33 @@ The three tiles the session layouts added:
 The timing tower in qualifying shows the gap to the top of the part by default, a To cut column
 while a part runs, the drop zone's places in red, and a mark on each car that moved up in the
 last minute.
+
+## Track tiles
+
+Maps of the circuit, from the session's telemetry (`docs/product/telemetry.md`):
+
+| Tile       | Shows                                                                                                  | Plan |
+| ---------- | ------------------------------------------------------------------------------------------------------ | ---- |
+| Track map  | Every car, the followed one emphasised; whole circuit or follow camera; sector colours; 2025 DRS zones | Free |
+| Battle map | The followed driver and the cars either side: road gaps, pace difference, laps until in range          | Free |
+| Flag map   | Yellow and double-yellow marshal sectors with the messages that raised them                            | Free |
+| Pit rejoin | Races: a ghost where the followed car would rejoin if it boxed now, from the measured pit loss         | Pro  |
+| Dominance  | The circuit painted by the quickest of two or three drivers in each mini sector                        | Pro  |
+| Speed map  | One lap painted by speed, gear, throttle or braking, with top speed and slow corners                   | Pro  |
+
+Where the cars come from, in order: the replay's position chunks; live, the feed's positions
+channel; otherwise an estimate from lap and sector times and the timing loops' mini sectors,
+labelled "Estimated". The live feed sends positions only with an F1 TV login on the server
+(`F1TV_TOKEN`), and a live map says so. The replay clock runs between laps at 1×, 10× or 60×
+(the default, about a lap a second and a half); the first lap starts at the start signal.
+
+What is approximate, and says so on screen:
+
+- Marshal sectors are laid out as equal shares of the lap: the feed names them but not where
+  they are, so a flag's place is a guess.
+- Mini-sector times measured between the timing loops' messages are a tenth or so either way;
+  dominance uses car positions where the session has them, and the loops' own purple holders.
+- 2026 cars have no DRS; their straight-mode zones are not in the data, so the map shows none.
 
 ## Insights
 
@@ -196,6 +223,12 @@ Free, saving a fourth dashboard of your own answers `403 dashboard_limit`, and t
 upgrade prompt. Pro comes from the account's subscription, bought through the payment provider.
 The Free/Pro keys in the top bar stay as a preview of Pro tiles for anyone not on Pro; they do not
 lift the dashboard limit. Prices live with the payment provider; none are set here.
+
+**Proposal for the owner, Track tiles.** The map is free, as are the battle map and the flag map:
+they are what a fan expects to see and the best reason to open the app on race day. The deeper
+reads are Pro: pit rejoin (it extends Box now, already Pro), mini-sector dominance and the speed
+map (the analysis fans compare paid products on). Each is one `pro` flag in `TILE_INFO`
+(`client/src/features/dashboard/dashboards.ts`) to move.
 
 ## Pictures
 

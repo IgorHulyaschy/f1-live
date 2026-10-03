@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { PRESET_IDS } from '@f1-live/shared/dashboard';
+import { PRESET_IDS, sameDashboard } from '@f1-live/shared/dashboard';
 
 import { arrangeTile } from './arrange.ts';
 import {
@@ -120,6 +120,23 @@ describe('parsing', () => {
 		assert.equal(parseDashboardText('not json'), null);
 		assert.equal(parseDashboardText('{"name": 3}'), null);
 		assert.deepEqual(parseDashboardListText('{"broken"'), []);
+	});
+
+	it('keeps a map tile’s settings, and counts a change to them as an edit', () => {
+		const track = PRESETS.find((preset) => preset.id === 'track');
+
+		assert.ok(track);
+
+		const following = {
+			...track,
+			tiles: track.tiles.map((tile) =>
+				tile.kind === 'track-map' ? { ...tile, settings: { camera: 'follow' as const } } : tile
+			)
+		};
+
+		assert.deepEqual(parseDashboardText(JSON.stringify(following)), following);
+		assert.equal(sameDashboard(track, following), false);
+		assert.equal(sameDashboard(following, structuredClone(following)), true);
 	});
 });
 

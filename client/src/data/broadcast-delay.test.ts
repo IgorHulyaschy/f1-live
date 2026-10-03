@@ -6,6 +6,7 @@ import { EMPTY_SNAPSHOT, type Lap, type RaceSnapshot } from '@f1-live/shared';
 import {
 	type Arrival,
 	delayedSnapshot,
+	feedClock,
 	feedTimeOf,
 	MAX_DELAY_SECONDS,
 	recordArrival
@@ -74,5 +75,19 @@ describe('broadcast delay', () => {
 		assert.equal(stepDelay(0.2, 0.1), 0.3);
 		assert.equal(stepDelay(0.3, -1), 0);
 		assert.equal(stepDelay(MAX_DELAY_SECONDS, 1), MAX_DELAY_SECONDS);
+	});
+
+	it('runs a replay on its own clock and a live feed on the wall clock', () => {
+		const replayed: Arrival = { receivedAt: FEED_START + 400 * 86_400_000, snapshot: withLaps(3) };
+
+		assert.equal(feedClock([replayed], replayed.receivedAt + 1500, 0), FEED_START + 270_000 + 1500);
+		assert.equal(
+			feedClock([replayed], replayed.receivedAt + 1500, 1000),
+			FEED_START + 270_000 + 500
+		);
+
+		const live: Arrival = { receivedAt: FEED_START + 271_000, snapshot: withLaps(3) };
+
+		assert.equal(feedClock([live], live.receivedAt + 2000, 1000), live.receivedAt + 1000);
 	});
 });

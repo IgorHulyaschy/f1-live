@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { isKnockout } from '../insights/qualifying.ts';
 import { type Catalog, catalogSchema } from './catalog.ts';
+import { apiMapTelemetry, type MapTelemetry, mockMapTelemetry } from './map-telemetry.ts';
 import {
 	createTelemetrySource,
 	lazyTelemetrySource,
@@ -27,6 +28,8 @@ export type RaceSource = {
 	liveUrl: string | null;
 	/** Saved sessions' telemetry, or null when the source has none. */
 	telemetry: TelemetrySource | null;
+	/** Circuits and replay positions for the track maps (docs/product/telemetry.md). */
+	maps: MapTelemetry;
 };
 
 /** The archive key of the 2025 Las Vegas race, which the mock replays. */
@@ -138,7 +141,8 @@ export function createRaceSource(
 			loadCatalog: () => fetchCatalog(urls.apiUrl),
 			loadSession: (key) => fetchSnapshot(urls.apiUrl, key),
 			liveUrl: urls.liveUrl,
-			telemetry: createTelemetrySource(urls.apiUrl)
+			telemetry: createTelemetrySource(urls.apiUrl),
+			maps: apiMapTelemetry(urls.apiUrl)
 		};
 	}
 
@@ -156,7 +160,8 @@ export function createRaceSource(
 		liveUrl: null,
 		telemetry: lazyTelemetrySource(async () =>
 			(await import('./mock/sample-telemetry.ts')).createSampleTelemetrySource()
-		)
+		),
+		maps: mockMapTelemetry(MOCK_SESSION_KEY)
 	};
 }
 

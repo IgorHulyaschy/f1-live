@@ -23,18 +23,23 @@ replay keys and lap strip move and resize like timing or a chart.
 - **Session-aware.** `/` opens the layout for the session on screen: Race, Quali or Practice,
   named in the first tab. A live strip under the top bar says on every page whether a session is
   live, which part, the time left, the flag and who is in the drop zone, or what starts next.
-- **One timeline.** The Replay tile plays at three speeds, jumps between events (flags, stops,
-  your driver's moments) with Shift and the arrows, and scrubs along the race barcode.
+- **One timeline.** The Replay tile plays at 1×, 10× and 60× real time, jumps between events
+  (flags, stops, your driver's moments) with Shift and the arrows, and scrubs along the race
+  barcode. Track maps move smoothly between laps.
 - **Ready-made.** The three session layouts, Analysis and Strategy (at `/analysis`,
-  `/strategy`), Battle, Drivers, Race story and Pit wall; the ones a session does not need wait
-  under More. Edit any of them and Reset brings it back; **+** starts your own.
-- **28 tiles in 5 groups.** Race (session, replay, lap strip, story, weather, race control),
-  Drivers (focus, driver, grid), Timing (with knockout and best sectors), Analysis (charts,
+  `/strategy`), Battle, Track, Drivers, Race story and Pit wall; the ones a session does not need
+  wait under More. Edit any of them and Reset brings it back; **+** starts your own.
+- **34 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
+  Drivers (focus, driver, grid), Timing (with knockout and best sectors), Track (track map,
+  battle map, pit rejoin, mini-sector dominance, flag map, speed map), Analysis (charts,
   telemetry traces, long runs, championship, conditions) and Strategy (stints, tyre wear, stops,
   undercut ledger, stop cost, pit crews). Tiles for another kind of session shrink to one line.
   Drag by the bar, resize from the edges, or use the keyboard: focus a grip, arrows move, Shift
   and arrows resize. Edit mode bars sit in
   the gaps, so a dashboard looks the same while you build it.
+- **Maps.** Every car on the circuit, smooth at the display's refresh rate: from the replay's
+  car positions, the live feed's positions channel, or estimated from timing when there are
+  none.
 - **Any monitor.** Panels lay out by their tile's width (container queries). **Fit** stretches
   rows to the window height; text size runs from S to TV; narrow screens stack tiles.
 - **Windows.** Pop out a tile or a dashboard; lap, driver, plan, compared drivers and play/pause
