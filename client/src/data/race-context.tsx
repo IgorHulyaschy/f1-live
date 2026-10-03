@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router';
 import { z } from 'zod';
 
 import { useStableValue } from '../hooks/use-stable-value.ts';
+import { entryState } from '../lib/history-entry.ts';
 import { createLocalStore } from '../lib/local-store.ts';
 import { type Catalog, defaultSessionKey, findSession, type SessionEntry } from './catalog.ts';
 import { delayedSnapshot, feedClock } from './broadcast-delay.ts';
@@ -22,7 +23,13 @@ import { snapshotAtLap } from './snapshot-at-lap.ts';
 import { minuteTime, sessionClock, snapshotAtTime } from './snapshot-at-time.ts';
 import { ReplayClock, type ReplaySpeed, replaySpeedStore } from './replay-clock.ts';
 import { type ReplayTimeline, replayTimeline, stepAt, stepTime } from './session-time.ts';
-import { delayStore, revealedStore, spoilerFreeStore } from './viewer-settings.ts';
+import { resultsHidden as sessionHidden, spoilerSafeStep } from './spoilers.ts';
+import {
+	delayStore,
+	revealSession,
+	setSpoilerProtection,
+	useSpoilerSettings
+} from './viewer-settings.ts';
 
 export type Plan = 'free' | 'pro';
 
@@ -45,11 +52,16 @@ type LiveView = {
 };
 
 type Spoilers = {
-	/** The viewer's setting: open sessions at the start and hide results. */
-	free: boolean;
-	setFree: (free: boolean) => void;
+	/** The viewer's setting: open finished sessions at the start and hide their results. */
+	protect: boolean;
+	setProtect: (protect: boolean) => void;
 	/** Results of the session on screen are hidden now. */
 	hidden: boolean;
+	/**
+	 * What lies past the replay position stays hidden: results are hidden, or the viewer stepped
+	 * back from a live session.
+	 */
+	hidesAhead: boolean;
 	/** Shows this session's results: its end, or live. */
 	reveal: () => void;
 };
@@ -425,13 +437,6 @@ function useSessionKey(
 
 type ShownRace = { key: string; race: RaceSnapshot; fromFeed: boolean };
 
-/** The lap the URL asks for, clamped to the laps available, or the default. */
-function resolveLap(raw: string | null, maxLap: number, defaultLap: number): number {
-	const requested = Number(raw);
-
-	return Number.isInteger(requested) && requested > 0 ? Math.min(requested, maxLap) : defaultLap;
-}
-
 /**
  * Race data plus the viewer's choices. Session, lap, plan and followed driver live in the URL so
  * every view is linkable, and tests and screenshots can open an exact state.
@@ -478,7 +483,7 @@ export function RaceProvider({
 
 					return params;
 				},
-				{ replace: true }
+				{ replace: true, state: entryState() }
 			);
 		}
 
@@ -552,7 +557,7 @@ export function RaceProvider({
 
 					return params;
 				},
-				{ replace: true }
+				{ replace: true, state: entryState() }
 			);
 		},
 		[setSearchParams]
@@ -586,28 +591,58 @@ export function RaceProvider({
 	const timed = race !== null && isTimedSession(race.session.type);
 	const clock = React.useMemo(() => (race && timed ? sessionClock(race) : null), [race, timed]);
 	const maxLap = clock ? clock.minutes : (race?.currentLap ?? 1);
-	const spoilerFree = spoilerFreeStore.useValue();
-	const revealed = revealedStore.useValue();
-	const resultsHidden = spoilerFree && shown !== null && !revealed.includes(shown.key);
-	const following = isLive && !searchParams.has('lap') && !resultsHidden;
-	const defaultLap = resultsHidden ? 1 : source.kind === 'mock' ? DEFAULT_REPLAY_LAP : maxLap;
-	const lap = following ? maxLap : resolveLap(searchParams.get('lap'), maxLap, defaultLap);
-
+	const spoilerSettings = useSpoilerSettings();
+	const following = isLive && !searchParams.has('lap');
 	const shownKey = shown?.key ?? null;
+	// A session followed live up to its end stays revealed, even before the reveal is saved.
+	// Stepping back from live unmarks it: a viewer rewatching from the start has not seen the end.
+	const [watchedLive, setWatchedLive] = React.useState<string | null>(null);
+	const watching = isLive ? (following ? shownKey : null) : watchedLive;
 
-	// Seeing the latest state shows results, so in spoiler-free mode it reveals the session.
+	if (watching !== watchedLive) {
+		setWatchedLive(watching);
+	}
+
+	const resultsHidden =
+		shownKey !== null &&
+		sessionHidden(spoilerSettings, shownKey, isLive || watchedLive === shownKey);
+
+	const revealedLap = source.kind === 'mock' ? DEFAULT_REPLAY_LAP : maxLap;
+
+	const openAt = React.useCallback(
+		(raw: string | null) =>
+			spoilerSafeStep({
+				requested: raw,
+				hidden: resultsHidden,
+				lastStep: maxLap,
+				revealedStep: revealedLap
+			}),
+		[resultsHidden, maxLap, revealedLap]
+	);
+
+	const lap = following ? maxLap : openAt(searchParams.get('lap'));
+	const liveWatchedToEnd = Boolean(shown?.fromFeed && !isLive && watchedLive === shownKey);
+	const replayedToEnd = resultsHidden && race !== null && race.laps.length > 0 && lap >= maxLap;
+
+	// Seeing the end of a session, live or replayed, reveals it.
+	React.useEffect(() => {
+		if (shownKey !== null && (liveWatchedToEnd || replayedToEnd)) {
+			revealSession(shownKey);
+		}
+	}, [shownKey, liveWatchedToEnd, replayedToEnd]);
+
+	// Seeing the latest state shows results, so it reveals the session.
 	const reveal = React.useCallback(() => {
 		if (shownKey !== null) {
-			revealedStore.set(
-				[...revealedStore.get().filter((revealedKey) => revealedKey !== shownKey), shownKey].slice(
-					-50
-				)
-			);
+			revealSession(shownKey);
 		}
 
 		setLocalPlaying(false);
-		updateParams((params) => params.delete('lap'));
-	}, [shownKey, updateParams]);
+		// The finish is where a revealed session opens, except on the modelled replay.
+		updateParams((params) =>
+			revealedLap >= maxLap ? params.delete('lap') : params.set('lap', String(maxLap))
+		);
+	}, [shownKey, updateParams, revealedLap, maxLap]);
 
 	const backToLive = React.useCallback(() => {
 		reveal();
@@ -621,17 +656,17 @@ export function RaceProvider({
 			const raw = new URLSearchParams(window.location.search).get('lap');
 
 			// Following live already shows the newest lap; only stepping back leaves it.
-			if (isLive && raw === null && !resultsHidden && delta > 0) {
+			if (isLive && raw === null && delta > 0) {
 				return;
 			}
 
-			const current = resolveLap(raw, maxLap, defaultLap);
+			const current = openAt(raw);
 			const next = Math.min(Math.max(current + delta, 1), maxLap);
 
 			updateParam('lap', String(next));
 			broadcast({ lap: next });
 		},
-		[updateParam, maxLap, defaultLap, broadcast, isLive, resultsHidden]
+		[updateParam, maxLap, openAt, broadcast, isLive]
 	);
 
 	// Playback stops by itself at the last available lap; on a live session it rejoins live there.
@@ -664,11 +699,7 @@ export function RaceProvider({
 
 		const timer = window.setTimeout(
 			() => {
-				const onScreen = resolveLap(
-					new URLSearchParams(window.location.search).get('lap'),
-					maxLap,
-					defaultLap
-				);
+				const onScreen = openAt(new URLSearchParams(window.location.search).get('lap'));
 
 				if (isLive && onScreen + 1 >= maxLap) {
 					backToLive();
@@ -690,7 +721,7 @@ export function RaceProvider({
 		stepLap,
 		isLive,
 		maxLap,
-		defaultLap,
+		openAt,
 		backToLive
 	]);
 
@@ -756,8 +787,14 @@ export function RaceProvider({
 	);
 
 	const spoilers = React.useMemo<Spoilers>(
-		() => ({ free: spoilerFree, setFree: spoilerFreeStore.set, hidden: resultsHidden, reveal }),
-		[spoilerFree, resultsHidden, reveal]
+		() => ({
+			protect: spoilerSettings.protect,
+			setProtect: setSpoilerProtection,
+			hidden: resultsHidden,
+			hidesAhead: resultsHidden || (isLive && !following),
+			reveal
+		}),
+		[spoilerSettings.protect, resultsHidden, isLive, following, reveal]
 	);
 
 	const catalogValue = catalog.status === 'ready' ? catalog.value : null;
@@ -863,6 +900,16 @@ export function RaceProvider({
 			<RaceViewContext.Provider value={view}>{children}</RaceViewContext.Provider>
 		</RaceContext.Provider>
 	);
+}
+
+/**
+ * The session as far as the viewer may see it: up to the replay position while what lies ahead
+ * is hidden, the whole of it otherwise, so a replay can jump ahead.
+ */
+export function useVisibleRace(): RaceSnapshot {
+	const { race, snapshot, spoilers } = useRaceView();
+
+	return spoilers.hidesAhead ? snapshot : race;
 }
 
 /**

@@ -77,7 +77,7 @@ function isTimed(lap: Lap, timedSession: boolean): boolean {
 }
 
 /** Laps whose time the stewards deleted and have not given back, as far as the messages go. */
-function deletedLaps(snapshot: RaceSnapshot): Set<Lap> {
+export function deletedLaps(snapshot: RaceSnapshot): Set<Lap> {
 	const deleted = new Set<Lap>();
 
 	for (const { driverNumber, lapTimeRuling } of snapshot.raceControl) {

@@ -26,6 +26,13 @@ replay keys and lap strip move and resize like timing or a chart.
 - **One timeline.** The Replay tile plays at 1×, 10× and 60× real time, jumps between events
   (flags, stops, your driver's moments) with Shift and the arrows, and scrubs along the race
   barcode. Track maps move smoothly between laps.
+- **No spoilers.** A finished session you have not seen opens at its start, paused, with Play
+  and a separate Jump to the finish; nothing else on screen gives the result away. Watching to
+  the end reveals it, on every device you are signed in on. Live stays live.
+- **Drill down.** Click a driver anywhere (timing, the map, charts, knockout, race control) for
+  their session in a side sheet: every lap with its sectors, tyres, gaps and rulings, qualifying
+  runs, stints, best sectors and telemetry. Click a lap for its traces against anyone's lap, or
+  compare two drivers. Each view has its own address; Back and Escape close it.
 - **Ready-made.** The three session layouts, Analysis and Strategy (at `/analysis`,
   `/strategy`), Battle, Track, Drivers, Race story and Pit wall; the ones a session does not need
   wait under More. Edit any of them and Reset brings it back; **+** starts your own.
@@ -107,8 +114,8 @@ modelled and calibrated to the real gaps.
 With `VITE_DATA_SOURCE=api` the client reads `catalog.json` and saved sessions from
 `VITE_API_URL` and follows `WS /live` at `VITE_WS_URL`. The Session tile and ⌘K pick any
 season, meeting and session (`?session=<key>` links to one); opening the app during a live
-session goes to it. Live sessions can run behind the feed by a broadcast delay, and spoiler-free
-mode opens sessions at the start with results hidden.
+session goes to it. Live sessions can run behind the feed by a broadcast delay. How people move
+through all of it, live, catching up and digging in: [docs/product/flows.md](docs/product/flows.md).
 
 ## Run the production build locally
 

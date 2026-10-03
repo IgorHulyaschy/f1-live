@@ -17,9 +17,11 @@ import { AccountFooterKey, AccountSession } from '@/features/account/account-men
 import { useAccountPlan } from '@/features/account/account-store';
 import { CompareProvider } from '@/features/analysis/compare-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
+import { DrillSheet } from '@/features/drill/drill-sheet';
 import type { RaceSource } from '@/data/race-source';
 import { useRaceAlerts } from '@/hooks/use-race-alerts';
 import { useRaceHotkeys } from '@/hooks/use-race-hotkeys';
+import { useViewTitle } from '@/hooks/use-view-title';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 import { ConsentBanner, usePageViews } from '@/platform/consent';
 import { InstallBanner, InstallKey } from '@/platform/install';
@@ -99,6 +101,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 
 	useRaceHotkeys(openCommand);
 	useRaceAlerts();
+	useViewTitle();
 	useScreenWakeLock(keepAwake && (playing || live.isLive));
 
 	if (bare) {
@@ -189,6 +192,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 							</SiteFooter>
 							<PitBoard />
 							<AccountSession />
+							<DrillSheet />
 						</div>
 					</CompareProvider>
 					<CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />

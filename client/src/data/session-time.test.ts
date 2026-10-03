@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { EMPTY_SNAPSHOT, type Lap, type RaceSnapshot } from '@f1-live/shared';
 
 import { ReplayClock } from './replay-clock.ts';
-import { crossingTimes, replayTimeline, stepAt, stepTime } from './session-time.ts';
+import { crossingTimes, replayTimeline, stepAt, stepShowing, stepTime } from './session-time.ts';
 
 const START = Date.UTC(2025, 10, 23, 4, 4, 8);
 
@@ -105,5 +105,24 @@ describe('ReplayClock', () => {
 		assert.equal(clock.stepped(6900, 1000), 11_000);
 		assert.equal(clock.stepped(5400, 1000), 1000);
 		assert.equal(clock.stepped(4000, 1000), 1000);
+	});
+});
+
+describe('stepShowing', () => {
+	const minutes = { unit: 'minute' as const, times: [0, 60_000, 120_000, 180_000] };
+
+	it('takes a race moment by its lap, within the laps run', () => {
+		const laps = { unit: 'lap' as const, times: [0, 90_000, 180_000] };
+
+		assert.equal(stepShowing(laps, { lap: 2 }), 2);
+		assert.equal(stepShowing(laps, { lap: 9 }), 2);
+	});
+
+	it('takes a timed moment to the minute by whose end it happened', () => {
+		assert.equal(stepShowing(minutes, { lap: 4, at: new Date(90_000).toISOString() }), 2);
+		assert.equal(stepShowing(minutes, { lap: 4, at: new Date(120_000).toISOString() }), 2);
+		assert.equal(stepShowing(minutes, { lap: 1, at: new Date(0).toISOString() }), 1);
+		assert.equal(stepShowing(minutes, { lap: 9, at: new Date(999_000).toISOString() }), 3);
+		assert.equal(stepShowing(minutes, { lap: 1 }), null);
 	});
 });

@@ -39,7 +39,16 @@ const PAGES = [
 	// 2026 Bahrain qualifying: the gap tile in the Quali layout, the gap visuals, the quali charts.
 	{ name: 'quali-bahrain', path: '/?session=11730&plan=pro' },
 	{ name: 'track-bahrain', path: '/d/track?session=11730&plan=pro' },
-	{ name: 'analysis-bahrain', path: '/analysis?session=11730' }
+	{ name: 'analysis-bahrain', path: '/analysis?session=11730' },
+	// Spoiler protection on a finished session the viewer has not seen.
+	{ name: 'spoiler-start-quali', path: '/?session=11373', spoilers: true },
+	{ name: 'spoiler-start-race', path: '/?session=9858', spoilers: true },
+	// The driver, lap and compare views: a sheet over the dashboard, shot as the window shows it.
+	{ name: 'driver-quali', path: '/?session=11373&car=63', sheet: true },
+	{ name: 'driver-race', path: '/?session=9858&car=4&lap=30', sheet: true },
+	{ name: 'lap-quali', path: '/?session=11373&car=63&carLap=26&vs=16', sheet: true },
+	{ name: 'compare-race', path: '/?session=9858&car=1&vs=63', sheet: true },
+	{ name: 'driver-hidden', path: '/?session=11373&car=63', spoilers: true, sheet: true }
 ] as const;
 
 const THEMES = ['dark', 'light'] as const;
@@ -52,10 +61,15 @@ for (const viewport of VIEWPORTS) {
 			for (const theme of THEMES) {
 				test(`${screen.name} ${theme}`, async ({ page }) => {
 					await page.route('https://media.formula1.com/**', (route) => route.abort());
-					await page.addInitScript((chosen) => {
-						window.localStorage.setItem('pitwall-welcomed', 'true');
-						window.localStorage.setItem('pitwall-theme', chosen);
-					}, theme);
+					await page.addInitScript(
+						([chosen, spoilers]) => {
+							window.localStorage.setItem('pitwall-welcomed', 'true');
+							window.localStorage.setItem('pitwall-theme', chosen);
+							// Most audit finished sessions as they ended; the spoiler shots keep protection on.
+							window.localStorage.setItem('pitwall-spoiler-free', String(spoilers));
+						},
+						[theme, 'spoilers' in screen] as const
+					);
 					await page.goto(screen.path);
 					await expect(page.getByTestId('lap-counter')).toBeAttached();
 					// Heavy tiles below the first screen wait to be scrolled to; a print draws them all.
@@ -67,7 +81,7 @@ for (const viewport of VIEWPORTS) {
 
 					await page.screenshot({
 						path: `shots/output/real/${viewport.name}/${screen.name}-${theme}.png`,
-						fullPage: true,
+						fullPage: !('sheet' in screen),
 						animations: 'disabled',
 						style:
 							'body { position: relative; } [data-pit-board] { position: absolute; bottom: 0; }'

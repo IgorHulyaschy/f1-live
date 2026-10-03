@@ -4,7 +4,9 @@ import * as React from 'react';
 
 import { KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
+import { DriverTag } from '@/components/driver-tag';
 import { useRaceView } from '@/data/race-context';
+import { ACTIONABLE, DriverLink, useJumpTo } from '@/features/drill/drill-parts';
 import { isTimedSession } from '@/insights/qualifying';
 import { isAidSwitch } from '@/insights/rules';
 import { cn } from '@/lib/utils';
@@ -106,6 +108,7 @@ function stamp(message: RaceControlMessage, startMs: number | null): string {
 export function RaceControlFeed() {
 	const { snapshot, followedDriver } = useRaceView();
 	const [filter, setFilter] = React.useState<Filter>('all');
+	const jumpTo = useJumpTo();
 
 	const startMs =
 		isTimedSession(snapshot.session.type) && snapshot.startedAt
@@ -130,6 +133,10 @@ export function RaceControlFeed() {
 						{messages.map((message, index) => {
 							const category = categoryOf(message);
 
+							const driver = snapshot.drivers.find(
+								(entry) => entry.number === message.driverNumber
+							);
+
 							// Race control can repeat a message on the same lap. The list is newest first, so
 							// count the older copies below: a new copy then never takes an old one's key.
 							const repeat = messages
@@ -146,15 +153,30 @@ export function RaceControlFeed() {
 									animate={{ opacity: 1, x: 0 }}
 									exit={{ opacity: 0 }}
 									transition={{ duration: 0.2 }}
-									className="grid grid-cols-[2.5rem_3.5rem_minmax(0,1fr)] gap-2 border-b px-4 py-2.5 last:border-b-0"
+									className="flex items-start gap-2 border-b px-4 last:border-b-0"
 								>
-									<span className="text-muted-foreground font-mono text-xs leading-5">
-										{stamp(message, startMs)}
-									</span>
-									<span className={cn('type-label leading-5 font-bold', category.tone)}>
-										{category.code}
-									</span>
-									<span className="text-sm leading-5">{readable(message.message)}</span>
+									<button
+										type="button"
+										onClick={() => jumpTo(message)}
+										aria-label={`${readable(message.message)}: go to ${stamp(message, startMs)}`}
+										className={cn(
+											ACTIONABLE,
+											'-mx-1 grid min-w-0 flex-1 grid-cols-[2.5rem_3.5rem_minmax(0,1fr)] gap-2 px-1 py-2.5 text-left'
+										)}
+									>
+										<span className="text-muted-foreground font-mono text-xs leading-5">
+											{stamp(message, startMs)}
+										</span>
+										<span className={cn('type-label leading-5 font-bold', category.tone)}>
+											{category.code}
+										</span>
+										<span className="text-sm leading-5">{readable(message.message)}</span>
+									</button>
+									{driver ? (
+										<DriverLink driver={driver} className="mt-2 shrink-0">
+											<DriverTag driver={driver} />
+										</DriverLink>
+									) : null}
 								</m.li>
 							);
 						})}

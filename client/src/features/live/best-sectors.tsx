@@ -5,6 +5,7 @@ import { EmptyNote } from '@/components/console/empty-note';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { useRaceView } from '@/data/race-context';
+import { DriverLink } from '@/features/drill/drill-parts';
 import { bestSectors } from '@/insights/sectors';
 import { formatGap, formatLapTime, formatSectorTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -40,7 +41,9 @@ export function BestSectors() {
 									<dd className="flex flex-wrap items-center gap-x-2">
 										{holder ? (
 											<>
-												<DriverTag driver={holder.driver} />
+												<DriverLink driver={holder.driver}>
+													<DriverTag driver={holder.driver} />
+												</DriverLink>
 												<Digits
 													value={formatSectorTime(holder.timeMs)}
 													className="text-fastest text-sm"
@@ -102,7 +105,9 @@ export function BestSectors() {
 									>
 										<td className="text-muted-foreground pl-4 font-mono text-xs">{place + 1}</td>
 										<td>
-											<DriverTag driver={entry.driver} />
+											<DriverLink driver={entry.driver}>
+												<DriverTag driver={entry.driver} />
+											</DriverLink>
 										</td>
 										{SECTORS.map((index) => (
 											<td key={index} className="hidden pr-4 text-right @2xl:table-cell">

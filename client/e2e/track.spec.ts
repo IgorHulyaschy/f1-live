@@ -98,7 +98,9 @@ test('with reduced motion the map steps once a second instead of gliding', async
 	expect(Math.min(...gaps)).toBeGreaterThan(400);
 });
 
-test('a tap on a car follows it, and the camera can follow the driver', async ({ page }) => {
+test('a tap on a car opens their session, and the camera can follow the driver', async ({
+	page
+}) => {
 	await openRace(page, '/d/track?lap=30&driver=1');
 
 	const map = page.getByTestId('track-map');
@@ -106,7 +108,13 @@ test('a tap on a car follows it, and the camera can follow the driver', async ({
 
 	// The list is the map's text alternative; narrow tiles keep it for screen readers and the keyboard.
 	await list.getByRole('button', { name: /RUS/ }).press('Enter');
+	await expect(page).toHaveURL(/car=63/);
+
+	const sheet = page.getByTestId('drill-sheet');
+	await sheet.getByRole('button', { name: 'Follow', exact: true }).click();
 	await expect(page).toHaveURL(/driver=63/);
+	await page.keyboard.press('Escape');
+	await expect(sheet).toHaveCount(0);
 
 	const whole = await picture(map);
 

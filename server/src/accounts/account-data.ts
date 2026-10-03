@@ -1,10 +1,12 @@
 import type { Dashboard } from '@f1-live/shared/dashboard';
+import type { ViewerSettings } from '@f1-live/shared/viewer';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
 
 import { type PaymentProvider, PaymentProviderError } from '../payments/provider.js';
 import type { AccountsDatabase } from './db/database.js';
 import { account, dashboard, deletedAccount, session, user, verification } from './db/schema.js';
 import { isLive, subscriptionsOf } from './entitlements.js';
+import { readViewerSettings } from './viewer-settings.js';
 
 /** Everything the account server holds about a person, minus secrets such as session tokens. */
 export type AccountExport = {
@@ -25,6 +27,8 @@ export type AccountExport = {
 		cancelAtPeriodEnd: boolean;
 	}[];
 	dashboards: { id: string; version: number; updatedAt: string; dashboard: Dashboard }[];
+	/** Spoiler protection and the sessions revealed; null before the first sync. */
+	viewer: ViewerSettings | null;
 };
 
 export async function exportAccount(
@@ -38,14 +42,15 @@ export async function exportAccount(
 		return null;
 	}
 
-	const [links, sessions, subscriptions, dashboards] = await Promise.all([
+	const [links, sessions, subscriptions, dashboards, viewer] = await Promise.all([
 		db.select().from(account).where(eq(account.userId, userId)),
 		db.select().from(session).where(eq(session.userId, userId)),
 		subscriptionsOf(db, userId),
 		db
 			.select()
 			.from(dashboard)
-			.where(and(eq(dashboard.userId, userId), isNotNull(dashboard.document)))
+			.where(and(eq(dashboard.userId, userId), isNotNull(dashboard.document))),
+		readViewerSettings(db, userId)
 	]);
 
 	return {
@@ -85,7 +90,8 @@ export async function exportAccount(
 						}
 					]
 				: []
-		)
+		),
+		viewer
 	};
 }
 

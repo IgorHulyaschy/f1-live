@@ -1,9 +1,14 @@
 import * as React from 'react';
 import { toast } from 'sonner';
 
+import {
+	adoptViewerSettings,
+	readViewerSettings,
+	useSpoilerSettings
+} from '@/data/viewer-settings';
 import { readSavedDashboards, replaceSavedDashboards } from '@/features/dashboard/dashboard-store';
 import { refreshAccount, useAccount } from './account-store';
-import { AccountsError, listDocuments, pushDocument } from './api';
+import { AccountsError, listDocuments, pushDocument, pushViewerSettings } from './api';
 import { useGoPro } from './go-pro';
 import { onLocalEdit, readSyncMeta, useSyncMeta, writeSyncMeta } from './sync-meta';
 import { bindAccount, reconcile, settle, type SyncNotice, type SyncState } from './sync-rules';
@@ -26,7 +31,10 @@ function commit(next: SyncState): void {
 	writeSyncMeta(next.meta);
 }
 
-/** One round: pull, take in other devices' changes, send this device's, apply the answers. */
+/**
+ * One round: pull, take in other devices' changes, send this device's, apply the answers. The
+ * spoiler settings go last, in one request that merges them both ways.
+ */
 async function syncOnce(accountId: string): Promise<SyncNotice[]> {
 	commit({ ...current(), meta: bindAccount(readSyncMeta(), readSavedDashboards(), accountId) });
 
@@ -46,6 +54,12 @@ async function syncOnce(accountId: string): Promise<SyncNotice[]> {
 		if (settled.notice) {
 			notices.push(settled.notice);
 		}
+	}
+
+	try {
+		adoptViewerSettings(await pushViewerSettings(readViewerSettings()));
+	} catch {
+		// The dashboards went through; the settings go out with the next round.
 	}
 
 	return notices;
@@ -85,12 +99,16 @@ function requestSync(accountId: string, report: (notices: SyncNotice[]) => void)
 }
 
 /**
- * Keeps this browser's dashboards and the signed-in account in step: right after sign-in, a
- * moment after each edit, when the window comes back, and every half minute while it is open.
+ * Keeps this browser's dashboards and spoiler settings and the signed-in account in step: right
+ * after sign-in, a moment after each edit or reveal, when the window comes back, and every half
+ * minute while it is open.
  */
 export function useDashboardSync(): void {
 	const account = useAccount();
 	const accountId = account.status === 'signed-in' ? account.me.user.id : null;
+	const spoilerSettings = useSpoilerSettings();
+	const syncRef = React.useRef<(() => void) | null>(null);
+	const sentSettings = React.useRef(spoilerSettings);
 	const goPro = useGoPro();
 	const goProRef = React.useRef(goPro);
 
@@ -124,6 +142,8 @@ export function useDashboardSync(): void {
 		const sync = () => requestSync(accountId, report);
 		let editTimer: number | undefined;
 
+		syncRef.current = sync;
+
 		const offEdit = onLocalEdit(() => {
 			window.clearTimeout(editTimer);
 			editTimer = window.setTimeout(sync, EDIT_DELAY_MS);
@@ -142,6 +162,7 @@ export function useDashboardSync(): void {
 		document.addEventListener('visibilitychange', onVisible);
 
 		return () => {
+			syncRef.current = null;
 			offEdit();
 			window.clearTimeout(editTimer);
 			window.clearInterval(pull);
@@ -149,6 +170,19 @@ export function useDashboardSync(): void {
 			document.removeEventListener('visibilitychange', onVisible);
 		};
 	}, [accountId]);
+
+	// A reveal or a change of protection goes out like a dashboard edit.
+	React.useEffect(() => {
+		if (sentSettings.current === spoilerSettings) {
+			return;
+		}
+
+		sentSettings.current = spoilerSettings;
+
+		const timer = window.setTimeout(() => syncRef.current?.(), EDIT_DELAY_MS);
+
+		return () => window.clearTimeout(timer);
+	}, [spoilerSettings]);
 }
 
 export type SyncStatus = 'local' | 'pending' | 'blocked' | 'synced';

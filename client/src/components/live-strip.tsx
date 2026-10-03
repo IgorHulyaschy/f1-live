@@ -1,5 +1,5 @@
 import type { Driver } from '@f1-live/shared';
-import { ChevronsUpDownIcon, EyeIcon } from 'lucide-react';
+import { ChevronsUpDownIcon, EyeIcon, SkipBackIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Key } from '@/components/console/keys';
@@ -223,7 +223,9 @@ function Elsewhere() {
  * the session on screen is not live, it points to the one that is, or to the next.
  */
 export function LiveStrip() {
-	const { race, snapshot, standings, followedDriver, spoilers, lap, sessionError } = useRace();
+	const { race, snapshot, standings, followedDriver, spoilers, live, lap, setLap, sessionError } =
+		useRace();
+
 	const [picking, setPicking] = React.useState(false);
 	const time = useScreenTime();
 	const now = useNow();
@@ -322,9 +324,19 @@ export function LiveStrip() {
 				<Elsewhere />
 				<StripClock />
 				{spoilers.hidden ? (
-					<Key onClick={spoilers.reveal} title="Spoiler-free: results are hidden">
+					<Key
+						onClick={spoilers.reveal}
+						aria-label="Jump to the finish (shows results)"
+						title="Results are hidden; this shows them"
+					>
 						<EyeIcon aria-hidden />
-						<span className="max-sm:hidden">Show results</span>
+						<span className="max-sm:hidden">Jump to the finish</span>
+					</Key>
+				) : null}
+				{live.isLive && lap > 1 ? (
+					<Key onClick={() => setLap(1)} title="Watch this session from its start">
+						<SkipBackIcon aria-hidden />
+						<span className="max-sm:hidden">From the start</span>
 					</Key>
 				) : null}
 				<Key onClick={() => setPicking(true)} aria-haspopup="dialog" aria-label="Sessions">

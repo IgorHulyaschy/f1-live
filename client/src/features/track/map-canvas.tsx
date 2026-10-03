@@ -2,6 +2,7 @@ import type { Driver, Point, TrackOutline } from '@f1-live/shared';
 import * as React from 'react';
 
 import { useRace } from '@/data/race-context';
+import { useDrill } from '@/features/drill/use-drill';
 
 import type { MapCamera } from './settings';
 import { type DrawFrame, TrackCanvas } from './track-canvas';
@@ -178,7 +179,8 @@ export function MapCanvas({
 	extra?: ExtraDraw;
 	marks?: boolean;
 }) {
-	const { race, snapshot, followedDriver, setFollowedDriver } = useRace();
+	const { race, snapshot, followedDriver } = useRace();
+	const { open } = useDrill();
 
 	const drivers = React.useMemo(
 		() => new Map(race.drivers.map((driver) => [driver.number, driver])),
@@ -353,7 +355,7 @@ export function MapCanvas({
 		}
 
 		if (nearest) {
-			setFollowedDriver(nearest.driverNumber);
+			open({ kind: 'driver', driverNumber: nearest.driverNumber });
 		}
 	};
 

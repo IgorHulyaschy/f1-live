@@ -12,6 +12,7 @@ import {
 	SelectValue
 } from '@/components/ui/select';
 import { useRace } from '@/data/race-context';
+import { DriverLink } from '@/features/drill/drill-parts';
 import { isTimedSession } from '@/insights/qualifying';
 import { OUT_LABEL } from '@/insights/standings';
 import { formatLapTime } from '@/lib/format';
@@ -66,9 +67,11 @@ export function FocusPanel() {
 					{row.out ? OUT_LABEL[row.out] : `P${row.position}`}
 				</span>
 				<div className="flex min-w-0 flex-col justify-center gap-2 px-4 py-3">
-					<span className="type-wide truncate text-lg leading-none font-black">
-						{row.driver.lastName}
-					</span>
+					<DriverLink driver={row.driver} className="self-start">
+						<span className="type-wide truncate text-lg leading-none font-black">
+							{row.driver.lastName}
+						</span>
+					</DriverLink>
 					<span className="type-label truncate">
 						#{row.driver.number} {row.driver.team}
 					</span>
