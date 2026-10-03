@@ -408,6 +408,8 @@ function PositionChart({
 		return null;
 	}
 
+	const lastLap = points.at(-1)?.lap ?? 1;
+
 	return (
 		<Section title="Position" meta="Click a lap to go there" testId="drill-positions">
 			<ChartContainer config={config} className="aspect-auto h-40 w-full cursor-pointer">
@@ -423,7 +425,17 @@ function PositionChart({
 					}}
 				>
 					<CartesianGrid vertical={false} />
-					<XAxis dataKey="lap" tickLine={false} axisLine={false} interval="preserveStartEnd" />
+					<XAxis
+						dataKey="lap"
+						type="number"
+						domain={[1, 'dataMax']}
+						ticks={[
+							1,
+							...Array.from({ length: Math.floor(lastLap / 5) }, (_, index) => (index + 1) * 5)
+						]}
+						tickLine={false}
+						axisLine={false}
+					/>
 					<YAxis
 						reversed
 						width={28}

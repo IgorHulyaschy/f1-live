@@ -77,6 +77,8 @@ skipping the quiet parts.
 
 ![Before: Bahrain qualifying opens at its end, pole on screen](../screenshots/flows/before-quali-at-the-end.png)
 
+![After: Baku qualifying opens at the start of Q1, paused, results hidden; Russell's driver view shows only his laps so far](../screenshots/flows/after-hidden-driver-view.png)
+
 ## C. Deep dive after watching
 
 **Entry.** A driver anywhere: a timing row, a car on the track map, a chart line or legend, a
@@ -109,6 +111,8 @@ session once it is revealed.
 | Chart points, stint bars and race-control messages do not react to clicks, so nothing reads as one. | Points and messages move the replay; stint bars open the driver's stints. |
 
 ![Before: clicking a row only follows the driver](../screenshots/flows/before-row-click.png)
+
+![After: a lap view, Russell's pole lap traced against Leclerc's best](../screenshots/flows/after-lap-view.png)
 
 ## D. Browse history
 
