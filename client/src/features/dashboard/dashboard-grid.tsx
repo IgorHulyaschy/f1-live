@@ -24,7 +24,7 @@ import {
 } from './dashboards';
 import { tilePath } from './paths';
 import { type ArrangeKey, arrangeTile } from './arrange';
-import { TileFillContext } from './tile-fill';
+import { TileFillContext, TileRowsContext } from './tile-fill';
 import { TileContent } from './tiles';
 import { useCarriedSearch } from './use-carried-search';
 
@@ -214,17 +214,19 @@ function TileBody({
 			)}
 		>
 			<TileFillContext value={fill}>
-				<TileContent
-					tile={tile}
-					onSettingsChange={(settings) =>
-						onChange({
-							...dashboard,
-							tiles: dashboard.tiles.map((entry) =>
-								entry.id === tile.id ? { ...entry, settings } : entry
-							)
-						})
-					}
-				/>
+				<TileRowsContext value={dashboard.layout.find((place) => place.i === tile.id)?.h ?? null}>
+					<TileContent
+						tile={tile}
+						onSettingsChange={(settings) =>
+							onChange({
+								...dashboard,
+								tiles: dashboard.tiles.map((entry) =>
+									entry.id === tile.id ? { ...entry, settings } : entry
+								)
+							})
+						}
+					/>
+				</TileRowsContext>
 			</TileFillContext>
 		</div>
 	);

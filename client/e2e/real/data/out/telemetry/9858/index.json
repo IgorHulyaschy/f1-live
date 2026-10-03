@@ -1,0 +1,8 @@
+{
+	"v": 1,
+	"sessionKey": 9858,
+	"circuitKey": "152",
+	"hasCarData": true,
+	"laps": "laps.json.gz",
+	"replay": "replay/index.json"
+}

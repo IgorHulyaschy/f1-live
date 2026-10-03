@@ -121,6 +121,10 @@ function timePenalty(driverNumber: string, lapNumber: number, status: PenaltySta
 	};
 }
 
+function place(points: number, predictedPoints: number) {
+	return { points, position: 1, predictedPoints, predictedPosition: 1 };
+}
+
 function deepFreeze<T>(value: T): T {
 	if (value instanceof Object) {
 		for (const nested of Object.values(value)) {
@@ -383,6 +387,73 @@ describe('applyEvent', () => {
 				[1, 16.8],
 				[2, 16.7]
 			]
+		);
+	});
+
+	it('puts a pass and a radio clip on the lap the car was driving', () => {
+		const snapshot = replay([
+			...started(),
+			standing(90, '1', 1, 0),
+			{ kind: 'overtake', at: at(40), driverNumber: '1', count: 1 },
+			lap(102, '1', 1),
+			{ kind: 'team_radio', at: at(102), driverNumber: '1', path: 'TeamRadio/MAXVER01_1.mp3' },
+			{ kind: 'overtake', at: at(150), driverNumber: '1', count: 2 }
+		]);
+
+		assert.deepEqual(
+			snapshot.overtakes?.map((entry) => [entry.driverNumber, entry.lap, entry.count]),
+			[
+				['1', 1, 1],
+				['1', 2, 2]
+			]
+		);
+		assert.deepEqual(snapshot.teamRadio, [
+			{ driverNumber: '1', lap: 2, at: at(102), path: 'TeamRadio/MAXVER01_1.mp3' }
+		]);
+	});
+
+	it('puts a radio clip after the flag on the last lap', () => {
+		const snapshot = replay([
+			...started(),
+			{ kind: 'race_distance', at: at(0), totalLaps: 1 },
+			standing(90, '1', 1, 0),
+			lap(102, '1', 1),
+			{ kind: 'team_radio', at: at(200), driverNumber: '1', path: 'TeamRadio/MAXVER01_2.mp3' }
+		]);
+
+		assert.equal(snapshot.teamRadio?.[0]?.lap, 1);
+	});
+
+	it('replaces only the championship places that changed', () => {
+		const snapshot = replay([
+			{
+				kind: 'championship',
+				at: at(10),
+				standings: {
+					drivers: [
+						{ driverNumber: '4', ...place(390, 390) },
+						{ driverNumber: '1', ...place(341, 341) }
+					],
+					teams: [{ team: 'McLaren', ...place(756, 756) }]
+				}
+			},
+			{
+				kind: 'championship',
+				at: at(200),
+				standings: { drivers: [{ driverNumber: '1', ...place(341, 366) }], teams: [] }
+			}
+		]);
+
+		assert.deepEqual(
+			snapshot.championship?.drivers.map((entry) => [entry.driverNumber, entry.predictedPoints]),
+			[
+				['4', 390],
+				['1', 366]
+			]
+		);
+		assert.deepEqual(
+			snapshot.championship?.teams.map((entry) => entry.team),
+			['McLaren']
 		);
 	});
 

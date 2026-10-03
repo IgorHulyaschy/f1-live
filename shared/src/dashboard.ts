@@ -27,12 +27,19 @@ export const TILE_KINDS = [
 	'degradation',
 	'pit-stops',
 	'driver',
-	'grid'
+	'grid',
+	'telemetry',
+	'story',
+	'undercut',
+	'pit-cost',
+	'pit-crews',
+	'championship',
+	'conditions'
 ] as const;
 
 export type TileKind = (typeof TILE_KINDS)[number];
 
-export const TILE_METRICS = ['lapTime', 'gap', 'position', 'battle'] as const;
+export const TILE_METRICS = ['lapTime', 'gap', 'position', 'battle', 'versus'] as const;
 
 export type TileSettings = { metric?: (typeof TILE_METRICS)[number] };
 
@@ -51,7 +58,15 @@ export type Dashboard = {
 };
 
 /** Ids of the ready-made dashboards. Saved under one of these, a dashboard is an edited preset. */
-export const PRESET_IDS = ['live', 'analysis', 'strategy', 'battle', 'drivers', 'wall'] as const;
+export const PRESET_IDS = [
+	'live',
+	'analysis',
+	'strategy',
+	'battle',
+	'drivers',
+	'wall',
+	'story'
+] as const;
 
 export function isPresetId(id: string): boolean {
 	return PRESET_IDS.some((preset) => preset === id);

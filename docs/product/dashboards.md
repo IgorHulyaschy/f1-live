@@ -11,17 +11,65 @@ dashboards also sync to the account. The fan library is still a mock, with the s
 
 ## What ships by default
 
-| Ready-made | For                      | Tiles                                                         |
-| ---------- | ------------------------ | ------------------------------------------------------------- |
-| Live       | Race day on one screen   | Session, Replay, Lap strip, Timing, Focus, Race control       |
-| Analysis   | Lap charts               | Lap strip, Replay, Compare, Chart, True pace, Fastest laps    |
-| Strategy   | Tyres and stops          | Lap strip, Replay, Stints, Tyre wear, Pit stops               |
-| Battle     | Your driver's fight      | Lap strip, Replay, Timing, Battle chart, Gaps, Box now        |
-| Drivers    | Faces and cars           | Session, Replay, Grid, Driver, Positions chart                |
-| Pit wall   | A TV or a second monitor | Timing, Focus, Race control, Gap chart, Stints; fit to screen |
+| Ready-made | For                      | Tiles                                                                                               |
+| ---------- | ------------------------ | --------------------------------------------------------------------------------------------------- |
+| Live       | Race day on one screen   | Session, Replay, Lap strip, Timing, Focus, Race control                                             |
+| Analysis   | Lap charts               | Lap strip, Replay, Story strip, Compare, Chart, Telemetry, True pace, Fastest laps                  |
+| Strategy   | Tyres and stops          | Lap strip, Replay, Story strip, Stints, Tyre wear, Pit stops, Undercut ledger, Stop cost, Pit crews |
+| Battle     | Your driver's fight      | Lap strip, Replay, Timing, Battle chart, Gaps, Box now                                              |
+| Drivers    | Faces and cars           | Session, Replay, Grid, Driver, Positions chart                                                      |
+| Pit wall   | A TV or a second monitor | Timing, Focus, Race control, Gap chart, Stints; fit to screen                                       |
+| Race story | What happened, and why   | Session, Replay, Story, Positions chart, Championship, Race control, Conditions                     |
 
-Viewers can edit any of them; Reset puts it back as shipped. There are 18 tiles in 5 groups
-(Race, Drivers, Timing, Analysis, Strategy). Three of them are Pro: Box now, True pace and Tyre wear.
+Viewers can edit any of them; Reset puts it back as shipped. There are 25 tiles in 5 groups
+(Race, Drivers, Timing, Analysis, Strategy). Five of them are Pro: Box now, True pace, Tyre wear,
+Undercut ledger and Conditions.
+
+## Insights
+
+What the analysis tiles show, and what each needs. Each gives its numbers as a table too (its
+Table key, or a table to begin with), and works on a phone and a 2560 px screen alike.
+
+| Visual                   | Tile            | Shows                                                                                                               | Sessions                                         |
+| ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Telemetry traces         | Telemetry       | Speed, throttle, brake, gear and revs by distance for up to three laps, the delta, mini sectors, corner speeds      | All; saved sessions with telemetry only          |
+| Race trace and lap chart | Chart           | Gap to the leader, positions, the battle and the gap to one driver, with stops and flags marked                     | Races; lap times in every session                |
+| Race story ribbon        | Story           | Flags, the lead, passes made on track, stops, penalties, cars out and radio, per lap; click to jump                 | All, by minute on the clock                      |
+| Undercut ledger          | Undercut ledger | Each stop exchange: in-lap, stop, out-lap and the net place, adding up                                              | Races                                            |
+| Tyre life and crossover  | Tyre wear       | Fuel-corrected loss by tyre age per compound, the cliff, the age a new set of a compound slower when new is quicker | Races; wear only in practice                     |
+| Pit stop cost            | Stop cost       | What a stop costs in race time at this circuit, under green and under a VSC                                         | Races                                            |
+| Pit crew league          | Pit crews       | Each team's stops at a standstill, ranked by their usual stop                                                       | Races                                            |
+| Championship swing       | Championship    | The standings as the race runs, each contender's deficit lap by lap, what every place is worth                      | Races and sprints; live only with an F1 TV login |
+| Weather insight          | Conditions      | Head- or tailwind on each straight, track temperature beside the field's pace                                       | All; the wind map needs telemetry                |
+
+Where the data comes from:
+
+- **Telemetry** is read from the saved session's files ([telemetry.md](telemetry.md)); a live
+  session has none before its import, and the tile says so. The modelled replay draws a few of the
+  real race's laps, from the real-data e2e fixture.
+- **Passes, team radio and the championship** come from the archive's `OvertakeSeries`,
+  `TeamRadio` and `ChampionshipPrediction`. The live feed sends the championship only with an F1 TV
+  login (`F1TV_TOKEN`), and the tile says that while live.
+- **Team radio** clips are announced on the story; their audio is Formula 1 media, so a viewer can
+  open a clip from the official archive only with `VITE_TEAM_RADIO=link`, off by default.
+- **Wind** uses the feed's wind direction with the outline, whose positions put x east and y north.
+
+### Free and Pro per visual (proposal)
+
+A proposal for the owner, on the existing Pro-tile mechanism (`pro` in `TILE_INFO` and `ProGate`):
+data a fan expects anywhere stays free, models that turn it into a strategy call are Pro.
+
+| Visual                   | Proposed | Why                                                                                                                               |
+| ------------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Telemetry traces         | Free     | The core analysis fans compare products on; TracingInsights and GP Tempo give it free ([competitors](../research/competitors.md)) |
+| Race trace and lap chart | Free     | An upgrade of the free Chart tile                                                                                                 |
+| Race story ribbon        | Free     | Makes replays navigable; it brings viewers back                                                                                   |
+| Championship swing       | Free     | High attraction in the last races of a season; the feed's own numbers                                                             |
+| Pit stop cost            | Free     | One number per circuit; Box now, which uses the same idea, is already Pro                                                         |
+| Pit crew league          | Free     | Low insight, high fun                                                                                                             |
+| Undercut ledger          | Pro      | Nobody else explains strategy calls; the reason fans open analysis                                                                |
+| Tyre life and crossover  | Pro      | Upgrades Tyre wear, already Pro; it is a pit-window read                                                                          |
+| Weather insight          | Pro      | A niche model built on the outline and the wind                                                                                   |
 
 ## Flows
 

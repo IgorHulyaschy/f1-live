@@ -70,8 +70,10 @@ test('phones stack the tiles in reading order', async ({ page }) => {
 	expect(kinds).toEqual([
 		'tile-lap-strip',
 		'tile-replay',
+		'tile-story',
 		'tile-compare',
 		'tile-chart',
+		'tile-telemetry',
 		'tile-pace',
 		'tile-fastest-laps'
 	]);
