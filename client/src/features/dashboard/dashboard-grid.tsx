@@ -1,15 +1,25 @@
 import {
 	ArrowDownIcon,
 	ArrowUpIcon,
+	EllipsisIcon,
 	ExternalLinkIcon,
 	GripVerticalIcon,
+	PencilIcon,
 	XIcon
 } from 'lucide-react';
 import * as React from 'react';
 import { type Layout, ReactGridLayout, useContainerWidth } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
+import { useSearchParams } from 'react-router';
 
 import { Key } from '@/components/console/keys';
+import { PanelMenuContext } from '@/components/console/panel';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { useRaceView } from '@/data/race-context';
 import { useRemPixels } from '@/hooks/use-scale';
 import { cn } from '@/lib/utils';
@@ -202,6 +212,43 @@ function TileBar({
 	);
 }
 
+/** The rest of a tile's actions, at the end of its header, when the dashboard is not being edited. */
+function TileOptions({ dashboard, tile }: { dashboard: Dashboard; tile: Tile }) {
+	const search = useCarriedSearch();
+	const [searchParams, setSearchParams] = useSearchParams();
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<Key aria-label="Tile options" className="px-1.5 sm:px-1.5" data-testid="tile-options">
+					<EllipsisIcon aria-hidden />
+				</Key>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="end" className="w-56">
+				<DropdownMenuItem
+					onSelect={() =>
+						window.open(`${tilePath(dashboard.id, tile.id)}?${search}`, '_blank', 'noopener')
+					}
+				>
+					<ExternalLinkIcon aria-hidden />
+					Open in a new window
+				</DropdownMenuItem>
+				<DropdownMenuItem
+					onSelect={() => {
+						const params = new URLSearchParams(searchParams);
+
+						params.set('edit', '1');
+						setSearchParams(params);
+					}}
+				>
+					<PencilIcon aria-hidden />
+					Edit the dashboard
+				</DropdownMenuItem>
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
+
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 /**
@@ -267,12 +314,14 @@ function TileBody({
 	tile,
 	fill,
 	away,
+	editing,
 	onChange
 }: {
 	dashboard: Dashboard;
 	tile: Tile;
 	fill: boolean;
 	away: boolean;
+	editing: boolean;
 	onChange: (dashboard: Dashboard) => void;
 }) {
 	const body = React.useRef<HTMLDivElement>(null);
@@ -310,13 +359,17 @@ function TileBody({
 		>
 			<TileFillContext value={fill}>
 				<TileRowsContext value={dashboard.layout.find((place) => place.i === tile.id)?.h ?? null}>
-					{DEFERRED_TILES.has(tile.kind) ? (
-						<NearViewport title={tileTitle(tile)} fill={fill}>
-							{content}
-						</NearViewport>
-					) : (
-						content
-					)}
+					<PanelMenuContext
+						value={editing ? null : <TileOptions dashboard={dashboard} tile={tile} />}
+					>
+						{DEFERRED_TILES.has(tile.kind) ? (
+							<NearViewport title={tileTitle(tile)} fill={fill}>
+								{content}
+							</NearViewport>
+						) : (
+							content
+						)}
+					</PanelMenuContext>
 				</TileRowsContext>
 			</TileFillContext>
 		</div>
@@ -432,6 +485,7 @@ export function DashboardGrid({
 							tile={tile}
 							fill={false}
 							away={away.has(tile.id)}
+							editing={editing}
 							onChange={onChange}
 						/>
 					</div>
@@ -483,6 +537,7 @@ export function DashboardGrid({
 										tile={tile}
 										fill
 										away={away.has(tile.id)}
+										editing={editing}
 										onChange={onChange}
 									/>
 								</div>

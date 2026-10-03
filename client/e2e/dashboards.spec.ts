@@ -150,3 +150,24 @@ test('play in one window is mirrored, and pause from the other stops it', async 
 	await expect(main.getByTestId('lap-counter')).toHaveText(stopped ?? '');
 	await expect(other.getByTestId('lap-counter')).toHaveText(stopped ?? '');
 });
+
+test('a tile’s header ends in its options, the same on every tile', async ({ context }) => {
+	const page = await context.newPage();
+
+	await openRace(page, '/d/wall?lap=20');
+
+	const timing = page.getByTestId('tile-timing');
+
+	await timing.getByTestId('tile-options').click();
+
+	const popup = context.waitForEvent('page');
+
+	await page.getByRole('menuitem', { name: 'Open in a new window' }).click();
+	await expect(await popup).toHaveURL(/\/tile\/wall\/[^/?]+\?.*lap=20/);
+
+	await timing.getByTestId('tile-options').click();
+	await page.getByRole('menuitem', { name: 'Edit the dashboard' }).click();
+
+	await expect(page).toHaveURL(/edit=1/);
+	await expect(page.getByTestId('tile-options')).toHaveCount(0);
+});

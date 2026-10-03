@@ -1,6 +1,15 @@
-import type * as React from 'react';
+import * as React from 'react';
 
 import { cn } from '@/lib/utils';
+
+/**
+ * What a dashboard puts at the end of a tile's header: its overflow menu. Every tile has the one
+ * header pattern, title left, modes right, the rest in the menu; a panel inside a panel leaves it
+ * to the outer one.
+ */
+export const PanelMenuContext = React.createContext<React.ReactNode>(null);
+
+const PanelDepthContext = React.createContext(0);
 
 /**
  * A region of the timing screen. Regions are not cards: they sit flush, open with a heavy rule
@@ -9,9 +18,13 @@ import { cn } from '@/lib/utils';
  * A panel is a size container: what it shows depends on the width of its tile, not of the
  * screen, so it reads the same in a narrow side tile on a 4K monitor as on a phone.
  */
-export function Panel({ className, ...props }: React.ComponentProps<'section'>) {
+export function Panel({ className, children, ...props }: React.ComponentProps<'section'>) {
+	const depth = React.useContext(PanelDepthContext);
+
 	return (
-		<section className={cn('bg-panel @container flex min-w-0 flex-col', className)} {...props} />
+		<section className={cn('bg-panel @container flex min-w-0 flex-col', className)} {...props}>
+			<PanelDepthContext value={depth + 1}>{children}</PanelDepthContext>
+		</section>
 	);
 }
 
@@ -26,6 +39,10 @@ export function PanelHeader({
 	children?: React.ReactNode;
 	className?: string;
 }) {
+	const menu = React.useContext(PanelMenuContext);
+	const depth = React.useContext(PanelDepthContext);
+	const end = depth <= 1 ? menu : null;
+
 	return (
 		<header
 			data-slot="panel-header"
@@ -39,6 +56,7 @@ export function PanelHeader({
 			{children ? (
 				<div className="ml-auto flex max-w-full items-center gap-2 overflow-x-auto">{children}</div>
 			) : null}
+			{end ? <div className={cn('flex shrink-0', !children && 'ml-auto')}>{end}</div> : null}
 		</header>
 	);
 }
