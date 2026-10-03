@@ -1,5 +1,6 @@
 import type { Driver } from '@f1-live/shared';
 import { ChevronRightIcon } from 'lucide-react';
+import * as React from 'react';
 
 import { Key } from '@/components/console/keys';
 import { TeamStripe } from '@/components/driver-tag';
@@ -13,12 +14,14 @@ import {
 import { SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { SESSION_TYPE_LABEL } from '@/data/catalog';
 import { useRaceView } from '@/data/race-context';
+import { isKnockout, isTimedSession } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
 import { CompareView } from './compare-view';
-import { ACTIONABLE } from './drill-parts';
+import { AddToDashboard, MakeDashboard } from './drill-add';
+import { ACTIONABLE, type SectionHost, SectionHostContext } from './drill-parts';
 import type { DrillView } from './drill-url';
-import { DriverView } from './driver-view';
+import { DRIVER_PARTS, DriverView } from './driver-view';
 import { LapView } from './lap-view';
 import { useDrill } from './use-drill';
 
@@ -85,6 +88,12 @@ function DriverActions({ driver }: { driver: Driver }) {
 	const { race, followedDriver, setFollowedDriver } = useRaceView();
 	const { open } = useDrill();
 	const followed = followedDriver === driver.number;
+	const type = race.session.type;
+
+	const parts = DRIVER_PARTS.filter(
+		(part) =>
+			(part !== 'runs' || isKnockout(type)) && (part !== 'position' || !isTimedSession(type))
+	).map((section) => ({ section, driver: driver.number }));
 
 	return (
 		<div className="flex flex-wrap items-center gap-2">
@@ -116,6 +125,7 @@ function DriverActions({ driver }: { driver: Driver }) {
 						))}
 				</SelectContent>
 			</Select>
+			<MakeDashboard name={`${driver.lastName}’s session`} parts={parts} />
 		</div>
 	);
 }
@@ -137,6 +147,11 @@ export function DrillContent({
 	const year = new Date(race.session.startsAt).getUTCFullYear();
 	const session = race.session.name ?? SESSION_TYPE_LABEL[race.session.type];
 	const openDriver = () => open({ kind: 'driver', driverNumber: view.driverNumber });
+
+	const host = React.useMemo(
+		(): SectionHost => ({ inTile: false, addFor: view.driverNumber }),
+		[view.driverNumber]
+	);
 
 	const crumbs: Crumb[] = [
 		{ label: String(year), onSelect: onPickSession },
@@ -174,6 +189,11 @@ export function DrillContent({
 						</h2>
 					</SheetTitle>
 					{driver && view.kind === 'driver' ? <DriverActions driver={driver} /> : null}
+					{view.kind === 'compare' ? (
+						<AddToDashboard
+							settings={{ section: 'compare', driver: view.driverNumber, vs: view.vs }}
+						/>
+					) : null}
 				</div>
 				<SheetDescription className="sr-only">
 					{session} of the {year} {race.session.meetingName}. Escape or Back closes this.
@@ -181,7 +201,9 @@ export function DrillContent({
 			</header>
 			<div className="@container min-h-0 flex-1 overflow-y-auto">
 				{view.kind === 'driver' ? (
-					<DriverView driverNumber={view.driverNumber} />
+					<SectionHostContext value={host}>
+						<DriverView driverNumber={view.driverNumber} />
+					</SectionHostContext>
 				) : view.kind === 'lap' ? (
 					<LapView view={view} />
 				) : (

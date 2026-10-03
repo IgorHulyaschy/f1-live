@@ -7,6 +7,7 @@ import { arrangeTile } from './arrange.ts';
 import {
 	addTile,
 	buildDashboard,
+	drillDashboard,
 	GRID_COLUMNS,
 	parseDashboardListText,
 	parseDashboardText,
@@ -150,6 +151,31 @@ describe('parsing', () => {
 		assert.deepEqual(parseDashboardText(JSON.stringify(following)), following);
 		assert.equal(sameDashboard(track, following), false);
 		assert.equal(sameDashboard(following, structuredClone(following)), true);
+	});
+
+	it('keeps a driver view tile bound to its driver, and drops a car number that cannot be one', () => {
+		const board = drillDashboard('Norris', [
+			{ section: 'stints', driver: '4' },
+			{ section: 'compare', driver: '4', vs: '81' },
+			{ section: 'laps' }
+		]);
+
+		assert.deepEqual(parseDashboardText(JSON.stringify(board)), board);
+		assert.deepEqual(
+			board.layout.map(({ x, y }) => [x, y]),
+			[
+				[0, 0],
+				[12, 0],
+				[0, 16]
+			]
+		);
+
+		const broken = JSON.stringify({
+			...board,
+			tiles: [{ id: 'drill-0', kind: 'drill', settings: { section: 'stints', driver: '' } }]
+		});
+
+		assert.equal(parseDashboardText(broken)?.tiles.length, 0);
 	});
 });
 
