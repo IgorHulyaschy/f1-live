@@ -2,6 +2,7 @@ import type {
 	ChampionshipEvent,
 	ClassificationCorrectionEvent,
 	LapCompletedEvent,
+	MiniSectorEvent,
 	PenaltyEvent,
 	PitExitEvent,
 	PitLaneTimeEvent,
@@ -13,7 +14,15 @@ import type {
 	WeatherEvent
 } from './events.ts';
 import { TRACK_STATUSES } from './race.ts';
-import type { Lap, RaceSnapshot, Standing, Stint, TrackStatus } from './race.ts';
+import type {
+	ClassificationCorrection,
+	Lap,
+	MiniSectorRecord,
+	RaceSnapshot,
+	Standing,
+	Stint,
+	TrackStatus
+} from './race.ts';
 
 /** The state before any event: an unnamed session with nothing known yet. */
 export const EMPTY_SNAPSHOT: RaceSnapshot = {
@@ -40,9 +49,12 @@ export const EMPTY_SNAPSHOT: RaceSnapshot = {
 	standings: [],
 	statusLog: [],
 	trackStatusLog: [],
+	clockLog: [],
 	penalties: [],
 	personalBests: [],
-	corrections: []
+	corrections: [],
+	miniSectors: [],
+	miniSectorLeaders: []
 };
 
 /** Folds one event into the snapshot. Pure: `state` is never changed. */
@@ -56,6 +68,14 @@ export function applyEvent(state: RaceSnapshot, event: RaceEvent): RaceSnapshot 
 				status: event.status,
 				startedAt: state.startedAt ?? (event.status === 'started' ? event.at : undefined),
 				statusLog: [...(state.statusLog ?? []), { at: event.at, status: event.status }]
+			};
+		case 'session_clock':
+			return {
+				...state,
+				clockLog: [
+					...(state.clockLog ?? []),
+					{ at: event.at, remainingMs: event.remainingMs, running: event.running }
+				]
 			};
 		case 'race_distance':
 			return { ...state, session: { ...state.session, totalLaps: event.totalLaps } };
@@ -111,6 +131,8 @@ export function applyEvent(state: RaceSnapshot, event: RaceEvent): RaceSnapshot 
 					(best) => best.driverNumber === event.best.driverNumber
 				)
 			};
+		case 'mini_sector':
+			return applyMiniSector(state, event);
 		case 'classification_correction':
 			return applyCorrection(state, event);
 		case 'overtake':
@@ -542,6 +564,86 @@ function applyChampionship(state: RaceSnapshot, event: ChampionshipEvent): RaceS
 	};
 }
 
+/** When a car's lap began: the line crossing that ended the lap before. */
+function lapStartMs(state: RaceSnapshot, driverNumber: string, lap: number): number | null {
+	const before = state.laps.find(
+		(entry) => entry.driverNumber === driverNumber && entry.lap === lap - 1
+	);
+
+	return before?.completedAt === undefined ? null : Date.parse(before.completedAt);
+}
+
+/**
+ * A pass is timed from the loop before it on the same lap, or for the first mini sector from the
+ * line. A loop the feed missed leaves the next pass untimed rather than doubled.
+ */
+function applyMiniSector(state: RaceSnapshot, event: MiniSectorEvent): RaceSnapshot {
+	const records = state.miniSectors ?? [];
+	const kept = records.find((record) => record.driverNumber === event.driverNumber);
+
+	// A loop from a lap the car has left arrives too late to place.
+	if (kept && (event.lap < kept.lap || (event.lap === kept.lap && event.index <= kept.index))) {
+		return state;
+	}
+
+	const sameLap = kept?.lap === event.lap;
+	const atMs = Date.parse(event.at);
+
+	const fromMs =
+		event.index === 0
+			? lapStartMs(state, event.driverNumber, event.lap)
+			: sameLap && kept.index === event.index - 1
+				? Date.parse(kept.at)
+				: null;
+
+	const ms = fromMs === null || atMs <= fromMs ? null : atMs - fromMs;
+	const bestMs = [...(kept?.bestMs ?? [])];
+	const best = bestMs[event.index] ?? null;
+
+	if (ms !== null && event.mark !== 'pit' && (best === null || ms < best)) {
+		bestMs[event.index] = ms;
+	}
+
+	const record: MiniSectorRecord = {
+		driverNumber: event.driverNumber,
+		lap: event.lap,
+		index: event.index,
+		at: event.at,
+		ms: placed([...(sameLap ? kept.ms : [])], event.index, ms),
+		marks: placed([...(sameLap ? kept.marks : [])], event.index, event.mark),
+		lastMs: sameLap ? kept.lastMs : kept && kept.lap === event.lap - 1 ? kept.ms : [],
+		bestMs: Array.from(bestMs, (value) => value ?? null)
+	};
+
+	const leaders = [...(state.miniSectorLeaders ?? [])];
+
+	if (event.mark === 'fastest') {
+		leaders[event.index] = event.driverNumber;
+	}
+
+	return {
+		...state,
+		miniSectors: upsert(
+			records,
+			record,
+			(existing) => existing.driverNumber === event.driverNumber
+		),
+		miniSectorLeaders: Array.from(leaders, (value) => value ?? null)
+	};
+}
+
+/** `items` with `value` at `index`, and null in any gap before it. */
+function placed<T>(items: (T | null)[], index: number, value: T | null): (T | null)[] {
+	const filled: (T | null)[] = Array.from(
+		{ length: Math.max(items.length, index + 1) },
+		(_, at) => items[at] ?? null
+	);
+
+	filled[index] = value;
+
+	return filled;
+}
+
 function applyCorrection(state: RaceSnapshot, event: ClassificationCorrectionEvent): RaceSnapshot {
 	const { correction } = event;
 	const standings = state.standings ?? [];
@@ -549,16 +651,29 @@ function applyCorrection(state: RaceSnapshot, event: ClassificationCorrectionEve
 	return {
 		...state,
 		corrections: [...(state.corrections ?? []), { ...correction, at: event.at }],
-		standings:
-			correction.kind === 'disqualified'
-				? disqualify(standings, correction.driverNumber)
-				: addTime(standings, correction.driverNumber, (correction.seconds ?? 0) * 1000)
+		standings: reclassified(state, standings, correction)
 	};
+}
+
+function reclassified(
+	state: RaceSnapshot,
+	standings: readonly Standing[],
+	correction: Omit<ClassificationCorrection, 'at'>
+): readonly Standing[] {
+	switch (correction.kind) {
+		case 'disqualified':
+			return disqualify(standings, correction.driverNumber);
+		case 'time_penalty':
+			return addTime(state, standings, correction.driverNumber, (correction.seconds ?? 0) * 1000);
+		case 'lap_penalty':
+			return dropLap(state, standings, correction.driverNumber);
+	}
 }
 
 /**
  * Everyone behind moves up a place, and disqualified cars go to the back in the order they were
- * excluded.
+ * excluded. The car that was behind the excluded one is now measured to the car ahead of it, and
+ * when the leader is excluded every gap is measured to the new leader.
  */
 function disqualify(standings: readonly Standing[], driverNumber: string): readonly Standing[] {
 	const excluded = standings.find((standing) => standing.driverNumber === driverNumber);
@@ -567,66 +682,175 @@ function disqualify(standings: readonly Standing[], driverNumber: string): reado
 		return standings;
 	}
 
+	const remaining = standings.filter((standing) => standing !== excluded && !standing.disqualified);
+
+	const behindIndex = remaining.findIndex((standing) => standing.position > excluded.position);
+	const behind = remaining[behindIndex];
+	const ahead = remaining[behindIndex - 1];
+	const leaderGapMs = excluded.position === 1 ? (behind?.gapToLeaderMs ?? null) : null;
+
 	return standings
 		.map((standing) => {
 			if (standing === excluded) {
 				return { ...standing, position: standings.length, disqualified: true };
 			}
 
-			return standing.position > excluded.position
-				? { ...standing, position: standing.position - 1 }
-				: standing;
+			if (standing.position < excluded.position) {
+				return standing;
+			}
+
+			const moved = { ...standing, position: standing.position - 1 };
+
+			if (leaderGapMs !== null && standing.gapToLeaderMs !== null) {
+				moved.gapToLeaderMs = standing.gapToLeaderMs - leaderGapMs;
+			}
+
+			if (standing === behind) {
+				moved.intervalMs = ahead
+					? intervalBehind(ahead, standing, excluded)
+					: standing.gapToLeaderMs === null
+						? null
+						: 0;
+			}
+
+			return moved;
 		})
 		.toSorted((a, b) => a.position - b.position);
 }
 
+/** The gap from `ahead` to `behind` when `removed` is no longer between them. */
+function intervalBehind(ahead: Standing, behind: Standing, removed: Standing): number | null {
+	if (ahead.gapToLeaderMs !== null && behind.gapToLeaderMs !== null) {
+		return behind.gapToLeaderMs - ahead.gapToLeaderMs;
+	}
+
+	return behind.intervalMs === null || removed.intervalMs === null
+		? null
+		: behind.intervalMs + removed.intervalMs;
+}
+
+/** When the car crossed the line to complete `lapsCompleted`, in ms; null when it is not known. */
+function crossingMs(state: RaceSnapshot, standing: Standing): number | null {
+	const crossed = state.laps.find(
+		(lap) => lap.driverNumber === standing.driverNumber && lap.lap === standing.lapsCompleted
+	)?.completedAt;
+
+	return crossed === undefined ? null : Date.parse(crossed);
+}
+
 /**
- * Adds time to a car's race time and re-sorts the cars on the leader's lap that have a time
- * gap. A car a lap or more down keeps its place.
+ * Adds time to a car's race time and re-sorts the cars on its lap. On the leader's lap the gaps
+ * decide; a car a lap or more down has no gap, so the time it crossed the line does.
  */
 function addTime(
+	state: RaceSnapshot,
 	standings: readonly Standing[],
 	driverNumber: string,
 	addedMs: number
 ): readonly Standing[] {
 	const penalised = standings.find((standing) => standing.driverNumber === driverNumber);
 
-	const leadLap = standings.filter(
-		(standing) =>
-			!standing.retired &&
-			!standing.disqualified &&
-			standing.gapToLeaderMs !== null &&
-			standing.lapsCompleted === penalised?.lapsCompleted
-	);
-
-	const positions = leadLap.map((standing) => standing.position).toSorted((a, b) => a - b);
-
-	if (!penalised || !leadLap.includes(penalised) || positions[0] !== 1) {
+	if (!penalised || penalised.retired || penalised.disqualified) {
 		return standings;
 	}
 
-	const totals = leadLap
-		.map((standing) => ({
-			standing,
-			totalMs: (standing.gapToLeaderMs ?? 0) + (standing === penalised ? addedMs : 0)
-		}))
-		.toSorted((a, b) => a.totalMs - b.totalMs);
+	const onLeadLap = penalised.gapToLeaderMs !== null;
 
-	const leadMs = totals[0]?.totalMs ?? 0;
+	const sameLap = standings.filter(
+		(standing) =>
+			!standing.retired &&
+			!standing.disqualified &&
+			standing.lapsCompleted === penalised.lapsCompleted &&
+			(standing.gapToLeaderMs !== null) === onLeadLap
+	);
+
+	const positions = sameLap.map((standing) => standing.position).toSorted((a, b) => a - b);
+
+	if (onLeadLap && positions[0] !== 1) {
+		return standings;
+	}
+
+	const timed = sameLap.flatMap((standing) => {
+		const timeMs = onLeadLap ? standing.gapToLeaderMs : crossingMs(state, standing);
+
+		return timeMs === null
+			? []
+			: [{ standing, totalMs: timeMs + (standing === penalised ? addedMs : 0) }];
+	});
+
+	// A car with no known crossing leaves the order undecided, so the penalty changes nothing.
+	if (timed.length !== sameLap.length) {
+		return standings;
+	}
+
+	const totals = timed.toSorted((a, b) => a.totalMs - b.totalMs);
+	const firstMs = totals[0]?.totalMs ?? 0;
 
 	const resorted = new Map(
-		totals.map(({ standing, totalMs }, index) => [
-			standing.driverNumber,
-			{
-				...standing,
-				position: positions[index] ?? standing.position,
-				gapToLeaderMs: totalMs - leadMs,
-				intervalMs: totalMs - (totals[index - 1]?.totalMs ?? totalMs)
-			}
-		])
+		totals.map(({ standing, totalMs }, index) => {
+			const previous = totals[index - 1];
+			const intervalMs = previous ? totalMs - previous.totalMs : onLeadLap ? 0 : null;
+
+			return [
+				standing.driverNumber,
+				{
+					...standing,
+					position: positions[index] ?? standing.position,
+					gapToLeaderMs: onLeadLap ? totalMs - firstMs : null,
+					intervalMs
+				}
+			];
+		})
 	);
 
 	return standings
 		.map((standing) => resorted.get(standing.driverNumber) ?? standing)
 		.toSorted((a, b) => a.position - b.position);
+}
+
+/**
+ * A lap taken off a car: it is classified a lap down, behind the cars on that lap that crossed
+ * the line before it did and ahead of those that crossed after it.
+ */
+function dropLap(
+	state: RaceSnapshot,
+	standings: readonly Standing[],
+	driverNumber: string
+): readonly Standing[] {
+	const penalised = standings.find((standing) => standing.driverNumber === driverNumber);
+
+	if (!penalised || penalised.retired || penalised.disqualified || penalised.lapsCompleted < 1) {
+		return standings;
+	}
+
+	const lapDown: Standing = {
+		...penalised,
+		lapsCompleted: penalised.lapsCompleted - 1,
+		gapToLeaderMs: null,
+		intervalMs: null
+	};
+
+	const crossed = crossingMs(state, lapDown);
+	const others = standings.filter((standing) => standing !== penalised);
+	const positions = standings.map((standing) => standing.position);
+
+	const before = (standing: Standing) => {
+		if (standing.retired || standing.disqualified) {
+			return false;
+		}
+
+		if (standing.lapsCompleted !== lapDown.lapsCompleted) {
+			return standing.lapsCompleted > lapDown.lapsCompleted;
+		}
+
+		const other = crossingMs(state, standing);
+
+		return crossed === null || other === null || other <= crossed;
+	};
+
+	const index = others.findLastIndex(before) + 1;
+
+	return others
+		.toSpliced(index, 0, lapDown)
+		.map((standing, slot) => ({ ...standing, position: positions[slot] ?? standing.position }));
 }

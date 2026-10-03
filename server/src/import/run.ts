@@ -1,16 +1,23 @@
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import { buildCatalog } from '../catalog/catalog.js';
+import { buildCatalog, mergeCatalogs } from '../catalog/catalog.js';
 import type { IndexedSeason } from '../catalog/season-index.js';
 import { mapLimited } from '../pkg/http.js';
 import { fetchMeetingResults } from '../sources/openf1/fetch-result.js';
-import { folderBytes, openF1CacheOf, outputKeys, rawDirOf, writeCatalog } from '../sinks/files.js';
+import {
+	folderBytes,
+	openF1CacheOf,
+	outputKeys,
+	rawDirOf,
+	readCatalog,
+	writeCatalog
+} from '../sinks/files.js';
 import { removeTelemetry, telemetryKeys } from '../telemetry/files.js';
 import { ArchiveMissing, fetchSeasonIndex, fetchSession } from './fetch.js';
 import { ingestSession } from './ingest.js';
 import type { IngestResult } from './ingest.js';
-import { adoptSession, discoverSessions, findSessionDirs, readSeasonIndexes } from './local.js';
+import { adoptSession, discoverSessions, readSeasonIndexes } from './local.js';
 import { chooseBySelection } from './select.js';
 import type { Chosen, ImportTarget, RawSession, Selection, Skipped } from './select.js';
 
@@ -142,6 +149,7 @@ async function fetchResults(
 	}
 
 	for (const [meetingKey, sessions] of meetings) {
+		// oxlint-disable-next-line no-await-in-loop -- one meeting at a time keeps the requests to OpenF1 gentle.
 		const kept = await Promise.all(
 			sessions.map(
 				async (session) =>
@@ -155,6 +163,7 @@ async function fetchResults(
 		}
 
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- see above.
 			const saved = await fetchMeetingResults(
 				options.dataDir,
 				meetingKey,
@@ -204,27 +213,23 @@ async function writeCatalogFromRaw(options: ImportOptions): Promise<void> {
 	const rawDir = rawDirOf(options.dataDir);
 	const seasons = await readSeasonIndexes(rawDir);
 
-	const sessions = seasons.flatMap((season) =>
-		season.meetings.flatMap((meeting) => meeting.sessions)
-	);
+	const available = {
+		raw: new Set(
+			(await discoverSessions(rawDir)).flatMap(({ key }) => (key === null ? [] : [key]))
+		),
+		events: new Set(await outputKeys(options.dataDir, 'events')),
+		snapshots: new Set(await outputKeys(options.dataDir, 'snapshots')),
+		telemetry: new Set(await telemetryKeys(options.dataDir))
+	};
 
-	const present = new Set(await findSessionDirs(rawDir));
-
+	// The raw folder may hold fewer season indexes than the catalog has seen, as on an ingest host
+	// that only records: what the catalog already lists stays.
 	await writeCatalog(
 		options.dataDir,
-		buildCatalog(
-			seasons,
-			{
-				raw: new Set(
-					sessions
-						.filter((session) => present.has(session.path?.replace(/\/$/, '') ?? ''))
-						.map((session) => session.key)
-				),
-				events: new Set(await outputKeys(options.dataDir, 'events')),
-				snapshots: new Set(await outputKeys(options.dataDir, 'snapshots')),
-				telemetry: new Set(await telemetryKeys(options.dataDir))
-			},
-			options.now
+		mergeCatalogs(
+			await readCatalog(options.dataDir),
+			buildCatalog(seasons, available, options.now),
+			available
 		)
 	);
 }

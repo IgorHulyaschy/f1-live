@@ -34,14 +34,40 @@ export const TILE_KINDS = [
 	'pit-cost',
 	'pit-crews',
 	'championship',
-	'conditions'
+	'conditions',
+	'knockout',
+	'sectors',
+	'long-runs',
+	'track-map',
+	'battle-map',
+	'pit-rejoin',
+	'dominance',
+	'flag-map',
+	'speed-map'
 ] as const;
 
 export type TileKind = (typeof TILE_KINDS)[number];
 
 export const TILE_METRICS = ['lapTime', 'gap', 'position', 'battle', 'versus'] as const;
 
-export type TileSettings = { metric?: (typeof TILE_METRICS)[number] };
+/** What a speed map paints its lap by. */
+export const MAP_CHANNELS = ['speed', 'gear', 'throttle', 'brake'] as const;
+
+/** What a map tile keeps: its camera, how the track is painted, and how cars are labelled. */
+export const trackMapSettingsSchema = z.object({
+	camera: z.enum(['full', 'follow']).optional(),
+	paint: z.enum(['plain', 'sectors']).optional(),
+	zones: z.boolean().optional(),
+	labels: z.enum(['code', 'number']).optional(),
+	/** Dominance: each driver's best lap, or the best of each mini sector. */
+	span: z.enum(['lap', 'best']).optional(),
+	/** Speed map: what the lap is painted by. */
+	channel: z.enum(MAP_CHANNELS).optional()
+});
+
+export type TrackMapSettings = z.infer<typeof trackMapSettingsSchema>;
+
+export type TileSettings = { metric?: (typeof TILE_METRICS)[number] } & TrackMapSettings;
 
 export type Tile = { id: string; kind: TileKind; settings?: TileSettings };
 
@@ -55,14 +81,22 @@ export type Dashboard = {
 	layout: TilePlacement[];
 	/** Stretch rows so the whole layout fills the window height: for wall screens and TVs. */
 	fit?: boolean;
+	/**
+	 * False once the viewer said not to offer the session's own layout over this dashboard when
+	 * it holds tiles for another kind of session.
+	 */
+	sessionOffer?: false;
 };
 
 /** Ids of the ready-made dashboards. Saved under one of these, a dashboard is an edited preset. */
 export const PRESET_IDS = [
 	'live',
+	'quali',
+	'practice',
 	'analysis',
 	'strategy',
 	'battle',
+	'track',
 	'drivers',
 	'wall',
 	'story'
@@ -88,7 +122,10 @@ const placementSchema = z.object({
 const tileSchema = z.object({
 	id: z.string(),
 	kind: z.enum(TILE_KINDS),
-	settings: z.object({ metric: z.enum(TILE_METRICS).optional() }).optional()
+	settings: z
+		.object({ metric: z.enum(TILE_METRICS).optional() })
+		.extend(trackMapSettingsSchema.shape)
+		.optional()
 });
 
 /** Keeps the first entry for each key; ids must be unique for keys, routes and the grid. */
@@ -114,6 +151,7 @@ export const dashboardSchema = z
 		id: z.string().min(1),
 		name: z.string(),
 		fit: z.boolean().optional(),
+		sessionOffer: z.boolean().optional(),
 		tiles: z.array(z.json()).transform((entries) =>
 			entries.flatMap((entry) => {
 				const tile = tileSchema.safeParse(entry);
@@ -143,6 +181,10 @@ export const dashboardSchema = z
 
 		if (parsed.fit) {
 			dashboard.fit = true;
+		}
+
+		if (parsed.sessionOffer === false) {
+			dashboard.sessionOffer = false;
 		}
 
 		return dashboard;
@@ -179,12 +221,22 @@ export function parseDashboardListText(text: string): Dashboard[] {
 	return uniqueBy(dashboards, (dashboard) => dashboard.id);
 }
 
+const SETTING_KEYS = [
+	'metric',
+	...trackMapSettingsSchema.keyof().options
+] as const satisfies readonly (keyof TileSettings)[];
+
+function sameSettings(a: TileSettings | undefined, b: TileSettings | undefined): boolean {
+	return SETTING_KEYS.every((key) => a?.[key] === b?.[key]);
+}
+
 /** Same content, field by field: stored JSON can come back with its keys in another order. */
 export function sameDashboard(a: Dashboard, b: Dashboard): boolean {
 	return (
 		a.id === b.id &&
 		a.name === b.name &&
 		Boolean(a.fit) === Boolean(b.fit) &&
+		a.sessionOffer === b.sessionOffer &&
 		a.tiles.length === b.tiles.length &&
 		a.tiles.every((tile, index) => {
 			const other = b.tiles[index];
@@ -193,7 +245,7 @@ export function sameDashboard(a: Dashboard, b: Dashboard): boolean {
 				other !== undefined &&
 				tile.id === other.id &&
 				tile.kind === other.kind &&
-				tile.settings?.metric === other.settings?.metric
+				sameSettings(tile.settings, other.settings)
 			);
 		}) &&
 		a.layout.length === b.layout.length &&

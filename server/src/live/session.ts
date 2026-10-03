@@ -19,7 +19,15 @@ export interface Position {
 /** A longer catch-up costs more than the state, and would pass the viewer's buffer limit. */
 const MAX_RESUME_EVENTS = 5000;
 
-export type ReplicateResult = { applied: true } | { applied: false; position: Position };
+/** An event the reducer cannot apply, by its number in the ingest's log. */
+export interface SkippedEvent {
+	seq: number;
+	kind: string;
+	reason: string;
+}
+
+export type ReplicateResult =
+	{ applied: true; skipped: readonly SkippedEvent[] } | { applied: false; position: Position };
 
 /**
  * The live session in memory: the snapshot, the numbered events that built it and the last
@@ -122,15 +130,39 @@ export class LiveSession {
 	 * Relay side: applies events numbered `from` onwards that the ingest assigned. Overlap with
 	 * what is already held is skipped, so a retried batch is harmless; a gap or another epoch is
 	 * refused with this copy's position, so the ingest can resend from there.
+	 *
+	 * An event the reducer cannot apply is skipped and reported, so one bad event does not make
+	 * the ingest resend the same batch for ever. It keeps its number, which leaves a gap the
+	 * viewers answer with a resync: the log before it is dropped, and they are sent the state.
 	 */
 	replicate(epoch: string, from: number, events: readonly RaceEvent[]): ReplicateResult {
 		if (epoch !== this.currentEpoch || from > this.seq + 1) {
 			return { applied: false, position: this.position };
 		}
 
-		this.append(events.slice(this.seq + 1 - from));
+		const skipped: SkippedEvent[] = [];
+		let run: RaceEvent[] = [];
+		let snapshot = this.snapshot;
 
-		return { applied: true };
+		for (const event of events.slice(this.seq + 1 - from)) {
+			const next = reduceChecked(snapshot, event);
+
+			if (!next.ok) {
+				this.commit(run, snapshot);
+				run = [];
+				skipped.push({ seq: this.seq + 1, kind: String(event.kind), reason: next.reason });
+				this.seq += 1;
+				this.log = [];
+				this.emit({ kind: 'state' });
+			} else {
+				run.push(event);
+				snapshot = next.snapshot;
+			}
+		}
+
+		this.commit(run, snapshot);
+
+		return { applied: true, skipped };
 	}
 
 	/** Relay side: takes the ingest's whole state, e.g. after the relay restarted. */
@@ -161,14 +193,23 @@ export class LiveSession {
 			return;
 		}
 
-		const from = this.seq + 1;
-
 		// Reduced first, so an event the reducer rejects leaves the session as it was.
 		let snapshot = this.snapshot;
 
 		for (const event of events) {
 			snapshot = applyEvent(snapshot, event);
 		}
+
+		this.commit(events, snapshot);
+	}
+
+	/** Takes events that are already reduced into `snapshot`, which holds them all. */
+	private commit(events: readonly RaceEvent[], snapshot: RaceSnapshot) {
+		if (events.length === 0) {
+			return;
+		}
+
+		const from = this.seq + 1;
 
 		this.snapshot = snapshot;
 		this.seq += events.length;
@@ -189,5 +230,22 @@ export class LiveSession {
 		for (const listener of this.listeners) {
 			listener(update);
 		}
+	}
+}
+
+/** The snapshot after `event`, or why the reducer cannot take it. */
+function reduceChecked(
+	snapshot: RaceSnapshot,
+	event: RaceEvent
+): { ok: true; snapshot: RaceSnapshot } | { ok: false; reason: string } {
+	try {
+		// An event of a kind the reducer does not know makes it return nothing.
+		const next: RaceSnapshot | undefined = applyEvent(snapshot, event);
+
+		return next
+			? { ok: true, snapshot: next }
+			: { ok: false, reason: 'the reducer does not know this kind of event' };
+	} catch (cause) {
+		return { ok: false, reason: cause instanceof Error ? cause.message : 'the reducer threw' };
 	}
 }

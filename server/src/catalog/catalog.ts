@@ -1,4 +1,6 @@
+import { SESSION_TYPES } from '@f1-live/shared';
 import type { SessionType } from '@f1-live/shared';
+import { z } from 'zod';
 
 import type { IndexedMeeting, IndexedSeason, IndexedSession } from './season-index.js';
 
@@ -105,6 +107,109 @@ export function buildCatalog(
 							(a.sessions[0]?.startsAt ?? '').localeCompare(b.sessions[0]?.startsAt ?? '') ||
 							a.key - b.key
 					)
+			}))
+	};
+}
+
+const catalogSchema = z.object({
+	seasons: z.array(
+		z.object({
+			year: z.number(),
+			meetings: z.array(
+				z.object({
+					key: z.number(),
+					name: z.string(),
+					officialName: z.string(),
+					location: z.string(),
+					sessions: z.array(
+						z.object({
+							key: z.number(),
+							type: z.enum(SESSION_TYPES),
+							name: z.string(),
+							startsAt: z.string(),
+							status: z.enum(['upcoming', 'live', 'finished']),
+							circuit: z.string(),
+							country: z.object({ code: z.string(), name: z.string() }),
+							outputs: z.object({
+								raw: z.boolean(),
+								events: z.boolean(),
+								snapshot: z.boolean(),
+								telemetry: z.boolean()
+							})
+						})
+					)
+				})
+			)
+		})
+	)
+});
+
+/** Reads a saved catalog; null when the text is not one. */
+export function parseCatalog(text: string): Catalog | null {
+	try {
+		const parsed = catalogSchema.safeParse(JSON.parse(text));
+
+		return parsed.success ? parsed.data : null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * The catalog an import writes: what it built from the season indexes it has, over what the
+ * catalog already held. A meeting the import knows replaces the saved one; the rest are kept, with
+ * their outputs read again. An import that sees few indexes (a live recording on an ingest host,
+ * whose raw folder holds only this weekend) therefore never drops a session that has outputs.
+ */
+export function mergeCatalogs(
+	previous: Catalog | null,
+	fresh: Catalog,
+	available: AvailableOutputs
+): Catalog {
+	const seasons = new Map<number, Map<number, CatalogMeeting>>();
+
+	const keep = (season: CatalogSeason, meetings: readonly CatalogMeeting[]) => {
+		const own = seasons.get(season.year) ?? new Map<number, CatalogMeeting>();
+
+		for (const meeting of meetings) {
+			own.set(meeting.key, meeting);
+		}
+
+		seasons.set(season.year, own);
+	};
+
+	for (const season of previous?.seasons ?? []) {
+		keep(
+			season,
+			season.meetings.map((meeting) => ({
+				...meeting,
+				sessions: meeting.sessions.map((session) => ({
+					...session,
+					outputs: {
+						raw: session.outputs.raw || available.raw.has(session.key),
+						events: available.events.has(session.key),
+						snapshot: available.snapshots.has(session.key),
+						telemetry: available.telemetry.has(session.key)
+					}
+				}))
+			}))
+		);
+	}
+
+	for (const season of fresh.seasons) {
+		keep(season, season.meetings);
+	}
+
+	return {
+		seasons: [...seasons]
+			.toSorted((a, b) => a[0] - b[0])
+			.map(([year, meetings]) => ({
+				year,
+				meetings: [...meetings.values()].toSorted(
+					(a, b) =>
+						(a.sessions[0]?.startsAt ?? '').localeCompare(b.sessions[0]?.startsAt ?? '') ||
+						a.key - b.key
+				)
 			}))
 	};
 }

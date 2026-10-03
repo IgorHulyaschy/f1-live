@@ -57,7 +57,7 @@ const router = createBrowserRouter([
 			{
 				element: <AppLayout source={source} />,
 				children: [
-					{ path: '/', element: <DashboardPage id="live" />, handle: handle(ROUTE_META.live) },
+					{ path: '/', element: <DashboardPage />, handle: handle(ROUTE_META.live) },
 					{
 						path: '/analysis',
 						element: <DashboardPage id="analysis" />,

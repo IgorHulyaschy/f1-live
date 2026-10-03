@@ -1,9 +1,9 @@
 import { PauseIcon, PlayIcon, SkipBackIcon, SkipForwardIcon } from 'lucide-react';
 
 import { Key } from '@/components/console/keys';
-import type { LiveConnection } from '@/data/live-feed';
 import { useRaceView } from '@/data/race-context';
 import { stepDelay } from '@/data/viewer-settings';
+import { sessionMinutes } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
 /** Previous lap, play or pause, next lap. On a live session, stepping back pauses live. */
@@ -35,55 +35,6 @@ export function Transport({ className }: { className?: string }) {
 				<SkipForwardIcon />
 			</Key>
 		</div>
-	);
-}
-
-const CONNECTION_LABEL: Record<LiveConnection, string> = {
-	connecting: 'Connecting',
-	live: 'Live',
-	stale: 'Data stale',
-	reconnecting: 'Reconnecting'
-};
-
-/**
- * "Live" while the screen follows a running session, lit only while data flows; "Back to live"
- * once the viewer stepped back. It keeps one width whatever it says, so nothing around it moves
- * when the connection drops.
- */
-export function LiveKey({ className }: { className?: string }) {
-	const { live } = useRaceView();
-
-	if (!live.isLive) {
-		return null;
-	}
-
-	const width = 'w-30 justify-center';
-
-	if (!live.following) {
-		return (
-			<Key onClick={live.backToLive} className={cn(width, className)}>
-				Back to live
-			</Key>
-		);
-	}
-
-	const flowing = live.connection === 'live';
-
-	return (
-		<output
-			aria-live="polite"
-			data-testid="live-key"
-			className={cn(
-				'type-label inline-flex h-9 items-center border border-b-2 font-bold sm:h-7',
-				width,
-				flowing
-					? 'border-foreground bg-foreground text-background'
-					: 'text-muted-foreground border-dashed',
-				className
-			)}
-		>
-			{CONNECTION_LABEL[live.connection]}
-		</output>
 	);
 }
 
@@ -134,35 +85,30 @@ export function DelayControl({ className }: { className?: string }) {
 }
 
 /**
- * The lap as a big mono reading; in practice and qualifying, the minute of the session. Only one
- * is rendered per page; tests read it by its test id.
+ * The minute of a practice or qualifying session as a mono reading. A race's lap is on the
+ * live strip, so the page prints it once; tests read it by its test id.
  */
-export function LapCounter({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
+export function LapCounter() {
 	const { race, lap, stepUnit, steps } = useRaceView();
-	const label = stepUnit === 'lap' ? 'Lap' : 'Min';
-	const total = stepUnit === 'lap' ? race.session.totalLaps : steps;
+
+	if (stepUnit === 'lap') {
+		return null;
+	}
+
+	const total = sessionMinutes(race.session.type, steps);
 
 	return (
 		<div className="flex items-baseline gap-1.5 leading-none">
-			<span className="type-label">{label}</span>
+			<span className="type-label">Min</span>
 			<span className="sr-only" data-testid="lap-counter">
-				{label} {lap}
-				{total > 0 ? `/${total}` : null}
+				Min {lap}/{total}
 			</span>
-			<span
-				aria-hidden
-				className={cn('font-mono font-bold', size === 'lg' ? 'text-4xl' : 'text-lg')}
-			>
-				{size === 'lg' ? String(lap).padStart(2, '0') : lap}
+			<span aria-hidden className="font-mono text-lg font-bold">
+				{lap}
 			</span>
-			{total > 0 ? (
-				<span
-					aria-hidden
-					className={cn('text-muted-foreground font-mono', size === 'lg' ? 'text-lg' : 'text-xs')}
-				>
-					/{total}
-				</span>
-			) : null}
+			<span aria-hidden className="text-muted-foreground font-mono text-xs">
+				/{total}
+			</span>
 		</div>
 	);
 }

@@ -33,6 +33,8 @@ export interface Session {
 	id: string;
 	meetingName: string;
 	circuit: string;
+	/** The timing feed's key for the circuit, e.g. "152" for Las Vegas: names its outline. */
+	circuitKey?: string;
 	countryCode: string;
 	type: SessionType;
 	/** As the organiser names it, e.g. "Practice 2" or "Sprint". */
@@ -114,11 +116,20 @@ export const RACE_CONTROL_CATEGORIES = [
 
 export type RaceControlCategory = (typeof RACE_CONTROL_CATEGORIES)[number];
 
+/** A steward ruling on one lap time: deleted, or given back. The lap is named by its time or its number. */
+export interface LapTimeRuling {
+	lapTimeMs?: number;
+	lap?: number;
+	reinstated: boolean;
+}
+
 export interface RaceControlMessage {
 	lap: number;
 	category: RaceControlCategory;
 	message: string;
 	driverNumber?: string;
+	/** For "TIME 1:31.693 DELETED" and "WILL BE REINSTATED"; absent on every other message. */
+	lapTimeRuling?: LapTimeRuling;
 	/** When it was published, ISO 8601 UTC. Absent on the modelled replay. */
 	at?: string;
 }
@@ -173,6 +184,17 @@ export interface TrackStatusChange {
 	status: TrackStatus;
 }
 
+/**
+ * The session clock as the feed set it: the time left at `at`, and whether it was counting down
+ * from there. It stops for a red flag and between the parts of qualifying.
+ */
+export interface SessionClockMark {
+	/** ISO 8601, UTC. */
+	at: string;
+	remainingMs: number;
+	running: boolean;
+}
+
 export const PENALTY_KINDS = ['time', 'drive_through', 'stop_go', 'grid', 'reprimand'] as const;
 
 export type PenaltyKind = (typeof PENALTY_KINDS)[number];
@@ -196,11 +218,14 @@ export interface Penalty {
 	servedLap?: number;
 }
 
-export const CORRECTION_KINDS = ['disqualified', 'time_penalty'] as const;
+export const CORRECTION_KINDS = ['disqualified', 'time_penalty', 'lap_penalty'] as const;
 
 export type CorrectionKind = (typeof CORRECTION_KINDS)[number];
 
-/** A change to the classification decided after the timing feed ends, such as a disqualification. */
+/**
+ * A change to the classification decided after the timing feed ends, such as a disqualification.
+ * A `lap_penalty` takes a lap off the car's classified distance.
+ */
 export interface ClassificationCorrection {
 	driverNumber: string;
 	kind: CorrectionKind;
@@ -226,6 +251,36 @@ export interface PersonalBest {
 	lap: number | null;
 	sectorTimesMs: readonly [number | null, number | null, number | null];
 	topSpeedsKph: TopSpeeds;
+}
+
+/**
+ * What the timing loops say about a car's pass through a mini sector: the session's fastest, the
+ * driver's best, neither, or a pass through the pit lane.
+ */
+export const MINI_SECTOR_MARKS = ['fastest', 'personal_best', 'none', 'pit'] as const;
+
+export type MiniSectorMark = (typeof MINI_SECTOR_MARKS)[number];
+
+/**
+ * A car's mini sectors as the timing loops report them: the lap it is on now, the lap before and
+ * its best so far. Mini sectors count from the line, from 0. Times are between the moments the
+ * feed published each loop, so they carry its jitter of about a tenth of a second; the marks are
+ * the loops' own.
+ */
+export interface MiniSectorRecord {
+	driverNumber: string;
+	/** The lap the newest mini sector belongs to. */
+	lap: number;
+	/** The newest mini sector the car left, and when, ISO 8601 UTC. */
+	index: number;
+	at: string;
+	/** Time through each mini sector of `lap` so far, ms; null where not run yet or not timed. */
+	ms: readonly (number | null)[];
+	marks: readonly (MiniSectorMark | null)[];
+	/** Each mini sector's time on the lap before `lap`. */
+	lastMs: readonly (number | null)[];
+	/** The quickest pass through each mini sector this session, pit lane left out. */
+	bestMs: readonly (number | null)[];
 }
 
 /** A pass the timing feed credited to the car that made it. */
@@ -296,9 +351,15 @@ export interface RaceSnapshot {
 	/** Every change of status, in order; each part of a qualifying session starts with `started`. */
 	statusLog?: readonly SessionStatusChange[];
 	trackStatusLog?: readonly TrackStatusChange[];
+	/** Every time the feed set the session clock, in order. */
+	clockLog?: readonly SessionClockMark[];
 	penalties?: readonly Penalty[];
 	personalBests?: readonly PersonalBest[];
 	corrections?: readonly ClassificationCorrection[];
+	/** Each car's mini sectors now, like `standings`: a cut of the session drops them. */
+	miniSectors?: readonly MiniSectorRecord[];
+	/** The driver holding the session's fastest time in each mini sector, by the loops' marks. */
+	miniSectorLeaders?: readonly (string | null)[];
 	overtakes?: readonly Overtake[];
 	teamRadio?: readonly TeamRadioClip[];
 	/** Live, only with an F1 TV login; saved races have it from the archive. */

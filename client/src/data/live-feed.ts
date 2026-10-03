@@ -1,8 +1,8 @@
-import { applyEvent, type RaceEvent, type RaceSnapshot } from '@f1-live/shared';
+import { applyEvent, type LivePositions, type RaceEvent, type RaceSnapshot } from '@f1-live/shared';
 import { z } from 'zod';
 
 import { isSessionOver } from '../insights/qualifying.ts';
-import { type Arrival, recordArrival } from './broadcast-delay.ts';
+import { type Arrival, MAX_DELAY_SECONDS, recordArrival } from './broadcast-delay.ts';
 
 /** docs/product/live-protocol.md; a change of shape bumps it on both sides. */
 const PROTOCOL_VERSION = 1;
@@ -34,6 +34,45 @@ const envelopeSchema = z.object({
 	epoch: z.string()
 });
 
+const positionsSchema = z.object({
+	v: z.literal(PROTOCOL_VERSION),
+	type: z.literal('positions'),
+	at: z.number(),
+	cars: z.record(
+		z.string(),
+		z.tuple([z.number(), z.number(), z.union([z.literal(0), z.literal(1)])])
+	)
+});
+
+const channelsSchema = z.object({
+	v: z.literal(PROTOCOL_VERSION),
+	type: z.literal('channels'),
+	live: z.object({ positions: z.boolean() }).partial()
+});
+
+/** The opt-in telemetry messages the feed reads: car positions, and which channels are live. */
+export type TelemetryMessage =
+	{ type: 'positions'; frame: LivePositions } | { type: 'channels'; positionsLive: boolean };
+
+export function parseTelemetryMessage(text: string): TelemetryMessage | null {
+	try {
+		const json: unknown = JSON.parse(text);
+		const positions = positionsSchema.safeParse(json);
+
+		if (positions.success) {
+			return { type: 'positions', frame: { at: positions.data.at, cars: positions.data.cars } };
+		}
+
+		const channels = channelsSchema.safeParse(json);
+
+		return channels.success
+			? { type: 'channels', positionsLive: channels.data.live.positions ?? false }
+			: null;
+	} catch {
+		return null;
+	}
+}
+
 /** One WebSocket text frame; null when it is not a message of this protocol version. */
 export function parseServerMessage(text: string): ServerMessage | null {
 	try {
@@ -53,6 +92,16 @@ export type Replica = {
 	sessionId: string | null;
 	snapshot: RaceSnapshot;
 };
+
+/**
+ * The newest moment a batch of events is stamped with; NaN for any other message. A state can
+ * be minutes old in its last lap or flag, as under a red flag, so it never sets the clock.
+ */
+function stampOf(message: ServerMessage): number {
+	return message.type === 'events'
+		? Math.max(...message.events.map((event) => Date.parse(event.at)))
+		: Number.NaN;
+}
 
 /**
  * One step of the protocol's client rules. `resync` means this copy cannot follow the message
@@ -113,6 +162,11 @@ export type LiveState = {
 	replica: Replica | null;
 	/** The session's states as they arrived, for a broadcast delay. */
 	arrivals: readonly Arrival[];
+	/**
+	 * The feed's clock minus this device's: how far the newest event that arrived was stamped
+	 * ahead of the moment it arrived. Replays run on the clock of the session they replay.
+	 */
+	clockOffsetMs: number;
 };
 
 /** What the feed hears from a socket. */
@@ -148,19 +202,37 @@ export type LiveFeedOptions = {
 
 const BACKOFF_MS = { initial: 1000, max: 30_000 };
 
+/** Positions kept for watchers that join late: the longest broadcast delay and a little more. */
+const POSITION_HISTORY_MS = (MAX_DELAY_SECONDS + 30) * 1000;
+
+/** Live car positions, for a track map: frames as they come, and whether the feed has any. */
+export type LivePositionsFeed = {
+	/** Subscribes the channel while anyone watches; a new watcher gets the recent frames at once. */
+	watchPositions: (listener: (frame: LivePositions) => void) => () => void;
+	/** Whether the feed sends positions: null until the server says, false without F1 TV. */
+	getPositionsLive: () => boolean | null;
+	subscribePositionsLive: (listener: () => void) => () => void;
+};
+
 /**
  * Follows `WS /live`: keeps a replica by the protocol's rules, resumes from its sequence number
  * after a drop, and reconnects with exponential backoff and jitter. Listeners are told at most
  * every `notifyMs`, so a feed that sends many small batches does not redraw the screen for each.
+ * Car positions are an opt-in channel with listeners of their own, told of every frame.
  */
-export class LiveFeed {
+export class LiveFeed implements LivePositionsFeed {
 	private readonly url: string;
 	private readonly createSocket: (url: string, handlers: SocketHandlers) => SocketLike;
 	private readonly heartbeatMs: number;
 	private readonly notifyMs: number;
 	private readonly random: () => number;
 	private readonly listeners = new Set<() => void>();
-	private state: LiveState = { connection: 'connecting', replica: null, arrivals: [] };
+	private state: LiveState = {
+		connection: 'connecting',
+		replica: null,
+		arrivals: [],
+		clockOffsetMs: 0
+	};
 	private socket: SocketLike | null = null;
 	private attempt = 0;
 	private stopped = true;
@@ -169,6 +241,13 @@ export class LiveFeed {
 	private deadTimer: ReturnType<typeof setTimeout> | null = null;
 	private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 	private lastNotifiedAt = 0;
+	private readonly positionListeners = new Set<(frame: LivePositions) => void>();
+	private readonly positionsLiveListeners = new Set<() => void>();
+	/** Recent frames, so a map opened behind a broadcast delay has positions at once. */
+	private positionHistory: LivePositions[] = [];
+	private positionsLive: boolean | null = null;
+	/** The socket the positions channel was asked for on; a new connection asks again. */
+	private positionsAskedOn: SocketLike | null = null;
 
 	constructor(url: string, options: LiveFeedOptions = {}) {
 		this.url = url;
@@ -185,6 +264,74 @@ export class LiveFeed {
 
 		return () => this.listeners.delete(listener);
 	};
+
+	watchPositions = (listener: (frame: LivePositions) => void): (() => void) => {
+		this.positionListeners.add(listener);
+		this.askForPositions();
+
+		for (const frame of this.positionHistory) {
+			listener(frame);
+		}
+
+		return () => {
+			this.positionListeners.delete(listener);
+
+			// The history stays: a dashboard switch unmounts one map before it mounts the next. The
+			// gap until the next frame is not drawn across (`MAX_FRAME_GAP_MS` in live-positions.ts).
+			if (this.positionListeners.size === 0) {
+				this.positionsAskedOn?.send(JSON.stringify({ type: 'unsubscribe', channel: 'positions' }));
+				this.positionsAskedOn = null;
+			}
+		};
+	};
+
+	getPositionsLive = (): boolean | null => this.positionsLive;
+
+	subscribePositionsLive = (listener: () => void): (() => void) => {
+		this.positionsLiveListeners.add(listener);
+
+		return () => this.positionsLiveListeners.delete(listener);
+	};
+
+	/** Sent once the socket has answered, so it is open: a closed socket cannot send. */
+	private askForPositions(): void {
+		const socket = this.socket;
+
+		if (
+			socket &&
+			this.state.connection === 'live' &&
+			this.positionListeners.size > 0 &&
+			this.positionsAskedOn !== socket
+		) {
+			socket.send(JSON.stringify({ type: 'subscribe', channel: 'positions' }));
+			this.positionsAskedOn = socket;
+		}
+	}
+
+	private onTelemetry(message: TelemetryMessage): void {
+		if (message.type === 'positions') {
+			const oldest = message.frame.at - POSITION_HISTORY_MS;
+
+			this.positionHistory = [
+				...this.positionHistory.filter((frame) => frame.at >= oldest),
+				message.frame
+			];
+
+			for (const listener of this.positionListeners) {
+				listener(message.frame);
+			}
+
+			return;
+		}
+
+		if (message.positionsLive !== this.positionsLive) {
+			this.positionsLive = message.positionsLive;
+
+			for (const listener of this.positionsLiveListeners) {
+				listener();
+			}
+		}
+	}
 
 	start(): void {
 		if (!this.stopped) {
@@ -219,9 +366,20 @@ export class LiveFeed {
 	}
 
 	private receive(socket: SocketLike, text: string): void {
+		if (socket !== this.socket) {
+			return;
+		}
+
 		const message = parseServerMessage(text);
 
-		if (!message || socket !== this.socket) {
+		if (!message) {
+			const telemetry = parseTelemetryMessage(text);
+
+			if (telemetry) {
+				this.watch();
+				this.onTelemetry(telemetry);
+			}
+
 			return;
 		}
 
@@ -245,7 +403,13 @@ export class LiveFeed {
 					})
 				: this.state.arrivals;
 
-		this.update({ connection: 'live', replica, arrivals }, replica === previous);
+		const stamped = stampOf(message);
+
+		const clockOffsetMs =
+			Number.isFinite(stamped) && stamped > 0 ? stamped - Date.now() : this.state.clockOffsetMs;
+
+		this.update({ connection: 'live', replica, arrivals, clockOffsetMs }, replica === previous);
+		this.askForPositions();
 	}
 
 	private dropped(socket: SocketLike): void {
@@ -254,6 +418,7 @@ export class LiveFeed {
 		}
 
 		this.socket = null;
+		this.positionHistory = [];
 		this.clearTimers();
 
 		const delay = Math.min(BACKOFF_MS.initial * 2 ** this.attempt, BACKOFF_MS.max);

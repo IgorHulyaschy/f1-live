@@ -9,13 +9,23 @@ cars load over them.
 
 ## Wide monitors
 
-Pit wall preset on a 2560px monitor, rows fitted to the window height:
+Pit wall preset on a 2560px monitor, rows fitted to the window height, with the track map
+beside the timing:
 
 ![Pit wall at 2560px](screenshots/pit-wall-2560.png)
 
 Analysis at 2560px:
 
 ![Analysis at 2560px](screenshots/analysis-2560.png)
+
+## Track
+
+The Track preset on real data (the 2025 Las Vegas race at lap 30, from the e2e fixture): the
+track map from the replay's car positions, the battle map, the pit rejoin ghost, mini-sector
+dominance, the flag map and LEC's lap painted by speed. On the mock replay the same tiles place
+the cars from timing alone and say "Estimated".
+
+![Track preset on real data, dark](screenshots/track-real-desktop-dark.png)
 
 ## Desktop
 

@@ -9,6 +9,8 @@ import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
 import { useRace } from '@/data/race-context';
+import { useScreenTime } from '@/hooks/use-screen-time';
+import { gapToCut, improvements, knockout, recentImprovements } from '@/insights/knockout';
 import { pitPenalties, timePenalties } from '@/insights/penalties';
 import { predictRejoin } from '@/insights/pit-window';
 import { type CutLine, cutLines, isKnockout, isTimedSession } from '@/insights/qualifying';
@@ -17,6 +19,7 @@ import { lastTimedPart, OUT_LABEL, type StandingRow } from '@/insights/standings
 import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
+import { formatSignedGap } from './knockout-panel';
 import { LapTrend, recentLaps, TREND_LAPS } from './lap-trend';
 import { MiniSectors } from './mini-sectors';
 
@@ -36,6 +39,9 @@ const VIEW_OPTIONS = [
 
 /** Cars shown either side of the followed driver in the near view. */
 const NEAR_CARS = 3;
+
+/** A lap that took a car up the order counts as just now for this long. */
+const IMPROVED_MS = 60_000;
 
 const FLASH = {
 	gain: ['rgba(74, 222, 128, 0.2)', 'rgba(74, 222, 128, 0)'],
@@ -160,7 +166,7 @@ function GhostRow({ code, position }: { code: string; position: number }) {
 			data-testid="ghost-row"
 		>
 			<td className="pl-4 font-mono text-sm font-bold">{position}</td>
-			<td colSpan={8}>
+			<td colSpan={9}>
 				<span className="type-label text-foreground">{code} if boxing now</span>
 			</td>
 		</motion.tr>
@@ -171,7 +177,7 @@ function GhostRow({ code, position }: { code: string; position: number }) {
 function CutRow({ line }: { line: CutLine }) {
 	return (
 		<tr aria-hidden data-testid="cut-line" className="h-0">
-			<td colSpan={9} className="relative p-0">
+			<td colSpan={10} className="relative p-0">
 				<span
 					className={cn(
 						'border-rule-strong absolute inset-x-0 -top-px border-t-2',
@@ -188,11 +194,14 @@ function CutRow({ line }: { line: CutLine }) {
 
 export function TimingTower() {
 	const { snapshot, lap, plan, followedDriver, setFollowedDriver, standings } = useRace();
-	const [mode, setMode] = React.useState<GapMode>('interval');
+	const shownAt = useScreenTime();
+	const knockoutState = knockout(snapshot, standings);
+	// In qualifying the gap that matters is to the top of the part.
+	const [mode, setMode] = React.useState<GapMode>(knockoutState ? 'leader' : 'interval');
 	const [view, setView] = React.useState<View>('full');
 	const rows = standings;
 	const timed = isTimedSession(snapshot.session.type);
-	const knockout = isKnockout(snapshot.session.type);
+	const knockoutSession = isKnockout(snapshot.session.type);
 	const partPrefix = snapshot.session.type === 'sprint_qualifying' ? 'SQ' : 'Q';
 	// The modelled replay has no speed traps; the column only shows when the data has them.
 	const hasTraps = rows.some((row) => row.speedTrapKph !== null);
@@ -214,6 +223,15 @@ export function TimingTower() {
 	const [openedOnLap] = React.useState(lap);
 	const flashes = lap !== openedOnLap;
 	const trends = recentLaps(snapshot.laps);
+
+	const found = React.useMemo(
+		() => (knockoutSession ? improvements(snapshot) : []),
+		[knockoutSession, snapshot]
+	);
+
+	const improved = recentImprovements(found, shownAt, IMPROVED_MS);
+	const dropZone = new Set(knockoutState?.dropZone.map((row) => row.driver.number));
+	const cutShown = Boolean(knockoutState && knockoutState.cutAfter !== null);
 
 	const visible =
 		view === 'near' && followedIndex >= 0
@@ -262,6 +280,14 @@ export function TimingTower() {
 								<th scope="col" className="type-label pr-4 text-right font-normal">
 									{mode === 'interval' ? 'Interval' : 'Gap'}
 								</th>
+								{cutShown ? (
+									<th
+										scope="col"
+										className="type-label hidden pr-4 text-right font-normal @lg:table-cell"
+									>
+										To cut
+									</th>
+								) : null}
 								<th
 									scope="col"
 									className={cn(
@@ -321,6 +347,10 @@ export function TimingTower() {
 									(entry) => entry.settled && row.position > entry.after
 								);
 
+								const inDropZone = dropZone.has(row.driver.number);
+								const improvement = improved.get(row.driver.number);
+								const cutGap = knockoutState && cutShown ? gapToCut(row, knockoutState) : null;
+
 								const withinOneSecond =
 									!timed &&
 									aid.enabled !== false &&
@@ -346,11 +376,13 @@ export function TimingTower() {
 													moved > 0 ? [...FLASH.gain] : moved < 0 ? [...FLASH.loss] : FLASH.gain[1]
 											}}
 											data-state={followed ? 'selected' : undefined}
+											data-drop-zone={inDropZone || undefined}
 											data-testid={`timing-row-${row.driver.code}`}
 											onClick={() => setFollowedDriver(row.driver.number)}
 											className={cn(
 												'hover:bg-accent/70 data-[state=selected]:bg-accent relative h-10 cursor-pointer border-b',
-												(row.state === 'out' || knockedOut) && 'text-muted-foreground'
+												(row.state === 'out' || knockedOut) && 'text-muted-foreground',
+												inDropZone && 'bg-danger/6'
 											)}
 										>
 											<td className="relative pl-4">
@@ -358,9 +390,27 @@ export function TimingTower() {
 													<span aria-hidden className="bg-focus absolute inset-y-0 left-0 w-0.75" />
 												) : null}
 												<span className="flex items-baseline gap-1.5">
-													<span className="w-5 text-right font-mono text-sm font-bold">
+													<span
+														className={cn(
+															'w-5 text-right font-mono text-sm font-bold',
+															inDropZone && 'text-danger'
+														)}
+													>
 														{row.out === 'disqualified' ? '-' : row.position}
+														{inDropZone ? <span className="sr-only"> in the drop zone</span> : null}
 													</span>
+													{improvement && (improvement.from ?? Infinity) > improvement.to ? (
+														<span
+															className={cn(
+																'text-xs',
+																improvement.fastest ? 'text-fastest' : 'text-personal-best'
+															)}
+															data-testid="improved"
+															title={`Up from ${improvement.from === null ? 'no time' : `P${improvement.from}`} in the last minute`}
+														>
+															▲<span className="sr-only"> improved in the last minute</span>
+														</span>
+													) : null}
 													{timed || row.state === 'out' || !row.positionsGained ? null : (
 														<span
 															className={cn(
@@ -410,6 +460,15 @@ export function TimingTower() {
 													<GapReading row={row} mode={mode} timed={timed} />
 												</span>
 											</td>
+											{cutShown ? (
+												<td className="hidden pr-4 text-right whitespace-nowrap @lg:table-cell">
+													{cutGap === null ? (
+														<span className="text-muted-foreground">-</span>
+													) : (
+														<Digits value={formatSignedGap(cutGap)} />
+													)}
+												</td>
+											) : null}
 											<td
 												className={cn(
 													'hidden pr-4 text-right',
@@ -423,7 +482,7 @@ export function TimingTower() {
 														bestColumn
 														fastestMs={sessionFastestMs}
 														part={
-															knockout && row.bestLap
+															knockoutSession && row.bestLap
 																? `${partPrefix}${lastTimedPart(row) + 1}`
 																: undefined
 														}

@@ -7,23 +7,28 @@ import { FastestLaps } from '@/features/analysis/fastest-laps';
 import type { Metric } from '@/features/analysis/lap-series';
 import { PaceRanking } from '@/features/analysis/pace-ranking';
 import { DriverCard, GridWall } from '@/features/drivers/driver-tiles';
+import { BestSectors } from '@/features/live/best-sectors';
 import { FocusPanel } from '@/features/live/focus-panel';
+import { KnockoutPanel } from '@/features/live/knockout-panel';
 import { BoxNowPanel, GapsPanel } from '@/features/live/focus-tiles';
 import { RaceControlFeed } from '@/features/live/race-control-feed';
 import { TimingTower } from '@/features/live/timing-tower';
-import {
-	LapStripTile,
-	ReplayTile,
-	SessionTile,
-	WeatherTile
-} from '@/features/session/session-tiles';
+import { LapStripTile, SessionTile, WeatherTile } from '@/features/session/session-tiles';
+import { Timeline } from '@/features/session/timeline';
 import { Degradation } from '@/features/strategy/degradation';
+import { LongRuns } from '@/features/strategy/long-runs';
 import { PitCost } from '@/features/strategy/pit-cost';
 import { PitCrews } from '@/features/strategy/pit-crews';
 import { PitStops } from '@/features/strategy/pit-stops';
 import { StintChart } from '@/features/strategy/stint-chart';
 import { UndercutLedger } from '@/features/strategy/undercut-ledger';
 import { StoryRibbon } from '@/features/story/story-ribbon';
+import { BattleMapTile } from '@/features/track/battle-map-tile';
+import { DominanceTile } from '@/features/track/dominance-tile';
+import { FlagMapTile } from '@/features/track/flag-map-tile';
+import { PitRejoinTile } from '@/features/track/pit-rejoin-tile';
+import { SpeedMapTile } from '@/features/track/speed-map-tile';
+import { TrackMapTile } from '@/features/track/track-map-tile';
 
 import type { Tile, TileSettings } from './dashboards';
 
@@ -71,7 +76,7 @@ export function TileContent({
 		}
 
 		case 'replay': {
-			return <ReplayTile />;
+			return <Timeline />;
 		}
 
 		case 'lap-strip': {
@@ -177,11 +182,62 @@ export function TileContent({
 			);
 		}
 
+		case 'knockout': {
+			return <KnockoutPanel />;
+		}
+
+		case 'sectors': {
+			return <BestSectors />;
+		}
+
+		case 'long-runs': {
+			return <LongRuns />;
+		}
+
 		case 'conditions': {
 			return (
 				<React.Suspense fallback={<LoadingTile title="Conditions" />}>
 					<ConditionsPanel />
 				</React.Suspense>
+			);
+		}
+
+		case 'track-map': {
+			return (
+				<TrackMapTile
+					settings={tile.settings}
+					onSettingsChange={(settings) => onSettingsChange?.({ ...tile.settings, ...settings })}
+				/>
+			);
+		}
+
+		case 'battle-map': {
+			return <BattleMapTile />;
+		}
+
+		case 'pit-rejoin': {
+			return <PitRejoinTile />;
+		}
+
+		case 'dominance': {
+			return (
+				<DominanceTile
+					span={tile.settings?.span}
+					onSpanChange={(span) => onSettingsChange?.({ ...tile.settings, span })}
+				/>
+			);
+		}
+
+		case 'flag-map': {
+			return <FlagMapTile />;
+		}
+
+		case 'speed-map': {
+			return (
+				<SpeedMapTile
+					channel={tile.settings?.channel}
+					onChannelChange={(channel) => onSettingsChange?.({ ...tile.settings, channel })}
+				/>
 			);
 		}
 	}

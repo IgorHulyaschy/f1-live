@@ -6,13 +6,22 @@ import { z } from 'zod';
 import { useStableValue } from '../hooks/use-stable-value.ts';
 import { createLocalStore } from '../lib/local-store.ts';
 import { type Catalog, defaultSessionKey, findSession, type SessionEntry } from './catalog.ts';
-import { delayedSnapshot } from './broadcast-delay.ts';
-import { LiveFeed, type LiveConnection, liveSessionKey, type LiveState } from './live-feed.ts';
+import { delayedSnapshot, feedClock } from './broadcast-delay.ts';
+import {
+	LiveFeed,
+	type LiveConnection,
+	type LivePositionsFeed,
+	liveSessionKey,
+	type LiveState
+} from './live-feed.ts';
 import type { RaceSource } from './race-source.ts';
+import type { MapTelemetry } from './map-telemetry.ts';
 import { type StandingRow, standingsAt } from '../insights/standings.ts';
 import { isSessionOver, isTimedSession } from '../insights/qualifying.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
 import { minuteTime, sessionClock, snapshotAtTime } from './snapshot-at-time.ts';
+import { ReplayClock, type ReplaySpeed, replaySpeedStore } from './replay-clock.ts';
+import { type ReplayTimeline, replayTimeline, stepAt, stepTime } from './session-time.ts';
 import { delayStore, revealedStore, spoilerFreeStore } from './viewer-settings.ts';
 
 export type Plan = 'free' | 'pro';
@@ -29,6 +38,10 @@ type LiveView = {
 	/** Seconds the live screen runs behind the feed. */
 	delaySeconds: number;
 	setDelaySeconds: (seconds: number) => void;
+	/** Car positions from the live feed; null for a source without one. */
+	positions: LivePositionsFeed | null;
+	/** The feed's clock now, behind by the delay: where a map draws the session between messages. */
+	feedTime: () => number;
 };
 
 type Spoilers = {
@@ -43,6 +56,8 @@ type Spoilers = {
 
 type RaceContextValue = {
 	sourceKind: RaceSource['kind'];
+	/** Circuits and replay positions for the track maps. */
+	maps: MapTelemetry;
 	catalog: Catalog | null;
 	/** The archive key of the session on screen. */
 	sessionKey: string;
@@ -64,17 +79,31 @@ type RaceContextValue = {
 	/** The last step there is: the laps run so far, or the minutes. */
 	steps: number;
 	lap: number;
+	/** In a session on the clock, the moment `snapshot` shows; null when it shows the latest. */
+	cutTime: number | null;
 	setLap: (lap: number) => void;
 	/** Moves the replay by `delta` laps, clamped to the laps available. */
 	stepLap: (delta: number) => void;
 	playing: boolean;
 	setPlaying: (playing: boolean) => void;
+	/** Replay speed as a multiple of real time. */
+	speed: ReplaySpeed;
+	setSpeed: (speed: ReplaySpeed) => void;
+	/** The session time the replay shows, between its steps too. */
+	replayClock: ReplayClock;
+	/** When each step of the session on screen ends; null while nothing is shown. */
+	timeline: ReplayTimeline | null;
 	plan: Plan;
 	setPlan: (plan: Plan) => void;
 	followedDriver: string;
 	setFollowedDriver: (driverNumber: string) => void;
 	/** Standings at `lap`, computed once for every panel. */
 	standings: readonly StandingRow[];
+	/**
+	 * Added to this device's clock, the moment the live screen shows: the feed's clock runs ahead
+	 * by the offset, and the screen behind it by the delay.
+	 */
+	feedOffsetMs: number;
 	/** Tells other windows about a change made here. */
 	broadcast: (message: SyncMessage) => void;
 };
@@ -84,10 +113,10 @@ export type RunningSlot = { number: string; out: boolean };
 
 /**
  * The race without the running order, which moves many times a lap. `race` and `snapshot` are
- * kept while only the order and personal bests change, so their `standings` and
- * `personalBests` may be behind: read those through `useRace`.
+ * kept while only the order, personal bests and mini sectors change, so their `standings`,
+ * `personalBests` and `miniSectors` may be behind: read those through `useRace`.
  */
-export type RaceView = Omit<RaceContextValue, 'standings'> & {
+export type RaceView = Omit<RaceContextValue, 'standings' | 'feedOffsetMs'> & {
 	order: readonly RunningSlot[];
 };
 
@@ -112,6 +141,7 @@ function sameExceptOrder(kept: RaceSnapshot, next: RaceSnapshot): boolean {
 		kept.trackStatusLog === next.trackStatusLog &&
 		kept.status === next.status &&
 		kept.statusLog === next.statusLog &&
+		kept.clockLog === next.clockLog &&
 		kept.startedAt === next.startedAt &&
 		kept.penalties === next.penalties &&
 		kept.corrections === next.corrections &&
@@ -143,8 +173,6 @@ const followedDriverStore = createLocalStore<string | null>(
 	z.string().nullable(),
 	null
 );
-
-const PLAYBACK_INTERVAL_MS = 1500;
 
 /** Race state shared by every open Pitwall window, so tiles on other monitors stay in step. */
 const SYNC_CHANNEL = 'pitwall-race';
@@ -234,10 +262,17 @@ function useCatalog(source: RaceSource): Loadable<Catalog> {
 	return state;
 }
 
-const IDLE_LIVE: LiveState = { connection: 'connecting', replica: null, arrivals: [] };
+const IDLE_LIVE: LiveState = {
+	connection: 'connecting',
+	replica: null,
+	arrivals: [],
+	clockOffsetMs: 0
+};
+
+type LiveFeedState = { feed: LiveFeed | null; state: LiveState };
 
 /** One feed per page for the source's `WS /live`; none for a source without one. */
-function useLiveFeed(url: string | null): LiveState {
+function useLiveFeed(url: string | null): LiveFeedState {
 	const feed = React.useMemo(() => (url ? new LiveFeed(url) : null), [url]);
 
 	React.useEffect(() => {
@@ -246,7 +281,12 @@ function useLiveFeed(url: string | null): LiveState {
 		return () => feed?.stop();
 	}, [feed]);
 
-	return React.useSyncExternalStore(feed?.subscribe ?? noSubscription, feed?.getState ?? idleLive);
+	const state = React.useSyncExternalStore(
+		feed?.subscribe ?? noSubscription,
+		feed?.getState ?? idleLive
+	);
+
+	return { feed, state };
 }
 
 function noSubscription(): () => void {
@@ -412,7 +452,7 @@ export function RaceProvider({
 }) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const catalog = useCatalog(source);
-	const liveState = useLiveFeed(source.liveUrl);
+	const { feed: liveFeed, state: liveState } = useLiveFeed(source.liveUrl);
 	const liveKey = liveSessionKey(liveState);
 
 	const { key, settled } = useSessionKey(
@@ -598,27 +638,61 @@ export function RaceProvider({
 	const drivesPlayback = playing && lap < maxLap;
 	const isPlaying = (playing || mirroring) && lap < maxLap;
 
+	const [replayClock] = React.useState(() => new ReplayClock());
+	const speed = replaySpeedStore.useValue();
+	const timeline = React.useMemo(() => (race ? replayTimeline(race) : null), [race]);
+
+	// The clock stays where it is inside the step on screen, and moves to the step's time for any
+	// other. Playing runs it at the chosen speed and steps the replay when it reaches the next one.
 	React.useEffect(() => {
-		if (!drivesPlayback) {
+		if (!timeline) {
 			return;
 		}
 
-		const timer = window.setInterval(() => {
-			const current = resolveLap(
-				new URLSearchParams(window.location.search).get('lap'),
-				maxLap,
-				defaultLap
-			);
+		const now = performance.now();
+		const current = replayClock.now(now);
+		const inStep = current >= (timeline.times[0] ?? 0) && stepAt(timeline, current) === lap;
+		const from = inStep ? current : stepTime(timeline, lap);
 
-			if (isLive && current + 1 >= maxLap) {
-				backToLive();
-			} else {
-				stepLap(1);
-			}
-		}, PLAYBACK_INTERVAL_MS);
+		replayClock.set(from, isPlaying ? speed : 0, now);
 
-		return () => window.clearInterval(timer);
-	}, [drivesPlayback, stepLap, isLive, maxLap, defaultLap, backToLive]);
+		const next = timeline.times[lap + 1];
+
+		if (!drivesPlayback || next === undefined) {
+			return;
+		}
+
+		const timer = window.setTimeout(
+			() => {
+				const onScreen = resolveLap(
+					new URLSearchParams(window.location.search).get('lap'),
+					maxLap,
+					defaultLap
+				);
+
+				if (isLive && onScreen + 1 >= maxLap) {
+					backToLive();
+				} else {
+					stepLap(1);
+				}
+			},
+			Math.max(0, (next - from) / speed)
+		);
+
+		return () => window.clearTimeout(timer);
+	}, [
+		timeline,
+		lap,
+		isPlaying,
+		drivesPlayback,
+		speed,
+		replayClock,
+		stepLap,
+		isLive,
+		maxLap,
+		defaultLap,
+		backToLive
+	]);
 
 	const setPlaying = React.useCallback(
 		(next: boolean) => {
@@ -641,13 +715,15 @@ export function RaceProvider({
 		[updateParams, broadcast]
 	);
 
+	const cutTime = clock && !following && lap < maxLap ? minuteTime(clock, lap) : null;
+
 	const snapshot = React.useMemo(() => {
 		if (!race || following || (clock && lap >= maxLap)) {
 			return race;
 		}
 
-		return clock ? snapshotAtTime(race, minuteTime(clock, lap)) : snapshotAtLap(race, lap);
-	}, [race, lap, following, clock, maxLap]);
+		return cutTime === null ? snapshotAtLap(race, lap) : snapshotAtTime(race, cutTime);
+	}, [race, lap, following, clock, maxLap, cutTime]);
 
 	const plan: Plan = accountPlan === 'pro' || searchParams.get('plan') === 'pro' ? 'pro' : 'free';
 	const storedDriver = followedDriverStore.useValue();
@@ -662,6 +738,8 @@ export function RaceProvider({
 		sameOrder
 	);
 
+	const arrivals = liveState.arrivals;
+
 	const live = React.useMemo<LiveView>(
 		() => ({
 			isLive,
@@ -670,9 +748,11 @@ export function RaceProvider({
 			liveKey,
 			backToLive,
 			delaySeconds,
-			setDelaySeconds: delayStore.set
+			setDelaySeconds: delayStore.set,
+			positions: liveFeed,
+			feedTime: () => feedClock(arrivals, Date.now(), delaySeconds * 1000)
 		}),
-		[isLive, following, liveState.connection, liveKey, backToLive, delaySeconds]
+		[isLive, following, liveState.connection, liveKey, backToLive, delaySeconds, liveFeed, arrivals]
 	);
 
 	const spoilers = React.useMemo<Spoilers>(
@@ -684,7 +764,7 @@ export function RaceProvider({
 	const sessionError = 'message' in wanted ? wanted.message : null;
 	const switchingTo = key !== null && shown && shown.key !== key && !sessionError ? key : null;
 
-	type RaceBase = Omit<RaceContextValue, 'race' | 'snapshot' | 'standings'>;
+	type RaceBase = Omit<RaceContextValue, 'race' | 'snapshot' | 'standings' | 'feedOffsetMs'>;
 
 	// Everything but the data, so the view below can skip updates that only move the order.
 	const base = React.useMemo<RaceBase | null>(
@@ -693,6 +773,7 @@ export function RaceProvider({
 				? null
 				: {
 						sourceKind: source.kind,
+						maps: source.maps,
 						catalog: catalogValue,
 						sessionKey: shownKey,
 						switchingTo,
@@ -703,6 +784,7 @@ export function RaceProvider({
 						stepUnit: timed ? 'minute' : 'lap',
 						steps: maxLap,
 						lap,
+						cutTime,
 						setLap: (nextLap) => {
 							updateParam('lap', String(nextLap));
 							broadcast({ lap: nextLap });
@@ -710,6 +792,10 @@ export function RaceProvider({
 						stepLap,
 						playing: isPlaying,
 						setPlaying,
+						speed,
+						setSpeed: replaySpeedStore.set,
+						replayClock,
+						timeline,
 						plan,
 						setPlan: (nextPlan) => {
 							updateParam('plan', nextPlan);
@@ -725,6 +811,7 @@ export function RaceProvider({
 					},
 		[
 			source.kind,
+			source.maps,
 			catalogValue,
 			shownKey,
 			switchingTo,
@@ -735,8 +822,12 @@ export function RaceProvider({
 			timed,
 			maxLap,
 			lap,
+			cutTime,
 			isPlaying,
 			setPlaying,
+			speed,
+			replayClock,
+			timeline,
 			plan,
 			followedDriver,
 			updateParam,
@@ -745,9 +836,11 @@ export function RaceProvider({
 		]
 	);
 
+	const feedOffsetMs = liveState.clockOffsetMs - delaySeconds * 1000;
+
 	const value = React.useMemo<RaceContextValue | null>(
-		() => (base && race && snapshot ? { ...base, race, snapshot, standings } : null),
-		[base, race, snapshot, standings]
+		() => (base && race && snapshot ? { ...base, race, snapshot, standings, feedOffsetMs } : null),
+		[base, race, snapshot, standings, feedOffsetMs]
 	);
 
 	const hasValue = value !== null;

@@ -27,6 +27,7 @@ export async function hashOutputs(dataDir: string): Promise<OutputDigest> {
 	let bytes = 0;
 
 	for (const name of names) {
+		// oxlint-disable-next-line no-await-in-loop -- name order makes the digest stable, and one file is in memory at a time.
 		const content = await readFile(path.join(root, name));
 
 		hash.update(`${name}\0`);
@@ -83,7 +84,7 @@ export function formatReport(report: ImportReport, outputs: OutputDigest): strin
 		`raw: ${megabytes(report.rawBytes)}`,
 		`output: ${megabytes(outputs.bytes)}`,
 		`sessions with telemetry: ${built.length}`,
-		`telemetry skipped (no Position.z, no circuit key or no laps): ${telemetrySkipped.length}`,
+		`telemetry skipped (no Position.z, no circuit key, no laps or no lap to draw the circuit from): ${telemetrySkipped.length}`,
 		`telemetry failed: ${telemetryFailed.length}`,
 		...telemetryFailed.map(
 			({ outcome, reason }) => `  ${outcome.label} (${outcome.key}): ${reason}`

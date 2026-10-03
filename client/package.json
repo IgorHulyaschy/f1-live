@@ -14,7 +14,7 @@
 		"brand-assets": "node scripts/brand-assets.ts",
 		"budgets": "node scripts/budgets.ts",
 		"italic-instances": "node scripts/italic-instances.ts",
-		"shots": "playwright test --project=shots && playwright test -c playwright.build.config.ts --project=shots-build && playwright test -c playwright.real.config.ts --project=shots-real"
+		"shots": "playwright test --project=shots && playwright test -c playwright.build.config.ts --project=shots-build && playwright test -c playwright.real.config.ts --project=shots-real --project=shots-live"
 	},
 	"dependencies": {
 		"@f1-live/shared": "0.1.0",

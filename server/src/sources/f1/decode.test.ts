@@ -80,6 +80,27 @@ const tsunodaStops = [
 	frame('TimingData', '01:43:41.873', { Lines: { '22': { InPit: false } } })
 ];
 
+function unrunSegments(count: number): { Status: number }[] {
+	return Array.from({ length: count }, () => ({ Status: 0 }));
+}
+
+/** Car 1's TimingData update giving mini sectors of one sector these statuses. */
+function segments(sector: number, statuses: Record<number, number>): Json {
+	return {
+		Lines: {
+			'1': {
+				Sectors: {
+					[sector]: {
+						Segments: Object.fromEntries(
+							Object.entries(statuses).map(([segment, status]) => [segment, { Status: status }])
+						)
+					}
+				}
+			}
+		}
+	};
+}
+
 describe('F1Decoder', () => {
 	it('names the session and gives its start in UTC (SessionInfo)', async () => {
 		const events = decodeAll(await fixture('SessionInfo'));
@@ -93,6 +114,7 @@ describe('F1Decoder', () => {
 					name: 'Race',
 					meetingName: 'Las Vegas Grand Prix',
 					circuit: 'Las Vegas',
+					circuitKey: '152',
 					countryCode: 'USA',
 					type: 'race',
 					startsAt: '2025-11-23T04:00:00.000Z'
@@ -112,6 +134,19 @@ describe('F1Decoder', () => {
 				[at('02:18:50.324'), 'finished'],
 				[at('02:20:59.800'), 'finalised'],
 				[at('02:22:51.060'), 'ended']
+			]
+		);
+	});
+
+	it('sets the session clock when it is set or starts running (ExtrapolatedClock)', async () => {
+		const events = ofKind(decodeAll(await fixture('ExtrapolatedClock')), 'session_clock');
+
+		assert.deepEqual(
+			events.map((event) => [event.at, event.remainingMs, event.running]),
+			[
+				['2025-11-23T03:06:28.006Z', 0, false],
+				['2025-11-23T03:07:02.011Z', 7_200_000, false],
+				['2025-11-23T04:04:09.013Z', 7_199_000, true]
 			]
 		);
 	});
@@ -290,6 +325,54 @@ describe('F1Decoder', () => {
 		]);
 	});
 
+	it('reads mini sectors from segment statuses, across the line and back to the first (TimingData)', () => {
+		const events = decodeAll([
+			frame('TimingData', '00:50:00.000', {
+				Lines: {
+					'1': {
+						NumberOfLaps: 0,
+						Sectors: [
+							{ Segments: unrunSegments(2) },
+							{ Segments: unrunSegments(2) },
+							{ Segments: unrunSegments(1) }
+						]
+					}
+				}
+			}),
+			started,
+			frame('TimingData', '00:58:10.000', segments(0, { 0: 2049 })),
+			frame('TimingData', '00:58:20.000', segments(0, { 1: 2051 })),
+			frame('TimingData', '00:58:30.000', segments(1, { 0: 2048 })),
+			frame('TimingData', '00:58:40.000', segments(1, { 1: 2064 })),
+			frame('TimingData', '00:58:49.000', { Lines: { '1': { NumberOfLaps: 1 } } }),
+			frame('TimingData', '00:58:50.000', segments(2, { 0: 2048 })),
+			// The next lap: the first mini sector repeats its status, so only the second is cleared.
+			frame('TimingData', '00:59:00.000', {
+				Lines: {
+					'1': {
+						Sectors: {
+							'0': { Segments: { '1': { Status: 0 } } },
+							'1': { Segments: { '0': { Status: 0 }, '1': { Status: 0 } } },
+							'2': { Segments: { '0': { Status: 0 } } }
+						}
+					}
+				}
+			})
+		]);
+
+		assert.deepEqual(
+			ofKind(events, 'mini_sector').map((event) => [event.at, event.lap, event.index, event.mark]),
+			[
+				[at('00:58:10.000'), 1, 0, 'personal_best'],
+				[at('00:58:20.000'), 1, 1, 'fastest'],
+				[at('00:58:30.000'), 1, 2, 'none'],
+				[at('00:58:40.000'), 1, 3, 'pit'],
+				[at('00:58:50.000'), 1, 4, 'none'],
+				[at('00:59:00.000'), 2, 0, 'personal_best']
+			]
+		);
+	});
+
 	it('keys stints by their first lap and survives a stint reported twice (TimingAppData)', async () => {
 		const events = decodeAll([
 			...(await fixture('TimingAppData')),
@@ -446,6 +529,35 @@ describe('F1Decoder', () => {
 			{ driverNumber: '22', lap: 27, laneTimeMs: 20_600 },
 			{ driverNumber: '27', lap: 30, laneTimeMs: 22_300 }
 		]);
+	});
+
+	it('reads deleted and reinstated lap times from race control messages', () => {
+		const messages = [
+			'CAR 55 (SAI) TIME 1:37.155 DELETED - TRACK LIMITS AT TURN 5 LAP 7 15:14:08',
+			'CAR 81 (PIA) LAP DELETED - TRACK LIMITS AT TURN 15 LAP 7 16:31:06 (PIT)',
+			'CAR 55 (SAI) TIME 1:37.155 WILL BE REINSTATED',
+			'CAR 14 (ALO) LAP DELETED - DOUBLE YELLOW AT TURN 5',
+			'CAR 14 (ALO) LAP 5 WILL BE REINSTATED'
+		];
+
+		const events = decodeAll(
+			messages.map((Message, index) =>
+				frame('RaceControlMessages', `00:00:0${index}`, {
+					Messages: { [index]: { Utc: '2025-11-23T03:20:00', Lap: 7, Category: 'Other', Message } }
+				})
+			)
+		);
+
+		assert.deepEqual(
+			ofKind(events, 'race_control').map(({ message }) => message.lapTimeRuling ?? null),
+			[
+				{ lapTimeMs: 97_155, lap: 7, reinstated: false },
+				{ lap: 7, reinstated: false },
+				{ lapTimeMs: 97_155, reinstated: true },
+				null,
+				{ lap: 5, reinstated: true }
+			]
+		);
 	});
 
 	it('categorises race control and reads penalties from it (RaceControlMessages)', async () => {

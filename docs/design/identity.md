@@ -10,7 +10,8 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
   - `--fastest` purple: overall fastest lap or sector.
   - `--personal-best` green: a driver's personal best.
   - `--flag` yellow: yellow flags, VSC, safety car, pit-lane state.
-  - `--danger` red: red flag, penalties, retirements.
+  - `--danger` red: red flag, penalties, retirements, and the places of the qualifying drop zone
+    (cars that would go out if the part ended now).
   - `--blue-flag` blue: blue flags.
   - Tyre compounds use their regulation colours. Hard is drawn hollow, never as a white block.
 - `--focus` is the team colour of the driver you follow. It is set once on the app root and drives
@@ -44,7 +45,12 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
 ## Signature elements
 
 - Race barcode (`LapStrip`): one bar per lap; height is pit traffic, yellow for flag laps,
-  a purple cap where the fastest lap fell.
+  a purple cap where the fastest lap fell. It is the track of the Replay tile's timeline, with
+  the events marked over it as small blocks in the story's colours and each qualifying part's
+  start ruled across it.
+- Live strip: one line under the top bar on every page. "Live" is lit like an on-air sign (solid
+  foreground, the only filled key in the strip); the time left is the largest number on it; the
+  drop zone is a row of team-striped codes, labelled, never coloured by team as a block.
 - Flag banner: a full-width band that wipes in under the header when the track status changes.
 - Pit board: on phones a sticky bottom bar for the followed driver, like the board held over
   the pit wall.
@@ -61,10 +67,28 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
 - No gradients. Neutralised laps are a faint `--flag` band. The DRS window is a faint neutral band.
 - The second car of a team is dashed instead of getting an invented colour.
 
+## Maps
+
+- The circuit is a neutral band. Colour on it carries meaning only: sector marks (purple, green),
+  flags and the pit lane (yellow, red) and team colours where drivers are compared. A lap painted by speed or gear
+  is a neutral ramp, faint where slow, solid where fast.
+- Cars are team-colour discs ringed in the panel colour. The followed car is larger, with a
+  forward-cut chip, because that cut means "a car". Cars placed from timing alone are hollow, and
+  the panel says "Estimated".
+- Road gaps are dashed connectors between cars; the pit-rejoin ghost is a dashed ring, like the
+  ghost row in the tower.
+- Maps move only while the clock runs; with reduced motion they update once a second.
+
 ## Dashboards
 
-- Every page is a dashboard: tiles on a 24-column grid. Live, Analysis and Strategy are presets
-  at their old addresses; Battle and Pit wall are presets for focused and wide screens.
+- Every page is a dashboard: tiles on a 24-column grid. `/` is the session's own layout (Race,
+  Quali or Practice); Analysis and Strategy are presets at their old addresses; Battle and Pit
+  wall are presets for focused and wide screens.
+- One primary reading per screen: on the session layouts it is the time left (or the lap) on the
+  live strip and the tower under it. The Replay tile prints the minute only on the clock, so a
+  race's lap is printed once.
+- Tiles for another kind of session never fill a tile with an apology: they are left out of the
+  session layouts and shrink to a dashed line with a `hatch` mark elsewhere.
 - Panels size themselves to their tile with container queries (`@container` on `Panel`), never
   to the screen, so a narrow tile on a 4K monitor looks like a phone-width panel.
 - Below 64rem of width the grid stacks tiles in reading order at natural height.

@@ -18,10 +18,15 @@ test('the race opens at the flag with the McLaren disqualifications', async ({ p
 	for (const code of ['NOR', 'PIA']) {
 		const row = page.getByTestId(`timing-row-${code}`);
 
+		// oxlint-disable-next-line no-await-in-loop -- two rows, checked in order.
 		await expect(row.getByText('DSQ').first()).toBeVisible();
+		// oxlint-disable-next-line no-await-in-loop -- see above.
 		await expect(row.getByText('DSQ').first()).toHaveAttribute('title', /plank/);
 	}
 
+	// Behind the disqualified McLarens, each car is measured to the car now ahead of it.
+	await expect(page.getByTestId('timing-row-RUS')).toContainText('23.546');
+	await expect(page.getByTestId('timing-row-ANT')).toContainText('6.942');
 	await expect(rows.nth(18)).toHaveAttribute('data-testid', 'timing-row-NOR');
 	await expect(rows.nth(19)).toHaveAttribute('data-testid', 'timing-row-PIA');
 	await expect(page.getByTestId('timing-row-STR').getByText('DNF').first()).toBeVisible();
@@ -57,7 +62,9 @@ test('the session picker opens another session and keeps it in the address', asy
 	await picker.getByTestId('session-9854').click();
 
 	await expect(page).toHaveURL(/session=9854/);
-	await expect(page.getByTestId('session')).toContainText('Qualifying');
+	// The screen moves to the qualifying layout with the session.
+	await expect(page.getByTestId('strip-session')).toContainText('Qualifying');
+	await expect(page.getByTestId('dashboard-quali')).toBeVisible();
 
 	await page.getByRole('button', { name: 'Sessions' }).click();
 	await page.getByRole('radio', { name: '2026' }).click();
@@ -85,7 +92,8 @@ test('qualifying is ordered by best lap, with the knockout lines', async ({ page
 	await expect(rows.nth(2)).toHaveAttribute('data-testid', 'timing-row-SAI');
 	await expect(rows.nth(0)).toContainText('Fastest');
 	await expect(page.getByTestId('cut-line')).toHaveCount(2);
-	await expect(page.getByTestId('race-only').first()).toContainText('applies to races');
+	await expect(page.getByTestId('knockout')).toContainText('Out in Q2');
+	await expect(page.getByTestId('tile-away')).toHaveCount(0);
 });
 
 test('a 22-car qualifying session cuts after 16 and shows no DRS', async ({ page }) => {
@@ -120,7 +128,22 @@ test('a session without saved data still opens, with every panel saying why it i
 }) => {
 	await openRace(page, '/?session=9851');
 
-	await expect(page.getByTestId('session')).toContainText('Practice 1');
+	await expect(page.getByTestId('strip-session')).toContainText('Practice 1');
 	await expect(page.getByTestId('empty-note').first()).toContainText('has no timing');
 	await expect(page.getByTestId('timing-table')).toHaveCount(0);
+});
+
+test('with nothing live, the strip counts down to the next session in local time', async ({
+	page
+}) => {
+	await page.clock.setFixedTime(new Date('2025-11-21T12:00:00.000Z'));
+	await openRace(page, '/?session=9852');
+
+	const next = page.getByTestId('strip-next');
+
+	await expect(page.getByTestId('live-key')).toHaveText('Replay');
+	await expect(next).toContainText('Las Vegas Practice 3');
+	await expect(next).toContainText('12 h 30 min');
+	await expect(page.getByTestId('dashboard-practice')).toBeVisible();
+	await expect(page.getByTestId('long-runs')).toBeVisible();
 });

@@ -21,6 +21,18 @@ export function sessionClock(race: RaceSnapshot): SessionClock {
 		: { startMs: Date.parse(race.session.startsAt), minutes: 1 };
 }
 
+/** The newest moment a snapshot knows of, in ms: its last lap, status, flag or clock change. */
+export function latestTime(snapshot: RaceSnapshot): number {
+	const times = [
+		...snapshot.laps.flatMap((lap) => lap.completedAt ?? []),
+		...(snapshot.statusLog ?? []).map((change) => change.at),
+		...(snapshot.trackStatusLog ?? []).map((change) => change.at),
+		...(snapshot.clockLog ?? []).map((mark) => mark.at)
+	];
+
+	return times.reduce((latest, at) => Math.max(latest, Date.parse(at)), 0);
+}
+
 /** The moment `minute` minutes into the session. */
 export function minuteTime(clock: SessionClock, minute: number): number {
 	return clock.startMs + minute * MINUTE_MS;
@@ -57,17 +69,18 @@ export function bestsSoFar(race: RaceSnapshot, laps: readonly Lap[]): PersonalBe
 	});
 }
 
-/** The snapshot without the feed's running order, which is the order now. */
+/** The snapshot without the feed's running order and mini sectors, which are as of now. */
 function withoutStandings(race: RaceSnapshot): RaceSnapshot {
-	const { standings, ...rest } = race;
+	const { standings, miniSectors, miniSectorLeaders, ...rest } = race;
 
-	return standings ? rest : race;
+	return standings || miniSectors || miniSectorLeaders ? rest : race;
 }
 
 /**
  * The session as it stood at `time` (ms), cut from a later snapshot by the times it carries:
  * laps by when they were completed, flags and statuses by when they changed, and the rest by the
- * laps each driver had done by then. The feed's running order is the order now, so it is dropped.
+ * laps each driver had done by then. The feed's running order and mini sectors are as of now, so
+ * they are dropped.
  */
 export function snapshotAtTime(race: RaceSnapshot, time: number): RaceSnapshot {
 	const at = new Date(time).toISOString();
@@ -82,6 +95,7 @@ export function snapshotAtTime(race: RaceSnapshot, time: number): RaceSnapshot {
 	const currentLap = Math.max(0, ...lapsDone.values());
 	const trackStatusLog = (race.trackStatusLog ?? []).filter((change) => change.at <= at);
 	const statusLog = (race.statusLog ?? []).filter((change) => change.at <= at);
+	const clockLog = (race.clockLog ?? []).filter((mark) => mark.at <= at);
 
 	return {
 		...withoutStandings(race),
@@ -90,6 +104,7 @@ export function snapshotAtTime(race: RaceSnapshot, time: number): RaceSnapshot {
 		trackStatusLog,
 		statusLog,
 		status: statusLog.at(-1)?.status ?? 'inactive',
+		clockLog,
 		laps,
 		stints: race.stints
 			.filter((stint) => stint.startLap <= done(stint.driverNumber) + 1)

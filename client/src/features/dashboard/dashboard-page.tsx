@@ -27,7 +27,7 @@ import {
 import { type Scale, SCALES, setScale, useScale } from '@/hooks/use-scale';
 
 import { shareUrl } from '@/features/library/share';
-import { useRace } from '@/data/race-context';
+import { useRace, useRaceView } from '@/data/race-context';
 import { type SyncStatus, useSyncStatus } from '@/features/account/dashboard-sync';
 import { WelcomeBanner } from '@/features/library/welcome';
 
@@ -42,6 +42,8 @@ import {
 	TILE_INFO,
 	TILE_KINDS
 } from './dashboards';
+import { SessionOffer } from './session-offer';
+import { sessionLayoutId } from './session-layouts';
 import { useAddDashboard } from './use-add-dashboard';
 import { useCarriedSearch } from './use-carried-search';
 
@@ -325,10 +327,14 @@ function DashboardBar({
 	);
 }
 
-/** A dashboard by id: presets at their old addresses, everything else under /d/:id. */
+/**
+ * A dashboard by id: the session's own layout at `/`, presets at their old addresses, everything
+ * else under /d/:id.
+ */
 export function DashboardPage({ id: fixedId }: { id?: string }) {
 	const params = useParams();
-	const id = fixedId ?? params.id ?? 'live';
+	const { race } = useRaceView();
+	const id = fixedId ?? params.id ?? sessionLayoutId(race.session.type);
 	const { dashboards, saved } = useDashboards();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const dashboard = dashboards.find((entry) => entry.id === id);
@@ -360,6 +366,7 @@ export function DashboardPage({ id: fixedId }: { id?: string }) {
 	return (
 		<div data-testid={`dashboard-${dashboard.id}`}>
 			{isPreset(dashboard.id) ? <WelcomeBanner /> : null}
+			<SessionOffer dashboard={dashboard} />
 			<DashboardBar
 				dashboard={dashboard}
 				edited={saved.has(dashboard.id)}
