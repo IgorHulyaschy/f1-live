@@ -286,9 +286,16 @@ export function formatGap(ms: number): string {
 	return `+${(ms / 1000).toFixed(ms < 10_000 ? 3 : 1)}`;
 }
 
-/** "22 m", "8.5 m" under ten metres, "~22 m" when estimated. */
-export function formatMetres(car: Pick<GapCar, 'metres' | 'estimated'>): string {
-	const value = car.metres < 10 ? car.metres.toFixed(1) : Math.round(car.metres).toString();
+/** "22 m", "8.5 m" under ten metres, "1.4 km" past a thousand. */
+export function formatDistance(metres: number): string {
+	if (metres >= 1000) {
+		return `${(metres / 1000).toFixed(1)} km`;
+	}
 
-	return `${car.estimated ? '~' : ''}${value} m`;
+	return `${metres < 10 ? metres.toFixed(1) : Math.round(metres)} m`;
+}
+
+/** A car's distance behind, "~" first when it is an estimate. */
+export function formatMetres(car: Pick<GapCar, 'metres' | 'estimated'>): string {
+	return `${car.estimated ? '~' : ''}${formatDistance(car.metres)}`;
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { GapCar } from '../../insights/gap-distance.ts';
-import { layoutStraight, tickStep } from './straight-layout.ts';
+import { formatDistance, formatMetres, layoutStraight, tickStep } from './straight-layout.ts';
 
 function car(position: number, metres: number): GapCar {
 	return {
@@ -67,5 +67,13 @@ describe('the straight', () => {
 				[1, 10]
 			]
 		);
+	});
+
+	it('prints metres, tenths close up and kilometres far back', () => {
+		assert.deepEqual(
+			[formatDistance(8.53), formatDistance(22.08), formatDistance(4214)],
+			['8.5 m', '22 m', '4.2 km']
+		);
+		assert.equal(formatMetres({ metres: 22.85, estimated: true }), '~23 m');
 	});
 });

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { inkOn } from '../track/track-draw';
 import {
 	carDrawing,
+	formatDistance,
 	formatGap,
 	formatMetres,
 	type LabelStyle,
@@ -94,7 +95,7 @@ export function GapStraight({
 										dominantBaseline={vertical ? 'central' : 'auto'}
 										textAnchor={vertical ? 'end' : 'middle'}
 									>
-										{tick.metres} m
+										{formatDistance(tick.metres)}
 									</text>
 								) : null}
 							</g>

@@ -6,6 +6,7 @@ import { formatLapTime } from '@/lib/format';
 import { inkOn } from '../track/track-draw';
 import {
 	carDrawing,
+	formatDistance,
 	formatGap,
 	formatMetres,
 	placeStraight,
@@ -153,7 +154,7 @@ function drawStraight(
 		ctx.globalAlpha = 1;
 
 		if (tick.text) {
-			ctx.fillText(`${tick.metres} m`, tick.text[0], tick.text[1]);
+			ctx.fillText(formatDistance(tick.metres), tick.text[0], tick.text[1]);
 		}
 	}
 
