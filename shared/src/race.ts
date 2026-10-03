@@ -33,6 +33,8 @@ export interface Session {
 	id: string;
 	meetingName: string;
 	circuit: string;
+	/** The timing feed's key for the circuit, e.g. "152" for Las Vegas: names its outline. */
+	circuitKey?: string;
 	countryCode: string;
 	type: SessionType;
 	/** As the organiser names it, e.g. "Practice 2" or "Sprint". */

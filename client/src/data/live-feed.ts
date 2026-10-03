@@ -1,4 +1,4 @@
-import { applyEvent, type RaceEvent, type RaceSnapshot } from '@f1-live/shared';
+import { applyEvent, type LivePositions, type RaceEvent, type RaceSnapshot } from '@f1-live/shared';
 import { z } from 'zod';
 
 import { isSessionOver } from '../insights/qualifying.ts';
@@ -33,6 +33,45 @@ const envelopeSchema = z.object({
 	type: z.enum(['state', 'events', 'heartbeat']),
 	epoch: z.string()
 });
+
+const positionsSchema = z.object({
+	v: z.literal(PROTOCOL_VERSION),
+	type: z.literal('positions'),
+	at: z.number(),
+	cars: z.record(
+		z.string(),
+		z.tuple([z.number(), z.number(), z.union([z.literal(0), z.literal(1)])])
+	)
+});
+
+const channelsSchema = z.object({
+	v: z.literal(PROTOCOL_VERSION),
+	type: z.literal('channels'),
+	live: z.object({ positions: z.boolean() }).partial()
+});
+
+/** The opt-in telemetry messages the feed reads: car positions, and which channels are live. */
+export type TelemetryMessage =
+	{ type: 'positions'; frame: LivePositions } | { type: 'channels'; positionsLive: boolean };
+
+export function parseTelemetryMessage(text: string): TelemetryMessage | null {
+	try {
+		const json: unknown = JSON.parse(text);
+		const positions = positionsSchema.safeParse(json);
+
+		if (positions.success) {
+			return { type: 'positions', frame: { at: positions.data.at, cars: positions.data.cars } };
+		}
+
+		const channels = channelsSchema.safeParse(json);
+
+		return channels.success
+			? { type: 'channels', positionsLive: channels.data.live.positions ?? false }
+			: null;
+	} catch {
+		return null;
+	}
+}
 
 /** One WebSocket text frame; null when it is not a message of this protocol version. */
 export function parseServerMessage(text: string): ServerMessage | null {
@@ -148,12 +187,22 @@ export type LiveFeedOptions = {
 
 const BACKOFF_MS = { initial: 1000, max: 30_000 };
 
+/** Live car positions, for a track map: frames as they come, and whether the feed has any. */
+export type LivePositionsFeed = {
+	/** Subscribes the channel while anyone watches; a new watcher gets the last frame at once. */
+	watchPositions: (listener: (frame: LivePositions) => void) => () => void;
+	/** Whether the feed sends positions: null until the server says, false without F1 TV. */
+	getPositionsLive: () => boolean | null;
+	subscribePositionsLive: (listener: () => void) => () => void;
+};
+
 /**
  * Follows `WS /live`: keeps a replica by the protocol's rules, resumes from its sequence number
  * after a drop, and reconnects with exponential backoff and jitter. Listeners are told at most
  * every `notifyMs`, so a feed that sends many small batches does not redraw the screen for each.
+ * Car positions are an opt-in channel with listeners of their own, told of every frame.
  */
-export class LiveFeed {
+export class LiveFeed implements LivePositionsFeed {
 	private readonly url: string;
 	private readonly createSocket: (url: string, handlers: SocketHandlers) => SocketLike;
 	private readonly heartbeatMs: number;
@@ -169,6 +218,12 @@ export class LiveFeed {
 	private deadTimer: ReturnType<typeof setTimeout> | null = null;
 	private notifyTimer: ReturnType<typeof setTimeout> | null = null;
 	private lastNotifiedAt = 0;
+	private readonly positionListeners = new Set<(frame: LivePositions) => void>();
+	private readonly positionsLiveListeners = new Set<() => void>();
+	private lastPositions: LivePositions | null = null;
+	private positionsLive: boolean | null = null;
+	/** The socket the positions channel was asked for on; a new connection asks again. */
+	private positionsAskedOn: SocketLike | null = null;
 
 	constructor(url: string, options: LiveFeedOptions = {}) {
 		this.url = url;
@@ -185,6 +240,67 @@ export class LiveFeed {
 
 		return () => this.listeners.delete(listener);
 	};
+
+	watchPositions = (listener: (frame: LivePositions) => void): (() => void) => {
+		this.positionListeners.add(listener);
+		this.askForPositions();
+
+		if (this.lastPositions) {
+			listener(this.lastPositions);
+		}
+
+		return () => {
+			this.positionListeners.delete(listener);
+
+			if (this.positionListeners.size === 0 && this.positionsAskedOn) {
+				this.positionsAskedOn.send(JSON.stringify({ type: 'unsubscribe', channel: 'positions' }));
+				this.positionsAskedOn = null;
+			}
+		};
+	};
+
+	getPositionsLive = (): boolean | null => this.positionsLive;
+
+	subscribePositionsLive = (listener: () => void): (() => void) => {
+		this.positionsLiveListeners.add(listener);
+
+		return () => this.positionsLiveListeners.delete(listener);
+	};
+
+	/** Sent once the socket has answered, so it is open: a closed socket cannot send. */
+	private askForPositions(): void {
+		const socket = this.socket;
+
+		if (
+			socket &&
+			this.state.connection === 'live' &&
+			this.positionListeners.size > 0 &&
+			this.positionsAskedOn !== socket
+		) {
+			socket.send(JSON.stringify({ type: 'subscribe', channel: 'positions' }));
+			this.positionsAskedOn = socket;
+		}
+	}
+
+	private onTelemetry(message: TelemetryMessage): void {
+		if (message.type === 'positions') {
+			this.lastPositions = message.frame;
+
+			for (const listener of this.positionListeners) {
+				listener(message.frame);
+			}
+
+			return;
+		}
+
+		if (message.positionsLive !== this.positionsLive) {
+			this.positionsLive = message.positionsLive;
+
+			for (const listener of this.positionsLiveListeners) {
+				listener();
+			}
+		}
+	}
 
 	start(): void {
 		if (!this.stopped) {
@@ -219,9 +335,20 @@ export class LiveFeed {
 	}
 
 	private receive(socket: SocketLike, text: string): void {
+		if (socket !== this.socket) {
+			return;
+		}
+
 		const message = parseServerMessage(text);
 
-		if (!message || socket !== this.socket) {
+		if (!message) {
+			const telemetry = parseTelemetryMessage(text);
+
+			if (telemetry) {
+				this.watch();
+				this.onTelemetry(telemetry);
+			}
+
 			return;
 		}
 
@@ -246,6 +373,7 @@ export class LiveFeed {
 				: this.state.arrivals;
 
 		this.update({ connection: 'live', replica, arrivals }, replica === previous);
+		this.askForPositions();
 	}
 
 	private dropped(socket: SocketLike): void {

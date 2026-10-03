@@ -92,7 +92,7 @@ const sessionInfoSchema = z
 		Meeting: z.object({
 			Name: z.string(),
 			Country: z.object({ Code: z.string() }),
-			Circuit: z.object({ ShortName: z.string() })
+			Circuit: z.object({ Key: z.number().optional(), ShortName: z.string() })
 		})
 	})
 	.partial();
@@ -538,6 +538,10 @@ export class F1Decoder {
 			type: sessionTypeOf(Type, Name),
 			startsAt: utcStart(StartDate, GmtOffset)
 		};
+
+		if (Meeting.Circuit.Key !== undefined) {
+			session.circuitKey = String(Meeting.Circuit.Key);
+		}
 
 		const sent = JSON.stringify(session);
 

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import type { Metric } from '../analysis/lap-series.ts';
+import { type TrackMapSettings, trackMapSettingsSchema } from '../track/settings.ts';
 
 /** Every dashboard is laid out on this many columns, whatever the screen width. */
 export const GRID_COLUMNS = 24;
@@ -23,12 +24,13 @@ export const TILE_KINDS = [
 	'degradation',
 	'pit-stops',
 	'driver',
-	'grid'
+	'grid',
+	'track-map'
 ] as const;
 
 export type TileKind = (typeof TILE_KINDS)[number];
 
-export type TileSettings = { metric?: Metric };
+export type TileSettings = { metric?: Metric } & TrackMapSettings;
 
 export type Tile = { id: string; kind: TileKind; settings?: TileSettings };
 
@@ -44,7 +46,7 @@ export type Dashboard = {
 	fit?: boolean;
 };
 
-export const TILE_GROUPS = ['Race', 'Drivers', 'Timing', 'Analysis', 'Strategy'] as const;
+export const TILE_GROUPS = ['Race', 'Drivers', 'Timing', 'Track', 'Analysis', 'Strategy'] as const;
 
 type TileInfo = {
 	title: string;
@@ -188,6 +190,14 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		description: 'Every driver as a picture plate in running order. Pick one to follow.',
 		size: { w: 24, h: 10 },
 		min: { w: 6, h: 6 }
+	},
+	'track-map': {
+		group: 'Track',
+		title: 'Track map',
+		description:
+			'Every car on the circuit, live or in the replay; follow a driver or colour the sectors.',
+		size: { w: 12, h: 16 },
+		min: { w: 5, h: 8 }
 	}
 };
 
@@ -256,6 +266,13 @@ export const PRESETS: readonly Dashboard[] = [
 		['chart', 9, 3, 15, 15, { metric: 'battle' }],
 		['gaps', 9, 18, 7, 8],
 		['box-now', 16, 18, 8, 8]
+	]),
+	buildDashboard('track', 'Track', [
+		['session', 0, 0, 16, 3],
+		['replay', 16, 0, 8, 3],
+		['lap-strip', 0, 3, 24, 2],
+		['track-map', 0, 5, 16, 24],
+		['timing', 16, 5, 8, 24]
 	]),
 	buildDashboard('drivers', 'Drivers', [
 		['session', 0, 0, 16, 3],
@@ -351,6 +368,7 @@ const tileSchema = z.object({
 	kind: z.enum(TILE_KINDS),
 	settings: z
 		.object({ metric: z.enum(['lapTime', 'gap', 'position', 'battle']).optional() })
+		.extend(trackMapSettingsSchema.shape)
 		.optional()
 });
 

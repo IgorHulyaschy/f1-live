@@ -114,6 +114,7 @@ describe('F1Decoder', () => {
 					name: 'Race',
 					meetingName: 'Las Vegas Grand Prix',
 					circuit: 'Las Vegas',
+					circuitKey: '152',
 					countryCode: 'USA',
 					type: 'race',
 					startsAt: '2025-11-23T04:00:00.000Z'

@@ -20,6 +20,7 @@ import {
 import { Degradation } from '@/features/strategy/degradation';
 import { PitStops } from '@/features/strategy/pit-stops';
 import { StintChart } from '@/features/strategy/stint-chart';
+import { TrackMapTile } from '@/features/track/track-map-tile';
 
 import type { Tile, TileSettings } from './dashboards';
 
@@ -127,6 +128,15 @@ export function TileContent({
 
 		case 'pit-stops': {
 			return <PitStops />;
+		}
+
+		case 'track-map': {
+			return (
+				<TrackMapTile
+					settings={tile.settings}
+					onSettingsChange={(settings) => onSettingsChange?.({ ...tile.settings, ...settings })}
+				/>
+			);
 		}
 	}
 }

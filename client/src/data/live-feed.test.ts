@@ -142,6 +142,47 @@ describe('LiveFeed', () => {
 		mock.timers.reset();
 	});
 
+	it('subscribes car positions while watched, again after a reconnect, and says when the feed has none', () => {
+		mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+
+		const server = fakeServer();
+
+		const feed = new LiveFeed('ws://pitwall.test/live', {
+			createSocket: server.createSocket,
+			random: () => 1
+		});
+
+		const frames: number[] = [];
+
+		feed.start();
+
+		const stop = feed.watchPositions((frame) => frames.push(frame.at));
+
+		assert.deepEqual(server.sockets[0]?.sent, [], 'not before the socket has answered');
+		server.send(server.sockets[0], state(10));
+		assert.deepEqual(server.sockets[0]?.sent, ['{"type":"subscribe","channel":"positions"}']);
+
+		server.sockets[0]?.handlers.message(
+			'{"v":1,"type":"channels","subscribed":["positions"],"live":{"positions":false,"car_data":false}}'
+		);
+		assert.equal(feed.getPositionsLive(), false);
+
+		server.sockets[0]?.handlers.message(
+			'{"v":1,"type":"positions","at":1763870480250,"cars":{"1":[332,198,1]}}'
+		);
+		assert.deepEqual(frames, [1_763_870_480_250]);
+
+		server.sockets[0]?.handlers.closed();
+		mock.timers.tick(1000);
+		server.send(server.sockets[1], state(10));
+		assert.deepEqual(server.sockets[1]?.sent, ['{"type":"subscribe","channel":"positions"}']);
+
+		stop();
+		assert.equal(server.sockets[1]?.sent.at(-1), '{"type":"unsubscribe","channel":"positions"}');
+		feed.stop();
+		mock.timers.reset();
+	});
+
 	it('asks for a fresh state when it falls behind', () => {
 		const server = fakeServer();
 		const feed = new LiveFeed('ws://pitwall.test/live', { createSocket: server.createSocket });

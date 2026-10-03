@@ -7,8 +7,15 @@ import { useStableValue } from '../hooks/use-stable-value.ts';
 import { createLocalStore } from '../lib/local-store.ts';
 import { type Catalog, defaultSessionKey, findSession, type SessionEntry } from './catalog.ts';
 import { delayedSnapshot } from './broadcast-delay.ts';
-import { LiveFeed, type LiveConnection, liveSessionKey, type LiveState } from './live-feed.ts';
+import {
+	LiveFeed,
+	type LiveConnection,
+	type LivePositionsFeed,
+	liveSessionKey,
+	type LiveState
+} from './live-feed.ts';
 import type { RaceSource } from './race-source.ts';
+import type { TelemetrySource } from './telemetry-source.ts';
 import { type StandingRow, standingsAt } from '../insights/standings.ts';
 import { isSessionOver, isTimedSession } from '../insights/qualifying.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
@@ -31,6 +38,8 @@ type LiveView = {
 	/** Seconds the live screen runs behind the feed. */
 	delaySeconds: number;
 	setDelaySeconds: (seconds: number) => void;
+	/** Car positions from the live feed; null for a source without one. */
+	positions: LivePositionsFeed | null;
 };
 
 type Spoilers = {
@@ -45,6 +54,7 @@ type Spoilers = {
 
 type RaceContextValue = {
 	sourceKind: RaceSource['kind'];
+	telemetry: TelemetrySource;
 	catalog: Catalog | null;
 	/** The archive key of the session on screen. */
 	sessionKey: string;
@@ -240,8 +250,10 @@ function useCatalog(source: RaceSource): Loadable<Catalog> {
 
 const IDLE_LIVE: LiveState = { connection: 'connecting', replica: null, arrivals: [] };
 
+type LiveFeedState = { feed: LiveFeed | null; state: LiveState };
+
 /** One feed per page for the source's `WS /live`; none for a source without one. */
-function useLiveFeed(url: string | null): LiveState {
+function useLiveFeed(url: string | null): LiveFeedState {
 	const feed = React.useMemo(() => (url ? new LiveFeed(url) : null), [url]);
 
 	React.useEffect(() => {
@@ -250,7 +262,12 @@ function useLiveFeed(url: string | null): LiveState {
 		return () => feed?.stop();
 	}, [feed]);
 
-	return React.useSyncExternalStore(feed?.subscribe ?? noSubscription, feed?.getState ?? idleLive);
+	const state = React.useSyncExternalStore(
+		feed?.subscribe ?? noSubscription,
+		feed?.getState ?? idleLive
+	);
+
+	return { feed, state };
 }
 
 function noSubscription(): () => void {
@@ -413,7 +430,7 @@ export function RaceProvider({
 }) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const catalog = useCatalog(source);
-	const liveState = useLiveFeed(source.liveUrl);
+	const { feed: liveFeed, state: liveState } = useLiveFeed(source.liveUrl);
 	const liveKey = liveSessionKey(liveState);
 
 	const { key, settled } = useSessionKey(
@@ -705,9 +722,10 @@ export function RaceProvider({
 			liveKey,
 			backToLive,
 			delaySeconds,
-			setDelaySeconds: delayStore.set
+			setDelaySeconds: delayStore.set,
+			positions: liveFeed
 		}),
-		[isLive, following, liveState.connection, liveKey, backToLive, delaySeconds]
+		[isLive, following, liveState.connection, liveKey, backToLive, delaySeconds, liveFeed]
 	);
 
 	const spoilers = React.useMemo<Spoilers>(
@@ -728,6 +746,7 @@ export function RaceProvider({
 				? null
 				: {
 						sourceKind: source.kind,
+						telemetry: source.telemetry,
 						catalog: catalogValue,
 						sessionKey: shownKey,
 						switchingTo,
@@ -764,6 +783,7 @@ export function RaceProvider({
 					},
 		[
 			source.kind,
+			source.telemetry,
 			catalogValue,
 			shownKey,
 			switchingTo,
