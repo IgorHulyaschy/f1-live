@@ -135,7 +135,7 @@ function FlagMapBody({ track }: { track: TrackReady }) {
 					<MapCanvas
 						track={track}
 						places={places}
-						label={`Flag map of ${track.outline.name}: ${flags.length === 0 ? 'no yellow flags out' : flags.map((flag) => `${LEVEL_LABEL[flag.level]} in sector ${flag.sector}`).join(', ')}`}
+						label={`Flag map of ${track.outline.name}: ${flags.length === 0 ? 'no sector flags out' : flags.map((flag) => `${LEVEL_LABEL[flag.level]} in sector ${flag.sector}`).join(', ')}`}
 						camera="full"
 						overlays={overlays}
 					/>

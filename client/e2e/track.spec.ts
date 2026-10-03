@@ -58,16 +58,41 @@ test('with reduced motion the map steps once a second instead of gliding', async
 	await page.addInitScript(() => window.localStorage.setItem('pitwall-replay-speed', '1'));
 	await openRace(page, '/d/track?lap=30');
 
-	const map = page.getByTestId('track-map');
+	// The page notes when the map's pixels change, so a slow screenshot cannot blur the steps.
+	const canvas = page.getByTestId('track-map').locator('canvas').first();
+
+	await canvas.evaluate((element) => {
+		if (!(element instanceof HTMLCanvasElement)) {
+			throw new Error('The map is not a canvas');
+		}
+
+		const changes: number[] = [];
+		let last = element.toDataURL();
+
+		window.setInterval(() => {
+			const now = element.toDataURL();
+
+			if (now !== last) {
+				changes.push(performance.now());
+				last = now;
+			}
+		}, 25);
+		Object.assign(window, { mapChanges: changes });
+	});
 
 	await page.getByRole('button', { name: 'Play replay' }).click();
-	await page.waitForTimeout(1100);
+	await page.waitForTimeout(3500);
 
-	const first = await picture(map);
+	const changes = await page.evaluate(() =>
+		'mapChanges' in window && Array.isArray(window.mapChanges) ? window.mapChanges.map(Number) : []
+	);
 
-	await page.waitForTimeout(150);
-	expect(await picture(map)).toEqual(first);
-	await expect.poll(async () => (await picture(map)).equals(first), { timeout: 3000 }).toBe(false);
+	const gaps = changes.slice(1).map((at, index) => at - (changes[index] ?? at));
+
+	// Gliding would change the picture every frame; stepping changes it about once a second.
+	expect(changes.length).toBeGreaterThanOrEqual(2);
+	expect(changes.length).toBeLessThanOrEqual(6);
+	expect(Math.min(...gaps)).toBeGreaterThan(400);
 });
 
 test('a tap on a car follows it, and the camera can follow the driver', async ({ page }) => {

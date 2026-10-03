@@ -381,25 +381,25 @@ function cameraTarget(
 		return null;
 	}
 
-	const xs = cars.map((car) => car.x);
-	const ys = cars.map((car) => car.y);
+	// The spread of the cars, measured in the view's turn, with room for labels.
+	const turned = cars.map(
+		(car) => [car.x * base.cos - car.y * base.sin, car.x * base.sin + car.y * base.cos] as const
+	);
 
-	const centre: Point = [
-		(Math.min(...xs) + Math.max(...xs)) / 2,
-		(Math.min(...ys) + Math.max(...ys)) / 2
-	];
+	const minX = Math.min(...turned.map(([x]) => x));
+	const maxX = Math.max(...turned.map(([x]) => x));
+	const minY = Math.min(...turned.map(([, y]) => y));
+	const maxY = Math.max(...turned.map(([, y]) => y));
+	const [tx, ty] = [(minX + maxX) / 2, (minY + maxY) / 2];
+	// Turn the middle back into the feed's frame.
+	const centre: Point = [tx * base.cos + ty * base.sin, -tx * base.sin + ty * base.cos];
 
 	if (zoom !== null) {
 		return { centre, zoom };
 	}
 
-	// Fit the spread of the cars, measured in the view's turn, with room for labels.
-	const turned = cars.map(
-		(car) => [car.x * base.cos - car.y * base.sin, car.x * base.sin + car.y * base.cos] as const
-	);
-
-	const spanX = Math.max(...turned.map(([x]) => x)) - Math.min(...turned.map(([x]) => x));
-	const spanY = Math.max(...turned.map(([, y]) => y)) - Math.min(...turned.map(([, y]) => y));
+	const spanX = maxX - minX;
+	const spanY = maxY - minY;
 	const room = Math.min(90 * (rem / 16), Math.min(width, height) / 4);
 
 	const fit = Math.min(

@@ -369,8 +369,9 @@ export function drawCars(
 ): void {
 	const unit = rem / 16;
 	const placed: Box[] = [...reserved];
-	// What no label may cover even where room runs out: labels already set and the followed car.
-	const kept: Box[] = [];
+	// What no label may cover even where room runs out: the circuit's marks, labels already set and
+	// the followed car with its ring.
+	const kept: Box[] = [...reserved];
 	const [mx, my] = toScreen(view, middle);
 	const labelFont = `700 ${Math.round(10 * unit)}px "Martian Mono Variable", ui-monospace, monospace`;
 	const screens = cars.map(({ place }) => toScreen(view, [place.x, place.y]));
@@ -386,7 +387,9 @@ export function drawCars(
 		placed.push(disc);
 
 		if (style.followed) {
-			kept.push(disc);
+			const ring = radius + 3 * unit;
+
+			kept.push({ x0: x - ring, y0: y - ring, x1: x + ring, y1: y + ring });
 		}
 
 		ctx.globalAlpha = place.state === 'pit' ? 0.7 : 1;
@@ -451,7 +454,7 @@ export function drawCars(
 		];
 
 		// Highlighted cars may set their label further out where the field is bunched.
-		const reaches = rank(style) > 0 ? [1, 2.5] : [1];
+		const reaches = style.emphasis && !style.followed ? [1, 2.5] : [1];
 
 		const candidates = reaches.flatMap((reach) =>
 			sides.map(([nx, ny]): Box => {

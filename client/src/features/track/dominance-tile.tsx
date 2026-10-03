@@ -367,7 +367,7 @@ function DominanceBody({ track, span }: { track: TrackReady; span: DominanceSpan
 						) : null}
 						<Key
 							aria-label={`Stop comparing ${driver.code}`}
-							className="px-1 sm:px-1"
+							className={cn('px-1 sm:px-1', decided === 0 && 'ml-auto')}
 							onClick={() => toggle(driver.code)}
 							disabled={chosen.length <= 1}
 						>
