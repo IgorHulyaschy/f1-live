@@ -25,6 +25,17 @@ test.describe('the race', () => {
 		await expect(telemetry.getByTestId('data-table').getByRole('row')).toHaveCount(23);
 	});
 
+	test('the race trace marks the stops and the virtual safety cars', async ({ page }) => {
+		await openRace(page, '/analysis?session=9858');
+
+		await page.getByRole('tab', { name: 'Gap' }).click();
+
+		const chart = page.getByRole('region', { name: 'Race charts' });
+		await expect(chart).toContainText('Pit stop');
+		await expect(chart).toContainText('VSC');
+		await expect(chart.locator('rect[width="7"]').first()).toBeVisible();
+	});
+
 	test('the story runs the whole race and jumps to a moment', async ({ page }) => {
 		await openRace(page, '/d/story?session=9858');
 
@@ -73,19 +84,23 @@ test.describe('the race', () => {
 });
 
 test.describe('qualifying', () => {
-	test('telemetry opens on pole, and the race tools say they apply to races', async ({ page }) => {
+	test('telemetry opens on pole; the race tools say they apply to races', async ({ page }) => {
 		await openRace(page, '/analysis?session=9854');
 
 		// Norris took pole with 1:47.934.
 		await expect(page.getByTestId('telemetry-slot-A')).toContainText('1:47.934');
 		await expect(page.getByTestId('telemetry-charts')).toBeVisible();
+		await expect(page.getByTestId('story').getByTestId('story-ribbon')).toBeVisible();
 
 		await openRace(page, '/strategy?session=9854&plan=pro');
-		await expect(page.getByTestId('undercut').getByTestId('race-only')).toBeVisible();
-		await expect(page.getByTestId('tyre-life-applies')).toBeVisible();
-		await expect(page.getByTestId('pit-cost').getByTestId('race-only')).toBeVisible();
 
-		await openRace(page, '/d/story?session=9854');
+		for (const tile of ['undercut', 'pit-cost', 'pit-crews']) {
+			await expect(page.getByTestId(tile).getByTestId('race-only')).toBeVisible();
+		}
+
+		await expect(page.getByTestId('tyre-life-applies')).toBeVisible();
+
+		await openRace(page, '/d/story?session=9854&plan=pro');
 		await expect(page.getByTestId('championship').getByTestId('race-only')).toBeVisible();
 		await expect(
 			page
@@ -93,14 +108,24 @@ test.describe('qualifying', () => {
 				.getByTestId(/^story-step-/)
 				.first()
 		).toBeVisible();
+		await expect(page.getByTestId('conditions').locator('svg text').first()).toBeVisible();
 	});
 });
 
 test.describe('practice', () => {
-	test('telemetry, the story by minute and the wind work in practice', async ({ page }) => {
+	test('telemetry, the story by minute and the wind work; race tools say so', async ({ page }) => {
 		await openRace(page, '/analysis?session=9852');
 
 		await expect(page.getByTestId('telemetry-charts')).toBeVisible();
+
+		await openRace(page, '/strategy?session=9852&plan=pro');
+
+		for (const tile of ['undercut', 'pit-cost', 'pit-crews']) {
+			await expect(page.getByTestId(tile).getByTestId('race-only')).toBeVisible();
+		}
+
+		// This practice had no run of five clean laps on one compound three times over.
+		await expect(page.getByTestId('degradation')).toContainText('Curves show once');
 
 		await openRace(page, '/d/story?session=9852&plan=pro');
 		await expect(page.getByTestId('story')).toContainText('fastest lap');

@@ -1,3 +1,5 @@
+import * as React from 'react';
+
 import { Digits } from '@/components/console/digits';
 import { EmptyNote } from '@/components/console/empty-note';
 import { Field, Panel, PanelHeader } from '@/components/console/panel';
@@ -157,7 +159,7 @@ function Ledger({ exchange }: { exchange: StopExchange }) {
  */
 export function UndercutLedger() {
 	const { snapshot } = useRaceView();
-	const exchanges = stopExchanges(snapshot).toReversed();
+	const exchanges = React.useMemo(() => stopExchanges(snapshot).toReversed(), [snapshot]);
 
 	return (
 		<Panel aria-label="Undercut ledger" data-testid="undercut">

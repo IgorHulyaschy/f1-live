@@ -111,6 +111,18 @@ export function ChampionshipSwing() {
 	}, [standings, snapshot, catalog, sessionKey]);
 
 	const swing = React.useMemo(() => championshipSwing(snapshot, followed), [snapshot, followed]);
+
+	// Each row asks what every place pays that driver, others as they run now.
+	const worth = React.useMemo(
+		() =>
+			followed.map((driverNumber) => ({
+				driverNumber,
+				position: positionAt(snapshot, driverNumber, lap),
+				values: placeValues(snapshot, driverNumber, lap)
+			})),
+		[snapshot, followed, lap]
+	);
+
 	const drivers = new Map(snapshot.drivers.map((driver) => [driver.number, driver]));
 	const followedDrivers = followed.flatMap((number) => drivers.get(number) ?? []);
 
@@ -290,7 +302,7 @@ export function ChampionshipSwing() {
 														<th scope="col" className="type-label pb-1 text-left font-normal">
 															Driver
 														</th>
-														{placeValues(snapshot, followed[0] ?? '', lap).map((value) => (
+														{(worth[0]?.values ?? []).map((value) => (
 															<th
 																key={value.finish ?? 'none'}
 																scope="col"
@@ -303,19 +315,19 @@ export function ChampionshipSwing() {
 												</thead>
 												<tbody>
 													{followedDrivers.map((driver) => {
-														const position = positionAt(snapshot, driver.number, lap);
+														const row = worth.find((entry) => entry.driverNumber === driver.number);
 
 														return (
 															<tr key={driver.number} className="h-8 border-b last:border-b-0">
 																<th scope="row" className="pr-2 text-left font-normal">
 																	<DriverTag driver={driver} />
 																</th>
-																{placeValues(snapshot, driver.number, lap).map((value) => (
+																{(row?.values ?? []).map((value) => (
 																	<td
 																		key={value.finish ?? 'none'}
 																		className={cn(
 																			'px-1 text-right font-mono whitespace-nowrap',
-																			value.finish === position &&
+																			value.finish === row?.position &&
 																				'outline-foreground outline -outline-offset-2',
 																			value.marginPoints < 0 && 'text-muted-foreground'
 																		)}
