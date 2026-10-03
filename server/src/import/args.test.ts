@@ -48,6 +48,11 @@ describe('parseImportArguments', () => {
 		assert.equal(args.now.toISOString(), '2026-10-03T12:00:00.000Z');
 	});
 
+	it('builds telemetry unless --no-telemetry says not to', () => {
+		assert.equal(parseImportArguments(['2025'], {}).telemetry, true);
+		assert.equal(parseImportArguments(['2025', '--no-telemetry'], {}).telemetry, false);
+	});
+
 	it('throws the usage when nothing says what to import, or a value is malformed', () => {
 		assert.throws(() => parseImportArguments([], {}), /Usage/);
 		assert.throws(() => parseImportArguments(['Las Vegas'], {}), /Usage/);

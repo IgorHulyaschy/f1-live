@@ -1,4 +1,4 @@
-import { type LapClock, timeAtDistance, type TrackOutline } from '@f1-live/shared';
+import { type LapClock, type LapIndex, timeAtDistance, type TrackOutline } from '@f1-live/shared';
 
 /** Each mini sector's time on one lap, ms, read off the lap's own clock at the mini-sector ends. */
 export function miniSectorTimes(outline: TrackOutline, lap: LapClock): number[] {
@@ -84,4 +84,36 @@ export function dominance(
 	});
 
 	return { winners, won, lostMs };
+}
+
+/** Dominance compares each driver's fastest lap, or the best of each mini sector over their fastest few. */
+export type DominanceSpan = 'lap' | 'best';
+
+/** In "best minis", the fastest few laps of each driver are read: where the best minis come from. */
+const LAPS_READ = 8;
+
+type LapEntry = LapIndex['laps'][number];
+
+function usable(entry: LapEntry, until: number): boolean {
+	return (
+		!entry.partial &&
+		!entry.pitIn &&
+		!entry.pitOut &&
+		Date.parse(entry.startedAt) + entry.lapTimeMs <= until
+	);
+}
+
+/** The laps to read per driver: the fastest lap, or the fastest few for the best of each mini sector. */
+export function lapsToRead(
+	index: LapIndex,
+	drivers: readonly string[],
+	span: DominanceSpan,
+	until: number
+): LapEntry[] {
+	return drivers.flatMap((driverNumber) =>
+		index.laps
+			.filter((entry) => entry.driverNumber === driverNumber && usable(entry, until))
+			.toSorted((a, b) => a.lapTimeMs - b.lapTimeMs)
+			.slice(0, span === 'lap' ? 1 : LAPS_READ)
+	);
 }

@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useRaceView } from '@/data/race-context';
 import { minuteTime, sessionClock } from '@/data/snapshot-at-time';
 import { isCleanLap } from '@/insights/clean-laps';
-import { plannedMinutes } from '@/insights/qualifying';
+import { sessionMinutes } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
 const STATUS_LABEL: Record<TrackStatus, string> = {
@@ -128,7 +128,7 @@ export function LapStrip() {
 	const { race, lap, setLap, stepUnit, steps, spoilers } = useRaceView();
 	const timed = stepUnit === 'minute';
 	// A live session's strip spans its planned length from the start, and fills as it runs.
-	const total = timed ? Math.max(steps, plannedMinutes(race.session.type)) : race.session.totalLaps;
+	const total = timed ? sessionMinutes(race.session.type, steps) : race.session.totalLaps;
 	const done = timed ? steps : race.currentLap;
 	const unit = timed ? 'minute' : 'lap';
 

@@ -13,7 +13,9 @@ import path from 'node:path';
 import { after, describe, it } from 'node:test';
 
 import type { Catalog } from '../catalog/catalog.js';
+import { RAW_DATA_DIR } from '../sources/f1/archive.js';
 import { catalogPathOf, errorsPathOf, rawDirOf } from '../sinks/files.js';
+import { sessionTelemetryDir, telemetryDir } from '../telemetry/files.js';
 import { hashOutputs } from './report.js';
 import { runImport } from './run.js';
 import type { ImportOptions } from './run.js';
@@ -57,6 +59,12 @@ const SEASON = JSON.stringify({
 	]
 });
 
+const FULL_RACE = path.join(RAW_DATA_DIR, RACE_PATH);
+
+const skipWithoutFullRace =
+	!existsSync(path.join(FULL_RACE, 'Position.z.jsonStream')) &&
+	`no raw data in ${FULL_RACE}; run npm run fetch:f1 -w server -- 9858`;
+
 const roots: string[] = [];
 
 after(() => {
@@ -75,7 +83,23 @@ function dataDirWithRace(): ImportOptions {
 	writeFileSync(path.join(rawDir, '2025/Index.json'), SEASON);
 	cpSync(FIXTURE, path.join(rawDir, RACE_PATH), { recursive: true });
 
-	return { dataDir, offline: true, now: new Date('2025-12-01T00:00:00Z'), log: () => undefined };
+	return {
+		dataDir,
+		offline: true,
+		telemetry: true,
+		now: new Date('2025-12-01T00:00:00Z'),
+		log: () => undefined
+	};
+}
+
+/** Like `dataDirWithRace`, with the full race: the fixture has no Position.z. */
+function dataDirWithFullRace(telemetry: boolean): ImportOptions {
+	const options = dataDirWithRace();
+
+	rmSync(path.join(rawDirOf(options.dataDir), RACE_PATH), { recursive: true });
+	cpSync(FULL_RACE, path.join(rawDirOf(options.dataDir), RACE_PATH), { recursive: true });
+
+	return { ...options, telemetry };
 }
 
 describe('runImport', () => {
@@ -98,10 +122,27 @@ describe('runImport', () => {
 		assert.deepEqual(
 			sessions?.map((session) => [session.key, session.status, session.outputs]),
 			[
-				[9858, 'finished', { raw: true, events: true, snapshot: true }],
-				[9999, 'upcoming', { raw: false, events: false, snapshot: false }]
+				[9858, 'finished', { raw: true, events: true, snapshot: true, telemetry: false }],
+				[9999, 'upcoming', { raw: false, events: false, snapshot: false, telemetry: false }]
 			]
 		);
+	});
+
+	it('keeps the sessions the catalogue lists when the raw folder holds no season index', async () => {
+		const options = dataDirWithRace();
+
+		await runImport({ kind: 'meeting', years: [2025] }, options);
+
+		const before: Catalog = JSON.parse(readFileSync(catalogPathOf(options.dataDir), 'utf8'));
+
+		// An ingest host records only the live weekend: its raw folder never held an index.
+		rmSync(path.join(rawDirOf(options.dataDir), '2025/Index.json'));
+		await runImport({ kind: 'local' }, options);
+
+		const kept: Catalog = JSON.parse(readFileSync(catalogPathOf(options.dataDir), 'utf8'));
+
+		assert.deepEqual(kept, before);
+		assert.equal(kept.seasons[0]?.meetings[0]?.sessions[0]?.outputs.snapshot, true);
 	});
 
 	it('reports a session whose raw files are missing and still imports the others', async () => {
@@ -143,5 +184,55 @@ describe('runImport', () => {
 			runImport({ kind: 'meeting', years: [2025], meeting: 'Monaco' }, dataDirWithRace()),
 			/matches "Monaco"/
 		);
+	});
+
+	describe('with the whole race and its telemetry', { skip: skipWithoutFullRace }, () => {
+		it('gives byte-identical outputs, telemetry included, when everything is rebuilt from raw', async () => {
+			const options = dataDirWithFullRace(true);
+
+			await runImport({ kind: 'meeting', years: [2025] }, options);
+
+			const first = await hashOutputs(options.dataDir);
+
+			assert.ok(existsSync(path.join(sessionTelemetryDir(options.dataDir, 9858), 'index.json')));
+
+			rmSync(path.join(options.dataDir, 'out'), { recursive: true });
+
+			const rebuilt = await runImport({ kind: 'local' }, options);
+
+			assert.equal((await hashOutputs(options.dataDir)).sha256, first.sha256);
+			assert.equal(rebuilt.outcomes[0]?.result?.telemetry.status, 'built');
+
+			// A rebuild draws the circuits again, whatever outline an earlier run left.
+			const outline = path.join(telemetryDir(options.dataDir), 'circuits/152.json');
+			const saved = JSON.parse(readFileSync(outline, 'utf8'));
+
+			writeFileSync(outline, JSON.stringify({ ...saved, rotationDeg: saved.rotationDeg + 1 }));
+			await runImport({ kind: 'local' }, options);
+			assert.equal((await hashOutputs(options.dataDir)).sha256, first.sha256);
+		});
+
+		it('says in the catalogue whether a session has telemetry, and builds none with it turned off', async () => {
+			const withTelemetry = dataDirWithFullRace(true);
+			const without = dataDirWithFullRace(false);
+
+			await runImport({ kind: 'local' }, withTelemetry);
+			await runImport({ kind: 'local' }, without);
+
+			for (const [options, expected] of [
+				[withTelemetry, true],
+				[without, false]
+			] as const) {
+				const catalog: Catalog = JSON.parse(readFileSync(catalogPathOf(options.dataDir), 'utf8'));
+
+				assert.equal(
+					catalog.seasons[0]?.meetings[0]?.sessions.find((session) => session.key === 9858)?.outputs
+						.telemetry,
+					expected
+				);
+			}
+
+			assert.equal(existsSync(sessionTelemetryDir(without.dataDir, 9858)), false);
+		});
 	});
 });

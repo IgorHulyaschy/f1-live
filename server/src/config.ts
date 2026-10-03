@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import { z } from 'zod';
 
+import { type AccountsConfig, loadAccountsConfig } from './accounts/config.js';
 import { LIVE_TIMING_URL } from './sources/f1/live.js';
 
 export const MODES = ['all', 'ingest', 'relay'] as const;
@@ -79,6 +80,19 @@ const envSchema = z
 		}
 	});
 
+const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['localhost', '[::1]']);
+
+/**
+ * A relay URL that sends the shared secret in the clear: plain http to a host other than this
+ * machine. Over https, or to loopback (a local relay, a tunnel), the secret does not cross a network.
+ */
+export function isInsecureRelayUrl(url: string): boolean {
+	const { protocol, hostname } = new URL(url);
+	const loopback = LOOPBACK_HOSTS.has(hostname) || /^127(?:\.\d{1,3}){3}$/.test(hostname);
+
+	return protocol === 'http:' && !loopback;
+}
+
 export interface Config {
 	mode: Mode;
 	host: string;
@@ -96,6 +110,8 @@ export interface Config {
 	};
 	ws: { maxBufferBytes: number; pingMs: number };
 	logLevel: string;
+	/** Sign-in, synced dashboards and billing; null unless a database is chosen. */
+	accounts: AccountsConfig | null;
 }
 
 /** Reads and checks the environment once, at startup; throws one error listing every problem. */
@@ -111,12 +127,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 	}
 
 	const values = parsed.data;
+	const dataDir = path.resolve(values.DATA_DIR);
 
 	return {
 		mode: values.MODE,
 		host: values.HOST,
 		port: values.PORT,
-		dataDir: path.resolve(values.DATA_DIR),
+		dataDir,
 		corsOrigins: values.CORS_ORIGINS,
 		relay: { url: values.RELAY_URL, secret: values.RELAY_SECRET },
 		live: {
@@ -128,6 +145,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 			logEvents: values.LIVE_LOG_EVENTS
 		},
 		ws: { maxBufferBytes: values.WS_MAX_BUFFER_BYTES, pingMs: values.WS_PING_SECONDS * 1000 },
-		logLevel: values.LOG_LEVEL
+		logLevel: values.LOG_LEVEL,
+		accounts: loadAccountsConfig(env, {
+			dataDir,
+			corsOrigins: values.CORS_ORIGINS
+		})
 	};
 }

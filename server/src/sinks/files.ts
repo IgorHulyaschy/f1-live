@@ -1,9 +1,10 @@
-import { mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
 import type { RaceEvent, RaceSnapshot } from '@f1-live/shared';
 
+import { parseCatalog } from '../catalog/catalog.js';
 import type { Catalog } from '../catalog/catalog.js';
 
 /** Where the importer keeps things: `raw/` is the input, `out/` is rebuilt from it. */
@@ -108,6 +109,13 @@ export async function writeErrors(
 	}
 }
 
+/** The saved catalog; null when there is none or it cannot be read. */
+export async function readCatalog(dataDir: string): Promise<Catalog | null> {
+	const text = await readFile(catalogPathOf(dataDir), 'utf8').catch(() => null);
+
+	return text === null ? null : parseCatalog(text);
+}
+
 export async function writeCatalog(dataDir: string, catalog: Catalog): Promise<void> {
 	await writeAtomic(catalogPathOf(dataDir), `${JSON.stringify(catalog, null, '\t')}\n`);
 }
@@ -124,4 +132,19 @@ export async function outputKeys(
 
 		return key === undefined ? [] : [Number(key)];
 	});
+}
+
+/** The size of every file under `directory`; 0 when it is missing. */
+export async function folderBytes(directory: string): Promise<number> {
+	const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
+
+	const sizes = await Promise.all(
+		entries.map((entry) =>
+			entry.isDirectory()
+				? folderBytes(path.join(directory, entry.name))
+				: stat(path.join(directory, entry.name)).then((info) => info.size)
+		)
+	);
+
+	return sizes.reduce((sum, size) => sum + size, 0);
 }

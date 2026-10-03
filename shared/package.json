@@ -4,8 +4,13 @@
 	"version": "0.1.0",
 	"description": "Race domain contract shared by the server and the client.",
 	"type": "module",
+	"dependencies": {
+		"zod": "4.6.5"
+	},
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./dashboard": "./src/dashboard.ts",
+		"./plans": "./src/plans.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",

@@ -1,19 +1,32 @@
-import { LibraryIcon, MoonIcon, PlusIcon, SunIcon } from 'lucide-react';
+import {
+	ChevronDownIcon,
+	LayoutDashboardIcon,
+	LibraryIcon,
+	MoonIcon,
+	PlusIcon,
+	SunIcon
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import * as React from 'react';
-import { NavLink, useLocation } from 'react-router';
+import { NavLink, useLocation, useNavigate } from 'react-router';
 
 import { Key, KeyGroup } from '@/components/console/keys';
 import { Kbd } from '@/components/console/panel';
-import { LapCounter, Transport } from '@/components/race-clock';
+import { LiveStrip } from '@/components/live-strip';
 import { TRACK_STATUS_LABEL } from '@/components/track-status-badge';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { useRace } from '@/data/race-context';
-import { useDashboards } from '@/features/dashboard/dashboard-store';
 import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
-import { dashboardPath } from '@/features/dashboard/paths';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
-import { AccountKey } from '@/features/library/account';
-import { useShownDashboard } from '@/features/library/shown-dashboard';
+import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
+import { AccountKey } from '@/features/account/account-menu';
+import { useAccountPlan } from '@/features/account/account-store';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
 
@@ -35,56 +48,80 @@ function Wordmark() {
 	);
 }
 
-/** Dashboards as tabs: presets first, then the viewer's own, then a key to start a new one. */
+/**
+ * Dashboards as tabs: the session's own layout first, the ready-made ones that suit the session,
+ * then the viewer's own. Every other ready-made dashboard is one click away under More.
+ */
 function MainNav() {
 	const search = useCarriedSearch();
-	const { dashboards } = useDashboards();
+	const { tabs, more } = useDashboardNav();
 	const create = useCreateDashboard();
-	const nav = React.useRef<HTMLElement>(null);
+	const navigate = useNavigate();
 	const { pathname } = useLocation();
-
-	// On a narrow screen the tabs scroll; the one on screen is kept clear of the fade.
-	React.useEffect(() => {
-		const links = nav.current?.querySelectorAll('a') ?? [];
-
-		[...links]
-			.find((link) => link.pathname === pathname)
-			?.scrollIntoView({ block: 'nearest', inline: 'center' });
-	}, [pathname]);
+	const moreActive = more.some((entry) => entry.path === pathname);
 
 	return (
 		<nav
-			ref={nav}
 			aria-label="Main"
-			className="flex h-full min-w-0 items-stretch overflow-x-auto mask-r-from-85% [scrollbar-width:none] lg:mask-none"
+			className="order-last flex w-full flex-wrap items-stretch pb-1 sm:order-none sm:h-full sm:w-auto sm:min-w-0 sm:flex-nowrap sm:overflow-x-auto sm:pb-0 sm:[scrollbar-width:none]"
 		>
-			{dashboards.map((dashboard) => (
+			{tabs.map((entry) => (
 				<NavLink
-					key={dashboard.id}
-					to={{ pathname: dashboardPath(dashboard.id), search }}
+					key={entry.dashboard.id}
+					to={{ pathname: entry.path, search }}
 					end
 					className={({ isActive }) =>
 						cn(
-							'type-wide relative flex shrink-0 items-center px-1.5 text-xs font-bold whitespace-nowrap transition-colors sm:px-3.5',
+							'type-wide relative flex h-8 shrink-0 items-center px-1.5 text-xs font-bold whitespace-nowrap transition-colors sm:h-auto sm:px-3.5',
 							isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
 						)
 					}
 				>
 					{({ isActive }) => (
 						<>
-							{dashboard.name || 'Untitled'}
-							{isActive ? (
-								<motion.span
-									layoutId="nav-indicator"
-									className="bg-focus absolute inset-x-1.5 -bottom-px h-0.75 sm:inset-x-3.5"
-									transition={{ type: 'spring', stiffness: 600, damping: 45 }}
-								/>
-							) : null}
+							{entry.label}
+							{isActive ? <NavIndicator /> : null}
 						</>
 					)}
 				</NavLink>
 			))}
-			<span className="flex shrink-0 items-center gap-1 px-1.5">
+			{more.length > 0 ? (
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<button
+							type="button"
+							className={cn(
+								'type-wide relative flex h-8 shrink-0 items-center gap-1 px-1.5 text-xs font-bold whitespace-nowrap transition-colors outline-none focus-visible:underline sm:h-auto sm:px-3.5',
+								moreActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+							)}
+						>
+							More
+							<ChevronDownIcon aria-hidden className="size-3.5" />
+							{moreActive ? <NavIndicator /> : null}
+						</button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="start" className="w-56">
+						<DropdownMenuLabel>
+							<span className="type-label">Ready-made</span>
+						</DropdownMenuLabel>
+						{more.map((entry) => (
+							<DropdownMenuItem
+								key={entry.dashboard.id}
+								onSelect={() => void navigate({ pathname: entry.path, search })}
+							>
+								<LayoutDashboardIcon />
+								{entry.label}
+							</DropdownMenuItem>
+						))}
+						<DropdownMenuSeparator />
+						<DropdownMenuItem onSelect={() => void navigate({ pathname: '/library', search })}>
+							<LibraryIcon />
+							Library: fan dashboards
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			) : null}
+			<span className="flex h-8 shrink-0 items-center gap-1 px-1.5 sm:h-auto">
 				<Key aria-label="New dashboard" onClick={() => create()} className="h-7 px-1.5 sm:h-7">
 					<PlusIcon />
 				</Key>
@@ -108,14 +145,14 @@ function MainNav() {
 	);
 }
 
-/**
- * Lap and transport in the bar itself, for pages whose dashboard has no Replay tile: the race can
- * always be moved, whatever a viewer took off their screen.
- */
-function useNeedsClock(): boolean {
-	const dashboard = useShownDashboard();
-
-	return !dashboard?.tiles.some((tile) => tile.kind === 'replay');
+function NavIndicator() {
+	return (
+		<motion.span
+			layoutId="nav-indicator"
+			className="bg-focus absolute inset-x-1.5 -bottom-px h-0.75 sm:inset-x-3.5"
+			transition={{ type: 'spring', stiffness: 600, damping: 45 }}
+		/>
+	);
 }
 
 /** A full-width marshal banner while the race is neutralised. */
@@ -146,23 +183,21 @@ function FlagBanner() {
 
 export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 	const { plan, setPlan } = useRace();
+	const accountPlan = useAccountPlan();
 	const dark = useDarkTheme();
-	const needsClock = useNeedsClock();
 
 	return (
 		<header className="bg-background/90 sticky top-0 z-40 mb-4 border-b backdrop-blur-sm">
-			<div className="flex h-12 items-stretch gap-1 px-3 sm:gap-2 sm:px-4 md:gap-6 md:px-6">
-				<NavLink to={{ pathname: '/' }} className="flex items-center" aria-label="Pitwall home">
+			<div className="flex flex-wrap items-stretch gap-1 px-3 sm:h-12 sm:flex-nowrap sm:gap-2 sm:px-4 md:gap-6 md:px-6">
+				<NavLink
+					to={{ pathname: '/' }}
+					className="flex h-10 items-center sm:h-auto"
+					aria-label="Pitwall home"
+				>
 					<Wordmark />
 				</NavLink>
 				<MainNav />
-				<div className="ml-auto flex items-center gap-1 sm:gap-2">
-					{needsClock ? (
-						<div className="hidden items-center gap-3 sm:flex" data-testid="header-clock">
-							<Transport className="hidden 2xl:flex" />
-							<LapCounter size="sm" />
-						</div>
-					) : null}
+				<div className="ml-auto flex h-10 items-center gap-1 sm:h-auto sm:gap-2">
 					<Key
 						onClick={onOpenCommand}
 						aria-label="Search drivers, laps and pages"
@@ -171,17 +206,26 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 						<span className="hidden lg:inline">Jump</span>
 						<Kbd className="border-0">⌘K</Kbd>
 					</Key>
-					<div className="hidden sm:block">
-						<KeyGroup label="Plan preview" options={PLAN_OPTIONS} value={plan} onChange={setPlan} />
-					</div>
-					<Key
-						className="sm:hidden"
-						pressed={plan === 'pro'}
-						aria-label="Preview Pro"
-						onClick={() => setPlan(plan === 'pro' ? 'free' : 'pro')}
-					>
-						Pro
-					</Key>
+					{accountPlan === 'pro' ? null : (
+						<>
+							<div className="hidden sm:block">
+								<KeyGroup
+									label="Plan preview"
+									options={PLAN_OPTIONS}
+									value={plan}
+									onChange={setPlan}
+								/>
+							</div>
+							<Key
+								className="sm:hidden"
+								pressed={plan === 'pro'}
+								aria-label="Preview Pro"
+								onClick={() => setPlan(plan === 'pro' ? 'free' : 'pro')}
+							>
+								Pro
+							</Key>
+						</>
+					)}
 					<AccountKey className="hidden sm:inline-flex" />
 					<Key
 						onClick={toggleTheme}
@@ -192,6 +236,7 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 					</Key>
 				</div>
 			</div>
+			<LiveStrip />
 			<FlagBanner />
 		</header>
 	);

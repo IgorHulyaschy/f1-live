@@ -19,6 +19,11 @@ export function plannedMinutes(type: SessionType): number {
 	return type === 'sprint_qualifying' ? 44 : 60;
 }
 
+/** The minutes a timed session shows on its clock: its planned length, or longer once it has run past it. */
+export function sessionMinutes(type: SessionType, elapsed: number): number {
+	return Math.max(elapsed, plannedMinutes(type));
+}
+
 /** The last part always runs with ten cars. */
 const FINAL_PART_CARS = 10;
 

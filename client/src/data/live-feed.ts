@@ -94,6 +94,16 @@ export type Replica = {
 };
 
 /**
+ * The newest moment a batch of events is stamped with; NaN for any other message. A state can
+ * be minutes old in its last lap or flag, as under a red flag, so it never sets the clock.
+ */
+function stampOf(message: ServerMessage): number {
+	return message.type === 'events'
+		? Math.max(...message.events.map((event) => Date.parse(event.at)))
+		: Number.NaN;
+}
+
+/**
  * One step of the protocol's client rules. `resync` means this copy cannot follow the message
  * and must ask for a fresh state; the copy is unchanged then.
  */
@@ -152,6 +162,11 @@ export type LiveState = {
 	replica: Replica | null;
 	/** The session's states as they arrived, for a broadcast delay. */
 	arrivals: readonly Arrival[];
+	/**
+	 * The feed's clock minus this device's: how far the newest event that arrived was stamped
+	 * ahead of the moment it arrived. Replays run on the clock of the session they replay.
+	 */
+	clockOffsetMs: number;
 };
 
 /** What the feed hears from a socket. */
@@ -212,7 +227,12 @@ export class LiveFeed implements LivePositionsFeed {
 	private readonly notifyMs: number;
 	private readonly random: () => number;
 	private readonly listeners = new Set<() => void>();
-	private state: LiveState = { connection: 'connecting', replica: null, arrivals: [] };
+	private state: LiveState = {
+		connection: 'connecting',
+		replica: null,
+		arrivals: [],
+		clockOffsetMs: 0
+	};
 	private socket: SocketLike | null = null;
 	private attempt = 0;
 	private stopped = true;
@@ -383,7 +403,12 @@ export class LiveFeed implements LivePositionsFeed {
 					})
 				: this.state.arrivals;
 
-		this.update({ connection: 'live', replica, arrivals }, replica === previous);
+		const stamped = stampOf(message);
+
+		const clockOffsetMs =
+			Number.isFinite(stamped) && stamped > 0 ? stamped - Date.now() : this.state.clockOffsetMs;
+
+		this.update({ connection: 'live', replica, arrivals, clockOffsetMs }, replica === previous);
 		this.askForPositions();
 	}
 

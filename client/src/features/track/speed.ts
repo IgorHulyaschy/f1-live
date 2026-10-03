@@ -1,6 +1,7 @@
 import type { LapTelemetry } from '@f1-live/shared';
+import { MAP_CHANNELS } from '@f1-live/shared/dashboard';
 
-export const CHANNELS = ['speed', 'gear', 'throttle', 'brake'] as const;
+export const CHANNELS = MAP_CHANNELS;
 
 export type Channel = (typeof CHANNELS)[number];
 

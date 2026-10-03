@@ -9,7 +9,12 @@ import { z } from 'zod';
 
 import { isKnockout } from '../insights/qualifying.ts';
 import { type Catalog, catalogSchema } from './catalog.ts';
-import { apiTelemetry, mockTelemetry, type TelemetrySource } from './telemetry-source.ts';
+import { apiMapTelemetry, type MapTelemetry, mockMapTelemetry } from './map-telemetry.ts';
+import {
+	createTelemetrySource,
+	lazyTelemetrySource,
+	type TelemetrySource
+} from './telemetry-source.ts';
 
 export type RaceSourceKind = 'mock' | 'api';
 
@@ -21,8 +26,10 @@ export type RaceSource = {
 	loadSession: (key: string) => Promise<RaceSnapshot>;
 	/** `WS /live` (docs/product/live-protocol.md), or null when the source has no live feed. */
 	liveUrl: string | null;
-	/** Circuits, replay positions and lap telemetry (docs/product/telemetry.md). */
-	telemetry: TelemetrySource;
+	/** Saved sessions' telemetry, or null when the source has none. */
+	telemetry: TelemetrySource | null;
+	/** Circuits and replay positions for the track maps (docs/product/telemetry.md). */
+	maps: MapTelemetry;
 };
 
 /** The archive key of the 2025 Las Vegas race, which the mock replays. */
@@ -134,7 +141,8 @@ export function createRaceSource(
 			loadCatalog: () => fetchCatalog(urls.apiUrl),
 			loadSession: (key) => fetchSnapshot(urls.apiUrl, key),
 			liveUrl: urls.liveUrl,
-			telemetry: apiTelemetry(urls.apiUrl)
+			telemetry: createTelemetrySource(urls.apiUrl),
+			maps: apiMapTelemetry(urls.apiUrl)
 		};
 	}
 
@@ -150,7 +158,10 @@ export function createRaceSource(
 			return (await import('./mock/simulate-race.ts')).simulateLasVegas2025();
 		},
 		liveUrl: null,
-		telemetry: mockTelemetry(MOCK_SESSION_KEY)
+		telemetry: lazyTelemetrySource(async () =>
+			(await import('./mock/sample-telemetry.ts')).createSampleTelemetrySource()
+		),
+		maps: mockMapTelemetry(MOCK_SESSION_KEY)
 	};
 }
 

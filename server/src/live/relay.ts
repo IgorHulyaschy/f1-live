@@ -5,12 +5,24 @@ import { z } from 'zod';
 
 import { backoffDelay, describeError } from '../sources/f1/live.js';
 import type { Backoff, EventLog } from '../sources/f1/live.js';
+import type { ChannelSink } from '../telemetry/live.js';
+import { CHANNELS } from './protocol.js';
+import type { Channel } from './protocol.js';
 import type { Position, LiveSession } from './session.js';
 
 /** Events per request, so a long outage is caught up in bounded pieces. */
 const MAX_EVENTS_PER_PUSH = 5000;
 
 const PUSH_TIMEOUT_MS = 30_000;
+
+/** A relay that stays unreachable is logged on the first failed channel push and then this often. */
+const CHANNEL_FAILURE_LOG_EVERY = 100;
+
+/** While no viewer wants a channel nothing is pushed, so an empty push this often asks who does. */
+const WANTED_PROBE_MS = 3000;
+
+/** What the relay answers to a channel push: the channels some viewer is subscribed to. */
+const wantedSchema = z.object({ wanted: z.array(z.enum(CHANNELS)) });
 
 /** What the relay answers to a push: where its copy of the session stands now. */
 export const positionSchema = z.object({ epoch: z.string(), seq: z.number().int().min(0) });
@@ -175,5 +187,129 @@ export class RelayPusher {
 		}
 
 		return positionSchema.parse(await response.json());
+	}
+}
+
+export interface RelayChannelsOptions extends Pick<
+	RelayPusherOptions,
+	'url' | 'secret' | 'log' | 'fetchImpl'
+> {
+	/** How often an empty push asks which channels are wanted, while none is; default 3 s. */
+	probeMs?: number;
+}
+
+/**
+ * Ingest side of the opt-in telemetry channels: passes the messages `LiveTelemetry` has already
+ * throttled to the relay, which sends them to the viewers that subscribed. The channels are a
+ * live picture, not a log, so nothing is buffered for an outage: while a push is in flight, a
+ * newer message of a channel replaces the one waiting, and a failed push is dropped. The relay
+ * answers each push with the channels its viewers want; the rest are not decoded or pushed, and
+ * an empty push every few seconds asks again.
+ */
+export class RelayChannelPusher implements ChannelSink {
+	private readonly options: RelayChannelsOptions;
+	private readonly signal: AbortSignal;
+	private readonly fetchImpl: typeof fetch;
+	/** The newest message of each channel not yet sent; a flush of both is one request. */
+	private readonly waiting = new Map<Channel, string>();
+	/** What the relay last said its viewers want; nothing until it has been asked. */
+	private wanted: ReadonlySet<Channel> = new Set();
+	private answeredAt = 0;
+	private sending = false;
+	private scheduled = false;
+	private failures = 0;
+
+	constructor(options: RelayChannelsOptions, signal: AbortSignal) {
+		this.options = options;
+		this.signal = signal;
+		this.fetchImpl = options.fetchImpl ?? fetch;
+
+		const probeMs = options.probeMs ?? WANTED_PROBE_MS;
+
+		// A channel nobody wanted when the last push was answered may be wanted now.
+		const probe = setInterval(() => {
+			if (!this.sending && Date.now() - this.answeredAt >= probeMs) {
+				void this.send();
+			}
+		}, probeMs);
+
+		probe.unref();
+		signal.addEventListener('abort', () => clearInterval(probe), { once: true });
+		void this.send();
+	}
+
+	wants(channel: Channel): boolean {
+		return this.wanted.has(channel);
+	}
+
+	/** The relay marks a channel live when its first message arrives. */
+	markLive() {}
+
+	publish(channel: Channel, text: string) {
+		if (this.signal.aborted) {
+			return;
+		}
+
+		this.waiting.set(channel, text);
+		this.schedule();
+	}
+
+	private schedule() {
+		if (!this.scheduled && !this.sending) {
+			this.scheduled = true;
+			// Both channels of one flush are published in the same tick; this sends them together.
+			setImmediate(() => void this.send());
+		}
+	}
+
+	private async send() {
+		this.scheduled = false;
+
+		if (this.sending) {
+			return;
+		}
+
+		this.sending = true;
+
+		const body = `{"messages":[${[...this.waiting.values()].join(',')}]}`;
+
+		this.waiting.clear();
+
+		try {
+			const response = await this.fetchImpl(new URL('/ingest/channels', this.options.url), {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					Authorization: `Bearer ${this.options.secret}`
+				},
+				body,
+				signal: AbortSignal.any([this.signal, AbortSignal.timeout(PUSH_TIMEOUT_MS)])
+			});
+
+			if (!response.ok) {
+				throw new Error(`relay answered ${response.status.toString()}`);
+			}
+
+			// A relay from before this answer existed sends 204: it takes every channel.
+			this.wanted = new Set(
+				response.status === 204 ? CHANNELS : wantedSchema.parse(await response.json()).wanted
+			);
+			this.answeredAt = Date.now();
+			this.failures = 0;
+		} catch (cause) {
+			if (!this.signal.aborted) {
+				if (this.failures % CHANNEL_FAILURE_LOG_EVERY === 0) {
+					this.options.log('relay-channels-failed', { error: describeError(cause) });
+				}
+
+				this.failures += 1;
+			}
+		} finally {
+			this.sending = false;
+
+			if (this.waiting.size > 0 && !this.signal.aborted) {
+				this.schedule();
+			}
+		}
 	}
 }

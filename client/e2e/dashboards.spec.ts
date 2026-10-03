@@ -68,10 +68,10 @@ test('phones stack the tiles in reading order', async ({ page }) => {
 		.evaluateAll((tiles) => tiles.map((tile) => tile.getAttribute('data-testid')));
 
 	expect(kinds).toEqual([
-		'tile-lap-strip',
 		'tile-replay',
 		'tile-compare',
 		'tile-chart',
+		'tile-telemetry',
 		'tile-pace',
 		'tile-fastest-laps'
 	]);
@@ -84,7 +84,7 @@ test('a popped-out tile follows the lap of the window that opened it', async ({ 
 
 	const tile = await context.newPage();
 
-	await openRace(tile, '/tile/analysis/analysis-3?lap=20');
+	await openRace(tile, '/tile/analysis/analysis-2?lap=20');
 	await expect(tile.getByTestId('chart-lapTime')).toBeVisible();
 
 	await main.getByRole('button', { name: 'Next lap' }).click();

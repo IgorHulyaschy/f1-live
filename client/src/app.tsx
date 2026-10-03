@@ -11,6 +11,9 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { RaceProvider, useRace } from '@/data/race-context';
+import { TelemetryProvider } from '@/data/telemetry-context';
+import { AccountFooterKey, AccountSession } from '@/features/account/account-menu';
+import { useAccountPlan } from '@/features/account/account-store';
 import { CompareProvider } from '@/features/analysis/compare-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
 import type { RaceSource } from '@/data/race-source';
@@ -39,7 +42,7 @@ function ErrorState({ message }: { message: string }) {
 
 /** The slim bar over a popped-out tile: what race, which lap, what flag. */
 function BareHeader() {
-	const { race, snapshot, lap } = useRace();
+	const { race, snapshot, lap, stepUnit } = useRace();
 	const { pathname } = useLocation();
 	const { dashboards } = useDashboards();
 
@@ -55,7 +58,7 @@ function BareHeader() {
 				{race.session.meetingName.replace(/ Grand Prix$/, '')}
 			</span>
 			<TrackStatusBadge status={snapshot.trackStatus} />
-			{poppedKind === 'replay' ? null : (
+			{poppedKind === 'replay' && stepUnit === 'minute' ? null : (
 				<span className="ml-auto flex items-baseline gap-1.5 font-mono">
 					<span className="type-label">Lap</span>
 					<span className="sr-only" data-testid="lap-counter">
@@ -120,9 +123,10 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 									? ' This replay uses the real grid, strategies, race control and result; lap times are modelled from them.'
 									: null}
 							</p>
-							<Key className="sm:hidden" onClick={toggleTheme}>
-								{dark ? 'Light theme' : 'Dark theme'}
-							</Key>
+							<span className="flex gap-2 sm:hidden">
+								<AccountFooterKey />
+								<Key onClick={toggleTheme}>{dark ? 'Light theme' : 'Dark theme'}</Key>
+							</span>
 							<dl className="type-label hidden gap-4 md:flex">
 								<div className="flex gap-1.5">
 									<dt>Laps</dt>
@@ -131,6 +135,14 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 								<div className="flex gap-1.5">
 									<dt>Play</dt>
 									<dd className="text-foreground">Space</dd>
+								</div>
+								<div className="flex gap-1.5">
+									<dt>Events</dt>
+									<dd className="text-foreground">⇧← →</dd>
+								</div>
+								<div className="flex gap-1.5">
+									<dt>Live</dt>
+									<dd className="text-foreground">L</dd>
 								</div>
 								<div className="flex gap-1.5">
 									<dt>Dashboards</dt>
@@ -143,6 +155,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 							</dl>
 						</footer>
 						<PitBoard />
+						<AccountSession />
 					</div>
 				</CompareProvider>
 				<CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
@@ -153,9 +166,18 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 }
 
 export function AppLayout({ source, bare = false }: { source: RaceSource; bare?: boolean }) {
+	const accountPlan = useAccountPlan();
+
 	return (
-		<RaceProvider source={source} loadingFallback={<LoadingState />} ErrorFallback={ErrorState}>
-			<Console sourceKind={source.kind} bare={bare} />
+		<RaceProvider
+			source={source}
+			accountPlan={accountPlan}
+			loadingFallback={<LoadingState />}
+			ErrorFallback={ErrorState}
+		>
+			<TelemetryProvider source={source.telemetry}>
+				<Console sourceKind={source.kind} bare={bare} />
+			</TelemetryProvider>
 		</RaceProvider>
 	);
 }

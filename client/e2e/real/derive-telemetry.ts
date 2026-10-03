@@ -1,7 +1,8 @@
 /**
  * Derives the telemetry fixtures for the real-data e2e from a data folder whose telemetry is
  * built: each session's circuit outline, the replay chunks around the moments the tests and shots
- * open, and a few laps for DRS zones, dominance and the speed map. Indexes are cut to what is kept.
+ * open, and the laps the DRS zones, dominance and the speed map read there. Lap indexes stay
+ * whole, as derive-fixtures.ts leaves them for the telemetry charts; only the laps read are kept.
  *
  *   DATA_DIR=/path/to/data node e2e/real/derive-telemetry.ts
  *
@@ -9,20 +10,25 @@
  */
 import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { gunzipSync, gzipSync } from 'node:zlib';
+import { gunzipSync } from 'node:zlib';
 
 import type { LapIndex, RaceSnapshot, ReplayManifest } from '@f1-live/shared';
 
 import { replayTimeline, stepTime } from '../../src/data/session-time.ts';
+import { snapshotAtLap } from '../../src/data/snapshot-at-lap.ts';
+import { snapshotAtTime } from '../../src/data/snapshot-at-time.ts';
+import { lapsToRead } from '../../src/features/track/dominance.ts';
 import { lapsForZones } from '../../src/features/track/drs-zones.ts';
+import { isTimedSession } from '../../src/insights/qualifying.ts';
+import { standingsAt } from '../../src/insights/standings.ts';
 
 type Plan = {
 	/** Replay steps (laps, or minutes on the clock) whose moments the chunks must cover. */
 	steps: readonly number[];
 	/** Steps from the end, for sessions opened at their end. */
 	lastSteps: number;
-	/** Laps kept, as driver and lap numbers. */
-	laps: readonly (readonly [driverNumber: string, lap: number])[];
+	/** Steps where dominance and the speed map are opened; -1 is the last. */
+	mapSteps: readonly number[];
 };
 
 /** Kept round each moment: the minute before for road gaps, and the next lap or two for playing on. */
@@ -30,26 +36,14 @@ const BEFORE_MS = 90_000;
 
 const AFTER_MS = 200_000;
 
-function lapsOf(drivers: readonly string[], laps: readonly number[]): [string, number][] {
-	return drivers.flatMap((driver) => laps.map((lap): [string, number] => [driver, lap]));
-}
+/** LEC, the driver a fresh viewer follows. */
+const FOLLOWED = '16';
 
 const PLANS = new Map<string, Plan>([
-	[
-		// 2025 Las Vegas race: the start, laps 10, 30 and 50; dominance and the speed map for VER,
-		// RUS and LEC. The laps the map reads DRS zones from are added to every session.
-		'9858',
-		{
-			steps: [1, 10, 30],
-			lastSteps: 1,
-			laps: lapsOf(['1', '63', '16'], [19, 20, 21, 22, 28, 29])
-		}
-	],
-	[
-		// 2026 Baku qualifying, opened at its end: the last minutes, with the fastest laps of the top four and LEC.
-		'11373',
-		{ steps: [], lastSteps: 6, laps: [] }
-	]
+	// 2025 Las Vegas race: the start, laps 10, 30 and 50; the Track tiles at the start and lap 30.
+	['9858', { steps: [1, 10, 30], lastSteps: 1, mapSteps: [1, 30] }],
+	// 2026 Baku qualifying, opened at its end: the last minutes.
+	['11373', { steps: [], lastSteps: 6, mapSteps: [-1] }]
 ]);
 
 const dataDir = process.env.DATA_DIR;
@@ -74,8 +68,6 @@ function readJson<T>(file: string): T {
 	return JSON.parse(readFileSync(file, 'utf8')) as T;
 }
 
-rmSync(target, { recursive: true, force: true });
-
 mkdirSync(path.join(target, 'circuits'), { recursive: true });
 
 for (const [key, plan] of PLANS) {
@@ -97,6 +89,8 @@ for (const [key, plan] of PLANS) {
 
 	const moments = steps.map((step) => stepTime(timeline, step));
 
+	// The replay is this script's alone; the laps folder is shared with derive-fixtures.ts.
+	rmSync(path.join(to, 'replay'), { recursive: true, force: true });
 	mkdirSync(path.join(to, 'replay'), { recursive: true });
 	mkdirSync(path.join(to, 'laps'), { recursive: true });
 	copyFileSync(path.join(from, 'index.json'), path.join(to, 'index.json'));
@@ -123,40 +117,42 @@ for (const [key, plan] of PLANS) {
 
 	const laps = readGzipJson<LapIndex>(path.join(from, index.laps));
 
-	const wanted = [
-		...(plan.laps.length > 0 ? plan.laps : fastestLaps(laps, snapshot)),
-		...lapsForZones(laps, snapshot.laps).map((entry): [string, number] => [
-			entry.driverNumber,
-			entry.lap
-		])
-	];
+	const read = new Set([
+		...lapsForZones(laps, snapshot.laps),
+		...plan.mapSteps
+			.map((step) => (step < 0 ? last + 1 + step : step))
+			.flatMap((step) => mapLaps(laps, snapshot, step, stepTime(timeline, step)))
+	]);
 
-	const kept = laps.laps.filter((entry) =>
-		wanted.some(([driver, lap]) => entry.driverNumber === driver && entry.lap === lap)
-	);
-
-	for (const entry of kept) {
+	for (const entry of read) {
 		copyFileSync(path.join(from, entry.file), path.join(to, entry.file));
 	}
 
-	writeFileSync(
-		path.join(to, index.laps),
-		gzipSync(JSON.stringify({ ...laps, laps: kept }), { level: 9 })
-	);
-	process.stdout.write(`${key}: ${chunks.length} chunks, ${kept.length} laps\n`);
+	copyFileSync(path.join(from, index.laps), path.join(to, index.laps));
+	process.stdout.write(`${key}: ${chunks.length} chunks, ${read.size} laps\n`);
 }
 
-/** In qualifying, the three fastest laps of the top four and of LEC, the driver followed by default. */
-function fastestLaps(laps: LapIndex, snapshot: RaceSnapshot): [string, number][] {
-	const order = (snapshot.standings ?? []).slice(0, 4).map((standing) => standing.driverNumber);
+/**
+ * The laps dominance and the speed map read at a step for a fresh viewer: the followed driver and
+ * the two cars at the front they compare by default.
+ */
+function mapLaps(
+	laps: LapIndex,
+	snapshot: RaceSnapshot,
+	step: number,
+	moment: number
+): LapIndex['laps'] {
+	const shown = isTimedSession(snapshot.session.type)
+		? snapshotAtTime(snapshot, moment)
+		: snapshotAtLap(snapshot, step);
 
-	return [...new Set([...order, '16'])].flatMap((driver) =>
-		laps.laps
-			.filter(
-				(entry) => entry.driverNumber === driver && !entry.pitIn && !entry.pitOut && !entry.partial
-			)
-			.toSorted((a, b) => a.lapTimeMs - b.lapTimeMs)
-			.slice(0, 3)
-			.map((entry): [string, number] => [entry.driverNumber, entry.lap])
-	);
+	const front = standingsAt(shown)
+		.filter((row) => row.state !== 'out' && row.driver.number !== FOLLOWED)
+		.slice(0, 2)
+		.map((row) => row.driver.number);
+
+	return [
+		...lapsToRead(laps, [FOLLOWED, ...front], 'best', moment),
+		...lapsToRead(laps, [FOLLOWED], 'lap', moment)
+	];
 }

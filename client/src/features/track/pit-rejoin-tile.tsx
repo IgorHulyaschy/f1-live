@@ -17,7 +17,7 @@ import { typicalLap } from './estimate';
 import { type CarLook, type ExtraDraw, MapCanvas } from './map-canvas';
 import { MapNote, MapPending, useMapBodyClass, usePlacesNow } from './map-parts';
 import { type Rejoin, rejoinAmong } from './rejoin';
-import { toScreen } from './track-draw';
+import { type Box, overlaps, toScreen } from './track-draw';
 import { type PlacesSampler, type TrackReady, usePlaces, useTrackData } from './use-track';
 
 /** A car within this of the rejoin point means coming out in traffic. */
@@ -124,6 +124,7 @@ export function PitRejoinTile() {
 function PitRejoinBody({ track }: { track: TrackReady }) {
 	const { race, snapshot, followedDriver } = useRace();
 	const places = usePlaces(track);
+	const now = usePlacesNow(places, READ_EVERY_MS);
 	const bodyClass = useMapBodyClass();
 
 	const lapMs = React.useMemo(() => typicalLap(snapshot, track.outline), [snapshot, track.outline]);
@@ -146,7 +147,7 @@ function PitRejoinBody({ track }: { track: TrackReady }) {
 
 	// The ghost: where the car would be after its stop, drawn dashed with the place it would hold.
 	const extra = React.useCallback<ExtraDraw>(
-		({ ctx, rem, theme }, view, _cars, time) => {
+		({ ctx, rem, theme }, view, _cars, time, room) => {
 			const ghost = places.placeAt(followedDriver, time - lossMs);
 
 			if (!ghost || !followed) {
@@ -169,9 +170,35 @@ function PitRejoinBody({ track }: { track: TrackReady }) {
 
 			const width = ctx.measureText(label).width + 10 * unit;
 			const height = 15 * unit;
-			// Beside the ghost, on whichever side keeps the label inside the map.
-			const left = x + 12 * unit + width > view.width ? x - 12 * unit - width : x + 12 * unit;
-			const top = Math.max(2, y - 20 * unit);
+			const gap = 12 * unit;
+
+			const at = (left: number, top: number): Box => ({
+				x0: left,
+				y0: top,
+				x1: left + width,
+				y1: top + height
+			});
+
+			const beside = at(x + gap, y - height / 2);
+
+			// Further out too, for a field still bunched.
+			const candidates = [1, 2.5].flatMap((reach) => [
+				at(x + gap * reach, y - height / 2),
+				at(x - gap * reach - width, y - height / 2),
+				at(x - width / 2, y - gap * reach - height),
+				at(x - width / 2, y + gap * reach)
+			]);
+
+			const inside = (box: Box) =>
+				box.x0 >= 0 && box.y0 >= 0 && box.x1 <= view.width && box.y1 <= view.height;
+
+			// Beside the ghost and inside the map: clear of every car and label where it can be, then
+			// clear of the labels and the followed car, and over them only when nothing else is left.
+			const { x0: left, y0: top } =
+				candidates.find((candidate) => inside(candidate) && !overlaps(candidate, room.placed)) ??
+				candidates.find((candidate) => inside(candidate) && !overlaps(candidate, room.kept)) ??
+				candidates.find(inside) ??
+				beside;
 
 			ctx.fillStyle = theme.panel;
 			ctx.fillRect(left, top, width, height);
@@ -252,7 +279,7 @@ function PitRejoinBody({ track }: { track: TrackReady }) {
 					</div>
 				</div>
 			) : null}
-			<MapNote places={places}>
+			<MapNote places={places} now={now}>
 				<span data-testid="pit-loss">
 					{loss.stops > 0
 						? `A stop costs ${(lossMs / 1000).toFixed(1)}s here${neutralised ? ' under the VSC or Safety Car' : ''}: measured from ${loss.stops} ${loss.stops === 1 ? 'stop' : 'stops'} this session.`

@@ -15,7 +15,7 @@ import {
 	type LiveState
 } from './live-feed.ts';
 import type { RaceSource } from './race-source.ts';
-import type { TelemetrySource } from './telemetry-source.ts';
+import type { MapTelemetry } from './map-telemetry.ts';
 import { type StandingRow, standingsAt } from '../insights/standings.ts';
 import { isSessionOver, isTimedSession } from '../insights/qualifying.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
@@ -56,7 +56,8 @@ type Spoilers = {
 
 type RaceContextValue = {
 	sourceKind: RaceSource['kind'];
-	telemetry: TelemetrySource;
+	/** Circuits and replay positions for the track maps. */
+	maps: MapTelemetry;
 	catalog: Catalog | null;
 	/** The archive key of the session on screen. */
 	sessionKey: string;
@@ -78,6 +79,8 @@ type RaceContextValue = {
 	/** The last step there is: the laps run so far, or the minutes. */
 	steps: number;
 	lap: number;
+	/** In a session on the clock, the moment `snapshot` shows; null when it shows the latest. */
+	cutTime: number | null;
 	setLap: (lap: number) => void;
 	/** Moves the replay by `delta` laps, clamped to the laps available. */
 	stepLap: (delta: number) => void;
@@ -96,6 +99,11 @@ type RaceContextValue = {
 	setFollowedDriver: (driverNumber: string) => void;
 	/** Standings at `lap`, computed once for every panel. */
 	standings: readonly StandingRow[];
+	/**
+	 * Added to this device's clock, the moment the live screen shows: the feed's clock runs ahead
+	 * by the offset, and the screen behind it by the delay.
+	 */
+	feedOffsetMs: number;
 	/** Tells other windows about a change made here. */
 	broadcast: (message: SyncMessage) => void;
 };
@@ -108,7 +116,7 @@ export type RunningSlot = { number: string; out: boolean };
  * kept while only the order, personal bests and mini sectors change, so their `standings`,
  * `personalBests` and `miniSectors` may be behind: read those through `useRace`.
  */
-export type RaceView = Omit<RaceContextValue, 'standings'> & {
+export type RaceView = Omit<RaceContextValue, 'standings' | 'feedOffsetMs'> & {
 	order: readonly RunningSlot[];
 };
 
@@ -133,9 +141,13 @@ function sameExceptOrder(kept: RaceSnapshot, next: RaceSnapshot): boolean {
 		kept.trackStatusLog === next.trackStatusLog &&
 		kept.status === next.status &&
 		kept.statusLog === next.statusLog &&
+		kept.clockLog === next.clockLog &&
 		kept.startedAt === next.startedAt &&
 		kept.penalties === next.penalties &&
-		kept.corrections === next.corrections
+		kept.corrections === next.corrections &&
+		kept.overtakes === next.overtakes &&
+		kept.teamRadio === next.teamRadio &&
+		kept.championship === next.championship
 	);
 }
 
@@ -250,7 +262,12 @@ function useCatalog(source: RaceSource): Loadable<Catalog> {
 	return state;
 }
 
-const IDLE_LIVE: LiveState = { connection: 'connecting', replica: null, arrivals: [] };
+const IDLE_LIVE: LiveState = {
+	connection: 'connecting',
+	replica: null,
+	arrivals: [],
+	clockOffsetMs: 0
+};
 
 type LiveFeedState = { feed: LiveFeed | null; state: LiveState };
 
@@ -421,11 +438,14 @@ function resolveLap(raw: string | null, maxLap: number, defaultLap: number): num
  */
 export function RaceProvider({
 	source,
+	accountPlan,
 	loadingFallback,
 	ErrorFallback,
 	children
 }: {
 	source: RaceSource;
+	/** The signed-in account's plan; Pro there means Pro everywhere, with no preview needed. */
+	accountPlan: Plan;
 	loadingFallback: React.ReactNode;
 	ErrorFallback: React.ComponentType<{ message: string }>;
 	children: React.ReactNode;
@@ -695,15 +715,17 @@ export function RaceProvider({
 		[updateParams, broadcast]
 	);
 
+	const cutTime = clock && !following && lap < maxLap ? minuteTime(clock, lap) : null;
+
 	const snapshot = React.useMemo(() => {
 		if (!race || following || (clock && lap >= maxLap)) {
 			return race;
 		}
 
-		return clock ? snapshotAtTime(race, minuteTime(clock, lap)) : snapshotAtLap(race, lap);
-	}, [race, lap, following, clock, maxLap]);
+		return cutTime === null ? snapshotAtLap(race, lap) : snapshotAtTime(race, cutTime);
+	}, [race, lap, following, clock, maxLap, cutTime]);
 
-	const plan: Plan = searchParams.get('plan') === 'pro' ? 'pro' : 'free';
+	const plan: Plan = accountPlan === 'pro' || searchParams.get('plan') === 'pro' ? 'pro' : 'free';
 	const storedDriver = followedDriverStore.useValue();
 	const followedDriver = searchParams.get('driver') ?? storedDriver ?? DEFAULT_FOLLOWED_DRIVER;
 
@@ -742,7 +764,7 @@ export function RaceProvider({
 	const sessionError = 'message' in wanted ? wanted.message : null;
 	const switchingTo = key !== null && shown && shown.key !== key && !sessionError ? key : null;
 
-	type RaceBase = Omit<RaceContextValue, 'race' | 'snapshot' | 'standings'>;
+	type RaceBase = Omit<RaceContextValue, 'race' | 'snapshot' | 'standings' | 'feedOffsetMs'>;
 
 	// Everything but the data, so the view below can skip updates that only move the order.
 	const base = React.useMemo<RaceBase | null>(
@@ -751,7 +773,7 @@ export function RaceProvider({
 				? null
 				: {
 						sourceKind: source.kind,
-						telemetry: source.telemetry,
+						maps: source.maps,
 						catalog: catalogValue,
 						sessionKey: shownKey,
 						switchingTo,
@@ -762,6 +784,7 @@ export function RaceProvider({
 						stepUnit: timed ? 'minute' : 'lap',
 						steps: maxLap,
 						lap,
+						cutTime,
 						setLap: (nextLap) => {
 							updateParam('lap', String(nextLap));
 							broadcast({ lap: nextLap });
@@ -788,7 +811,7 @@ export function RaceProvider({
 					},
 		[
 			source.kind,
-			source.telemetry,
+			source.maps,
 			catalogValue,
 			shownKey,
 			switchingTo,
@@ -799,6 +822,7 @@ export function RaceProvider({
 			timed,
 			maxLap,
 			lap,
+			cutTime,
 			isPlaying,
 			setPlaying,
 			speed,
@@ -812,9 +836,11 @@ export function RaceProvider({
 		]
 	);
 
+	const feedOffsetMs = liveState.clockOffsetMs - delaySeconds * 1000;
+
 	const value = React.useMemo<RaceContextValue | null>(
-		() => (base && race && snapshot ? { ...base, race, snapshot, standings } : null),
-		[base, race, snapshot, standings]
+		() => (base && race && snapshot ? { ...base, race, snapshot, standings, feedOffsetMs } : null),
+		[base, race, snapshot, standings, feedOffsetMs]
 	);
 
 	const hasValue = value !== null;

@@ -6,7 +6,9 @@ import {
 	type Catalog,
 	catalogSchema,
 	defaultSessionKey,
-	findSession
+	findSession,
+	formatUntil,
+	nextSession
 } from './catalog.ts';
 
 function session(key: number, name: string, startsAt: string, snapshot: boolean) {
@@ -78,5 +80,18 @@ describe('catalog', () => {
 		assert.equal(availability(entry('11002'), '11011', SATURDAY), 'saved');
 		assert.equal(availability(entry('11011'), null, SATURDAY), 'upcoming');
 		assert.equal(availability(entry('11010'), null, SATURDAY), 'missing');
+	});
+
+	it('finds the next session to start', () => {
+		assert.equal(nextSession(catalog, SATURDAY)?.key, '11011');
+		assert.equal(nextSession(catalog, Date.parse('2026-04-20T00:00:00.000Z')), null);
+	});
+
+	it('counts down in days, hours or minutes', () => {
+		const start = Date.parse('2026-04-19T17:00:00.000Z');
+
+		assert.equal(formatUntil(SATURDAY, start), '1 d 5 h');
+		assert.equal(formatUntil(start - 200 * 60_000, start), '3 h 20 min');
+		assert.equal(formatUntil(start - 30_000, start), '1 min');
 	});
 });

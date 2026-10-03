@@ -21,6 +21,18 @@ export function sessionClock(race: RaceSnapshot): SessionClock {
 		: { startMs: Date.parse(race.session.startsAt), minutes: 1 };
 }
 
+/** The newest moment a snapshot knows of, in ms: its last lap, status, flag or clock change. */
+export function latestTime(snapshot: RaceSnapshot): number {
+	const times = [
+		...snapshot.laps.flatMap((lap) => lap.completedAt ?? []),
+		...(snapshot.statusLog ?? []).map((change) => change.at),
+		...(snapshot.trackStatusLog ?? []).map((change) => change.at),
+		...(snapshot.clockLog ?? []).map((mark) => mark.at)
+	];
+
+	return times.reduce((latest, at) => Math.max(latest, Date.parse(at)), 0);
+}
+
 /** The moment `minute` minutes into the session. */
 export function minuteTime(clock: SessionClock, minute: number): number {
 	return clock.startMs + minute * MINUTE_MS;
@@ -83,6 +95,7 @@ export function snapshotAtTime(race: RaceSnapshot, time: number): RaceSnapshot {
 	const currentLap = Math.max(0, ...lapsDone.values());
 	const trackStatusLog = (race.trackStatusLog ?? []).filter((change) => change.at <= at);
 	const statusLog = (race.statusLog ?? []).filter((change) => change.at <= at);
+	const clockLog = (race.clockLog ?? []).filter((mark) => mark.at <= at);
 
 	return {
 		...withoutStandings(race),
@@ -91,6 +104,7 @@ export function snapshotAtTime(race: RaceSnapshot, time: number): RaceSnapshot {
 		trackStatusLog,
 		statusLog,
 		status: statusLog.at(-1)?.status ?? 'inactive',
+		clockLog,
 		laps,
 		stints: race.stints
 			.filter((stint) => stint.startLap <= done(stint.driverNumber) + 1)
@@ -113,6 +127,8 @@ export function snapshotAtTime(race: RaceSnapshot, time: number): RaceSnapshot {
 					? { ...penalty, status: 'issued' }
 					: { ...penalty, servedLap }
 			),
+		overtakes: race.overtakes?.filter((pass) => pass.at <= at),
+		teamRadio: race.teamRadio?.filter((clip) => clip.at <= at),
 		personalBests: bestsSoFar(race, laps),
 		corrections: (race.corrections ?? []).filter((correction) => correction.at <= at)
 	};

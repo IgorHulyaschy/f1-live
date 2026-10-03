@@ -1,258 +1,186 @@
-import type {
-	LapIndex,
-	LapTelemetry,
-	ReplayChunk,
-	ReplayManifest,
-	TrackOutline
-} from '@f1-live/shared';
-import { TELEMETRY_VERSION } from '@f1-live/shared';
+import type { LapIndex, LapIndexEntry, LapTelemetry, TrackOutline } from '@f1-live/shared';
 import { z } from 'zod';
 
-/**
- * A session's telemetry as the pipeline publishes it (docs/product/telemetry.md): `index.json`
- * names the circuit and where the replay and laps are.
- */
-export type SessionTelemetry = {
-	circuitKey: string;
-	hasCarData: boolean;
-	/** Paths inside the session's folder; null when the pipeline wrote none. */
-	replay: string | null;
-	laps: string | null;
-};
+/** A saved session's telemetry (docs/product/telemetry.md): the laps that have it, and the circuit. */
+export type SessionTelemetry = { index: LapIndex; circuit: TrackOutline };
 
-/** Where circuits, replay positions and lap telemetry come from. */
 export type TelemetrySource = {
-	/** The session's telemetry; null when it has none (yet). */
-	loadSession: (sessionKey: string) => Promise<SessionTelemetry | null>;
-	/** The circuit's outline; null when no session there has been built. */
-	loadOutline: (circuitKey: string) => Promise<TrackOutline | null>;
-	loadReplayManifest: (sessionKey: string, path: string) => Promise<ReplayManifest>;
-	loadReplayChunk: (sessionKey: string, file: string) => Promise<ReplayChunk>;
-	loadLapIndex: (sessionKey: string, path: string) => Promise<LapIndex>;
-	loadLap: (sessionKey: string, file: string) => Promise<LapTelemetry>;
+	/** Null when the session has none, as for a live one before its import. */
+	loadSession: (key: string) => Promise<SessionTelemetry | null>;
+	loadLap: (key: string, entry: LapIndexEntry) => Promise<LapTelemetry>;
+	/** What has already loaded, so a tile drawn again shows it at once; undefined until then. */
+	loadedSession: (key: string) => SessionTelemetry | null | undefined;
+	loadedLap: (key: string, entry: LapIndexEntry) => LapTelemetry | undefined;
 };
 
-const version = z.literal(TELEMETRY_VERSION);
+/**
+ * The fields the charts read before they look deeper. The server writes the rest with the shared
+ * types, so a body with these is trusted to be whole.
+ */
+const sessionIndexSchema = z.object({ circuitKey: z.string(), laps: z.string() });
 
-const pointSchema = z.tuple([z.number(), z.number()]);
-
-const sessionSchema = z.object({
-	v: version,
-	circuitKey: z.string(),
-	hasCarData: z.boolean(),
-	laps: z.string().nullable().optional(),
-	replay: z.string().nullable().optional()
-});
-
-const outlineSchema = z.object({
-	v: version,
-	circuitKey: z.string(),
-	name: z.string(),
-	lengthM: z.number().positive(),
-	points: z.array(pointSchema).min(8),
-	rotationDeg: z.number(),
-	sectorBoundariesM: z.tuple([z.number(), z.number()]),
-	miniSectorsPerSector: z.tuple([z.number(), z.number(), z.number()]),
-	miniSectorStartsM: z.array(z.number()).min(3),
-	pitLane: z
-		.object({ points: z.array(pointSchema), entryM: z.number(), exitM: z.number() })
-		.nullable(),
-	source: z.object({
-		sessionKey: z.number(),
-		driverNumber: z.string(),
-		lap: z.number(),
-		lapTimeMs: z.number(),
-		miniSectors: z.enum(['timing', 'even'])
-	})
-});
-
-const manifestSchema = z.object({
-	v: version,
-	originAt: z.iso.datetime(),
-	stepMs: z.number().positive(),
-	chunkMs: z.number().positive(),
-	quantM: z.number().positive(),
-	driverNumbers: z.array(z.string()),
-	chunks: z.array(
-		z.object({ file: z.string(), t0: z.number(), n: z.int().nonnegative(), bytes: z.number() })
-	)
-});
-
-const replayCarSchema = z.object({
-	x: z.array(z.number()),
-	y: z.array(z.number()),
-	off: z.array(z.tuple([z.int(), z.int()])).optional()
-});
-
-const chunkSchema = z.object({
-	v: version,
-	t0: z.number(),
-	stepMs: z.number().positive(),
-	n: z.int().nonnegative(),
-	quantM: z.number().positive(),
-	cars: z.record(z.string(), replayCarSchema)
-});
-
-const lapIndexSchema = z.object({
-	v: version,
-	sessionKey: z.number(),
-	circuitKey: z.string(),
-	stepMs: z.number(),
+export const lapIndexSchema = z.object({
 	hasCarData: z.boolean(),
 	laps: z.array(
-		z.object({
-			driverNumber: z.string(),
-			lap: z.int(),
-			file: z.string(),
-			startedAt: z.string(),
-			lapTimeMs: z.number(),
-			rows: z.int(),
-			distanceM: z.number(),
-			bytes: z.number(),
-			partial: z.boolean(),
-			pitIn: z.boolean(),
-			pitOut: z.boolean()
-		})
+		z.object({ driverNumber: z.string(), lap: z.number(), file: z.string(), distanceM: z.number() })
 	)
 });
 
-const column = z.array(z.number());
-
-const lapSchema = z.object({
-	v: version,
-	driverNumber: z.string(),
-	lap: z.int(),
-	startedAt: z.string(),
-	lapTimeMs: z.number(),
-	t: column,
-	d: column,
-	x: column,
-	y: column,
-	speed: column.optional(),
-	throttle: column.optional(),
-	brake: column.optional(),
-	gear: column.optional(),
-	rpm: column.optional(),
-	drs: column.optional()
+export const outlineSchema = z.object({
+	lengthM: z.number(),
+	points: z.array(z.tuple([z.number(), z.number()])),
+	miniSectorStartsM: z.array(z.number())
 });
+
+export const lapSchema = z.object({ t: z.array(z.number()), d: z.array(z.number()) });
 
 class NotFound extends Error {}
 
-/** A path the server will serve: names of letters, digits, dots and dashes. */
-function safePath(path: string): string {
-	if (!path.split('/').every((part) => /^[\w.-]+$/.test(part) && !part.startsWith('.'))) {
-		throw new Error(`Unexpected telemetry path ${path}`);
-	}
-
-	return path;
-}
-
-async function fetchParsed<T>(url: string, schema: z.ZodType<T>): Promise<T> {
+/** The server sends gzip files with Content-Encoding: gzip, so fetch unpacks them. */
+async function fetchOk(url: string): Promise<Response> {
 	const response = await fetch(url);
 
 	if (response.status === 404) {
-		throw new NotFound(url);
+		throw new NotFound(`GET ${url} found nothing`);
 	}
 
 	if (!response.ok) {
 		throw new Error(`GET ${url} failed with ${response.status}`);
 	}
 
-	return schema.parse(await response.json());
+	return response;
 }
 
-async function orNull<T>(loading: Promise<T>): Promise<T | null> {
-	try {
-		return await loading;
-	} catch (error) {
-		if (error instanceof NotFound) {
-			return null;
-		}
+async function fetchLapIndex(url: string): Promise<LapIndex> {
+	const body: unknown = await (await fetchOk(url)).json();
 
-		throw error;
-	}
+	lapIndexSchema.parse(body);
+
+	// SAFETY: checked above; the server writes the index for the shared types.
+	return body as LapIndex;
 }
 
-function folder(sessionKey: string): string {
-	return encodeURIComponent(sessionKey);
+async function fetchOutline(url: string): Promise<TrackOutline> {
+	const body: unknown = await (await fetchOk(url)).json();
+
+	outlineSchema.parse(body);
+
+	// SAFETY: checked above; the server writes outlines for the shared types.
+	return body as TrackOutline;
 }
 
-/**
- * Telemetry from the server (or a CDN in front of `<DATA_DIR>/out`). Files never change once
- * written, so each is fetched once per page, replay chunks aside; a failed fetch is forgotten so
- * it can be retried.
- */
-export function apiTelemetry(apiUrl: string): TelemetrySource {
-	const cache = new Map<string, Promise<unknown>>();
+async function fetchLap(url: string): Promise<LapTelemetry> {
+	const body: unknown = await (await fetchOk(url)).json();
 
-	const urlOf = (path: string) => `${apiUrl}/telemetry/${safePath(path)}`;
+	lapSchema.parse(body);
 
-	function load<T>(path: string, schema: z.ZodType<T>): Promise<T> {
-		const url = urlOf(path);
-		const cached = cache.get(url);
+	// SAFETY: checked above; the server writes laps for the shared types.
+	return body as LapTelemetry;
+}
 
-		if (cached) {
-			// SAFETY: every entry under this url was stored from `schema`.
-			return cached as Promise<T>;
-		}
-
-		const pending = fetchParsed(url, schema);
-
-		pending.catch(() => cache.delete(url));
-		cache.set(url, pending);
-
-		return pending;
-	}
+/** One fetch per URL for the page's life; a failed one is forgotten so it can be tried again. */
+export function createCache<T>() {
+	const pending = new Map<string, Promise<T>>();
+	const done = new Map<string, T>();
 
 	return {
-		loadSession: async (sessionKey) => {
-			const index = await orNull(load(`${folder(sessionKey)}/index.json`, sessionSchema));
+		once(url: string, load: () => Promise<T>): Promise<T> {
+			const known = pending.get(url);
 
-			return index
-				? {
-						circuitKey: index.circuitKey,
-						hasCarData: index.hasCarData,
-						replay: index.replay ?? null,
-						laps: index.laps ?? null
-					}
-				: null;
+			if (known) {
+				return known;
+			}
+
+			const loading = load().then(
+				(value) => {
+					done.set(url, value);
+
+					return value;
+				},
+				(error: Error) => {
+					pending.delete(url);
+
+					throw error;
+				}
+			);
+
+			pending.set(url, loading);
+
+			return loading;
 		},
-		loadOutline: (circuitKey) =>
-			orNull(load(`circuits/${encodeURIComponent(circuitKey)}.json`, outlineSchema)),
-		loadReplayManifest: (sessionKey, path) => load(`${folder(sessionKey)}/${path}`, manifestSchema),
-		// The replay keeps the chunks it has expanded; holding the parsed ones too would double them.
-		loadReplayChunk: (sessionKey, file) =>
-			fetchParsed(urlOf(`${folder(sessionKey)}/replay/${file}`), chunkSchema),
-		loadLapIndex: (sessionKey, path) => load(`${folder(sessionKey)}/${path}`, lapIndexSchema),
-		loadLap: (sessionKey, file) => load(`${folder(sessionKey)}/${file}`, lapSchema)
+		loaded(url: string): T | undefined {
+			return done.get(url);
+		}
 	};
 }
 
-/** A circuit outline from the text of its JSON file, checked like one from the server. */
-export function parseOutlineText(text: string): TrackOutline {
-	return outlineSchema.parse(JSON.parse(text));
-}
+/** Telemetry files from the server: a viewer flicks between laps and sessions, and they never change. */
+export function createTelemetrySource(apiUrl: string): TelemetrySource {
+	const base = `${apiUrl}/telemetry`;
+	const sessions = createCache<SessionTelemetry | null>();
+	const circuits = createCache<TrackOutline>();
+	const laps = createCache<LapTelemetry>();
+	const sessionUrl = (key: string) => `${base}/${encodeURIComponent(key)}/index.json`;
 
-function missing(what: string): () => Promise<never> {
-	return () => Promise.reject(new Error(`The offline replay has no ${what}`));
-}
+	const lapUrl = (key: string, entry: LapIndexEntry) =>
+		`${base}/${encodeURIComponent(key)}/${entry.file}`;
 
-/** The modelled replay has the Las Vegas outline from the real pipeline and no positions. */
-export function mockTelemetry(sessionKey: string): TelemetrySource {
+	async function loadSession(key: string): Promise<SessionTelemetry | null> {
+		try {
+			const body: unknown = await (await fetchOk(sessionUrl(key))).json();
+			const session = sessionIndexSchema.parse(body);
+			const circuitUrl = `${base}/circuits/${encodeURIComponent(session.circuitKey)}.json`;
+
+			const [index, circuit] = await Promise.all([
+				fetchLapIndex(`${base}/${encodeURIComponent(key)}/${session.laps}`),
+				circuits.once(circuitUrl, () => fetchOutline(circuitUrl))
+			]);
+
+			return { index, circuit };
+		} catch (error) {
+			if (error instanceof NotFound) {
+				return null;
+			}
+
+			throw error;
+		}
+	}
+
 	return {
-		loadSession: (key) =>
-			Promise.resolve(
-				key === sessionKey
-					? { circuitKey: '152', hasCarData: false, replay: null, laps: null }
-					: null
-			),
-		loadOutline: async (circuitKey) =>
-			circuitKey === '152'
-				? parseOutlineText((await import('./mock/las-vegas-outline.json?raw')).default)
-				: null,
-		loadReplayManifest: missing('replay'),
-		loadReplayChunk: missing('replay'),
-		loadLapIndex: missing('lap telemetry'),
-		loadLap: missing('lap telemetry')
+		loadSession: (key) => sessions.once(sessionUrl(key), () => loadSession(key)),
+		loadLap: (key, entry) => laps.once(lapUrl(key, entry), () => fetchLap(lapUrl(key, entry))),
+		loadedSession: (key) => sessions.loaded(sessionUrl(key)),
+		loadedLap: (key, entry) => laps.loaded(lapUrl(key, entry))
+	};
+}
+
+/** A source whose code loads on first use, for one that only some deployments need. */
+export function lazyTelemetrySource(load: () => Promise<TelemetrySource>): TelemetrySource {
+	let source: TelemetrySource | null = null;
+	let loading: Promise<TelemetrySource> | null = null;
+
+	const ready = () => {
+		loading ??= load().then(
+			(loaded) => {
+				source = loaded;
+
+				return loaded;
+			},
+			(error: Error) => {
+				// Forgotten, so the next attempt loads the code again.
+				loading = null;
+
+				throw error;
+			}
+		);
+
+		return loading;
+	};
+
+	return {
+		loadSession: async (key) => (await ready()).loadSession(key),
+		loadLap: async (key, entry) => (await ready()).loadLap(key, entry),
+		loadedSession: (key) => source?.loadedSession(key),
+		loadedLap: (key, entry) => source?.loadedLap(key, entry)
 	};
 }

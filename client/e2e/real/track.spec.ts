@@ -35,9 +35,9 @@ test('the map runs between laps on the replay clock and follows scrubbing', asyn
 	await expect(map.getByText('Replay', { exact: true })).toBeVisible();
 
 	// Two presses from the default 60× give 10×.
-	await page.getByRole('button', { name: /Replay speed/ }).click();
-	await page.getByRole('button', { name: /Replay speed/ }).click();
-	await expect(page.getByRole('button', { name: /Replay speed/ })).toHaveText('10×');
+	await page.getByTestId('speed').click();
+	await page.getByTestId('speed').click();
+	await expect(page.getByTestId('speed')).toHaveText('10×');
 
 	const paused = await picture(map);
 
@@ -82,7 +82,8 @@ test('every Track tile reads a 2026 qualifying session', async ({ page }) => {
 
 	await expect(page.getByTestId('track-map').getByText('Replay', { exact: true })).toBeVisible();
 	await expect(page.getByTestId('battle-map').locator('canvas')).toBeVisible();
-	await expect(page.getByTestId('pit-rejoin').getByTestId('race-only')).toBeVisible();
+	// Pit rejoin is for races: on a ready-made dashboard it shrinks to the line saying so.
+	await expect(page.getByTestId('tile-away')).toContainText('Pit rejoinRaces only');
 	await expect(page.getByTestId('dominance-note')).toContainText(/timed from car positions/, {
 		timeout: 15_000
 	});
@@ -93,6 +94,8 @@ test('every Track tile reads a 2026 qualifying session', async ({ page }) => {
 });
 
 test('a session with no circuit outline says so', async ({ page }) => {
+	// Every fixture session has its circuit, so this one's is taken away.
+	await page.route('**/telemetry/circuits/**', (route) => route.fulfill({ status: 404 }));
 	await openRace(page, '/d/track?session=9854');
 
 	await expect(page.getByTestId('track-map').getByTestId('map-empty')).toContainText(

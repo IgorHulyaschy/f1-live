@@ -1,4 +1,4 @@
-import type { Driver, LapIndex, RaceSnapshot } from '@f1-live/shared';
+import type { Driver, RaceSnapshot } from '@f1-live/shared';
 import { XIcon } from 'lucide-react';
 import * as React from 'react';
 
@@ -16,18 +16,23 @@ import {
 } from '@/components/ui/select';
 import { useRace } from '@/data/race-context';
 import { stepTime } from '@/data/session-time';
-import type { TelemetrySource } from '@/data/telemetry-source';
+import type { MapTelemetry } from '@/data/map-telemetry';
 import { cn } from '@/lib/utils';
 
 import { useCompare } from '../analysis/compare-context';
 import { useTileFill } from '../dashboard/tile-fill';
-import { bestOf, type Dominance, dominance, miniSectorTimes } from './dominance';
+import {
+	bestOf,
+	type Dominance,
+	dominance,
+	type DominanceSpan,
+	lapsToRead,
+	miniSectorTimes
+} from './dominance';
 import { type CarLook, MapCanvas } from './map-canvas';
 import { MapPending, useMapBodyClass } from './map-parts';
 import type { Overlay } from './track-draw';
 import { type TrackReady, usePlaces, useTrackData } from './use-track';
-
-export type DominanceSpan = 'lap' | 'best';
 
 const SPAN_OPTIONS = [
 	{ value: 'lap', label: 'One lap' },
@@ -36,9 +41,6 @@ const SPAN_OPTIONS = [
 
 /** Drivers compared at most. */
 const MAX_DRIVERS = 3;
-
-/** In "best minis", the fastest few laps of each driver are read: where the best minis come from. */
-const LAPS_READ = 8;
 
 /** Where the times come from, which says how far they can be trusted. */
 type TimesSource = 'positions' | 'loops' | 'sectors';
@@ -50,34 +52,8 @@ type Times = {
 	source: TimesSource;
 };
 
-type LapEntry = LapIndex['laps'][number];
-
-function usable(entry: LapEntry, until: number): boolean {
-	return (
-		!entry.partial &&
-		!entry.pitIn &&
-		!entry.pitOut &&
-		Date.parse(entry.startedAt) + entry.lapTimeMs <= until
-	);
-}
-
-/** The laps to read per driver: the fastest lap, or the fastest few for the best of each mini sector. */
-export function lapsToRead(
-	index: LapIndex,
-	drivers: readonly string[],
-	span: DominanceSpan,
-	until: number
-): LapEntry[] {
-	return drivers.flatMap((driverNumber) =>
-		index.laps
-			.filter((entry) => entry.driverNumber === driverNumber && usable(entry, until))
-			.toSorted((a, b) => a.lapTimeMs - b.lapTimeMs)
-			.slice(0, span === 'lap' ? 1 : LAPS_READ)
-	);
-}
-
 async function timesFromLaps(
-	telemetry: TelemetrySource,
+	telemetry: MapTelemetry,
 	track: TrackReady,
 	lapsPath: string,
 	drivers: readonly string[],
@@ -175,7 +151,7 @@ function useTimes(
 	drivers: readonly string[],
 	span: DominanceSpan
 ): Times | null {
-	const { telemetry, snapshot, timeline, lap, live } = useRace();
+	const { maps, snapshot, timeline, lap, live } = useRace();
 	const lapsPath = live.following ? null : track.telemetry?.laps;
 	const until = timeline ? stepTime(timeline, lap) : 0;
 	const key = `${track.sessionKey}/${drivers.join(',')}/${span}/${until}`;
@@ -194,7 +170,7 @@ function useTimes(
 			try {
 				next = {
 					key,
-					times: await timesFromLaps(telemetry, track, path, drivers, span, until),
+					times: await timesFromLaps(maps, track, path, drivers, span, until),
 					failed: false
 				};
 			} catch {
@@ -211,7 +187,7 @@ function useTimes(
 		return () => {
 			cancelled = true;
 		};
-	}, [lapsPath, telemetry, track, drivers, span, until, key]);
+	}, [lapsPath, maps, track, drivers, span, until, key]);
 
 	if (lapsPath && !(loaded?.key === key && loaded.failed)) {
 		// Keep the last picture while the next lap loads, so stepping does not flash.

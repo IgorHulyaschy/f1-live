@@ -40,7 +40,8 @@ function standing(
 	seconds: number,
 	driverNumber: string,
 	position: number,
-	gapToLeaderMs: number | null
+	gapToLeaderMs: number | null,
+	intervalMs: number | null = gapToLeaderMs
 ): RaceEvent {
 	return {
 		kind: 'standing',
@@ -48,8 +49,37 @@ function standing(
 		driverNumber,
 		position,
 		gapToLeaderMs,
-		intervalMs: gapToLeaderMs
+		intervalMs
 	};
+}
+
+function correction(
+	driverNumber: string,
+	kind: 'disqualified' | 'time_penalty' | 'lap_penalty',
+	seconds?: number
+): RaceEvent {
+	return {
+		kind: 'classification_correction',
+		at: at(9000),
+		correction:
+			seconds === undefined
+				? { driverNumber, kind, reason: 'Stewards' }
+				: { driverNumber, kind, seconds, reason: 'Stewards' }
+	};
+}
+
+function order(snapshot: RaceSnapshot) {
+	return snapshot.standings?.map((entry) => entry.driverNumber);
+}
+
+/** Driver, place, gap and interval of each entry, as the timing screens show them. */
+function table(snapshot: RaceSnapshot) {
+	return snapshot.standings?.map((entry) => [
+		entry.driverNumber,
+		entry.position,
+		entry.gapToLeaderMs,
+		entry.intervalMs
+	]);
 }
 
 function lap(
@@ -89,6 +119,10 @@ function timePenalty(driverNumber: string, lapNumber: number, status: PenaltySta
 			status
 		}
 	};
+}
+
+function place(points: number, predictedPoints: number) {
+	return { points, position: 1, predictedPoints, predictedPosition: 1 };
 }
 
 function deepFreeze<T>(value: T): T {
@@ -337,6 +371,19 @@ describe('applyEvent', () => {
 		assert.equal(snapshot.startedAt, at(0));
 	});
 
+	it('logs the session clock, stopped and running', () => {
+		const snapshot = replay([
+			...started(),
+			{ kind: 'session_clock', at: at(-60), remainingMs: 1_080_000, running: false },
+			{ kind: 'session_clock', at: at(1), remainingMs: 1_079_000, running: true }
+		]);
+
+		assert.deepEqual(snapshot.clockLog, [
+			{ at: at(-60), remainingMs: 1_080_000, running: false },
+			{ at: at(1), remainingMs: 1_079_000, running: true }
+		]);
+	});
+
 	it('keeps the latest weather sample of each lap', () => {
 		const snapshot = replay([
 			...started(),
@@ -353,6 +400,73 @@ describe('applyEvent', () => {
 				[1, 16.8],
 				[2, 16.7]
 			]
+		);
+	});
+
+	it('puts a pass and a radio clip on the lap the car was driving', () => {
+		const snapshot = replay([
+			...started(),
+			standing(90, '1', 1, 0),
+			{ kind: 'overtake', at: at(40), driverNumber: '1', count: 1 },
+			lap(102, '1', 1),
+			{ kind: 'team_radio', at: at(102), driverNumber: '1', path: 'TeamRadio/MAXVER01_1.mp3' },
+			{ kind: 'overtake', at: at(150), driverNumber: '1', count: 2 }
+		]);
+
+		assert.deepEqual(
+			snapshot.overtakes?.map((entry) => [entry.driverNumber, entry.lap, entry.count]),
+			[
+				['1', 1, 1],
+				['1', 2, 2]
+			]
+		);
+		assert.deepEqual(snapshot.teamRadio, [
+			{ driverNumber: '1', lap: 2, at: at(102), path: 'TeamRadio/MAXVER01_1.mp3' }
+		]);
+	});
+
+	it('puts a radio clip after the flag on the last lap', () => {
+		const snapshot = replay([
+			...started(),
+			{ kind: 'race_distance', at: at(0), totalLaps: 1 },
+			standing(90, '1', 1, 0),
+			lap(102, '1', 1),
+			{ kind: 'team_radio', at: at(200), driverNumber: '1', path: 'TeamRadio/MAXVER01_2.mp3' }
+		]);
+
+		assert.equal(snapshot.teamRadio?.[0]?.lap, 1);
+	});
+
+	it('replaces only the championship places that changed', () => {
+		const snapshot = replay([
+			{
+				kind: 'championship',
+				at: at(10),
+				standings: {
+					drivers: [
+						{ driverNumber: '4', ...place(390, 390) },
+						{ driverNumber: '1', ...place(341, 341) }
+					],
+					teams: [{ team: 'McLaren', ...place(756, 756) }]
+				}
+			},
+			{
+				kind: 'championship',
+				at: at(200),
+				standings: { drivers: [{ driverNumber: '1', ...place(341, 366) }], teams: [] }
+			}
+		]);
+
+		assert.deepEqual(
+			snapshot.championship?.drivers.map((entry) => [entry.driverNumber, entry.predictedPoints]),
+			[
+				['4', 390],
+				['1', 366]
+			]
+		);
+		assert.deepEqual(
+			snapshot.championship?.teams.map((entry) => entry.team),
+			['McLaren']
 		);
 	});
 
@@ -442,6 +556,122 @@ describe('applyEvent', () => {
 		);
 
 		assert.deepEqual(ignored.standings, corrected.standings);
+	});
+
+	it('measures the car behind a disqualified one to the car ahead of it', () => {
+		const finished = replay([
+			...started(),
+			standing(10, '1', 1, 0, 0),
+			standing(10, '4', 2, 4_000, 4_000),
+			standing(10, '63', 3, 6_805, 2_805),
+			standing(10, '12', 4, 10_000, 3_195),
+			standing(10, '30', 5, null, 21_000),
+			standing(10, '16', 6, null, 9_000)
+		]);
+
+		assert.deepEqual(table(replay([correction('4', 'disqualified')], finished)), [
+			['1', 1, 0, 0],
+			['63', 2, 6_805, 6_805],
+			['12', 3, 10_000, 3_195],
+			['30', 4, null, 21_000],
+			['16', 5, null, 9_000],
+			['4', 6, 4_000, 4_000]
+		]);
+
+		assert.deepEqual(table(replay([correction('12', 'disqualified')], finished))?.slice(0, 4), [
+			['1', 1, 0, 0],
+			['4', 2, 4_000, 4_000],
+			['63', 3, 6_805, 2_805],
+			['30', 4, null, 24_195]
+		]);
+	});
+
+	it('measures every gap to the new leader when the leader is disqualified', () => {
+		const finished = replay([
+			...started(),
+			standing(10, '1', 1, 0, 0),
+			standing(10, '4', 2, 4_000, 4_000),
+			standing(10, '63', 3, 6_805, 2_805),
+			standing(10, '30', 4, null, 21_000)
+		]);
+
+		assert.deepEqual(table(replay([correction('1', 'disqualified')], finished)), [
+			['4', 1, 0, 0],
+			['63', 2, 2_805, 2_805],
+			['30', 3, null, 21_000],
+			['1', 4, 0, 0]
+		]);
+	});
+
+	describe('lapped cars', () => {
+		/** Three cars one lap down cross the line in the order 43, 30, 41, as at Barcelona 2026. */
+		const finished = replay([
+			...started(),
+			lap(90, '1', 1),
+			lap(190, '1', 2),
+			lap(100, '43', 1),
+			lap(298, '43', 2),
+			lap(102, '30', 1),
+			lap(302, '30', 2),
+			lap(104, '41', 1),
+			lap(306, '41', 2),
+			standing(400, '1', 1, 0, 0),
+			standing(400, '43', 2, null, 30_000),
+			standing(400, '30', 3, null, 2_000),
+			standing(400, '41', 4, null, 6_000)
+		]);
+
+		it('re-sorts them by the time they crossed the line when one has a time penalty', () => {
+			assert.deepEqual(order(replay([correction('43', 'time_penalty', 10)], finished)), [
+				'1',
+				'30',
+				'41',
+				'43'
+			]);
+
+			assert.deepEqual(order(replay([correction('43', 'time_penalty', 5)], finished)), [
+				'1',
+				'30',
+				'43',
+				'41'
+			]);
+		});
+
+		it('takes a lap off a car and places it among the cars on that lap by crossing time', () => {
+			const leaders = replay([
+				...started(),
+				lap(90, '1', 1),
+				lap(190, '1', 2),
+				lap(290, '1', 3),
+				lap(92, '55', 1),
+				lap(192, '55', 2),
+				lap(292, '55', 3),
+				lap(100, '14', 1),
+				lap(190, '14', 2),
+				lap(150, '18', 1),
+				lap(196, '18', 2),
+				standing(400, '1', 1, 0, 0),
+				standing(400, '55', 2, 2_000, 2_000),
+				standing(400, '14', 3, null, 9_000),
+				standing(400, '18', 4, null, 1_000)
+			]);
+
+			const corrected = replay([correction('55', 'lap_penalty')], leaders);
+
+			assert.deepEqual(
+				corrected.standings?.map((entry) => [
+					entry.driverNumber,
+					entry.position,
+					entry.lapsCompleted
+				]),
+				[
+					['1', 1, 3],
+					['14', 2, 2],
+					['55', 3, 2],
+					['18', 4, 2]
+				]
+			);
+		});
 	});
 
 	it('takes positions from the running order outside races and leaves untimed laps at 0', () => {

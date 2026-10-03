@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 
 import { EMPTY_SNAPSHOT, type Lap, type RaceSnapshot, type SessionType } from '@f1-live/shared';
 
-import { parseOutlineText } from '../../data/telemetry-source.ts';
+import { parseOutlineText } from '../../data/map-telemetry.ts';
 
 /** Fixtures for the track tests: the real Las Vegas outline and laps made to measure. */
 

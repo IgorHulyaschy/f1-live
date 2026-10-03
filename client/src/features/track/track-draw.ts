@@ -335,6 +335,14 @@ export function inkOn(hex: string): string {
 	return luminance > 0.55 ? '#111111' : '#ffffff';
 }
 
+/** Where the cars and their labels went: what a label drawn over them should keep clear of. */
+export type LabelRoom = {
+	/** Discs, labels and the circuit's marks. */
+	placed: readonly Box[];
+	/** What must never be covered: labels, the marks and the followed car. */
+	kept: readonly Box[];
+};
+
 export type CarStyle = {
 	colour: string;
 	label: string;
@@ -347,7 +355,7 @@ export type CarStyle = {
 	dashed?: boolean;
 };
 
-function overlaps(box: Box, placed: readonly Box[]): boolean {
+export function overlaps(box: Box, placed: readonly Box[]): boolean {
 	return placed.some(
 		(other) => box.x0 < other.x1 && box.x1 > other.x0 && box.y0 < other.y1 && box.y1 > other.y0
 	);
@@ -366,7 +374,7 @@ export function drawCars(
 	rem: number,
 	middle: Point,
 	reserved: readonly Box[] = []
-): void {
+): LabelRoom {
 	const unit = rem / 16;
 	const placed: Box[] = [...reserved];
 	// What no label may cover even where room runs out: the circuit's marks, labels already set and
@@ -515,6 +523,8 @@ export function drawCars(
 		ctx.fillText(style.label, (box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2);
 		ctx.globalAlpha = 1;
 	}
+
+	return { placed, kept };
 }
 
 /** The middle of the circuit, for setting labels outside it. */

@@ -24,12 +24,15 @@ export function PitBoard() {
 
 	const ahead = battleAhead(snapshot, row.driver.number);
 
-	// Scroll to this dashboard's focus panel, or open Live, which always has one.
+	// Scroll to this dashboard's focus panel or the driver's row in the tower, or open the
+	// session's layout, which always has the tower.
 	const showFocus = () => {
-		const panel = document.querySelector('[data-focus-panel]');
+		const panel =
+			document.querySelector('[data-focus-panel]') ??
+			document.querySelector(`[data-testid="timing-row-${CSS.escape(row.driver.code)}"]`);
 
 		if (panel) {
-			panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
 			return;
 		}

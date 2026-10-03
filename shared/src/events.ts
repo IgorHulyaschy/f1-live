@@ -5,6 +5,7 @@
  */
 
 import type {
+	ChampionshipStandings,
 	ClassificationCorrection,
 	Driver,
 	MiniSectorMark,
@@ -29,6 +30,14 @@ export interface SessionStatusEvent {
 	kind: 'session_status';
 	at: string;
 	status: SessionStatus;
+}
+
+/** The feed set the session clock: `remainingMs` left at `at`, counting down while `running`. */
+export interface SessionClockEvent {
+	kind: 'session_clock';
+	at: string;
+	remainingMs: number;
+	running: boolean;
 }
 
 export interface RaceDistanceEvent {
@@ -170,9 +179,35 @@ export interface ClassificationCorrectionEvent {
 	correction: Omit<ClassificationCorrection, 'at'>;
 }
 
+/** The source counted a pass by `driverNumber`; `at` is when it happened. */
+export interface OvertakeEvent {
+	kind: 'overtake';
+	at: string;
+	driverNumber: string;
+	/** Cars passed in the one move. */
+	count: number;
+}
+
+/** A team radio clip was recorded; `at` is when. */
+export interface TeamRadioEvent {
+	kind: 'team_radio';
+	at: string;
+	driverNumber: string;
+	/** The clip in the archive, from the season folder. */
+	path: string;
+}
+
+/** Championship places that changed: each entry replaces the one for its driver or team. */
+export interface ChampionshipEvent {
+	kind: 'championship';
+	at: string;
+	standings: ChampionshipStandings;
+}
+
 export type RaceEvent =
 	| SessionInfoEvent
 	| SessionStatusEvent
+	| SessionClockEvent
 	| RaceDistanceEvent
 	| DriverEntryEvent
 	| GridPositionEvent
@@ -189,4 +224,7 @@ export type RaceEvent =
 	| PenaltyEvent
 	| PersonalBestEvent
 	| MiniSectorEvent
-	| ClassificationCorrectionEvent;
+	| ClassificationCorrectionEvent
+	| OvertakeEvent
+	| TeamRadioEvent
+	| ChampionshipEvent;

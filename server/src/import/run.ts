@@ -1,15 +1,23 @@
-import { readdir, stat } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
 
-import { buildCatalog } from '../catalog/catalog.js';
+import { buildCatalog, mergeCatalogs } from '../catalog/catalog.js';
 import type { IndexedSeason } from '../catalog/season-index.js';
 import { mapLimited } from '../pkg/http.js';
 import { fetchMeetingResults } from '../sources/openf1/fetch-result.js';
-import { openF1CacheOf, outputKeys, rawDirOf, writeCatalog } from '../sinks/files.js';
+import {
+	folderBytes,
+	openF1CacheOf,
+	outputKeys,
+	rawDirOf,
+	readCatalog,
+	writeCatalog
+} from '../sinks/files.js';
+import { removeTelemetry, telemetryKeys } from '../telemetry/files.js';
 import { ArchiveMissing, fetchSeasonIndex, fetchSession } from './fetch.js';
 import { ingestSession } from './ingest.js';
 import type { IngestResult } from './ingest.js';
-import { adoptSession, discoverSessions, findSessionDirs, readSeasonIndexes } from './local.js';
+import { adoptSession, discoverSessions, readSeasonIndexes } from './local.js';
 import { chooseBySelection } from './select.js';
 import type { Chosen, ImportTarget, RawSession, Selection, Skipped } from './select.js';
 
@@ -24,6 +32,8 @@ export interface ImportOptions {
 	dataDir: string;
 	/** No network at all: read the raw files and saved results already in the data directory. */
 	offline: boolean;
+	/** Build each session's telemetry from its Position.z and CarData.z. */
+	telemetry: boolean;
 	now: Date;
 	log: (message: string) => void;
 }
@@ -53,20 +63,6 @@ export interface ImportReport {
 	skipped: Skipped[];
 	wallMs: number;
 	rawBytes: number;
-}
-
-async function folderBytes(directory: string): Promise<number> {
-	const entries = await readdir(directory, { withFileTypes: true }).catch(() => []);
-
-	const sizes = await Promise.all(
-		entries.map((entry) =>
-			entry.isDirectory()
-				? folderBytes(path.join(directory, entry.name))
-				: stat(path.join(directory, entry.name)).then((info) => info.size)
-		)
-	);
-
-	return sizes.reduce((sum, size) => sum + size, 0);
 }
 
 /** The season indexes to pick sessions from: fetched when online, otherwise as saved. */
@@ -112,7 +108,8 @@ async function ingestRaw(
 		const result = await ingestSession({
 			rawDir: path.join(rawDirOf(options.dataDir), session.path),
 			key: session.key,
-			dataDir: options.dataDir
+			dataDir: options.dataDir,
+			telemetry: options.telemetry
 		});
 
 		return { key: session.key, label: session.label, result, failure: null, downloadedFiles };
@@ -152,6 +149,7 @@ async function fetchResults(
 	}
 
 	for (const [meetingKey, sessions] of meetings) {
+		// oxlint-disable-next-line no-await-in-loop -- one meeting at a time keeps the requests to OpenF1 gentle.
 		const kept = await Promise.all(
 			sessions.map(
 				async (session) =>
@@ -165,6 +163,7 @@ async function fetchResults(
 		}
 
 		try {
+			// oxlint-disable-next-line no-await-in-loop -- see above.
 			const saved = await fetchMeetingResults(
 				options.dataDir,
 				meetingKey,
@@ -214,26 +213,23 @@ async function writeCatalogFromRaw(options: ImportOptions): Promise<void> {
 	const rawDir = rawDirOf(options.dataDir);
 	const seasons = await readSeasonIndexes(rawDir);
 
-	const sessions = seasons.flatMap((season) =>
-		season.meetings.flatMap((meeting) => meeting.sessions)
-	);
+	const available = {
+		raw: new Set(
+			(await discoverSessions(rawDir)).flatMap(({ key }) => (key === null ? [] : [key]))
+		),
+		events: new Set(await outputKeys(options.dataDir, 'events')),
+		snapshots: new Set(await outputKeys(options.dataDir, 'snapshots')),
+		telemetry: new Set(await telemetryKeys(options.dataDir))
+	};
 
-	const present = new Set(await findSessionDirs(rawDir));
-
+	// The raw folder may hold fewer season indexes than the catalog has seen, as on an ingest host
+	// that only records: what the catalog already lists stays.
 	await writeCatalog(
 		options.dataDir,
-		buildCatalog(
-			seasons,
-			{
-				raw: new Set(
-					sessions
-						.filter((session) => present.has(session.path?.replace(/\/$/, '') ?? ''))
-						.map((session) => session.key)
-				),
-				events: new Set(await outputKeys(options.dataDir, 'events')),
-				snapshots: new Set(await outputKeys(options.dataDir, 'snapshots'))
-			},
-			options.now
+		mergeCatalogs(
+			await readCatalog(options.dataDir),
+			buildCatalog(seasons, available, options.now),
+			available
 		)
 	);
 }
@@ -313,9 +309,15 @@ async function importFromDir(
 	return { outcomes, skipped: [] };
 }
 
-/** Every session folder under the raw directory, for `rebuild`. */
+/** Every session folder under the raw directory, for `rebuild`: outputs derived again from raw alone. */
 async function importFromLocal(options: ImportOptions): Promise<Imported> {
 	const outcomes: SessionOutcome[] = [];
+
+	// A circuit is drawn from the first session built, so only a rebuild from nothing is repeatable,
+	// and telemetry of a session whose raw files are gone must not stay in the catalog.
+	if (options.telemetry) {
+		await removeTelemetry(options.dataDir);
+	}
 
 	for (const session of await discoverSessions(rawDirOf(options.dataDir))) {
 		if (session.key === null) {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 
-import { loadConfig } from './config.js';
+import { isInsecureRelayUrl, loadConfig } from './config.js';
 
 describe('loadConfig', () => {
 	it('starts with no environment at all, without a database', () => {
@@ -58,5 +58,21 @@ describe('loadConfig', () => {
 				/F1TV_TOKEN/.test(error.message) &&
 				!error.message.includes('secret value')
 		);
+	});
+});
+
+describe('isInsecureRelayUrl', () => {
+	it('flags plain http to a host that is not this machine', () => {
+		assert.equal(isInsecureRelayUrl('http://relay.example.com'), true);
+		assert.equal(isInsecureRelayUrl('http://203.0.113.7:3000'), true);
+		assert.equal(isInsecureRelayUrl('http://relay:3000'), true);
+	});
+
+	it('lets https and loopback through', () => {
+		assert.equal(isInsecureRelayUrl('https://relay.example.com'), false);
+		assert.equal(isInsecureRelayUrl('http://localhost:3000'), false);
+		assert.equal(isInsecureRelayUrl('http://127.0.0.1:3000'), false);
+		assert.equal(isInsecureRelayUrl('http://127.1.2.3'), false);
+		assert.equal(isInsecureRelayUrl('http://[::1]:3000'), false);
 	});
 });

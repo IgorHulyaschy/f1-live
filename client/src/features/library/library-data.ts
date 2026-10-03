@@ -5,14 +5,20 @@ import { createLocalStore } from '@/lib/local-store';
 import { type Dashboard, parseDashboardText } from '../dashboard/dashboards';
 import type { Account, LibraryEntry } from './community';
 
-const accountSchema = z.object({ name: z.string(), handle: z.string() }).nullable();
+/**
+ * How a published dashboard is signed. The library is still mocked in this browser; the account
+ * gives no public handle yet, so the author is the account's name or an anonymous fan tag, never
+ * its email.
+ */
+export function libraryAuthor(user: { id: string; name: string }): Account {
+	const handle =
+		user.name
+			.toLowerCase()
+			.replaceAll(/[^a-z0-9]+/g, '-')
+			.replaceAll(/^-|-$/g, '') || `fan-${user.id.slice(0, 6).toLowerCase()}`;
 
-/** Signed-in viewer. Mocked: signing in only stores a demo account in this browser. */
-export const accountStore = createLocalStore<Account | null>(
-	'pitwall-account',
-	accountSchema,
-	null
-);
+	return { name: user.name || handle, handle };
+}
 
 const publishedSchema = z.array(
 	z.object({

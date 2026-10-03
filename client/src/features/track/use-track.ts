@@ -5,7 +5,7 @@ import * as React from 'react';
 import { MAX_DELAY_SECONDS } from '@/data/broadcast-delay';
 import { useRace } from '@/data/race-context';
 import { stepTime } from '@/data/session-time';
-import type { SessionTelemetry, TelemetrySource } from '@/data/telemetry-source';
+import type { MapSession, MapTelemetry } from '@/data/map-telemetry';
 
 import { type EstimateModel, estimateModel } from './estimate';
 import { LIVE_LAG_MS, LivePositionBuffer } from './live-positions';
@@ -25,25 +25,25 @@ export type TrackReady = {
 	sessionKey: string;
 	outline: TrackOutline;
 	lane: LaneGeometry | null;
-	telemetry: SessionTelemetry | null;
+	telemetry: MapSession | null;
 	replay: ReplayPositions | null;
 };
 
 export type TrackData =
 	{ status: 'loading' } | { status: 'none' } | { status: 'error'; message: string } | TrackReady;
 
-const loaded = new WeakMap<TelemetrySource, Map<string, Promise<TrackReady | null>>>();
+const loaded = new WeakMap<MapTelemetry, Map<string, Promise<TrackReady | null>>>();
 
 /** Tracks already in, so a map that mounts again (a new layout, a pop-out) draws at once. */
-const settled = new WeakMap<TelemetrySource, Map<string, TrackData>>();
+const settled = new WeakMap<MapTelemetry, Map<string, TrackData>>();
 
-function settledTrack(source: TelemetrySource, key: string): TrackData | undefined {
+function settledTrack(source: MapTelemetry, key: string): TrackData | undefined {
 	return settled.get(source)?.get(key);
 }
 
 /** A session's circuit and replay, shared by every map on the page and fetched once. */
 function loadTrack(
-	source: TelemetrySource,
+	source: MapTelemetry,
 	sessionKey: string,
 	circuitKey: string | undefined
 ): Promise<TrackReady | null> {
@@ -120,7 +120,7 @@ type KeyedTrack = { key: string; data: TrackData };
 
 /** The circuit and replay of the session on screen. */
 export function useTrackData(): TrackData {
-	const { telemetry, sessionKey, race } = useRace();
+	const { maps, sessionKey, race } = useRace();
 	const circuitKey = race.session.circuitKey;
 	const key = `${sessionKey}/${circuitKey ?? ''}`;
 	const [state, setState] = React.useState<KeyedTrack | null>(null);
@@ -132,7 +132,7 @@ export function useTrackData(): TrackData {
 			let data: TrackData;
 
 			try {
-				data = (await loadTrack(telemetry, sessionKey, circuitKey)) ?? { status: 'none' };
+				data = (await loadTrack(maps, sessionKey, circuitKey)) ?? { status: 'none' };
 			} catch (error) {
 				data = {
 					status: 'error',
@@ -150,9 +150,9 @@ export function useTrackData(): TrackData {
 		return () => {
 			cancelled = true;
 		};
-	}, [telemetry, sessionKey, circuitKey, key]);
+	}, [maps, sessionKey, circuitKey, key]);
 
-	return state?.key === key ? state.data : (settledTrack(telemetry, key) ?? { status: 'loading' });
+	return state?.key === key ? state.data : (settledTrack(maps, key) ?? { status: 'loading' });
 }
 
 const models = new WeakMap<RaceSnapshot, Map<string, EstimateModel>>();

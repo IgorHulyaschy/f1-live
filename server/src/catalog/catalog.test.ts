@@ -65,7 +65,8 @@ const INDEX = `﻿${JSON.stringify({
 const NO_OUTPUTS = {
 	raw: new Set<number>(),
 	events: new Set<number>(),
-	snapshots: new Set<number>()
+	snapshots: new Set<number>(),
+	telemetry: new Set<number>()
 };
 
 describe('parseSeasonIndex', () => {
@@ -139,21 +140,36 @@ describe('buildCatalog', () => {
 			status: 'finished',
 			circuit: 'Las Vegas',
 			country: { code: 'USA', name: 'United States' },
-			outputs: { raw: false, events: false, snapshot: false }
+			outputs: { raw: false, events: false, snapshot: false, telemetry: false }
 		});
 	});
 
 	it('marks the outputs each session has', () => {
 		const catalog = buildCatalog(
 			[parseSeasonIndex(INDEX)],
-			{ raw: new Set([9858, 9854]), events: new Set([9858]), snapshots: new Set([9858]) },
+			{
+				raw: new Set([9858, 9854]),
+				events: new Set([9858]),
+				snapshots: new Set([9858]),
+				telemetry: new Set([9854])
+			},
 			now
 		);
 
 		const [qualifying, race] = catalog.seasons[0]?.meetings[0]?.sessions ?? [];
 
-		assert.deepEqual(qualifying?.outputs, { raw: true, events: false, snapshot: false });
-		assert.deepEqual(race?.outputs, { raw: true, events: true, snapshot: true });
+		assert.deepEqual(qualifying?.outputs, {
+			raw: true,
+			events: false,
+			snapshot: false,
+			telemetry: true
+		});
+		assert.deepEqual(race?.outputs, {
+			raw: true,
+			events: true,
+			snapshot: true,
+			telemetry: false
+		});
 	});
 
 	it('orders seasons by year whatever the order given', () => {

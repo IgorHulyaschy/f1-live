@@ -10,6 +10,7 @@ import {
 	drawCars,
 	drawCircuit,
 	fitView,
+	type LabelRoom,
 	type MapTheme,
 	outlineMiddle,
 	type Overlay,
@@ -140,12 +141,13 @@ export type CarLook = (driver: Driver, place: CarPlace) => CarLabel | null;
 
 export type CarLabel = { label: string; emphasis?: boolean; dashed?: boolean };
 
-/** Whatever a tile draws over the cars, with the frame's view and places. */
+/** Whatever a tile draws over the cars, with the frame's view and places, and where labels went. */
 export type ExtraDraw = (
 	frame: DrawFrame,
 	view: View,
 	cars: readonly CarPlace[],
-	time: number
+	time: number,
+	room: LabelRoom
 ) => void;
 
 /**
@@ -308,8 +310,9 @@ export function MapCanvas({
 
 			// The followed car is drawn last, over the others.
 			styled.sort((a, b) => Number(a.style.followed) - Number(b.style.followed));
-			drawCars(ctx, view, styled, theme, rem, middle, reserved);
-			extra?.(frameInput, view, frame.cars, frame.time);
+			const room = drawCars(ctx, view, styled, theme, rem, middle, reserved);
+
+			extra?.(frameInput, view, frame.cars, frame.time, room);
 			drawn.current = { view, cars: styled.map((car) => car.place) };
 
 			return settling || frame.waiting;

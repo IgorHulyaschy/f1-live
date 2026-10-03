@@ -81,17 +81,20 @@ test('with reduced motion the map steps once a second instead of gliding', async
 	});
 
 	await page.getByRole('button', { name: 'Play replay' }).click();
-	await page.waitForTimeout(3500);
 
-	const changes = await page.evaluate(() =>
-		'mapChanges' in window && Array.isArray(window.mapChanges) ? window.mapChanges.map(Number) : []
-	);
+	const changes = () =>
+		page.evaluate(() =>
+			'mapChanges' in window && Array.isArray(window.mapChanges)
+				? window.mapChanges.map(Number)
+				: []
+		);
 
-	const gaps = changes.slice(1).map((at, index) => at - (changes[index] ?? at));
+	// A few steps, however slow the machine; gliding would change the picture every frame.
+	await expect.poll(async () => (await changes()).length, { timeout: 15_000 }).toBeGreaterThan(2);
 
-	// Gliding would change the picture every frame; stepping changes it about once a second.
-	expect(changes.length).toBeGreaterThanOrEqual(2);
-	expect(changes.length).toBeLessThanOrEqual(6);
+	const seen = await changes();
+	const gaps = seen.slice(1).map((at, index) => at - (seen[index] ?? at));
+
 	expect(Math.min(...gaps)).toBeGreaterThan(400);
 });
 

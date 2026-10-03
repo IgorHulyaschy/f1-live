@@ -15,13 +15,14 @@ import {
 	manifestJson,
 	readOutline,
 	replaceFolder,
-	telemetryDir,
+	sessionTelemetryDir,
 	writeOutline
 } from './files.js';
 import type { SessionManifest } from './files.js';
 import { LAP_STEP_MS, buildLapTelemetry } from './laps.js';
 import type { LapWindow } from './laps.js';
-import { loopFromLap, provisionalOutline, rotateStart } from './outline.js';
+import { isRacingLoop, loopFromLap, provisionalOutline, rotateStart } from './outline.js';
+import type { Loop } from './outline.js';
 import { buildPitLane } from './pitlane.js';
 import type { PitPass } from './pitlane.js';
 import { buildReplay, replayManifest } from './replay.js';
@@ -88,6 +89,9 @@ export type TelemetryReport = BuiltReport | SkippedReport;
 /** A lap whose distance is farther than this from the circuit's length did not run line to line. */
 export const LENGTH_TOLERANCE = 0.02;
 
+/** A session in which no lap moved this share of the circuit has no usable positions: the feed froze. */
+const MIN_MOVED_SHARE = 0.01;
+
 /** A lap time that the previous crossing and the official time disagree on by more than this is trusted less. */
 const LAP_TIME_TOLERANCE_MS = 1000;
 
@@ -97,6 +101,9 @@ const DEFAULT_LATENCY_MS = 300;
 const sessionInfoSchema = z.object({
 	Meeting: z.object({ Circuit: z.object({ Key: z.number() }) })
 });
+
+/** The circuit is not saved and the session's positions cannot draw it. */
+class NothingToDraw extends Error {}
 
 interface SessionFacts {
 	snapshot: RaceSnapshot;
@@ -158,8 +165,8 @@ function isRace(snapshot: RaceSnapshot): boolean {
 	return snapshot.session.type === 'race' || snapshot.session.type === 'sprint';
 }
 
-/** The quickest lap that ran line to line at racing speed, for the outline to be drawn from. */
-function cleanestLap(snapshot: RaceSnapshot): Lap | null {
+/** The laps that ran line to line at racing speed, quickest first, for the outline to be drawn from. */
+function cleanLaps(snapshot: RaceSnapshot): Lap[] {
 	const candidates = snapshot.laps.filter(
 		(lap) =>
 			lap.completedAt !== undefined &&
@@ -170,7 +177,38 @@ function cleanestLap(snapshot: RaceSnapshot): Lap | null {
 			!(isRace(snapshot) && lap.lap === 1)
 	);
 
-	return candidates.toSorted((a, b) => a.lapTimeMs - b.lapTimeMs)[0] ?? null;
+	return candidates.toSorted((a, b) => a.lapTimeMs - b.lapTimeMs);
+}
+
+/**
+ * The first clean lap whose positions draw a circuit: a car's position can freeze for a stretch,
+ * and the lap it freezes in draws a point, not a circuit.
+ */
+export function drawableLap(
+	snapshot: RaceSnapshot,
+	tracks: ReadonlyMap<string, PositionTrack>
+): { lap: Lap; loop: Loop } | null {
+	for (const lap of cleanLaps(snapshot)) {
+		const track = tracks.get(lap.driverNumber);
+
+		if (lap.completedAt === undefined || track === undefined) {
+			continue;
+		}
+
+		const endAt = Date.parse(lap.completedAt) - DEFAULT_LATENCY_MS;
+
+		try {
+			const loop = loopFromLap(track, endAt - lap.lapTimeMs, endAt);
+
+			if (isRacingLoop(loop, lap.lapTimeMs)) {
+				return { lap, loop };
+			}
+		} catch {
+			// The only error is too few samples in this lap's window; the next lap may have them.
+		}
+	}
+
+	return null;
 }
 
 function crossingsOf(snapshot: RaceSnapshot): Crossing[] {
@@ -230,6 +268,7 @@ function lapFiles(
 		}
 
 		const telemetry = buildLapTelemetry(car, carData.get(lap.driverNumber), window);
+
 		const bytes = gzipJson(telemetry);
 
 		return [
@@ -284,7 +323,18 @@ export async function buildTelemetry(options: BuildOptions): Promise<TelemetryRe
 
 	const tracks = positionTracks(streams.positions);
 	const carData = carDataTracks(streams.carData);
-	const circuit = await findCircuit(options, facts, tracks, circuitKey);
+	let circuit: Circuit;
+
+	try {
+		circuit = await findCircuit(options, facts, tracks, circuitKey);
+	} catch (error) {
+		if (error instanceof NothingToDraw) {
+			return { status: 'skipped', key, reason: error.message };
+		}
+
+		throw error;
+	}
+
 	const { outline } = circuit;
 
 	log?.('telemetry-circuit', {
@@ -294,16 +344,24 @@ export async function buildTelemetry(options: BuildOptions): Promise<TelemetryRe
 	});
 
 	const laps = lapFiles(snapshot, circuit, carData);
+
+	const moved = laps.some(
+		({ entry }) => entry.distanceM >= MIN_MOVED_SHARE * circuit.outline.lengthM
+	);
+
+	if (!moved) {
+		return { status: 'skipped', key, reason: 'no lap of the session has positions that move' };
+	}
+
 	const replay = buildReplay(tracks);
 	const replayFiles = replay.chunks.map(({ file, chunk }) => ({ file, bytes: gzipJson(chunk) }));
 	const hasCarData = carData.size > 0;
 
-	await replaceFolder(path.join(telemetryDir(dataDir), String(key)), async (folder) => {
+	await replaceFolder(sessionTelemetryDir(dataDir, key), async (folder) => {
 		const manifest: SessionManifest = {
 			v: TELEMETRY_VERSION,
 			sessionKey: key,
 			circuitKey,
-			builtAt: new Date().toISOString(),
 			hasCarData,
 			laps: 'laps.json.gz',
 			replay: 'replay/index.json'
@@ -398,8 +456,8 @@ function isOffLength(entry: LapIndexEntry, lengthM: number): boolean {
 
 /**
  * The circuit's outline and every car's distance along it. A saved outline is used as it is;
- * otherwise it is drawn from the session's cleanest lap, started at the line the lap crossings
- * show, and given its sectors and pit lane.
+ * otherwise it is drawn, saved, and read back, so a build that drew the outline and one that
+ * reused it measure the laps against the same points and give the same bytes.
  */
 async function findCircuit(
 	options: BuildOptions,
@@ -407,29 +465,49 @@ async function findCircuit(
 	tracks: ReadonlyMap<string, PositionTrack>,
 	circuitKey: string
 ): Promise<Circuit> {
+	const { dataDir } = options;
+	let outline = options.rebuildOutline ? null : await readOutline(dataDir, circuitKey);
+	const reused = outline !== null;
+
+	if (outline === null) {
+		await drawOutline(options, facts, tracks, circuitKey);
+		outline = await readOutline(dataDir, circuitKey);
+	}
+
+	if (outline === null) {
+		throw new Error(`The outline of circuit ${circuitKey} cannot be read back`);
+	}
+
+	const cars = carDistances(outline, tracks);
+	const { latencyMs } = locateStartFinish(outline.lengthM, cars, crossingsOf(facts.snapshot), 0);
+	const windows = lapWindows(facts.snapshot, cars, outline.lengthM, latencyMs);
+
+	return { outline, cars, windows, reused, latencyMs };
+}
+
+/**
+ * Draws the circuit from the session's cleanest lap, started at the line the lap crossings show,
+ * gives it its sectors and pit lane, and saves it.
+ */
+async function drawOutline(
+	options: BuildOptions,
+	facts: SessionFacts,
+	tracks: ReadonlyMap<string, PositionTrack>,
+	circuitKey: string
+): Promise<void> {
 	const { dataDir, key } = options;
 	const { snapshot } = facts;
 	const crossings = crossingsOf(snapshot);
-	const saved = options.rebuildOutline ? null : await readOutline(dataDir, circuitKey);
 
-	if (saved !== null) {
-		const cars = carDistances(saved, tracks);
-		const { latencyMs } = locateStartFinish(saved.lengthM, cars, crossings, 0);
+	const drawable = drawableLap(snapshot, tracks);
 
-		const windows = lapWindows(snapshot, cars, saved.lengthM, latencyMs);
-
-		return { outline: saved, cars, windows, reused: true, latencyMs };
+	if (drawable === null) {
+		throw new NothingToDraw(
+			'the session has no clean lap with moving positions to draw the circuit from, and the circuit is not saved'
+		);
 	}
 
-	const lap = cleanestLap(snapshot);
-	const track = tracks.get(lap?.driverNumber ?? '');
-
-	if (lap?.completedAt === undefined || track === undefined) {
-		throw new Error('The session has no clean lap with positions to draw the circuit from');
-	}
-
-	const endAt = Date.parse(lap.completedAt) - DEFAULT_LATENCY_MS;
-	const loop = loopFromLap(track, endAt - lap.lapTimeMs, endAt);
+	const { lap, loop } = drawable;
 
 	const provisional = provisionalOutline(loop, {
 		circuitKey,
@@ -481,8 +559,6 @@ async function findCircuit(
 	};
 
 	await writeOutline(dataDir, outline);
-
-	return { outline, cars, windows, reused: false, latencyMs: line.latencyMs };
 }
 
 /**

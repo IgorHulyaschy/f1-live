@@ -7,6 +7,8 @@ export interface ImportArguments {
 	selection: Selection;
 	dataDir: string;
 	offline: boolean;
+	/** False with `--no-telemetry`: leave the position and car data files alone. */
+	telemetry: boolean;
 	/** Overrides the clock, for sessions' status in the catalog. */
 	now: Date;
 }
@@ -14,7 +16,7 @@ export interface ImportArguments {
 const USAGE = `Usage: npm run import -w server -- <year[,year]> [meeting name]
        npm run import -w server -- --key <session key>
        npm run import -w server -- --from-dir <raw root> [--key <session key>]
-Options: --data-dir <dir> (default data/, or DATA_DIR), --offline, --now <ISO time>`;
+Options: --data-dir <dir> (default data/, or DATA_DIR), --offline, --no-telemetry, --now <ISO time>`;
 
 /** Reads the import command line; throws the usage text when it does not make sense. */
 export function parseImportArguments(
@@ -24,11 +26,13 @@ export function parseImportArguments(
 	const { values, positionals } = parseArgs({
 		args: [...argv],
 		allowPositionals: true,
+		allowNegative: true,
 		options: {
 			key: { type: 'string' },
 			'from-dir': { type: 'string' },
 			'data-dir': { type: 'string' },
 			offline: { type: 'boolean', default: false },
+			telemetry: { type: 'boolean', default: true },
 			now: { type: 'string' }
 		}
 	});
@@ -49,6 +53,7 @@ export function parseImportArguments(
 		selection: selectionOf(values['from-dir'], key, positionals),
 		dataDir: values['data-dir'] ?? env.DATA_DIR ?? DEFAULT_DATA_DIR,
 		offline: values.offline,
+		telemetry: values.telemetry,
 		now
 	};
 }

@@ -54,9 +54,14 @@ export function MapPending({ data }: { data: Exclude<TrackData, { status: 'ready
 	);
 }
 
+/** Positions the session has, but not for this moment: its chunk failed, so places are estimated. */
+function positionsMissing(now: Places | null | undefined): boolean {
+	return now?.source === 'estimated' && !now.waiting;
+}
+
 /** Where the cars come from, in a word for the panel header. */
-export function placesLabel(places: PlacesSampler): string {
-	if (places.source === 'estimated') {
+export function placesLabel(places: PlacesSampler, now?: Places | null): string {
+	if (places.source === 'estimated' || positionsMissing(now)) {
 		return 'Estimated';
 	}
 
@@ -69,9 +74,12 @@ export function placesLabel(places: PlacesSampler): string {
  */
 export function MapNote({
 	places,
+	now,
 	children
 }: {
 	places: PlacesSampler;
+	/** The places on screen, which may be estimated where the session's positions failed to load. */
+	now?: Places | null;
 	children?: React.ReactNode;
 }) {
 	let note: string | null = null;
@@ -81,6 +89,8 @@ export function MapNote({
 			places.live && places.positionsLive === false
 				? 'Estimated from timing: live car positions need an F1 TV login on the server.'
 				: 'Estimated from timing: this session has no car positions.';
+	} else if (positionsMissing(now)) {
+		note = 'Estimated from timing: the car positions for this moment did not load.';
 	}
 
 	if (!note && React.Children.toArray(children).length === 0) {

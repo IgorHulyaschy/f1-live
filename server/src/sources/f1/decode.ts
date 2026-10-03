@@ -1,16 +1,21 @@
 import { TYRE_COMPOUNDS } from '@f1-live/shared';
 import type {
+	ChampionshipPlace,
 	Driver,
+	DriverChampionshipPlace,
+	LapTimeRuling,
 	MiniSectorMark,
 	Penalty,
 	PenaltyKind,
 	PenaltyStatus,
 	PersonalBest,
 	RaceControlCategory,
+	RaceControlMessage,
 	RaceEvent,
 	Session,
 	SessionStatus,
 	SessionType,
+	TeamChampionshipPlace,
 	TrackStatus,
 	TyreCompound,
 	TyresFittedEvent
@@ -30,6 +35,7 @@ export interface TopicFrame {
 export const F1_TOPICS = [
 	'SessionInfo',
 	'SessionStatus',
+	'ExtrapolatedClock',
 	'DriverList',
 	'LapCount',
 	'TrackStatus',
@@ -41,7 +47,10 @@ export const F1_TOPICS = [
 	'PitLaneTimeCollection',
 	'PitStopSeries',
 	'RaceControlMessages',
-	'WeatherData'
+	'WeatherData',
+	'OvertakeSeries',
+	'TeamRadio',
+	'ChampionshipPrediction'
 ] as const;
 
 /** Collections keyed by racing number or index, without the feed's `_kf` and `_deleted` markers. */
@@ -89,6 +98,7 @@ const sessionInfoSchema = z
 		Name: z.string(),
 		StartDate: z.string(),
 		GmtOffset: z.string(),
+		Path: z.string(),
 		Meeting: z.object({
 			Name: z.string(),
 			Country: z.object({ Code: z.string() }),
@@ -98,6 +108,10 @@ const sessionInfoSchema = z
 	.partial();
 
 const sessionStatusSchema = z.object({ Status: z.string() }).partial();
+
+const clockSchema = z
+	.object({ Utc: z.string(), Remaining: z.string(), Extrapolating: z.boolean() })
+	.partial();
 
 const driverListSchema = keyed(
 	z
@@ -208,7 +222,36 @@ const weatherDataSchema = z
 		TrackTemp: z.string(),
 		Humidity: z.string(),
 		WindSpeed: z.string(),
+		WindDirection: z.string(),
 		Rainfall: z.string()
+	})
+	.partial();
+
+const overtakeSeriesSchema = z
+	.object({
+		Overtakes: keyed(indexed(z.object({ Timestamp: z.string(), count: z.number() }).partial()))
+	})
+	.partial();
+
+const teamRadioSchema = z
+	.object({
+		Captures: indexed(
+			z.object({ Utc: z.string(), RacingNumber: z.string(), Path: z.string() }).partial()
+		)
+	})
+	.partial();
+
+const championshipFields = {
+	CurrentPosition: z.number(),
+	PredictedPosition: z.number(),
+	CurrentPoints: z.number(),
+	PredictedPoints: z.number()
+};
+
+const championshipPredictionSchema = z
+	.object({
+		Drivers: keyed(z.object(championshipFields).partial()),
+		Teams: keyed(z.object({ ...championshipFields, TeamName: z.string() }).partial())
 	})
 	.partial();
 
@@ -217,6 +260,10 @@ type StintUpdate = z.output<typeof stintSchema>;
 type DriverFields = z.output<typeof driverListSchema>[number][1];
 
 type WeatherFields = z.output<typeof weatherDataSchema>;
+
+type ChampionshipFields = Partial<Record<keyof typeof championshipFields, number>> & {
+	TeamName?: string;
+};
 
 const SESSION_STATUS_BY_FEED: ReadonlyMap<string, SessionStatus> = new Map([
 	['Inactive', 'inactive'],
@@ -236,6 +283,12 @@ const TRACK_STATUS_BY_CODE: ReadonlyMap<string, TrackStatus> = new Map([
 	['7', 'vsc']
 ]);
 
+/**
+ * No single move passes more cars than this; the feed has credited one car with passing the
+ * whole field at the start, and such an entry is left out.
+ */
+const MOST_CARS_PASSED_AT_ONCE = 9;
+
 const DURATION = /^\+?(?:(\d+):)?(\d+(?:\.\d+)?)$/;
 
 /** "1:33.365", "+20.741" or "37.4" in milliseconds; null for an empty value or a gap in laps. */
@@ -247,6 +300,15 @@ export function parseDuration(text: string): number | null {
 	}
 
 	return Math.round((Number(match[1] ?? 0) * 60 + Number(match[2])) * 1000);
+}
+
+const CLOCK_TIME = /^(\d+):(\d{2}):(\d{2})$/;
+
+/** The session clock's "01:59:59", in ms. */
+function parseClockTime(text: string): number | null {
+	const match = CLOCK_TIME.exec(text.trim());
+
+	return match ? ((Number(match[1]) * 60 + Number(match[2])) * 60 + Number(match[3])) * 1000 : null;
 }
 
 /** The leader's gap reads "LAP 12"; a lapped car's "1L", which is not a time. */
@@ -305,6 +367,50 @@ function raceControlCategory(category: string, message: string): RaceControlCate
 	}
 
 	return message.includes('INCIDENT') ? 'incident' : 'other';
+}
+
+const DELETED_TIME = /\bTIME (\d+):(\d{2}\.\d{3}) DELETED/;
+
+const DELETED_LAP = /\bLAP DELETED\b.* LAP (\d+) \d{2}:\d{2}:\d{2}/;
+
+const REINSTATED = /\b(?:TIME (\d+):(\d{2}\.\d{3})|LAP (\d+)) WILL BE REINSTATED/;
+
+function minutesToMs(minutes: string, seconds: string): number {
+	return Math.round((Number(minutes) * 60 + Number(seconds)) * 1000);
+}
+
+/**
+ * A deleted or reinstated lap time in a race control message. A deletion that names neither the
+ * time nor the lap, as for a lap deleted for double yellows, cannot be matched to a lap.
+ */
+function parseLapTimeRuling(message: string): LapTimeRuling | null {
+	const time = DELETED_TIME.exec(message);
+
+	if (time?.[1] !== undefined && time[2] !== undefined) {
+		const lap = /LAP (\d+) \d{2}:\d{2}:\d{2}/.exec(message)?.[1];
+
+		const ruling: LapTimeRuling = { lapTimeMs: minutesToMs(time[1], time[2]), reinstated: false };
+
+		if (lap !== undefined) {
+			ruling.lap = Number(lap);
+		}
+
+		return ruling;
+	}
+
+	const lap = DELETED_LAP.exec(message)?.[1];
+
+	if (lap !== undefined) {
+		return { lap: Number(lap), reinstated: false };
+	}
+
+	const [, minutes, seconds, reinstatedLap] = REINSTATED.exec(message) ?? [];
+
+	if (minutes !== undefined && seconds !== undefined) {
+		return { lapTimeMs: minutesToMs(minutes, seconds), reinstated: true };
+	}
+
+	return reinstatedLap === undefined ? null : { lap: Number(reinstatedLap), reinstated: true };
 }
 
 const PENALTY_PATTERNS: readonly (readonly [PenaltyKind, RegExp])[] = [
@@ -453,6 +559,8 @@ function driverNames(fields: DriverFields): { firstName: string; lastName: strin
 export class F1Decoder {
 	private started = false;
 	private sessionStatus: SessionStatus | null = null;
+	private clock: z.output<typeof clockSchema> = {};
+	private clockSent = '';
 	private trackStatus: TrackStatus | null = null;
 	private totalLaps: number | null = null;
 	private sessionInfo: z.output<typeof sessionInfoSchema> = {};
@@ -470,6 +578,11 @@ export class F1Decoder {
 	private readonly raceControlSeen = new Set<number>();
 	/** Mini sectors in sectors 1, 2 and 3, as the feed's keyframe lists them. */
 	private readonly segmentCounts: [number, number, number] = [0, 0, 0];
+	private readonly overtakesSeen = new Set<string>();
+	private readonly radioSeen = new Set<number>();
+	private readonly championshipDrivers = new Map<string, ChampionshipFields>();
+	private readonly championshipTeams = new Map<string, ChampionshipFields>();
+	private readonly championshipSent = new Map<string, string>();
 
 	/** Throws when a frame of a topic it reads does not match the feed's known format. */
 	decode(frame: TopicFrame): RaceEvent[] {
@@ -480,6 +593,8 @@ export class F1Decoder {
 				return this.onSessionInfo(parse(sessionInfoSchema, frame), at);
 			case 'SessionStatus':
 				return this.onSessionStatus(parse(sessionStatusSchema, frame), at);
+			case 'ExtrapolatedClock':
+				return this.onClock(parse(clockSchema, frame), at);
 			case 'DriverList':
 				return this.onDriverList(parse(driverListSchema, frame), at);
 			case 'LapCount':
@@ -508,6 +623,12 @@ export class F1Decoder {
 				return this.onRaceControl(parse(raceControlMessagesSchema, frame), at);
 			case 'WeatherData':
 				return this.onWeather(parse(weatherDataSchema, frame), at);
+			case 'OvertakeSeries':
+				return this.onOvertakes(parse(overtakeSeriesSchema, frame));
+			case 'TeamRadio':
+				return this.onTeamRadio(parse(teamRadioSchema, frame));
+			case 'ChampionshipPrediction':
+				return this.onChampionship(parse(championshipPredictionSchema, frame), at);
 			default:
 				return [];
 		}
@@ -565,6 +686,31 @@ export class F1Decoder {
 		this.started ||= status === 'started';
 
 		return [{ kind: 'session_status', at, status }];
+	}
+
+	/** `Remaining` was the time left at `Utc`, and counts down from there while extrapolating. */
+	private onClock(update: z.output<typeof clockSchema>, at: string): RaceEvent[] {
+		this.clock = { ...this.clock, ...update };
+
+		const remainingMs = parseClockTime(this.clock.Remaining ?? '');
+
+		if (remainingMs === null) {
+			return [];
+		}
+
+		const utc = Date.parse(this.clock.Utc ?? '');
+		const clockAt = Number.isFinite(utc) ? new Date(utc).toISOString() : at;
+		const running = this.clock.Extrapolating ?? false;
+
+		const sent = `${remainingMs} ${running}`;
+
+		if (sent === this.clockSent) {
+			return [];
+		}
+
+		this.clockSent = sent;
+
+		return [{ kind: 'session_clock', at: clockAt, remainingMs, running }];
 	}
 
 	private onDriverList(update: z.output<typeof driverListSchema>, at: string): RaceEvent[] {
@@ -1083,16 +1229,18 @@ export class F1Decoder {
 			const driverNumber = message.RacingNumber ?? RACE_CONTROL_CAR.exec(text)?.[1];
 			const category = raceControlCategory(message.Category ?? '', text);
 
-			const events: RaceEvent[] = [
-				{
-					kind: 'race_control',
-					at,
-					message:
-						driverNumber === undefined
-							? { lap, category, message: text }
-							: { lap, category, message: text, driverNumber }
-				}
-			];
+			const control: Omit<RaceControlMessage, 'at'> = { lap, category, message: text };
+			const lapTimeRuling = parseLapTimeRuling(text);
+
+			if (driverNumber !== undefined) {
+				control.driverNumber = driverNumber;
+			}
+
+			if (lapTimeRuling !== null) {
+				control.lapTimeRuling = lapTimeRuling;
+			}
+
+			const events: RaceEvent[] = [{ kind: 'race_control', at, message: control }];
 
 			const penalty = category === 'penalty' ? parsePenalty(text, lap) : null;
 
@@ -1111,6 +1259,7 @@ export class F1Decoder {
 		const trackTempC = parseNumber(this.weather.TrackTemp);
 		const humidityPct = parseNumber(this.weather.Humidity);
 		const windSpeedMs = parseNumber(this.weather.WindSpeed);
+		const windDirectionDeg = parseNumber(this.weather.WindDirection);
 		const rainfall = parseNumber(this.weather.Rainfall);
 
 		if (
@@ -1123,13 +1272,139 @@ export class F1Decoder {
 			return [];
 		}
 
+		const sample = { airTempC, trackTempC, humidityPct, windSpeedMs, rainfall: rainfall > 0 };
+
 		return [
 			{
 				kind: 'weather',
 				at,
-				sample: { airTempC, trackTempC, humidityPct, windSpeedMs, rainfall: rainfall > 0 }
+				sample: windDirectionDeg === null ? sample : { ...sample, windDirectionDeg }
 			}
 		];
+	}
+
+	/** Each pass once, at the time the series gives it. */
+	private onOvertakes(update: z.output<typeof overtakeSeriesSchema>): RaceEvent[] {
+		return (update.Overtakes ?? []).flatMap(([driverNumber, passes]) =>
+			passes.flatMap(([index, pass]): RaceEvent[] => {
+				const key = `${driverNumber}/${index}`;
+				const happened = pass.Timestamp === undefined ? Number.NaN : Date.parse(pass.Timestamp);
+
+				if (this.overtakesSeen.has(key) || pass.count === undefined || Number.isNaN(happened)) {
+					return [];
+				}
+
+				this.overtakesSeen.add(key);
+
+				if (pass.count > MOST_CARS_PASSED_AT_ONCE) {
+					return [];
+				}
+
+				return [
+					{
+						kind: 'overtake',
+						at: new Date(happened).toISOString(),
+						driverNumber,
+						count: pass.count
+					}
+				];
+			})
+		);
+	}
+
+	private onTeamRadio(update: z.output<typeof teamRadioSchema>): RaceEvent[] {
+		return (update.Captures ?? []).flatMap(([index, capture]): RaceEvent[] => {
+			const recorded = capture.Utc === undefined ? Number.NaN : Date.parse(capture.Utc);
+
+			if (
+				this.radioSeen.has(index) ||
+				capture.RacingNumber === undefined ||
+				capture.Path === undefined ||
+				Number.isNaN(recorded)
+			) {
+				return [];
+			}
+
+			this.radioSeen.add(index);
+
+			return [
+				{
+					kind: 'team_radio',
+					at: new Date(recorded).toISOString(),
+					driverNumber: capture.RacingNumber,
+					path: `${this.sessionInfo.Path ?? ''}${capture.Path}`
+				}
+			];
+		});
+	}
+
+	/** Places once all four numbers are known, and again whenever one of them changes. */
+	private onChampionship(
+		update: z.output<typeof championshipPredictionSchema>,
+		at: string
+	): RaceEvent[] {
+		const drivers: DriverChampionshipPlace[] = [];
+		const teams: TeamChampionshipPlace[] = [];
+
+		for (const [driverNumber, fields] of update.Drivers ?? []) {
+			const place = this.mergePlace(this.championshipDrivers, `driver/${driverNumber}`, fields);
+
+			if (place) {
+				drivers.push({ driverNumber, ...place });
+			}
+		}
+
+		for (const [key, fields] of update.Teams ?? []) {
+			const place = this.mergePlace(this.championshipTeams, `team/${key}`, fields);
+			const team = this.championshipTeams.get(`team/${key}`)?.TeamName ?? key;
+
+			if (place) {
+				teams.push({ team, ...place });
+			}
+		}
+
+		return drivers.length === 0 && teams.length === 0
+			? []
+			: [{ kind: 'championship', at, standings: { drivers, teams } }];
+	}
+
+	/** The merged place when it is complete and differs from the one sent last; otherwise null. */
+	private mergePlace(
+		places: Map<string, ChampionshipFields>,
+		key: string,
+		fields: ChampionshipFields
+	): ChampionshipPlace | null {
+		const merged = { ...places.get(key), ...fields };
+
+		places.set(key, merged);
+
+		const { CurrentPoints, CurrentPosition, PredictedPoints, PredictedPosition } = merged;
+
+		if (
+			CurrentPoints === undefined ||
+			CurrentPosition === undefined ||
+			PredictedPoints === undefined ||
+			PredictedPosition === undefined
+		) {
+			return null;
+		}
+
+		const place = {
+			points: CurrentPoints,
+			position: CurrentPosition,
+			predictedPoints: PredictedPoints,
+			predictedPosition: PredictedPosition
+		};
+
+		const sent = JSON.stringify(place);
+
+		if (this.championshipSent.get(key) === sent) {
+			return null;
+		}
+
+		this.championshipSent.set(key, sent);
+
+		return place;
 	}
 }
 

@@ -177,7 +177,7 @@ function FlagMapBody({ track }: { track: TrackReady }) {
 					) : null}
 				</section>
 			</div>
-			<MapNote places={places}>
+			<MapNote places={places} now={now}>
 				<span>
 					Marshal sectors are placed by distance from the line; the feed does not say where each one
 					is.

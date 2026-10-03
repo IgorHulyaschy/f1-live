@@ -26,8 +26,8 @@ import {
 import { type Scale, SCALES, setScale, useScale } from '@/hooks/use-scale';
 
 import { shareUrl } from '@/features/library/share';
-import { useRace } from '@/data/race-context';
-import { accountStore } from '@/features/library/library-data';
+import { useRace, useRaceView } from '@/data/race-context';
+import { type SyncStatus, useSyncStatus } from '@/features/account/dashboard-sync';
 import { WelcomeBanner } from '@/features/library/welcome';
 
 import { forgetDashboard, newId, saveDashboard, useDashboards } from './dashboard-store';
@@ -41,8 +41,17 @@ import {
 	TILE_INFO,
 	TILE_KINDS
 } from './dashboards';
+import { SessionOffer } from './session-offer';
+import { sessionLayoutId } from './session-layouts';
 import { useAddDashboard } from './use-add-dashboard';
 import { useCarriedSearch } from './use-carried-search';
+
+const SYNC_LABEL: Record<SyncStatus, string> = {
+	local: 'Saved in this browser',
+	pending: 'Saving to your account',
+	blocked: 'On this device only: not in your account',
+	synced: 'Synced to your account'
+};
 
 const SCALE_OPTIONS = SCALES.map(({ value, label }) => ({ value, label }));
 
@@ -162,7 +171,7 @@ function DashboardBar({
 	const scale = useScale();
 	const create = useCreateDashboard();
 	const add = useAddDashboard();
-	const account = accountStore.useValue();
+	const syncStatus = useSyncStatus(dashboard.id);
 	const [adding, setAdding] = React.useState(false);
 	const fileInput = React.useRef<HTMLInputElement>(null);
 	const preset = isPreset(dashboard.id);
@@ -209,7 +218,7 @@ function DashboardBar({
 			)}
 			{editing ? (
 				<span className="type-label" data-testid="save-status">
-					{account ? `Synced to @${account.handle}` : 'Saved in this browser'}
+					{SYNC_LABEL[syncStatus]}
 				</span>
 			) : null}
 			{editing ? (
@@ -317,10 +326,14 @@ function DashboardBar({
 	);
 }
 
-/** A dashboard by id: presets at their old addresses, everything else under /d/:id. */
+/**
+ * A dashboard by id: the session's own layout at `/`, presets at their old addresses, everything
+ * else under /d/:id.
+ */
 export function DashboardPage({ id: fixedId }: { id?: string }) {
 	const params = useParams();
-	const id = fixedId ?? params.id ?? 'live';
+	const { race } = useRaceView();
+	const id = fixedId ?? params.id ?? sessionLayoutId(race.session.type);
 	const { dashboards, saved } = useDashboards();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const dashboard = dashboards.find((entry) => entry.id === id);
@@ -352,6 +365,7 @@ export function DashboardPage({ id: fixedId }: { id?: string }) {
 	return (
 		<div data-testid={`dashboard-${dashboard.id}`}>
 			{isPreset(dashboard.id) ? <WelcomeBanner /> : null}
+			<SessionOffer dashboard={dashboard} />
 			<DashboardBar
 				dashboard={dashboard}
 				edited={saved.has(dashboard.id)}

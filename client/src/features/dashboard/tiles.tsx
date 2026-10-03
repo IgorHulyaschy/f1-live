@@ -7,19 +7,22 @@ import { FastestLaps } from '@/features/analysis/fastest-laps';
 import type { Metric } from '@/features/analysis/lap-series';
 import { PaceRanking } from '@/features/analysis/pace-ranking';
 import { DriverCard, GridWall } from '@/features/drivers/driver-tiles';
+import { BestSectors } from '@/features/live/best-sectors';
 import { FocusPanel } from '@/features/live/focus-panel';
+import { KnockoutPanel } from '@/features/live/knockout-panel';
 import { BoxNowPanel, GapsPanel } from '@/features/live/focus-tiles';
 import { RaceControlFeed } from '@/features/live/race-control-feed';
 import { TimingTower } from '@/features/live/timing-tower';
-import {
-	LapStripTile,
-	ReplayTile,
-	SessionTile,
-	WeatherTile
-} from '@/features/session/session-tiles';
+import { LapStripTile, SessionTile, WeatherTile } from '@/features/session/session-tiles';
+import { Timeline } from '@/features/session/timeline';
 import { Degradation } from '@/features/strategy/degradation';
+import { LongRuns } from '@/features/strategy/long-runs';
+import { PitCost } from '@/features/strategy/pit-cost';
+import { PitCrews } from '@/features/strategy/pit-crews';
 import { PitStops } from '@/features/strategy/pit-stops';
 import { StintChart } from '@/features/strategy/stint-chart';
+import { UndercutLedger } from '@/features/strategy/undercut-ledger';
+import { StoryRibbon } from '@/features/story/story-ribbon';
 import { BattleMapTile } from '@/features/track/battle-map-tile';
 import { DominanceTile } from '@/features/track/dominance-tile';
 import { FlagMapTile } from '@/features/track/flag-map-tile';
@@ -32,6 +35,18 @@ import type { Tile, TileSettings } from './dashboards';
 // The chart library is the heaviest part of the app; it loads only with a chart tile.
 const ChartWorkspace = React.lazy(async () => ({
 	default: (await import('@/features/analysis/chart-workspace')).ChartWorkspace
+}));
+
+const TelemetryPanel = React.lazy(async () => ({
+	default: (await import('@/features/analysis/telemetry-panel')).TelemetryPanel
+}));
+
+const ChampionshipSwing = React.lazy(async () => ({
+	default: (await import('@/features/analysis/championship-swing')).ChampionshipSwing
+}));
+
+const ConditionsPanel = React.lazy(async () => ({
+	default: (await import('@/features/analysis/conditions-panel')).ConditionsPanel
 }));
 
 /** A tile whose code is still loading: its ruled header and a quiet placeholder. */
@@ -61,7 +76,7 @@ export function TileContent({
 		}
 
 		case 'replay': {
-			return <ReplayTile />;
+			return <Timeline />;
 		}
 
 		case 'lap-strip': {
@@ -133,6 +148,58 @@ export function TileContent({
 
 		case 'pit-stops': {
 			return <PitStops />;
+		}
+
+		case 'story': {
+			return <StoryRibbon />;
+		}
+
+		case 'telemetry': {
+			return (
+				<React.Suspense fallback={<LoadingTile title="Telemetry" />}>
+					<TelemetryPanel />
+				</React.Suspense>
+			);
+		}
+
+		case 'undercut': {
+			return <UndercutLedger />;
+		}
+
+		case 'pit-cost': {
+			return <PitCost />;
+		}
+
+		case 'pit-crews': {
+			return <PitCrews />;
+		}
+
+		case 'championship': {
+			return (
+				<React.Suspense fallback={<LoadingTile title="Championship" />}>
+					<ChampionshipSwing />
+				</React.Suspense>
+			);
+		}
+
+		case 'knockout': {
+			return <KnockoutPanel />;
+		}
+
+		case 'sectors': {
+			return <BestSectors />;
+		}
+
+		case 'long-runs': {
+			return <LongRuns />;
+		}
+
+		case 'conditions': {
+			return (
+				<React.Suspense fallback={<LoadingTile title="Conditions" />}>
+					<ConditionsPanel />
+				</React.Suspense>
+			);
 		}
 
 		case 'track-map': {

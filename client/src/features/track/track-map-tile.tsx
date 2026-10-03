@@ -12,9 +12,19 @@ import { useTileFill } from '../dashboard/tile-fill';
 import type { TrackMapSettings } from './settings';
 import { drsZones, lapsForZones, type Zone } from './drs-zones';
 import { type CarLook, MapCanvas } from './map-canvas';
-import { CarOrder, MapNote, MapPending, placesLabel, useMapBodyClass } from './map-parts';
+import {
+	CarOrder,
+	MapNote,
+	MapPending,
+	placesLabel,
+	useMapBodyClass,
+	usePlacesNow
+} from './map-parts';
 import type { MapTheme, Overlay } from './track-draw';
 import { type TrackReady, usePlaces, useTrackData } from './use-track';
+
+/** How often the header checks whether the cars on screen are estimated. */
+const SOURCE_EVERY_MS = 2000;
 
 const CAMERA_OPTIONS = [
 	{ value: 'full', label: 'Circuit' },
@@ -28,7 +38,7 @@ const PAINT_OPTIONS = [
 
 /** The DRS zones of the session's circuit, from its lap telemetry; null where they are not known. */
 function useDrsZones(track: TrackReady): readonly Zone[] | null {
-	const { race, telemetry } = useRace();
+	const { race, maps } = useRace();
 	const lapsPath = track.telemetry?.hasCarData ? track.telemetry.laps : null;
 	const drs = hasDrs(race.session);
 	const [zones, setZones] = React.useState<{ key: string; zones: Zone[] } | null>(null);
@@ -41,12 +51,10 @@ function useDrsZones(track: TrackReady): readonly Zone[] | null {
 		let cancelled = false;
 
 		async function load(path: string) {
-			const index = await telemetry.loadLapIndex(track.sessionKey, path);
+			const index = await maps.loadLapIndex(track.sessionKey, path);
 
 			const laps = await Promise.all(
-				lapsForZones(index, race.laps).map((entry) =>
-					telemetry.loadLap(track.sessionKey, entry.file)
-				)
+				lapsForZones(index, race.laps).map((entry) => maps.loadLap(track.sessionKey, entry.file))
 			);
 
 			if (!cancelled) {
@@ -60,7 +68,7 @@ function useDrsZones(track: TrackReady): readonly Zone[] | null {
 		return () => {
 			cancelled = true;
 		};
-	}, [drs, lapsPath, telemetry, track.sessionKey, race.laps]);
+	}, [drs, lapsPath, maps, track.sessionKey, race.laps]);
 
 	return drs && zones?.key === track.sessionKey && zones.zones.length > 0 ? zones.zones : null;
 }
@@ -179,6 +187,7 @@ function TrackMapBody({
 }) {
 	const { race, snapshot, followedDriver } = useRace();
 	const places = usePlaces(track);
+	const now = usePlacesNow(places, SOURCE_EVERY_MS);
 	const bodyClass = useMapBodyClass();
 	const [local, setLocal] = React.useState(settings);
 	const camera = local.camera ?? 'full';
@@ -203,9 +212,12 @@ function TrackMapBody({
 
 	return (
 		<>
-			<PanelHeader title="Track map" meta={placesLabel(places)}>
+			<PanelHeader title="Track map" meta={placesLabel(places, now)}>
+				{/* A narrow tile keeps only the camera and colours keys. */}
 				{snapshot.trackStatus === 'green' ? null : (
-					<TrackStatusBadge status={snapshot.trackStatus} />
+					<span className="hidden @xl:inline-flex">
+						<TrackStatusBadge status={snapshot.trackStatus} />
+					</span>
 				)}
 				<KeyGroup
 					label="Camera"
@@ -251,7 +263,7 @@ function TrackMapBody({
 				/>
 				<CarOrder places={places} />
 			</div>
-			<MapNote places={places}>
+			<MapNote places={places} now={now}>
 				{paint === 'sectors' && sectors.note ? <span>{sectors.note}</span> : null}
 				{showZones ? <span>Bands: DRS zones</span> : null}
 			</MapNote>

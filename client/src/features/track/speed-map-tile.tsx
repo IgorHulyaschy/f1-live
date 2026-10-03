@@ -62,7 +62,7 @@ type ChosenLap = {
 
 /** The followed driver's laps with telemetry done by the moment on screen, and the one chosen. */
 function useLap(track: TrackReady, choice: number | null): ChosenLap {
-	const { telemetry, followedDriver, timeline, lap: step } = useRace();
+	const { maps, followedDriver, timeline, lap: step } = useRace();
 	const lapsPath = track.telemetry?.hasCarData ? track.telemetry.laps : null;
 	const until = timeline ? stepTime(timeline, step) : 0;
 
@@ -83,7 +83,7 @@ function useLap(track: TrackReady, choice: number | null): ChosenLap {
 
 		async function load(path: string) {
 			try {
-				const next = await telemetry.loadLapIndex(track.sessionKey, path);
+				const next = await maps.loadLapIndex(track.sessionKey, path);
 
 				if (!cancelled) {
 					setIndex({ key: track.sessionKey, index: next, failed: false });
@@ -100,7 +100,7 @@ function useLap(track: TrackReady, choice: number | null): ChosenLap {
 		return () => {
 			cancelled = true;
 		};
-	}, [lapsPath, telemetry, track.sessionKey]);
+	}, [lapsPath, maps, track.sessionKey]);
 
 	const laps = React.useMemo(
 		() =>
@@ -136,7 +136,7 @@ function useLap(track: TrackReady, choice: number | null): ChosenLap {
 			let next: Loaded;
 
 			try {
-				next = { key: path, lap: await telemetry.loadLap(track.sessionKey, path), failed: false };
+				next = { key: path, lap: await maps.loadLap(track.sessionKey, path), failed: false };
 			} catch {
 				next = { key: path, lap: null, failed: true };
 			}
@@ -151,7 +151,7 @@ function useLap(track: TrackReady, choice: number | null): ChosenLap {
 		return () => {
 			cancelled = true;
 		};
-	}, [file, telemetry, track.sessionKey]);
+	}, [file, maps, track.sessionKey]);
 
 	if (!lapsPath) {
 		return { laps, entry: null, lap: null, status: 'none' };

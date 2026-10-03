@@ -2,13 +2,38 @@ import { expect, test } from '@playwright/test';
 
 import { openRace } from './fixtures.ts';
 
-test('loads the Las Vegas replay on the live page', async ({ page }) => {
+test('a race opens on the Race layout, with the session in the strip', async ({ page }) => {
 	await openRace(page);
 
-	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Live');
-	await expect(page.getByRole('heading', { name: 'Las Vegas GP 2025' })).toBeVisible();
-	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 30/50');
+	const nav = page.getByRole('navigation', { name: 'Main' });
+
+	await expect(page.getByRole('heading', { level: 1 })).toHaveText('Race');
+	await expect(nav.getByRole('link').first()).toHaveText('Race');
+	await expect(nav.getByRole('link', { name: 'Race', exact: true })).toHaveAttribute(
+		'aria-current',
+		'page'
+	);
+	await expect(page.getByTestId('dashboard-live')).toBeVisible();
+
+	const strip = page.getByTestId('live-strip');
+
+	await expect(strip.getByTestId('live-key')).toHaveText('Replay');
+	await expect(strip.getByTestId('strip-session')).toContainText('Las Vegas GP');
+	await expect(strip.getByTestId('lap-counter')).toHaveText('Lap 30/50');
+	await expect(strip.getByTestId('strip-leader')).toContainText('VER');
 	await expect(page.getByTestId(/^timing-row-/)).toHaveCount(20);
+	await expect(page.getByTestId('tile-stints')).toBeVisible();
+	await expect(page.getByTestId('tile-away')).toHaveCount(0);
+});
+
+test('the dashboards a race does not need wait under More', async ({ page }) => {
+	await openRace(page);
+
+	await page.getByRole('button', { name: 'More' }).click();
+	await page.getByRole('menuitem', { name: 'Pit wall' }).click();
+	await expect(page).toHaveURL(/\/d\/wall/);
+	await expect(page.getByTestId('dashboard-wall')).toBeVisible();
+	await expect(page.getByRole('button', { name: 'More' })).toBeVisible();
 });
 
 test('keeps lap, driver and plan when switching pages', async ({ page }) => {
@@ -44,6 +69,29 @@ test('has no console errors on any page', async ({ page }) => {
 	await openRace(page, '/');
 	await openRace(page, '/analysis');
 	await openRace(page, '/strategy');
+	await openRace(page, '/d/story');
 
 	expect(errors).toEqual([]);
 });
+
+for (const width of [360, 390]) {
+	test(`shows every dashboard tab and the new and library keys at ${width}px`, async ({ page }) => {
+		await page.setViewportSize({ width, height: 800 });
+		await openRace(page);
+
+		const nav = page.getByRole('navigation', { name: 'Main' });
+
+		const keys = [
+			...(await nav.getByRole('link').all()),
+			nav.getByRole('button', { name: 'New dashboard' })
+		];
+
+		for (const key of keys) {
+			const box = await key.boundingBox();
+
+			expect(box).not.toBeNull();
+			expect(box?.x).toBeGreaterThanOrEqual(0);
+			expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
+		}
+	});
+}

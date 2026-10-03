@@ -323,7 +323,7 @@ function BattleMapBody({ track }: { track: TrackReady }) {
 					);
 				})}
 			</div>
-			<MapNote places={places} />
+			<MapNote places={places} now={now} />
 		</>
 	);
 }

@@ -30,6 +30,45 @@ describe('standingsAt', () => {
 		assert.ok(rows.slice(0, 17).every((row) => row.state !== 'out'));
 	});
 
+	describe('after a disqualification', () => {
+		const final = snapshotAtLap(race, 50);
+		const [first, second, third] = standingsAt(final);
+
+		const without = (driverNumber: string | undefined) => ({
+			...final,
+			corrections: [
+				{
+					driverNumber: driverNumber ?? '',
+					kind: 'disqualified' as const,
+					reason: 'Plank wear',
+					at: '2025-11-23T12:00:00.000Z'
+				}
+			]
+		});
+
+		it('measures the car behind the excluded one to the car ahead of it', () => {
+			const corrected = without(second?.driver.number);
+			const rows = standingsAt(corrected);
+
+			assert.equal(rows[1]?.driver.number, third?.driver.number);
+			assert.equal(rows[1]?.intervalMs, (third?.gapToLeaderMs ?? 0) - (first?.gapToLeaderMs ?? 0));
+			assert.equal(rows[1]?.gapToLeaderMs, third?.gapToLeaderMs);
+			assert.equal(
+				battleAhead(corrected, third?.driver.number ?? '')?.ahead.code,
+				first?.driver.code
+			);
+		});
+
+		it('measures every gap to the new leader when the leader is excluded', () => {
+			const rows = standingsAt(without(first?.driver.number));
+
+			assert.equal(rows[0]?.driver.number, second?.driver.number);
+			assert.equal(rows[0]?.gapToLeaderMs, 0);
+			assert.equal(rows[1]?.intervalMs, (third?.gapToLeaderMs ?? 0) - (second?.gapToLeaderMs ?? 0));
+			assert.equal(rows[1]?.gapToLeaderMs, rows[1]?.intervalMs);
+		});
+	});
+
 	it('marks exactly one holder of the fastest lap', () => {
 		const rows = standingsAt(snapshotAtLap(race, 50));
 

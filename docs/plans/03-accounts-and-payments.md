@@ -11,6 +11,21 @@ Replace the in-browser mocks with real accounts:
 The mocks already define the behaviour and the payloads (see the backend contract in
 [docs/product/dashboards.md](../product/dashboards.md#backend-contract)). This plan implements them; it does not redesign them.
 
+## Status
+
+Built, and running on localhost with no outside account (`ACCOUNTS_DB=pglite`):
+
+- sign-in with Better Auth on our own server: email magic link, Google and Apple when their keys
+  are set, no passwords;
+- dashboard sync per document with versions, local-first, newest edit wins;
+- the Free limit enforced by the API, from `PLAN_ENTITLEMENTS` in `shared/src/plans.ts`;
+- payments behind one `PaymentProvider` interface: Stripe Checkout, portal and webhooks, and a fake
+  provider with its own checkout page and signed webhooks for development and tests;
+- the account page: plan, billing, export my data, delete my account.
+
+Still open: the library server (step 3), pushing dashboard changes over the live socket (devices
+pull every 30 seconds and when they come back to the tab), and the owner items below.
+
 ## Before starting
 
 - Confirm the Free/Pro split. The current default:
