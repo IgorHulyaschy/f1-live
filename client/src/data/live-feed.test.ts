@@ -195,8 +195,17 @@ describe('LiveFeed', () => {
 		server.send(server.sockets[1], state(10));
 		assert.deepEqual(server.sockets[1]?.sent, ['{"type":"subscribe","channel":"positions"}']);
 
+		server.sockets[1]?.handlers.message(
+			'{"v":1,"type":"positions","at":1763870900000,"cars":{"1":[332,198,1]}}'
+		);
 		stop();
 		assert.equal(server.sockets[1]?.sent.at(-1), '{"type":"unsubscribe","channel":"positions"}');
+
+		// The last map closing keeps the frames: the next one, on a dashboard switch, gets them.
+		const next: number[] = [];
+
+		feed.watchPositions((frame) => next.push(frame.at))();
+		assert.deepEqual(next, [1_763_870_900_000]);
 		feed.stop();
 		mock.timers.reset();
 	});

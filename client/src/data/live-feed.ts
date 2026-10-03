@@ -256,8 +256,8 @@ export class LiveFeed implements LivePositionsFeed {
 		return () => {
 			this.positionListeners.delete(listener);
 
-			// The history stays: a dashboard switch unmounts one map before it mounts the next. A gap
-			// it leaves is not joined across by the maps.
+			// The history stays: a dashboard switch unmounts one map before it mounts the next. The
+			// gap until the next frame is not drawn across (`MAX_FRAME_GAP_MS` in live-positions.ts).
 			if (this.positionListeners.size === 0) {
 				this.positionsAskedOn?.send(JSON.stringify({ type: 'unsubscribe', channel: 'positions' }));
 				this.positionsAskedOn = null;

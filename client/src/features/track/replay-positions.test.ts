@@ -106,38 +106,41 @@ describe('replay positions', () => {
 	it('asks for a chunk that failed again only after a while, not in a loop', async () => {
 		mock.timers.enable({ apis: ['Date'], now: ORIGIN });
 
-		let asked = 0;
+		try {
+			let asked = 0;
 
-		const replay = new ReplayPositions(MANIFEST, async () => {
-			asked++;
+			const replay = new ReplayPositions(MANIFEST, async () => {
+				asked++;
 
-			throw new Error('offline');
-		});
-
-		const failed = () =>
-			new Promise<void>((resolve) => {
-				const stop = replay.subscribe(() => {
-					stop();
-					resolve();
-				});
+				throw new Error('offline');
 			});
 
-		const first = failed();
+			const failed = () =>
+				new Promise<void>((resolve) => {
+					const stop = replay.subscribe(() => {
+						stop();
+						resolve();
+					});
+				});
 
-		replay.want(ORIGIN, 0);
-		await first;
-		replay.want(ORIGIN, 0);
-		replay.want(ORIGIN, 0);
-		assert.equal(asked, 1);
-		assert.equal(replay.missing(ORIGIN), true);
+			const first = failed();
 
-		const second = failed();
+			replay.want(ORIGIN, 0);
+			await first;
+			replay.want(ORIGIN, 0);
+			replay.want(ORIGIN, 0);
+			assert.equal(asked, 1);
+			assert.equal(replay.missing(ORIGIN), true);
 
-		mock.timers.tick(30_000);
-		replay.want(ORIGIN, 0);
-		await second;
-		assert.equal(asked, 2);
-		mock.timers.reset();
+			const second = failed();
+
+			mock.timers.tick(30_000);
+			replay.want(ORIGIN, 0);
+			await second;
+			assert.equal(asked, 2);
+		} finally {
+			mock.timers.reset();
+		}
 	});
 });
 
