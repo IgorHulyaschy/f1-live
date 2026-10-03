@@ -1,0 +1,8 @@
+﻿00:59:58.088{"PitTimes":{"22":{"RacingNumber":"22","Duration":"21.3","Lap":"1"}}}
+01:00:22.759{"PitTimes":{"5":{"RacingNumber":"5","Duration":"33.2","Lap":"1"}}}
+01:00:25.882{"PitTimes":{"_deleted":["22"]}}
+01:00:52.241{"PitTimes":{"_deleted":["5"]}}
+01:43:22.610{"PitTimes":{"31":{"RacingNumber":"31","Duration":"22.3","Lap":"27"}}}
+01:43:41.889{"PitTimes":{"22":{"RacingNumber":"22","Duration":"20.6","Lap":"27"}}}
+01:48:03.051{"PitTimes":{"27":{"RacingNumber":"27","Duration":"22.3","Lap":"30"}}}
+01:48:27.818{"PitTimes":{"_deleted":["27"]}}

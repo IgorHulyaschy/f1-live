@@ -8,6 +8,7 @@
 		".": "./src/index.ts"
 	},
 	"scripts": {
-		"typecheck": "tsc --noEmit"
+		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
+		"test:unit": "node --test 'src/**/*.test.ts'"
 	}
 }

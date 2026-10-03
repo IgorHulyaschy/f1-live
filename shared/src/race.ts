@@ -18,12 +18,25 @@ export const SESSION_TYPES = [
 
 export type SessionType = (typeof SESSION_TYPES)[number];
 
+export const SESSION_STATUSES = [
+	'inactive',
+	'started',
+	'aborted',
+	'finished',
+	'finalised',
+	'ended'
+] as const;
+
+export type SessionStatus = (typeof SESSION_STATUSES)[number];
+
 export interface Session {
 	id: string;
 	meetingName: string;
 	circuit: string;
 	countryCode: string;
 	type: SessionType;
+	/** As the organiser names it, e.g. "Practice 2" or "Sprint". */
+	name?: string;
 	totalLaps: number;
 	/** ISO 8601, UTC. */
 	startsAt: string;
@@ -66,6 +79,8 @@ export interface Lap {
 	pitIn: boolean;
 	pitOut: boolean;
 	trackStatus: TrackStatus;
+	/** When the car crossed the line, ISO 8601 UTC. Absent on the modelled replay. */
+	completedAt?: string;
 }
 
 export interface Stint {
@@ -75,6 +90,8 @@ export interface Stint {
 	startLap: number;
 	/** Last lap of the stint; equals the current lap while the stint is running. */
 	endLap: number;
+	/** Laps already on the set when it was fitted; 0 or absent for a new set. */
+	tyreAgeAtStart?: number;
 }
 
 export interface PitStop {
@@ -82,6 +99,8 @@ export interface PitStop {
 	lap: number;
 	/** Total time lost in the pit lane, from entry to exit. */
 	laneTimeMs: number;
+	/** Time stationary in the box, when the source publishes it. */
+	stationaryMs?: number;
 }
 
 export const RACE_CONTROL_CATEGORIES = [
@@ -122,6 +141,81 @@ export interface Retirement {
 	reason: string;
 }
 
+/** A driver's place in the running order now, refreshed between lap crossings. */
+export interface Standing {
+	driverNumber: string;
+	position: number;
+	/** 0 for the leader; null when there is no time gap, as for a lapped car. */
+	gapToLeaderMs: number | null;
+	/** Gap to the car directly ahead; 0 for the leader, null when there is no time gap. */
+	intervalMs: number | null;
+	lapsCompleted: number;
+	inPit: boolean;
+	retired: boolean;
+	disqualified: boolean;
+}
+
+export interface TrackStatusChange {
+	/** ISO 8601, UTC. */
+	at: string;
+	status: TrackStatus;
+}
+
+export const PENALTY_KINDS = ['time', 'drive_through', 'stop_go', 'grid', 'reprimand'] as const;
+
+export type PenaltyKind = (typeof PENALTY_KINDS)[number];
+
+export const PENALTY_STATUSES = ['issued', 'served', 'revoked'] as const;
+
+export type PenaltyStatus = (typeof PENALTY_STATUSES)[number];
+
+/** A stewards' decision announced during the session. */
+export interface Penalty {
+	driverNumber: string;
+	kind: PenaltyKind;
+	/** For time and stop/go penalties. */
+	seconds?: number;
+	/** For grid penalties. */
+	places?: number;
+	reason: string;
+	/** Lap on which it was given. */
+	lap: number;
+	status: PenaltyStatus;
+	servedLap?: number;
+}
+
+export const CORRECTION_KINDS = ['disqualified', 'time_penalty'] as const;
+
+export type CorrectionKind = (typeof CORRECTION_KINDS)[number];
+
+/** A change to the classification decided after the timing feed ends, such as a disqualification. */
+export interface ClassificationCorrection {
+	driverNumber: string;
+	kind: CorrectionKind;
+	/** Added to the race time, for a time penalty. */
+	seconds?: number;
+	reason: string;
+	/** When it was decided, ISO 8601 UTC. */
+	at: string;
+}
+
+/** Best speeds in km/h; null until the driver has set one. */
+export interface TopSpeeds {
+	intermediate1: number | null;
+	intermediate2: number | null;
+	finishLine: number | null;
+	speedTrap: number | null;
+}
+
+/** A driver's best lap, sectors and speeds in the session, as the source ranks them. */
+export interface PersonalBest {
+	driverNumber: string;
+	lapTimeMs: number | null;
+	lap: number | null;
+	sectorTimesMs: readonly [number | null, number | null, number | null];
+	topSpeedsKph: TopSpeeds;
+}
+
 /** Everything known about a session up to `currentLap`. */
 export interface RaceSnapshot {
 	session: Session;
@@ -135,4 +229,14 @@ export interface RaceSnapshot {
 	raceControl: readonly RaceControlMessage[];
 	weather: readonly WeatherSample[];
 	retirements: readonly Retirement[];
+	/** The fields below come from real data; the modelled replay leaves them out. */
+	status?: SessionStatus;
+	/** When the session started (for a race, the start signal), ISO 8601 UTC. */
+	startedAt?: string;
+	/** The running order now, by position. */
+	standings?: readonly Standing[];
+	trackStatusLog?: readonly TrackStatusChange[];
+	penalties?: readonly Penalty[];
+	personalBests?: readonly PersonalBest[];
+	corrections?: readonly ClassificationCorrection[];
 }

@@ -1,0 +1,9 @@
+﻿00:00:06.287{"Lines":{"22":{"RacingNumber":"22","Stints":[]},"63":{"RacingNumber":"63","Stints":[]}}}
+00:00:11.505{"Lines":{"22":{"GridPos":"20"},"63":{"GridPos":"4"}}}
+00:48:51.663{"Lines":{"22":{"Stints":{"0":{"LapFlags":0,"Compound":"MEDIUM","New":"true","TyresNotChanged":"0","TotalLaps":0,"StartLaps":0}}},"63":{"Stints":{"0":{"LapFlags":0,"Compound":"MEDIUM","New":"true","TyresNotChanged":"0","TotalLaps":0,"StartLaps":0}}}}}
+01:00:01.746{"Lines":{"22":{"Stints":{"1":{"LapFlags":0,"Compound":"HARD","New":"true","TyresNotChanged":"0","TotalLaps":0,"StartLaps":0}}}}}
+01:26:51.896{"Lines":{"63":{"Stints":{"1":{"LapFlags":0,"Compound":"UNKNOWN","New":"false","TyresNotChanged":"1","TotalLaps":0,"StartLaps":0}}}}}
+01:27:06.897{"Lines":{"22":{"Stints":{"1":{"TotalLaps":16}}},"63":{"Stints":{"2":{"LapFlags":0,"Compound":"HARD","New":"true","TyresNotChanged":"1","TotalLaps":0,"StartLaps":0}}}}}
+01:29:21.915{"Lines":{"63":{"Stints":{"1":{"Compound":"HARD","New":"true","TyresNotChanged":"0","TotalLaps":1}}}}}
+01:43:42.033{"Lines":{"22":{"Stints":{"2":{"LapFlags":0,"Compound":"UNKNOWN","New":"false","TyresNotChanged":"1","TotalLaps":0,"StartLaps":0}}}}}
+01:43:47.015{"Lines":{"22":{"Stints":{"2":{"Compound":"MEDIUM","TyresNotChanged":"0","TotalLaps":1,"StartLaps":1}}}}}
