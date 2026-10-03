@@ -1,14 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import {
-	isRevealed,
-	MAX_REVEALED,
-	mergeRevealed,
-	resultsHidden,
-	spoilerSafeStep,
-	withRevealed
-} from './spoilers.ts';
+import { MAX_REVEALED } from '@f1-live/shared/viewer';
+
+import { isRevealed, resultsHidden, spoilerSafeStep, withRevealed } from './spoilers.ts';
 
 const protectedViewer = { protect: true, revealed: ['9858'] };
 
@@ -72,11 +67,5 @@ describe('withRevealed', () => {
 		assert.equal(next.length, MAX_REVEALED);
 		assert.equal(next[0], '1');
 		assert.equal(next.at(-1), 'new');
-	});
-});
-
-describe('mergeRevealed', () => {
-	it('keeps every session revealed on either device, this one newest', () => {
-		assert.deepEqual(mergeRevealed(['b', 'c'], ['a', 'b']), ['a', 'b', 'c']);
 	});
 });

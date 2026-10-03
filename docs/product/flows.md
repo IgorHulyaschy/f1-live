@@ -165,5 +165,8 @@ One rule, in `client/src/data/spoilers.ts`:
   hidden, else the end (or live).
 
 Every place that lists sessions or results (the picker, ⌘K, the live strip, the page title, and
-T11a's calendar, standings and library) asks these. Reveals are kept for the newest 200 sessions
-on the device and, signed in, on the account (`GET` and `PUT /api/me/viewer`).
+T11a's calendar, standings and library) asks these; a list of sessions uses `useIsRevealed()` and
+`revealSession(key)` from `client/src/data/viewer-settings.ts`. Reveals are kept for the newest
+200 sessions on the device and, signed in, on the account: `PUT /api/me/viewer` sends the device's
+settings and answers the account's, merged (every reveal from either side; the newer change of the
+switch wins).

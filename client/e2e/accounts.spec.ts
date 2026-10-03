@@ -143,3 +143,33 @@ test('without an account, the account page offers sign-in and dashboards stay he
 	await expect(page.getByTestId('save-status')).toHaveText('Saved in this browser');
 	expect(errors, 'a signed-out visitor costs no failed requests').toEqual([]);
 });
+
+test('a session revealed on one device opens revealed on another signed in to the account', async ({
+	page,
+	browser
+}) => {
+	const email = testEmail('catch-up');
+
+	await openRace(page, '/', { spoilerProtection: true });
+	await signInWithLink(page, email);
+	await page.goto('/');
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 1/50');
+	await page.getByRole('button', { name: 'Jump to the finish (shows results)' }).first().click();
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 50/50');
+
+	const other = await browser.newPage();
+
+	await openRace(other, '/', { spoilerProtection: true });
+	await signInWithLink(other, email);
+
+	// The reveal reaches the account a moment after it is made; revealed, the modelled replay
+	// opens where it always has.
+	await expect
+		.poll(async () => {
+			await other.goto('/');
+
+			return other.getByTestId('lap-counter').textContent();
+		})
+		.toBe('Lap 30/50');
+	await other.close();
+});

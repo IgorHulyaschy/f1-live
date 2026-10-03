@@ -26,7 +26,7 @@ import { resultsHidden as sessionHidden, spoilerSafeStep } from './spoilers.ts';
 import {
 	delayStore,
 	revealSession,
-	spoilerProtectionStore,
+	setSpoilerProtection,
 	useSpoilerSettings
 } from './viewer-settings.ts';
 
@@ -630,8 +630,11 @@ export function RaceProvider({
 		}
 
 		setLocalPlaying(false);
-		updateParams((params) => params.delete('lap'));
-	}, [shownKey, updateParams]);
+		// The finish is where a revealed session opens, except on the modelled replay.
+		updateParams((params) =>
+			revealedLap >= maxLap ? params.delete('lap') : params.set('lap', String(maxLap))
+		);
+	}, [shownKey, updateParams, revealedLap, maxLap]);
 
 	const backToLive = React.useCallback(() => {
 		reveal();
@@ -778,7 +781,7 @@ export function RaceProvider({
 	const spoilers = React.useMemo<Spoilers>(
 		() => ({
 			protect: spoilerSettings.protect,
-			setProtect: spoilerProtectionStore.set,
+			setProtect: setSpoilerProtection,
 			hidden: resultsHidden,
 			reveal
 		}),

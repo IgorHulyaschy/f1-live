@@ -4,7 +4,9 @@ import { z } from 'zod';
 import { EVENT_FILTERS } from '../insights/timeline.ts';
 import { createLocalStore } from '../lib/local-store.ts';
 import { MAX_DELAY_SECONDS } from './broadcast-delay.ts';
-import { isRevealed, MAX_REVEALED, type SpoilerSettings, withRevealed } from './spoilers.ts';
+import { MAX_REVEALED, mergeRevealed, type ViewerSettings } from '@f1-live/shared/viewer';
+
+import { isRevealed, type SpoilerSettings, withRevealed } from './spoilers.ts';
 
 /** Seconds the live screen runs behind the feed, to match the viewer's TV. */
 export const delayStore = createLocalStore(
@@ -19,6 +21,18 @@ export const delayStore = createLocalStore(
  * it off before stays off.
  */
 export const spoilerProtectionStore = createLocalStore('pitwall-spoiler-free', z.boolean(), true);
+
+/** When the viewer last turned protection on or off, so the newer change wins across devices. */
+const protectionChangedStore = createLocalStore(
+	'pitwall-spoiler-changed',
+	z.iso.datetime().nullable(),
+	null
+);
+
+export function setSpoilerProtection(protect: boolean): void {
+	spoilerProtectionStore.set(protect);
+	protectionChangedStore.set(new Date().toISOString());
+}
 
 /** Sessions whose results the viewer has seen, newest last. */
 export const revealedStore = createLocalStore(
@@ -60,4 +74,31 @@ export const eventFilterStore = createLocalStore(
 /** Delay steps of a tenth, without the float drift of adding 0.1 repeatedly. */
 export function stepDelay(seconds: number, step: number): number {
 	return Math.min(Math.max(Math.round((seconds + step) * 10) / 10, 0), MAX_DELAY_SECONDS);
+}
+
+/** The spoiler settings on this device, as the account keeps them. */
+export function readViewerSettings(): ViewerSettings {
+	return {
+		protect: spoilerProtectionStore.get(),
+		protectUpdatedAt: protectionChangedStore.get(),
+		revealed: revealedStore.get()
+	};
+}
+
+/**
+ * Takes in the account's settings: every session revealed anywhere, and protection as last
+ * changed. Reveals made here while the account answered are kept.
+ */
+export function adoptViewerSettings(account: ViewerSettings): void {
+	const revealed = revealedStore.get();
+	const merged = mergeRevealed(revealed, account.revealed);
+
+	if (merged.join() !== revealed.join()) {
+		revealedStore.set(merged);
+	}
+
+	if ((account.protectUpdatedAt ?? '') > (protectionChangedStore.get() ?? '')) {
+		spoilerProtectionStore.set(account.protect);
+		protectionChangedStore.set(account.protectUpdatedAt);
+	}
 }

@@ -254,18 +254,19 @@ The account API is real (`server/src/accounts/routes.ts`, on when the server has
 dashboard is one JSON document with a version; a device sends the version it last saw and when it
 made the edit, and the server keeps whichever edit is newer.
 
-| Endpoint                        | Body / response                                                  |
-| ------------------------------- | ---------------------------------------------------------------- |
-| `/api/auth/*`                   | Better Auth: magic link, Google, Apple, sign-out                 |
-| `GET /api/me`                   | The account, its plan and entitlements, or `null`                |
-| `GET /api/me/dashboards`        | `{ documents }`; a deleted dashboard has `dashboard: null`       |
-| `PUT /api/me/dashboards/:id`    | `{ dashboard, baseVersion, updatedAt }` → 200, 409 newer, 403    |
-| `DELETE /api/me/dashboards/:id` | `{ baseVersion, updatedAt }` → 200 or 409 newer                  |
-| `GET /api/me/export`            | Everything the account holds, as a JSON download                 |
-| `DELETE /api/me`                | `{ confirm: email }`; ends the subscription, then deletes it all |
-| `POST /api/billing/checkout`    | `{ interval }` → the provider's checkout `{ url }`               |
-| `POST /api/billing/portal`      | The provider's billing page `{ url }`                            |
-| `POST /api/billing/webhook`     | Signed provider events                                           |
+| Endpoint                        | Body / response                                                    |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `/api/auth/*`                   | Better Auth: magic link, Google, Apple, sign-out                   |
+| `GET /api/me`                   | The account, its plan and entitlements, or `null`                  |
+| `GET /api/me/dashboards`        | `{ documents }`; a deleted dashboard has `dashboard: null`         |
+| `PUT /api/me/dashboards/:id`    | `{ dashboard, baseVersion, updatedAt }` → 200, 409 newer, 403      |
+| `DELETE /api/me/dashboards/:id` | `{ baseVersion, updatedAt }` → 200 or 409 newer                    |
+| `PUT /api/me/viewer`            | Spoiler settings `{ protect, protectUpdatedAt, revealed }`, merged |
+| `GET /api/me/export`            | Everything the account holds, as a JSON download                   |
+| `DELETE /api/me`                | `{ confirm: email }`; ends the subscription, then deletes it all   |
+| `POST /api/billing/checkout`    | `{ interval }` → the provider's checkout `{ url }`                 |
+| `POST /api/billing/portal`      | The provider's billing page `{ url }`                              |
+| `POST /api/billing/webhook`     | Signed provider events                                             |
 
 The library is still mocked in `client/src/features/library/`, and its types are the payloads.
 

@@ -214,6 +214,33 @@ describe('accounts API', () => {
 		assert.equal(forged.statusCode, 400);
 	});
 
+	it('merges spoiler settings from two devices and exports them', async () => {
+		const cookie = await signIn('watcher@example.test');
+
+		const first = await call('PUT', '/api/me/viewer', {
+			cookie,
+			body: { protect: true, protectUpdatedAt: null, revealed: ['9858'] }
+		});
+
+		assert.equal(first.status, 200, first.body);
+
+		const second = await call('PUT', '/api/me/viewer', {
+			cookie,
+			body: { protect: false, protectUpdatedAt: '2026-10-03T09:00:00.000Z', revealed: ['11373'] }
+		});
+
+		assert.deepEqual(second.json(), {
+			protect: false,
+			protectUpdatedAt: '2026-10-03T09:00:00.000Z',
+			revealed: ['9858', '11373']
+		});
+		assert.match((await call('GET', '/api/me/export', { cookie })).body, /11373/);
+		assert.equal(
+			(await call('PUT', '/api/me/viewer', { body: { protect: true, revealed: [] } })).status,
+			401
+		);
+	});
+
 	it('exports the account, then deletes it and everything under it', async () => {
 		const cookie = await signIn('leaver@example.test');
 

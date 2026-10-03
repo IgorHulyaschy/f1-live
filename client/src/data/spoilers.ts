@@ -4,11 +4,10 @@
  * standings and library that list sessions (docs/product/flows.md#spoilers).
  */
 
+import { MAX_REVEALED } from '@f1-live/shared/viewer';
+
 /** What the viewer chose: protection on or off, and the sessions whose results they have seen. */
 export type SpoilerSettings = { protect: boolean; revealed: readonly string[] };
-
-/** Reveals kept per viewer, newest last: a few seasons of sessions. */
-export const MAX_REVEALED = 200;
 
 /** The viewer may see this session's result: protection is off, or they revealed it. */
 export function isRevealed(settings: SpoilerSettings, sessionKey: string): boolean {
@@ -55,11 +54,4 @@ export function spoilerSafeStep({
 /** The reveals with `sessionKey` added as the newest, the oldest dropped past the limit. */
 export function withRevealed(revealed: readonly string[], sessionKey: string): string[] {
 	return [...revealed.filter((key) => key !== sessionKey), sessionKey].slice(-MAX_REVEALED);
-}
-
-/** Two devices' reveals together, as an account keeps them: this device's order, then the rest. */
-export function mergeRevealed(local: readonly string[], remote: readonly string[]): string[] {
-	const merged = [...remote.filter((key) => !local.includes(key)), ...local];
-
-	return merged.slice(-MAX_REVEALED);
 }
