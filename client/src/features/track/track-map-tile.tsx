@@ -43,7 +43,9 @@ function useDrsZones(track: TrackReady): readonly Zone[] | null {
 			const index = await telemetry.loadLapIndex(track.sessionKey, path);
 
 			const laps = await Promise.all(
-				lapsForZones(index).map((entry) => telemetry.loadLap(track.sessionKey, entry.file))
+				lapsForZones(index, race.laps).map((entry) =>
+					telemetry.loadLap(track.sessionKey, entry.file)
+				)
 			);
 
 			if (!cancelled) {
@@ -57,7 +59,7 @@ function useDrsZones(track: TrackReady): readonly Zone[] | null {
 		return () => {
 			cancelled = true;
 		};
-	}, [drs, lapsPath, telemetry, track.sessionKey]);
+	}, [drs, lapsPath, telemetry, track.sessionKey, race.laps]);
 
 	return drs && zones?.key === track.sessionKey && zones.zones.length > 0 ? zones.zones : null;
 }
@@ -236,12 +238,7 @@ function TrackMapBody({
 					camera={camera}
 					look={look}
 				/>
-				<div className="hidden w-36 shrink-0 @4xl:flex">
-					<CarOrder places={places} visible />
-				</div>
-				<div className="@4xl:hidden">
-					<CarOrder places={places} visible={false} />
-				</div>
+				<CarOrder places={places} />
 			</div>
 			<MapNote places={places}>
 				{paint === 'sectors' && sectors.note ? <span>{sectors.note}</span> : null}

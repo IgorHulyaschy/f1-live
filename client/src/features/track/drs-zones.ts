@@ -1,4 +1,4 @@
-import type { LapIndex, LapTelemetry } from '@f1-live/shared';
+import type { Lap, LapIndex, LapTelemetry } from '@f1-live/shared';
 
 /** A stretch of the lap, in metres from the line; `toM` below `fromM` wraps past the line. */
 export type Zone = { fromM: number; toM: number };
@@ -70,19 +70,35 @@ export function drsZones(laps: readonly Pick<LapTelemetry, 'd' | 'drs'>[]): Zone
 		.toSorted((a, b) => a.fromM - b.fromM);
 }
 
-/** Laps to read for the zones: clean racing laps of several drivers from mid-session. */
-export function lapsForZones(index: LapIndex): LapIndex['laps'][number][] {
-	const candidates = index.laps.filter(
-		(lap) => !lap.partial && !lap.pitIn && !lap.pitOut && lap.lap > 3
+/** A car this close to the one ahead at the line has DRS on its next lap. */
+const DRS_GAP_MS = 900;
+
+/**
+ * Laps to read for the zones: the flap opens only within a second of the car ahead, so the laps
+ * after a car crossed the line that close behind another, from several drivers.
+ */
+export function lapsForZones(index: LapIndex, laps: readonly Lap[]): LapIndex['laps'][number][] {
+	const following = new Set(
+		laps.flatMap((lap) =>
+			lap.lap > 2 &&
+			lap.trackStatus === 'green' &&
+			lap.intervalMs > 0 &&
+			lap.intervalMs < DRS_GAP_MS
+				? [`${lap.driverNumber}-${lap.lap + 1}`]
+				: []
+		)
 	);
 
 	const byDriver = new Map<string, LapIndex['laps'][number]>();
 
-	for (const lap of candidates) {
-		const kept = byDriver.get(lap.driverNumber);
-
-		if (!kept || Math.abs(lap.lap - 20) < Math.abs(kept.lap - 20)) {
-			byDriver.set(lap.driverNumber, lap);
+	for (const entry of index.laps) {
+		if (
+			!entry.pitIn &&
+			!entry.pitOut &&
+			!byDriver.has(entry.driverNumber) &&
+			following.has(`${entry.driverNumber}-${entry.lap}`)
+		) {
+			byDriver.set(entry.driverNumber, entry);
 		}
 	}
 

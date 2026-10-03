@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { useStableValue } from '../hooks/use-stable-value.ts';
 import { createLocalStore } from '../lib/local-store.ts';
 import { type Catalog, defaultSessionKey, findSession, type SessionEntry } from './catalog.ts';
-import { delayedSnapshot } from './broadcast-delay.ts';
+import { delayedSnapshot, feedClock } from './broadcast-delay.ts';
 import {
 	LiveFeed,
 	type LiveConnection,
@@ -40,6 +40,8 @@ type LiveView = {
 	setDelaySeconds: (seconds: number) => void;
 	/** Car positions from the live feed; null for a source without one. */
 	positions: LivePositionsFeed | null;
+	/** The feed's clock now, behind by the delay: where a map draws the session between messages. */
+	feedTime: () => number;
 };
 
 type Spoilers = {
@@ -714,6 +716,8 @@ export function RaceProvider({
 		sameOrder
 	);
 
+	const arrivals = liveState.arrivals;
+
 	const live = React.useMemo<LiveView>(
 		() => ({
 			isLive,
@@ -723,9 +727,10 @@ export function RaceProvider({
 			backToLive,
 			delaySeconds,
 			setDelaySeconds: delayStore.set,
-			positions: liveFeed
+			positions: liveFeed,
+			feedTime: () => feedClock(arrivals, Date.now(), delaySeconds * 1000)
 		}),
-		[isLive, following, liveState.connection, liveKey, backToLive, delaySeconds, liveFeed]
+		[isLive, following, liveState.connection, liveKey, backToLive, delaySeconds, liveFeed, arrivals]
 	);
 
 	const spoilers = React.useMemo<Spoilers>(

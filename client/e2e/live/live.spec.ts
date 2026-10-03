@@ -59,6 +59,18 @@ test.afterAll(() => {
 	replay?.kill();
 });
 
+test('live without car positions estimates the map from timing, and says why', async ({ page }) => {
+	await openRace(page, '/d/track');
+
+	await expect(page.getByTestId('live-key')).toHaveText('Live');
+
+	const map = page.getByTestId('track-map');
+
+	await expect(map.getByText('Estimated', { exact: true })).toBeVisible();
+	await expect(map.getByTestId('map-note')).toContainText('live car positions need an F1 TV login');
+	await expect(map.getByTestId('map-car-list').getByRole('listitem')).not.toHaveCount(0);
+});
+
 test('a live race updates the tower, steps back and returns, and runs behind with a delay', async ({
 	page,
 	browser

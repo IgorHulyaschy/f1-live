@@ -236,6 +236,7 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 
 	const hints = React.useRef(new Map<string, number>());
 	const delayMs = live.delaySeconds * 1000;
+	const feedTime = live.feedTime;
 	const span = replay?.span;
 	const replayTime = timeline ? stepTime(timeline, lap) : 0;
 	const replayCovers = span !== undefined && replayTime >= span.from && replayTime <= span.to;
@@ -269,7 +270,7 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 				time =
 					useLivePositions && liveBuffer.buffer && !liveBuffer.buffer.empty
 						? liveBuffer.buffer.feedTime(perf) - delayMs - LIVE_LAG_MS
-						: Date.now() - delayMs;
+						: feedTime();
 			} else {
 				time = replayClock.now(
 					reducedMotion && replayClock.running
@@ -336,6 +337,7 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 			useLivePositions,
 			liveBuffer.buffer,
 			delayMs,
+			feedTime,
 			replayClock,
 			reducedMotion,
 			replay,

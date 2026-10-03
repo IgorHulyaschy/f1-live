@@ -170,8 +170,9 @@ function PitRejoinBody({ track }: { track: TrackReady }) {
 
 			const width = ctx.measureText(label).width + 10 * unit;
 			const height = 15 * unit;
-			const left = x + 12 * unit;
-			const top = y - 20 * unit;
+			// Beside the ghost, on whichever side keeps the label inside the map.
+			const left = x + 12 * unit + width > view.width ? x - 12 * unit - width : x + 12 * unit;
+			const top = Math.max(2, y - 20 * unit);
 
 			ctx.fillStyle = theme.panel;
 			ctx.fillRect(left, top, width, height);

@@ -82,7 +82,7 @@ export function MapNote({
 				: 'Estimated from timing: this session has no car positions.';
 	}
 
-	if (!note && !children) {
+	if (!note && React.Children.toArray(children).length === 0) {
 		return null;
 	}
 
@@ -128,7 +128,7 @@ export function usePlacesNow(places: PlacesSampler, everyMs: number): Places | n
  * The text alternative to a map: cars in their order on the road, refreshed every couple of
  * seconds rather than every frame. Wide tiles show it as a legend whose rows follow a driver.
  */
-export function CarOrder({ places, visible }: { places: PlacesSampler; visible: boolean }) {
+export function CarOrder({ places }: { places: PlacesSampler }) {
 	const { race, followedDriver, setFollowedDriver } = useRace();
 	const cars = usePlacesNow(places, LIST_EVERY_MS)?.cars ?? NO_CARS;
 
@@ -137,7 +137,7 @@ export function CarOrder({ places, visible }: { places: PlacesSampler; visible: 
 	return (
 		<ol
 			aria-label="Cars in order on the road"
-			className={cn(visible ? 'flex flex-col overflow-y-auto border-l py-1' : 'sr-only')}
+			className="sr-only @4xl:not-sr-only @4xl:flex @4xl:w-36 @4xl:shrink-0 @4xl:flex-col @4xl:overflow-y-auto @4xl:border-l @4xl:py-1"
 			data-testid="map-car-list"
 		>
 			{cars.map((car, index) => {
