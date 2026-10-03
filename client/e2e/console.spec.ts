@@ -69,7 +69,9 @@ for (const path of ['/', '/analysis', '/strategy', '/d/story']) {
 test('race control filters to the followed driver', async ({ page }) => {
 	await openRace(page, '/?driver=23&lap=30');
 
-	await page.getByRole('radio', { name: 'Mine' }).click();
+	const feed = page.getByRole('region', { name: 'Race control' });
+
+	await feed.getByRole('radio', { name: 'Mine' }).click();
 
 	const items = page.getByTestId('race-control').getByRole('listitem');
 	await expect(items.first()).toContainText('ALB');

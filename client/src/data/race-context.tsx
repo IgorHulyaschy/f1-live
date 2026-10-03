@@ -71,6 +71,9 @@ type RaceContextValue = {
 	stepLap: (delta: number) => void;
 	playing: boolean;
 	setPlaying: (playing: boolean) => void;
+	/** Playback moves this many laps or minutes every second and a half. */
+	speed: PlaybackSpeed;
+	setSpeed: (speed: PlaybackSpeed) => void;
 	plan: Plan;
 	setPlan: (plan: Plan) => void;
 	followedDriver: string;
@@ -153,6 +156,10 @@ const followedDriverStore = createLocalStore<string | null>(
 );
 
 const PLAYBACK_INTERVAL_MS = 1500;
+
+export const PLAYBACK_SPEEDS = [1, 2, 4] as const;
+
+export type PlaybackSpeed = (typeof PLAYBACK_SPEEDS)[number];
 
 /** Race state shared by every open Pitwall window, so tiles on other monitors stay in step. */
 const SYNC_CHANNEL = 'pitwall-race';
@@ -515,6 +522,7 @@ export function RaceProvider({
 	const isLive = Boolean(shown?.fromFeed && !isSessionOver(shown.race.status ?? 'inactive'));
 	// This window drives playback; `mirroring` means another window is playing and we follow it.
 	const [playing, setLocalPlaying] = React.useState(false);
+	const [speed, setSpeed] = React.useState<PlaybackSpeed>(1);
 	const [mirroring, setMirroring] = React.useState(false);
 
 	const updateParams = React.useCallback(
@@ -628,10 +636,10 @@ export function RaceProvider({
 			} else {
 				stepLap(1);
 			}
-		}, PLAYBACK_INTERVAL_MS);
+		}, PLAYBACK_INTERVAL_MS / speed);
 
 		return () => window.clearInterval(timer);
-	}, [drivesPlayback, stepLap, isLive, maxLap, defaultLap, backToLive]);
+	}, [drivesPlayback, stepLap, isLive, maxLap, defaultLap, backToLive, speed]);
 
 	const setPlaying = React.useCallback(
 		(next: boolean) => {
@@ -726,6 +734,8 @@ export function RaceProvider({
 						stepLap,
 						playing: isPlaying,
 						setPlaying,
+						speed,
+						setSpeed,
 						plan,
 						setPlan: (nextPlan) => {
 							updateParam('plan', nextPlan);
@@ -754,6 +764,7 @@ export function RaceProvider({
 			cutTime,
 			isPlaying,
 			setPlaying,
+			speed,
 			plan,
 			followedDriver,
 			updateParam,

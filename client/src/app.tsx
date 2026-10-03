@@ -137,6 +137,14 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 									<dd className="text-foreground">Space</dd>
 								</div>
 								<div className="flex gap-1.5">
+									<dt>Events</dt>
+									<dd className="text-foreground">⇧← →</dd>
+								</div>
+								<div className="flex gap-1.5">
+									<dt>Live</dt>
+									<dd className="text-foreground">L</dd>
+								</div>
+								<div className="flex gap-1.5">
 									<dt>Dashboards</dt>
 									<dd className="text-foreground">1–9</dd>
 								</div>

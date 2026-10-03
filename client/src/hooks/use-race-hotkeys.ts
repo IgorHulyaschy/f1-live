@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { useRace } from '@/data/race-context';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
+import { useEventJump } from '@/features/session/timeline';
 
 function isTyping(target: EventTarget | null): boolean {
 	return (
@@ -13,14 +14,20 @@ function isTyping(target: EventTarget | null): boolean {
 }
 
 /**
- * ← → step laps, Space plays, 1–9 switch dashboards in the top bar's order, ⌘K or / opens the
- * palette.
+ * ← → step laps, Shift with them jumps between events, Space plays, L goes back to live, 1–9
+ * switch dashboards in the top bar's order, ⌘K or / opens the palette.
  */
 export function useRaceHotkeys(openCommand: () => void): void {
-	const { stepLap, playing, setPlaying } = useRace();
+	const { stepLap, playing, setPlaying, live } = useRace();
 	const navigate = useNavigate();
 	const search = useCarriedSearch();
 	const { all: pages } = useDashboardNav();
+	const jump = useEventJump();
+	const jumpRef = React.useRef(jump);
+
+	React.useEffect(() => {
+		jumpRef.current = jump;
+	});
 
 	React.useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
@@ -44,10 +51,15 @@ export function useRaceHotkeys(openCommand: () => void): void {
 
 			if (page) {
 				void navigate({ pathname: page.path, search });
+			} else if (event.shiftKey && (event.key === 'ArrowRight' || event.key === 'ArrowLeft')) {
+				event.preventDefault();
+				jumpRef.current(event.key === 'ArrowRight' ? 1 : -1);
 			} else if (event.key === 'ArrowRight') {
 				stepLap(1);
 			} else if (event.key === 'ArrowLeft') {
 				stepLap(-1);
+			} else if (event.key.toLowerCase() === 'l' && live.isLive) {
+				live.backToLive();
 			} else if (event.key === ' ' && !(event.target instanceof HTMLButtonElement)) {
 				event.preventDefault();
 				setPlaying(!playing);
@@ -60,5 +72,5 @@ export function useRaceHotkeys(openCommand: () => void): void {
 		window.addEventListener('keydown', onKeyDown);
 
 		return () => window.removeEventListener('keydown', onKeyDown);
-	}, [navigate, search, pages, stepLap, playing, setPlaying, openCommand]);
+	}, [navigate, search, pages, stepLap, playing, setPlaying, openCommand, live]);
 }

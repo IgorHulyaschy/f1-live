@@ -5,7 +5,6 @@ import { Key } from '@/components/console/keys';
 import { EmptyNote } from '@/components/console/empty-note';
 import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { LapStrip } from '@/components/lap-strip';
-import { DelayControl, LapCounter, Transport } from '@/components/race-clock';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { formatLocalStart, formatUntil, SESSION_TYPE_LABEL } from '@/data/catalog';
 import { useRaceView } from '@/data/race-context';
@@ -95,20 +94,6 @@ export function SessionTile() {
 				</p>
 			) : null}
 			<SessionPickerDialog open={picking} onOpenChange={setPicking} />
-		</section>
-	);
-}
-
-/** Transport keys and, on the clock, the minute; on a live session, the broadcast delay. */
-export function ReplayTile() {
-	return (
-		<section
-			aria-label="Replay"
-			className="@container flex h-full min-w-0 flex-wrap items-end justify-between gap-x-5 gap-y-3 py-2 @xs:justify-end"
-		>
-			<DelayControl />
-			<Transport />
-			<LapCounter />
 		</section>
 	);
 }

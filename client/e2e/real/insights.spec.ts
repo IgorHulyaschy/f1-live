@@ -91,7 +91,9 @@ test.describe('qualifying', () => {
 		// Norris took pole with 1:47.934.
 		await expect(page.getByTestId('telemetry-slot-A')).toContainText('1:47.934');
 		await expect(page.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
-		await expect(page.getByTestId('story').getByTestId('story-ribbon')).toBeVisible();
+		// The timeline marks where each part starts.
+		await expect(page.getByTestId('timeline')).toContainText('Q2');
+		await expect(page.getByTestId('timeline')).toContainText('Q3');
 
 		await openRace(page, '/strategy?session=9854&plan=pro');
 

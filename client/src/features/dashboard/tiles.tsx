@@ -13,12 +13,8 @@ import { KnockoutPanel } from '@/features/live/knockout-panel';
 import { BoxNowPanel, GapsPanel } from '@/features/live/focus-tiles';
 import { RaceControlFeed } from '@/features/live/race-control-feed';
 import { TimingTower } from '@/features/live/timing-tower';
-import {
-	LapStripTile,
-	ReplayTile,
-	SessionTile,
-	WeatherTile
-} from '@/features/session/session-tiles';
+import { LapStripTile, SessionTile, WeatherTile } from '@/features/session/session-tiles';
+import { Timeline } from '@/features/session/timeline';
 import { Degradation } from '@/features/strategy/degradation';
 import { LongRuns } from '@/features/strategy/long-runs';
 import { PitCost } from '@/features/strategy/pit-cost';
@@ -74,7 +70,7 @@ export function TileContent({
 		}
 
 		case 'replay': {
-			return <ReplayTile />;
+			return <Timeline />;
 		}
 
 		case 'lap-strip': {

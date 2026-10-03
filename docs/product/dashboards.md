@@ -2,28 +2,114 @@
 
 The whole screen is tiles. A dashboard is a list of tiles plus where each one sits on a
 24-column grid, and every part of the screen is a tile: the race title, the replay keys, the
-lap strip, timing and charts. The top bar keeps only navigation, the plan and the theme. It
-also shows the lap when the dashboard on screen has no Replay tile.
+lap strip, timing and charts. The top bar keeps only navigation, the plan and the theme. Under
+it, the live strip says which session is on screen and how it stands, on every page.
 
 Everything here runs in the browser, and keeps working with no account. Signed in, the
 dashboards also sync to the account. The fan library is still a mock, with the shape listed under
 [Backend contract](#backend-contract).
 
+## The live strip
+
+One line under the top bar, always in view:
+
+- **Live or not.** "Live" lit like an on-air sign while the screen follows a running session;
+  "Back to live" after stepping back; "Stale" or "Reconnecting" when the feed stops; "Replay" or
+  "Upcoming" otherwise.
+- **The session.** The meeting, the session and, in qualifying, the part (Q2, SQ1).
+- **The clock.** The time left in the part or session, large, from the feed's own clock
+  (`ExtrapolatedClock`, kept as the snapshot's `clockLog`); "Held" while a red flag stops it.
+  Races show the lap instead: `Lap 30/50`, printed once on the page.
+- **The flag, and who matters.** Track status, then the leader in a race, the fastest lap in
+  practice, and in qualifying the cars still to run and the drop zone: who goes out if the part
+  ended now.
+- **Elsewhere.** On another session while one is live: "Live now" with a one-click Watch live.
+  With nothing live: the next session, its start in the viewer's time and a countdown. The
+  Sessions key and, spoiler-free, Show results sit at the end; so do the replay keys when the
+  dashboard on screen has no Replay tile.
+
+On a phone the strip keeps the state, the part, the clock and the flag on one line, and the drop
+zone on a second.
+
+## The timeline
+
+The Replay tile is the session's timeline, at the top of every ready-made dashboard:
+
+- **Play, speed and steps.** Previous and next lap (or minute), play and pause, and one key that
+  cycles the speed: 1×, 2×, 4×.
+- **Events.** The start (each part's start in qualifying), each flag as it comes out, the lead
+  and fastest laps, passes made on track, stops, penalties and cars out, as markers over the
+  barcode in their own colours. Hover one for what happened; click it to go there. The event keys
+  jump to the previous or next event, filtered: All, Flags, Stops, or Mine (the followed driver).
+- **Scrubbing.** The race barcode is the track: click or drag along it to move the replay; the
+  line under it says what happened at the lap or minute on screen.
+- **Live.** On a running session it also holds the broadcast delay; "Back to live" is on the
+  live strip, always in view.
+- **Keys.** ← → step, Shift with them jumps between events, Space plays, L goes back to live; the
+  footer prints them on desktop.
+
+A short tile (three rows or fewer) keeps the keys and the barcode and leaves out the speed, the
+filter and the line under it. Spoiler-free, only the events already shown are marked.
+
+## Session layouts
+
+`/` opens the layout for the session on screen, and the first tab is named for it: Race (races
+and sprints), Quali (qualifying and sprint qualifying) or Practice. Opening the app while a
+session runs lands on it; when a session goes live with nothing in the address, the screen moves
+to it and its layout.
+
+| Layout   | For                        | Tiles                                                                   |
+| -------- | -------------------------- | ----------------------------------------------------------------------- |
+| Race     | The order and the strategy | Replay, Timing, Focus, Race control, Stints                             |
+| Quali    | Who is through, who is out | Timing with the cut lines, Replay, Knockout, Race control, Best sectors |
+| Practice | Pace, race runs and tyres  | Timing, Replay, Long runs, Race control, Stints                         |
+
+- **Tiles for another kind of session** are left out of the session layouts. On the viewer's
+  own dashboards and the other ready-made ones they shrink to one line saying what they are
+  for, such as "Box now, races only"; editing shows them as saved, and nothing is changed.
+- **Tabs follow the session.** Next to the session's layout come the ready-made dashboards that
+  suit it (Strategy, Battle and Analysis on race day; Analysis in qualifying; Analysis and
+  Strategy in practice), then the viewer's own. Every other ready-made dashboard is under More,
+  and all of them are in ⌘K and the Library. Number keys follow the same order.
+- **The viewer's own dashboards are never replaced.** On one built for another kind of session
+  (it holds tiles that mean nothing in this one), a line offers "Switch to the Quali layout", Not
+  now, or Don't ask again. The answer is saved on that dashboard (`sessionOffer: false`), so it
+  syncs with the account like the rest of it.
+- **Track map slot.** The track map (T14) has its place kept in the Race and Quali layouts; see
+  the comment above `PRESETS` in `client/src/features/dashboard/dashboards.ts`.
+
 ## What ships by default
 
-| Ready-made | For                      | Tiles                                                                                               |
-| ---------- | ------------------------ | --------------------------------------------------------------------------------------------------- |
-| Live       | Race day on one screen   | Session, Replay, Lap strip, Timing, Focus, Race control                                             |
-| Analysis   | Lap charts               | Lap strip, Replay, Story strip, Compare, Chart, Telemetry, True pace, Fastest laps                  |
-| Strategy   | Tyres and stops          | Lap strip, Replay, Story strip, Stints, Tyre wear, Pit stops, Undercut ledger, Stop cost, Pit crews |
-| Battle     | Your driver's fight      | Lap strip, Replay, Timing, Battle chart, Gaps, Box now                                              |
-| Drivers    | Faces and cars           | Session, Replay, Grid, Driver, Positions chart                                                      |
-| Pit wall   | A TV or a second monitor | Timing, Focus, Race control, Gap chart, Stints; fit to screen                                       |
-| Race story | What happened, and why   | Session, Replay, Story, Positions chart, Championship, Race control, Conditions                     |
+| Ready-made | For                      | Tiles                                                                           |
+| ---------- | ------------------------ | ------------------------------------------------------------------------------- |
+| Race       | Race day on one screen   | Replay, Timing, Focus, Race control, Stints                                     |
+| Quali      | Qualifying on one screen | Timing, Replay, Knockout, Race control, Best sectors                            |
+| Practice   | Practice on one screen   | Timing, Replay, Long runs, Race control, Stints                                 |
+| Analysis   | Lap charts               | Replay, Compare, Chart, Telemetry, True pace, Fastest laps                      |
+| Strategy   | Tyres and stops          | Replay, Stints, Tyre wear, Pit stops, Undercut ledger, Stop cost, Pit crews     |
+| Battle     | Your driver's fight      | Replay, Timing, Battle chart, Gaps, Box now                                     |
+| Drivers    | Faces and cars           | Session, Replay, Grid, Driver, Positions chart                                  |
+| Pit wall   | A TV or a second monitor | Timing, Focus, Race control, Gap chart, Stints; fit to screen                   |
+| Race story | What happened, and why   | Session, Replay, Story, Positions chart, Championship, Race control, Conditions |
 
-Viewers can edit any of them; Reset puts it back as shipped. There are 25 tiles in 5 groups
-(Race, Drivers, Timing, Analysis, Strategy). Five of them are Pro: Box now, True pace, Tyre wear,
+Viewers can edit any of them; Reset puts it back as shipped. Race keeps the id the Live preset
+had (`live`), so an edited Live opens as an edited Race. There are 28 tiles in 5 groups (Race,
+Drivers, Timing, Analysis, Strategy). Five of them are Pro: Box now, True pace, Tyre wear,
 Undercut ledger and Conditions.
+
+The three tiles the session layouts added:
+
+- **Knockout** (qualifying): pole, the car on the cut with the time to beat, the followed
+  driver's gap to the cut, the drop zone with each car's gap to the cut, whether it is out on
+  track or in the garage, and its tyre, then the last improvements with their sectors.
+- **Best sectors**: who holds each fastest sector, and every driver's ideal lap from their own
+  best sectors, with what their best lap left out there.
+- **Long runs** (practice): each driver's longest run of five or more clean laps on one set, its
+  average and fall-off per lap, or the laps run on each compound.
+
+The timing tower in qualifying shows the gap to the top of the part by default, a To cut column
+while a part runs, the drop zone's places in red, and a mark on each car that moved up in the
+last minute.
 
 ## Insights
 

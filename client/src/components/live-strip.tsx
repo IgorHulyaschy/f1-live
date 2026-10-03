@@ -239,7 +239,7 @@ export function LiveStrip() {
 		<section
 			aria-label="Session status"
 			data-testid="live-strip"
-			className="flex flex-wrap items-end gap-x-4 gap-y-1.5 border-t px-3 py-1.5 sm:gap-x-5 sm:px-4 md:px-6"
+			className="flex flex-wrap items-end gap-x-3 gap-y-1.5 border-t px-3 py-1.5 sm:gap-x-5 sm:px-4 md:px-6"
 		>
 			<StateMark />
 			<Reading
@@ -252,9 +252,7 @@ export function LiveStrip() {
 						{state.prefix}
 						{state.part}
 					</span>
-				) : (
-					<span className="type-wide text-xs font-bold sm:hidden">{name}</span>
-				)}
+				) : null}
 			</Reading>
 			{upcoming ? (
 				<>
@@ -285,7 +283,7 @@ export function LiveStrip() {
 						<TrackStatusBadge status={snapshot.trackStatus} />
 					</Reading>
 					{kind === 'race' && leader ? (
-						<Reading label="Leader" testId="strip-leader">
+						<Reading label="Leader" className="max-sm:hidden" testId="strip-leader">
 							<DriverReading driver={leader.driver} />
 						</Reading>
 					) : null}

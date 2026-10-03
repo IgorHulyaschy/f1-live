@@ -53,6 +53,12 @@ test.describe('a live race', () => {
 		await expect(page.getByTestId('lap-counter')).toHaveText('Lap 2/50');
 		await expect(page).not.toHaveURL(/lap=/);
 
+		// L goes back to live from the keyboard too.
+		await page.keyboard.press('ArrowLeft');
+		await expect(page.getByTestId('live-key')).toHaveText('Back to live');
+		await page.keyboard.press('l');
+		await expect(page.getByTestId('live-key')).toHaveText('Live');
+
 		await delayedContext.close();
 	});
 });
