@@ -67,9 +67,9 @@ export async function telemetryKeys(dataDir: string): Promise<number[]> {
 	return found.flat().toSorted((a, b) => a - b);
 }
 
-/** Forgets every saved outline, so the next builds draw them again from the raw files. */
-export async function removeOutlines(dataDir: string): Promise<void> {
-	await rm(path.join(telemetryDir(dataDir), 'circuits'), { recursive: true, force: true });
+/** Removes every session's telemetry and every saved outline, for a rebuild from the raw files alone. */
+export async function removeTelemetry(dataDir: string): Promise<void> {
+	await rm(telemetryDir(dataDir), { recursive: true, force: true });
 }
 
 function circuitFile(dataDir: string, circuitKey: string): string {

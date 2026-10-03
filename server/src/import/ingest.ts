@@ -83,8 +83,8 @@ function decodeFrames(frames: readonly TopicFrame[]): DecodedFrames {
 }
 
 /**
- * A session without telemetry in its raw files has none in the outputs either, so a folder left by
- * an earlier build is removed; a build that fails does not touch what is there.
+ * Telemetry that cannot be built is not left half there: the folder an earlier build made is
+ * removed, so the catalog never lists telemetry that the raw files no longer give.
  */
 async function ingestTelemetry(input: IngestInput): Promise<TelemetryOutcome> {
 	const { rawDir, key, dataDir } = input;
@@ -100,6 +100,8 @@ async function ingestTelemetry(input: IngestInput): Promise<TelemetryOutcome> {
 
 		return { status: 'built', bytes: await folderBytes(sessionTelemetryDir(dataDir, key)) };
 	} catch (error) {
+		await rm(sessionTelemetryDir(dataDir, key), { recursive: true, force: true });
+
 		return { status: 'failed', reason: error instanceof Error ? error.message : String(error) };
 	}
 }

@@ -197,7 +197,7 @@ describe('ingestSession', () => {
 			assert.equal(existsSync(index), true);
 		});
 
-		it('writes the events and the snapshot when the telemetry cannot be built, and keeps what was built before', async () => {
+		it('writes the events and the snapshot when the telemetry cannot be built, and removes what an earlier build left', async () => {
 			const dataDir = newRoot();
 			const rawDir = path.join(newRoot(), 'session');
 			const index = leaveTelemetry(dataDir);
@@ -210,7 +210,7 @@ describe('ingestSession', () => {
 			assert.equal(result.telemetry.status, 'failed');
 			assert.ok(result.events > 0);
 			assert.equal(readSnapshot(dataDir).session.id, '9858');
-			assert.equal(existsSync(index), true);
+			assert.equal(existsSync(index), false);
 		});
 	});
 });

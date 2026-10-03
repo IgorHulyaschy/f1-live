@@ -6,7 +6,7 @@ import type { IndexedSeason } from '../catalog/season-index.js';
 import { mapLimited } from '../pkg/http.js';
 import { fetchMeetingResults } from '../sources/openf1/fetch-result.js';
 import { folderBytes, openF1CacheOf, outputKeys, rawDirOf, writeCatalog } from '../sinks/files.js';
-import { removeOutlines, telemetryKeys } from '../telemetry/files.js';
+import { removeTelemetry, telemetryKeys } from '../telemetry/files.js';
 import { ArchiveMissing, fetchSeasonIndex, fetchSession } from './fetch.js';
 import { ingestSession } from './ingest.js';
 import type { IngestResult } from './ingest.js';
@@ -308,9 +308,10 @@ async function importFromDir(
 async function importFromLocal(options: ImportOptions): Promise<Imported> {
 	const outcomes: SessionOutcome[] = [];
 
-	// A circuit is drawn from the first session built, so only a rebuild from nothing is repeatable.
+	// A circuit is drawn from the first session built, so only a rebuild from nothing is repeatable,
+	// and telemetry of a session whose raw files are gone must not stay in the catalog.
 	if (options.telemetry) {
-		await removeOutlines(options.dataDir);
+		await removeTelemetry(options.dataDir);
 	}
 
 	for (const session of await discoverSessions(rawDirOf(options.dataDir))) {

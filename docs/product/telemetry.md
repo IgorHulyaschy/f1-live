@@ -18,7 +18,7 @@ every session whose raw files have `Position.z`, after the events and the snapsh
 server's end-of-session import does the same, since it runs the same import on the recording.
 `--no-telemetry` skips it and leaves what is on disk. A session without `Position.z`, a circuit
 key or a completed lap is reported as skipped, and the folder an earlier build left for it is
-removed; one that fails to build is listed in the report and does not fail the import. The
+removed; one that fails to build is listed in the report, loses its old folder too, and does not fail the import. The
 catalog says per session whether it has telemetry: `outputs.telemetry`.
 
 From code:
@@ -32,7 +32,7 @@ await buildTelemetry({ rawDir, key, dataDir }); // rawDir: the session's raw fol
 The outputs are deterministic: the same raw files give the same bytes, so a rebuild from raw
 hashes the same as the import did. A circuit's outline is drawn from the first session of it that
 is built, then saved and read back, and every later session measures its laps against that saved
-outline. A rebuild forgets the saved outlines and goes in path order, so the oldest session of a circuit
+outline. A rebuild removes all telemetry and saved outlines first and goes in path order, so the oldest session of a circuit
 draws it.
 
 It is idempotent and rebuilds from raw only. The whole 2025 Las Vegas race takes about 4.5 s.
