@@ -25,8 +25,8 @@ import { before, describe, it } from 'node:test';
 import { EMPTY_SNAPSHOT, applyEvent } from '@f1-live/shared';
 import type { RaceSnapshot } from '@f1-live/shared';
 
-import { RAW_DATA_DIR, readArchive } from './archive.ts';
-import { F1Decoder } from './decode.ts';
+import { RAW_DATA_DIR, readArchive } from './archive.js';
+import { F1Decoder } from './decode.js';
 
 const SESSION_DIR = path.join(RAW_DATA_DIR, '2025/2025-11-22_Las_Vegas_Grand_Prix/2025-11-22_Race');
 

@@ -4,14 +4,21 @@ import { inflateRawSync } from 'node:zlib';
 
 import { z } from 'zod';
 
-import { F1_TOPICS } from './decode.ts';
-import type { TopicFrame } from './decode.ts';
+import { F1_TOPICS } from './decode.js';
+import type { TopicFrame } from './decode.js';
 
 /** Where raw sessions are kept: `data/raw/<archive path>/<Topic>.jsonStream` at the repository root. */
 export const RAW_DATA_DIR = path.resolve(import.meta.dirname, '../../../../data/raw');
 
 /** Topics whose lines carry a `Utc` time, which pins a stream's offsets to the clock. */
 export const CLOCK_TOPICS = ['ExtrapolatedClock', 'Heartbeat'] as const;
+
+const STREAM_SUFFIX = '.jsonStream';
+
+/** A live recording's sidecars (raw-writer.ts): when its offsets start, and each subscribe result. */
+const RECORDING_FILE = '_recording.json';
+
+const SUBSCRIBE_STREAM = '_subscribe';
 
 /** One line of a `<Topic>.jsonStream` file. */
 export interface StreamLine {
@@ -23,6 +30,10 @@ export interface StreamLine {
 const LINE = /^(\d+):(\d{2}):(\d{2})\.(\d{3})(.*)$/;
 
 const clockSchema = z.object({ Utc: z.string() });
+
+const recordingSchema = z.object({ origin: z.iso.datetime() });
+
+const subscribeSchema = z.record(z.string(), z.unknown());
 
 /** Parses a `<Topic>.jsonStream` file: a UTF-8 BOM, then lines of `HH:MM:SS.mmm{json}`. */
 export function parseJsonStream(topic: string, text: string): StreamLine[] {
@@ -82,11 +93,9 @@ export function mergeStreams(
 
 /** The topics a session directory holds, including compressed ones such as `CarData.z`. */
 export async function archiveTopics(directory: string): Promise<string[]> {
-	const suffix = '.jsonStream';
-
 	return (await readdir(directory))
-		.filter((file) => file.endsWith(suffix))
-		.map((file) => file.slice(0, -suffix.length));
+		.filter((file) => file.endsWith(STREAM_SUFFIX) && !file.startsWith('_'))
+		.map((file) => file.slice(0, -STREAM_SUFFIX.length));
 }
 
 /**
@@ -97,28 +106,67 @@ export function inflatePayload(payload: string): string {
 	return inflateRawSync(Buffer.from(payload, 'base64')).toString('utf8');
 }
 
+async function readStream(directory: string, name: string): Promise<StreamLine[]> {
+	const text = await readFile(path.join(directory, `${name}${STREAM_SUFFIX}`), 'utf8');
+
+	return parseJsonStream(name, text);
+}
+
+/**
+ * Each topic's lines from a live recording's subscribe results: the full state of every topic
+ * at that moment, which the topic's own stream only updates.
+ */
+function subscribedLines(lines: readonly StreamLine[]): Map<string, StreamLine[]> {
+	const byTopic = new Map<string, StreamLine[]>();
+
+	for (const { offsetMs, data } of lines) {
+		for (const [topic, state] of Object.entries(subscribeSchema.parse(data))) {
+			byTopic.set(topic, [...(byTopic.get(topic) ?? []), { offsetMs, data: state }]);
+		}
+	}
+
+	return byTopic;
+}
+
 /**
  * Reads a session's `<Topic>.jsonStream` files as frames of any topic, the decoder's by default;
- * a topic without a file is skipped.
+ * a topic without a file is skipped. A live recording's subscribe results come first at their
+ * offset, and its own origin places it in time.
  */
 export async function readArchive(
 	directory: string,
 	topics: readonly string[] = F1_TOPICS
 ): Promise<TopicFrame[]> {
-	const present = new Set(await archiveTopics(directory));
-	const wanted = [...new Set([...topics, ...CLOCK_TOPICS])].filter((topic) => present.has(topic));
+	const files = new Set(await readdir(directory));
+
+	const subscribed = files.has(`${SUBSCRIBE_STREAM}${STREAM_SUFFIX}`)
+		? subscribedLines(await readStream(directory, SUBSCRIBE_STREAM))
+		: new Map<string, StreamLine[]>();
+
+	const wanted = [...new Set([...topics, ...CLOCK_TOPICS])].filter(
+		(topic) => files.has(`${topic}${STREAM_SUFFIX}`) || subscribed.has(topic)
+	);
 
 	const streams = new Map(
 		await Promise.all(
 			wanted.map(async (topic) => {
-				const text = await readFile(path.join(directory, `${topic}.jsonStream`), 'utf8');
+				const own = files.has(`${topic}${STREAM_SUFFIX}`) ? await readStream(directory, topic) : [];
+				const lines = [...(subscribed.get(topic) ?? []), ...own];
 
-				return [topic, parseJsonStream(topic, text)] as const;
+				return [topic, lines.toSorted((a, b) => a.offsetMs - b.offsetMs)] as const;
 			})
 		)
 	);
 
-	const startedAt = streamStartedAt(streams);
+	const startedAt = files.has(RECORDING_FILE)
+		? await recordingOrigin(directory)
+		: streamStartedAt(streams);
 
 	return mergeStreams(new Map([...streams].filter(([topic]) => topics.includes(topic))), startedAt);
+}
+
+async function recordingOrigin(directory: string): Promise<number> {
+	const text = await readFile(path.join(directory, RECORDING_FILE), 'utf8');
+
+	return Date.parse(recordingSchema.parse(JSON.parse(text)).origin);
 }

@@ -13,7 +13,7 @@
 		"test:unit": "node --import tsx --test 'src/**/*.test.ts'",
 		"migrations:generate": "npm run build && drizzle-kit generate",
 		"migrations:up": "drizzle-kit migrate",
-		"fetch:f1": "node src/sources/f1/fetch-archive.ts"
+		"fetch:f1": "tsx ./src/cli/fetch-f1.ts"
 	},
 	"dependencies": {
 		"@f1-live/shared": "0.1.0",

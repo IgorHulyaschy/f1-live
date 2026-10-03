@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, it } from 'node:test';
+import { after, describe, it } from 'node:test';
 import { deflateRawSync } from 'node:zlib';
 
 import { z } from 'zod';
@@ -12,10 +14,19 @@ import {
 	parseJsonStream,
 	readArchive,
 	streamStartedAt
-} from './archive.ts';
-import { F1_TOPICS } from './decode.ts';
+} from './archive.js';
+import { F1_TOPICS, F1Decoder } from './decode.js';
+import { RawWriter } from './raw-writer.js';
 
 const FIXTURES = path.join(import.meta.dirname, 'fixtures/2025-las-vegas-race');
+
+const roots: string[] = [];
+
+after(() => {
+	for (const root of roots) {
+		rmSync(root, { recursive: true, force: true });
+	}
+});
 
 describe('parseJsonStream', () => {
 	it('reads offsets and JSON after the BOM, with either line ending', () => {
@@ -119,6 +130,62 @@ describe('readArchive', () => {
 		assert.equal(
 			entries.parse(JSON.parse(inflatePayload(payload))).Entries[0]?.Utc,
 			'2025-11-23T03:06:27.2581019Z'
+		);
+	});
+});
+
+describe('readArchive on a live recording', () => {
+	it('starts each topic from the subscribe result and times it from the recording origin', async () => {
+		const root = mkdtempSync(path.join(tmpdir(), 'pitwall-archive-'));
+		const sessionPath = '2026/2026-10-04_Bahrain_Grand_Prix/2026-10-03_Practice_3/';
+		const origin = Date.parse('2026-10-03T04:15:00.000Z');
+
+		const writer = new RawWriter(
+			root,
+			() => undefined,
+			() => origin
+		);
+
+		roots.push(root);
+		writer.writeSnapshot({
+			SessionInfo: { Key: 11729, Name: 'Practice 3', Path: sessionPath },
+			DriverList: {
+				'1': {
+					Tla: 'VER',
+					FirstName: 'Max',
+					LastName: 'Verstappen',
+					TeamName: 'Red Bull Racing',
+					TeamColour: '4781D7'
+				}
+			},
+			TimingData: { Lines: { '1': { Position: '1', NumberOfLaps: 3 } } }
+		});
+		writer.writeFrame({
+			topic: 'TimingData',
+			payload: { Lines: { '1': { NumberOfLaps: 4, LastLapTime: { Value: '1:33.365' } } } },
+			timestamp: new Date(origin + 90_000).toISOString()
+		});
+		writer.close();
+
+		const frames = await readArchive(path.join(root, sessionPath));
+
+		assert.deepEqual(
+			frames.map((frame) => [frame.topic, frame.timestamp - origin]),
+			[
+				['SessionInfo', 0],
+				['DriverList', 0],
+				['TimingData', 0],
+				['TimingData', 90_000]
+			]
+		);
+
+		const decoder = new F1Decoder();
+
+		assert.deepEqual(
+			frames
+				.flatMap((frame) => decoder.decode(frame))
+				.flatMap((event) => (event.kind === 'lap_completed' ? [event.lap] : [])),
+			[3, 4]
 		);
 	});
 });

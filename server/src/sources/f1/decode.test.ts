@@ -6,9 +6,9 @@ import { describe, it } from 'node:test';
 import { EMPTY_SNAPSHOT, applyEvent } from '@f1-live/shared';
 import type { RaceEvent } from '@f1-live/shared';
 
-import { mergeStreams, parseJsonStream } from './archive.ts';
-import { F1Decoder, parseDuration } from './decode.ts';
-import type { TopicFrame } from './decode.ts';
+import { mergeStreams, parseJsonStream } from './archive.js';
+import { F1Decoder, parseDuration } from './decode.js';
+import type { TopicFrame } from './decode.js';
 
 /** Trimmed from the 2025 Las Vegas race (archive key 9858), one file per topic. */
 const FIXTURES = path.join(import.meta.dirname, 'fixtures/2025-las-vegas-race');

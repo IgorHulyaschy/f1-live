@@ -1,17 +1,9 @@
-/**
- * Downloads one session of the official timing archive into `data/raw/<archive path>/`, in the
- * archive's own format, so tests and imports run without the network:
- *
- *     npm run fetch:f1 -w server -- 9858
- */
-
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 import { z } from 'zod';
 
-import { RAW_DATA_DIR } from './archive.ts';
+import { RAW_DATA_DIR } from './archive.js';
 
 const ARCHIVE_URL = 'https://livetiming.formula1.com/static';
 
@@ -104,7 +96,10 @@ export async function findSession(key: number, now = new Date()): Promise<Archiv
 	};
 }
 
-/** Saves the session's Index.json and every stream it lists; returns the directory. */
+/**
+ * Saves the session's Index.json and every stream it lists into `data/raw/<archive path>/`, in
+ * the archive's own format, so tests and imports run without the network; returns the directory.
+ */
 export async function fetchSession(
 	session: ArchiveSession,
 	rawDir = RAW_DATA_DIR
@@ -127,23 +122,4 @@ export async function fetchSession(
 	);
 
 	return directory;
-}
-
-async function main(keys: readonly string[]): Promise<void> {
-	if (keys.length === 0) {
-		throw new Error('Usage: npm run fetch:f1 -w server -- <session key>...');
-	}
-
-	await Promise.all(
-		keys.map(async (key) => {
-			const session = await findSession(Number(key));
-			const directory = await fetchSession(session);
-
-			process.stdout.write(`${session.title}: ${directory}\n`);
-		})
-	);
-}
-
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
-	await main(process.argv.slice(2));
 }
