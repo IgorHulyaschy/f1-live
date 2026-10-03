@@ -123,6 +123,19 @@ async function scoreTable(): Promise<string> {
 	return ['form     route       perf a11y  b-p  seo', ...rows.flat()].join('\n');
 }
 
+async function hasReports(): Promise<boolean> {
+	const reads = await Promise.all(
+		FORM_FACTORS.map((formFactor) =>
+			readFile(`${CLIENT_DIR}.lighthouseci/${formFactor}/manifest.json`).then(
+				() => true,
+				() => false
+			)
+		)
+	);
+
+	return reads.some(Boolean);
+}
+
 const built = run(
 	'npx',
 	['vite', 'build', '--outDir', OUT_DIR, '--emptyOutDir', '--logLevel', 'warn'],
@@ -171,9 +184,9 @@ try {
 
 console.warn(`\n${await scoreTable()}`);
 
-if (!lighthouseOk.every(Boolean)) {
+if (!lighthouseOk.every(Boolean) && !(await hasReports())) {
 	console.error(
-		'Lighthouse failed. If the log above shows Chrome dying on launch (for example "No usable sandbox"), the runs never started and no report was written.'
+		'Lighthouse wrote no report. If the log above shows Chrome dying on launch (for example "No usable sandbox"), the runs never started.'
 	);
 }
 

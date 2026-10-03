@@ -163,4 +163,5 @@ jobs:
         with:
           name: lighthouse
           path: client/.lighthouseci/
+          include-hidden-files: true
           retention-days: 14
