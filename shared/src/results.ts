@@ -11,9 +11,9 @@ export const RESULT_SESSION_TYPES = ['race', 'sprint', 'qualifying', 'sprint_qua
 export type ResultSessionType = (typeof RESULT_SESSION_TYPES)[number];
 
 /**
- * How a car ended a race or sprint: classified (`finished`, which includes a car that stopped
- * after 90% of the winner's distance), running but short of it (`nc`), retired (`dnf`), never
- * started (`dns`) or disqualified (`dsq`). Qualifying rows are `finished`, or `dsq`.
+ * How a car ended a race or sprint: running at the flag (`finished`), running but short of 90% of
+ * the winner's distance (`nc`), retired (`dnf`), never started (`dns`) or disqualified (`dsq`).
+ * Qualifying rows are `finished`, or `dsq`.
  */
 export const RESULT_STATUSES = ['finished', 'nc', 'dnf', 'dns', 'dsq'] as const;
 
@@ -27,6 +27,8 @@ const resultRowSchema = z.object({
 	/** The order at the end: classified cars first, then the rest by laps, as the timing screen has it. */
 	position: z.int().positive(),
 	status: z.enum(RESULT_STATUSES),
+	/** In the classification: covered 90% of the winner's laps and not disqualified; a car that retired after that is classified too. */
+	classified: z.boolean(),
 	/** Races and sprints: the starting place; null for a pit-lane start or no grid in the data. */
 	grid: z.int().positive().nullable().optional(),
 	laps: z.int().nonnegative(),
@@ -171,7 +173,7 @@ function tally(
 
 				entry.points += row.points;
 
-				if (session.type === 'race' && row.status === 'finished') {
+				if (session.type === 'race' && row.classified) {
 					entry.places[row.position - 1] = (entry.places[row.position - 1] ?? 0) + 1;
 					entry.wins += row.position === 1 ? 1 : 0;
 					entry.podiums += row.position <= 3 ? 1 : 0;

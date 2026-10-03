@@ -67,26 +67,47 @@ function deletedLaps(snapshot: RaceSnapshot): Set<Lap> {
 }
 
 /**
+ * A part's lap this much slower than its fastest is no qualifying lap: one that ran into a red
+ * flag, or the remains of a crash.
+ */
+const PART_LAP_LIMIT = 1.25;
+
+/**
  * Each driver's best time in each part of a knockout session. Out-laps and in-laps never count,
- * nor do deleted laps; cool-down laps are slower than the flying lap they follow.
+ * nor do deleted laps or laps far off the part's pace; cool-down laps are slower than the flying
+ * lap they follow.
  */
 function partBests(snapshot: RaceSnapshot): Map<string, (number | null)[]> {
 	const starts = partStarts(snapshot);
 	const deleted = deletedLaps(snapshot);
 	const parts = Math.max(1, starts.length);
-	const bests = new Map<string, (number | null)[]>();
 
-	for (const lap of snapshot.laps) {
+	const timed = snapshot.laps.flatMap((lap) => {
 		if (lap.lapTimeMs <= 0 || lap.pitIn || lap.pitOut || deleted.has(lap)) {
-			continue;
+			return [];
 		}
 
 		const completed = lap.completedAt ?? '';
-		const part = Math.max(1, starts.filter((start) => start <= completed).length);
+
+		return [{ lap, part: Math.max(1, starts.filter((start) => start <= completed).length) }];
+	});
+
+	const fastest = new Map<number, number>();
+
+	for (const { lap, part } of timed) {
+		fastest.set(part, Math.min(fastest.get(part) ?? Infinity, lap.lapTimeMs));
+	}
+
+	const bests = new Map<string, (number | null)[]>();
+
+	for (const { lap, part } of timed) {
 		const own = bests.get(lap.driverNumber) ?? Array.from({ length: parts }, () => null);
 		const best = own[part - 1] ?? null;
 
-		if (best === null || lap.lapTimeMs < best) {
+		if (
+			lap.lapTimeMs <= (fastest.get(part) ?? 0) * PART_LAP_LIMIT &&
+			(best === null || lap.lapTimeMs < best)
+		) {
 			own[part - 1] = lap.lapTimeMs;
 		}
 
@@ -98,6 +119,7 @@ function partBests(snapshot: RaceSnapshot): Map<string, (number | null)[]> {
 
 function raceStatus(
 	standing: Standing,
+	leaderLaps: number,
 	classifiedLaps: number,
 	neverStarted: boolean
 ): ResultStatus {
@@ -105,15 +127,12 @@ function raceStatus(
 		return 'dsq';
 	}
 
-	if (standing.lapsCompleted >= classifiedLaps) {
-		return 'finished';
+	// The feed marks some cars retired that stopped on the slowing-down lap, the winner among them.
+	if (standing.retired && standing.lapsCompleted < leaderLaps) {
+		return standing.lapsCompleted === 0 && neverStarted ? 'dns' : 'dnf';
 	}
 
-	if (!standing.retired) {
-		return 'nc';
-	}
-
-	return standing.lapsCompleted === 0 && neverStarted ? 'dns' : 'dnf';
+	return standing.lapsCompleted >= classifiedLaps ? 'finished' : 'nc';
 }
 
 /** Laps each driver led at the line. */
@@ -189,12 +208,18 @@ export function sessionResults(snapshot: RaceSnapshot, season: number): SessionR
 			}
 
 			const status: ResultStatus = race
-				? raceStatus(standing, classifiedLaps, retiredBeforeStart(snapshot, standing.driverNumber))
+				? raceStatus(
+						standing,
+						leaderLaps,
+						classifiedLaps,
+						retiredBeforeStart(snapshot, standing.driverNumber)
+					)
 				: standing.disqualified
 					? 'dsq'
 					: 'finished';
 
-			const classified = status === 'finished';
+			const classified =
+				!standing.disqualified && (!race || standing.lapsCompleted >= classifiedLaps);
 			const hasFastest = fastest === standing.driverNumber;
 
 			const points = classified
@@ -208,6 +233,7 @@ export function sessionResults(snapshot: RaceSnapshot, season: number): SessionR
 				team: driver.team,
 				position: standing.position,
 				status,
+				classified,
 				laps: standing.lapsCompleted,
 				points,
 				bestLapMs: bests.get(standing.driverNumber)?.lapTimeMs ?? null

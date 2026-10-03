@@ -5,3 +5,4 @@ client/shots/output/
 client/src/data/mock/las-vegas-outline.json
 client/e2e/real/data/out/telemetry/
 server/accounts-migrations/
+client/src/data/mock/results-2025.json

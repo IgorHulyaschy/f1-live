@@ -87,7 +87,7 @@ function race(overrides: Partial<RaceSnapshot>): RaceSnapshot {
 }
 
 describe('sessionResults', () => {
-	it('classifies cars by the 90% rule and pays points, the fastest lap point in 2019', () => {
+	it('classifies cars by the 90% rule, a retired one too, and pays points, the fastest lap point in 2019', () => {
 		const results = sessionResults(
 			race({
 				startingGrid: [
@@ -134,14 +134,21 @@ describe('sessionResults', () => {
 		);
 
 		assert.deepEqual(
-			results?.rows.map((row) => [row.driver, row.status, row.points, row.grid, row.lapsLed ?? 0]),
+			results?.rows.map((row) => [
+				row.driver,
+				row.status,
+				row.classified,
+				row.points,
+				row.grid,
+				row.lapsLed ?? 0
+			]),
 			[
-				['valtteri-bottas', 'finished', 26, 2, 2],
-				['lewis-hamilton', 'finished', 18, 1, 0],
-				['kimi-raikkonen', 'finished', 15, null, 0],
-				['sebastian-vettel', 'nc', 0, null, 0],
-				['max-verstappen', 'dnf', 0, null, 0],
-				['daniel-ricciardo', 'dsq', 0, null, 0]
+				['valtteri-bottas', 'finished', true, 26, 2, 2],
+				['lewis-hamilton', 'finished', true, 18, 1, 0],
+				['kimi-raikkonen', 'dnf', true, 15, null, 0],
+				['sebastian-vettel', 'nc', false, 0, null, 0],
+				['max-verstappen', 'dnf', false, 0, null, 0],
+				['daniel-ricciardo', 'dsq', false, 0, null, 0]
 			]
 		);
 		assert.equal(results?.rows[0]?.fastestLap, true);

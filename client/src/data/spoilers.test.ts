@@ -3,7 +3,13 @@ import { describe, it } from 'node:test';
 
 import { MAX_REVEALED } from '@f1-live/shared/viewer';
 
-import { isRevealed, resultsHidden, spoilerSafeStep, withRevealed } from './spoilers.ts';
+import {
+	heldFromHistory,
+	isRevealed,
+	resultsHidden,
+	spoilerSafeStep,
+	withRevealed
+} from './spoilers.ts';
 
 const protectedViewer = { protect: true, revealed: ['9858'] };
 
@@ -67,5 +73,23 @@ describe('withRevealed', () => {
 		assert.equal(next.length, MAX_REVEALED);
 		assert.equal(next[0], '1');
 		assert.equal(next.at(-1), 'new');
+	});
+});
+
+describe('heldFromHistory', () => {
+	const now = Date.parse('2026-10-03T12:00:00Z');
+	const protect = { protect: true, revealed: ['11730'] };
+
+	it('holds back a recent session the viewer has not revealed', () => {
+		assert.equal(heldFromHistory(protect, '11729', '2026-10-03T04:30:00Z', now), true);
+		assert.equal(heldFromHistory(protect, '11730', '2026-10-03T08:00:00Z', now), false);
+	});
+
+	it('counts results older than a month, and every result with protection off', () => {
+		assert.equal(heldFromHistory(protect, '9858', '2025-11-23T04:00:00Z', now), false);
+		assert.equal(
+			heldFromHistory({ protect: false, revealed: [] }, '11729', '2026-10-03T04:30:00Z', now),
+			false
+		);
 	});
 });

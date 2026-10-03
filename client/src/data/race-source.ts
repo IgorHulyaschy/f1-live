@@ -5,6 +5,7 @@ import {
 	type RaceSnapshot,
 	SESSION_TYPES
 } from '@f1-live/shared';
+import { type SeasonResults, seasonResultsSchema } from '@f1-live/shared/results';
 import { z } from 'zod';
 
 import { isKnockout } from '../insights/qualifying.ts';
@@ -24,6 +25,8 @@ export type RaceSource = {
 	loadCatalog: () => Promise<Catalog>;
 	/** Everything known about a saved session, by archive key. */
 	loadSession: (key: string) => Promise<RaceSnapshot>;
+	/** A season's results index; null when the source has none for it. */
+	loadResults: (season: number) => Promise<SeasonResults | null>;
 	/** `WS /live` (docs/product/live-protocol.md), or null when the source has no live feed. */
 	liveUrl: string | null;
 	/** Saved sessions' telemetry, or null when the source has none. */
@@ -116,6 +119,20 @@ async function fetchFolded(apiUrl: string, key: string): Promise<RaceSnapshot> {
 	}, EMPTY_SNAPSHOT);
 }
 
+async function fetchResults(apiUrl: string, season: number): Promise<SeasonResults | null> {
+	const response = await fetch(`${apiUrl}/results/${season}.json.gz`);
+
+	if (response.status === 404) {
+		return null;
+	}
+
+	if (!response.ok) {
+		throw new Error(`GET results for ${season} failed with ${response.status}`);
+	}
+
+	return seasonResultsSchema.parse(await response.json());
+}
+
 /** The server sends the gzip file with Content-Encoding: gzip, so fetch unpacks it. */
 async function fetchSnapshot(apiUrl: string, key: string): Promise<RaceSnapshot> {
 	const response = await fetchOk(`${apiUrl}/snapshots/${encodeURIComponent(key)}.json.gz`);
@@ -140,6 +157,7 @@ export function createRaceSource(
 			kind,
 			loadCatalog: () => fetchCatalog(urls.apiUrl),
 			loadSession: (key) => fetchSnapshot(urls.apiUrl, key),
+			loadResults: (season) => fetchResults(urls.apiUrl, season),
 			liveUrl: urls.liveUrl,
 			telemetry: createTelemetrySource(urls.apiUrl),
 			maps: apiMapTelemetry(urls.apiUrl)
@@ -157,6 +175,7 @@ export function createRaceSource(
 
 			return (await import('./mock/simulate-race.ts')).simulateLasVegas2025();
 		},
+		loadResults: async (season) => (await import('./mock/sample-results.ts')).sampleResults(season),
 		liveUrl: null,
 		telemetry: lazyTelemetrySource(async () =>
 			(await import('./mock/sample-telemetry.ts')).createSampleTelemetrySource()
