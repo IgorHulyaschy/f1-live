@@ -21,11 +21,15 @@ The whole screen is tiles on a 24-column grid, from a phone to a wall monitor: t
 replay keys and lap strip move and resize like timing or a chart.
 
 - **Ready-made.** Live, Analysis and Strategy (at `/`, `/analysis`, `/strategy`), Battle,
-  Drivers and Pit wall. Edit any of them and Reset brings it back; **+** starts your own.
-- **18 tiles in 5 groups.** Race (session, replay, lap strip, weather, race control), Drivers
-  (focus, driver, grid), Timing, Analysis and Strategy. Drag by the bar, resize from the edges,
+  Track, Drivers and Pit wall. Edit any of them and Reset brings it back; **+** starts your own.
+- **24 tiles in 6 groups.** Race (session, replay, lap strip, weather, race control), Drivers
+  (focus, driver, grid), Timing, Track (track map, battle map, pit rejoin, mini-sector
+  dominance, flag map, speed map), Analysis and Strategy. Drag by the bar, resize from the edges,
   or use the keyboard: focus a grip, arrows move, Shift and arrows resize. Edit mode bars sit in
   the gaps, so a dashboard looks the same while you build it.
+- **Maps.** Every car on the circuit, smooth at the display's refresh rate: from the replay's
+  car positions, the live feed's positions channel, or estimated from timing when there are
+  none. The replay plays at 1×, 10× or 60×.
 - **Any monitor.** Panels lay out by their tile's width (container queries). **Fit** stretches
   rows to the window height; text size runs from S to TV; narrow screens stack tiles.
 - **Windows.** Pop out a tile or a dashboard; lap, driver, plan, compared drivers and play/pause
