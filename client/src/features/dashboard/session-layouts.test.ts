@@ -109,6 +109,14 @@ describe('the top bar', () => {
 
 		assert.equal(dashboardNav(renamed, 'qualifying').tabs[0]?.label, 'My quali');
 	});
+
+	it('names an edited Live, saved under its old name, for the race on screen', () => {
+		const edited = dashboards.map((dashboard) =>
+			dashboard.id === 'live' ? { ...dashboard, name: 'Live' } : dashboard
+		);
+
+		assert.equal(dashboardNav(edited, 'sprint').tabs[0]?.label, 'Sprint');
+	});
 });
 
 describe('a dashboard in another kind of session', () => {

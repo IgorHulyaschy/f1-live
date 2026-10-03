@@ -397,6 +397,7 @@ export function TimingTower() {
 														)}
 													>
 														{row.out === 'disqualified' ? '-' : row.position}
+														{inDropZone ? <span className="sr-only"> in the drop zone</span> : null}
 													</span>
 													{improvement && (improvement.from ?? Infinity) > improvement.to ? (
 														<span

@@ -53,8 +53,10 @@ export function isSessionLayout(id: string): boolean {
 /** The layout's own name for its kind of session, unless the viewer renamed it. */
 export function sessionLayoutName(dashboard: Dashboard, type: SessionType): string {
 	const shipped = PRESETS.find((preset) => preset.id === dashboard.id)?.name;
+	// An edited Live, saved before it became Race, still carries the old name.
+	const legacy = dashboard.id === 'live' && dashboard.name === 'Live';
 
-	return dashboard.name === shipped ? TAB_LABEL[type] : dashboard.name;
+	return dashboard.name === shipped || legacy ? TAB_LABEL[type] : dashboard.name;
 }
 
 export function tileApplies(tile: Tile, kind: SessionKind): boolean {

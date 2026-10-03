@@ -197,6 +197,8 @@ function Track({ events, compact }: { events: readonly TimelineEvent[]; compact:
 								tabIndex={-1}
 								disabled={step > done}
 								onClick={() => setLap(step)}
+								// The marker's own step, not the one under the pointer, as a scrub would take.
+								onPointerDown={(event) => event.stopPropagation()}
 								onMouseEnter={() => setHovered(step)}
 								onMouseLeave={() => setHovered(null)}
 								aria-label={`${stepWord(stepUnit, step)}: ${summary}`}
@@ -279,7 +281,7 @@ export function Timeline() {
 				<EventKeys events={events} compact={compact} />
 				<DelayControl />
 				<span className="ml-auto">
-					<LapCounter size="sm" />
+					<LapCounter />
 				</span>
 			</div>
 			<Track events={events} compact={compact} />

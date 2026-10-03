@@ -1,7 +1,3 @@
-import { ChevronsUpDownIcon, EyeIcon } from 'lucide-react';
-import * as React from 'react';
-
-import { Key } from '@/components/console/keys';
 import { EmptyNote } from '@/components/console/empty-note';
 import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { LapStrip } from '@/components/lap-strip';
@@ -9,8 +5,6 @@ import { TrackStatusBadge } from '@/components/track-status-badge';
 import { formatLocalStart, formatUntil, SESSION_TYPE_LABEL } from '@/data/catalog';
 import { useRaceView } from '@/data/race-context';
 import { useNow } from '@/hooks/use-now';
-
-import { SessionPickerDialog } from './session-picker';
 
 /** Where the data on screen comes from, in a word. */
 export function useFeedLabel(): 'Live' | 'Replay' | 'Upcoming' | 'No data' {
@@ -30,12 +24,11 @@ export function useFeedLabel(): 'Live' | 'Replay' | 'Upcoming' | 'No data' {
 
 /**
  * The race title and its facts. Like the replay and lap strip tiles it sits on the page itself,
- * not in a ruled panel: these are the screen's masthead, wherever a viewer moves them. Its
- * Sessions key opens the picker for any other session.
+ * not in a ruled panel: these are the screen's masthead, wherever a viewer moves them. The
+ * Sessions and Show results keys are on the live strip, on every page.
  */
 export function SessionTile() {
-	const { race, snapshot, sessionError, spoilers } = useRaceView();
-	const [picking, setPicking] = React.useState(false);
+	const { race, snapshot } = useRaceView();
 	const year = new Date(race.session.startsAt).getUTCFullYear();
 	const feed = useFeedLabel();
 	const now = useNow();
@@ -72,28 +65,10 @@ export function SessionTile() {
 						{feed}
 					</Field>
 				)}
-				<Field label="Track" className="px-4">
+				<Field label="Track" className="pl-4">
 					<TrackStatusBadge status={snapshot.trackStatus} />
 				</Field>
-				<div className="flex gap-2 pl-4">
-					<Key onClick={() => setPicking(true)} aria-haspopup="dialog">
-						Sessions
-						<ChevronsUpDownIcon aria-hidden />
-					</Key>
-					{spoilers.hidden ? (
-						<Key onClick={spoilers.reveal} title="Spoiler-free: results are hidden">
-							<EyeIcon aria-hidden />
-							Show results
-						</Key>
-					) : null}
-				</div>
 			</div>
-			{sessionError ? (
-				<p role="alert" className="text-danger text-xs">
-					{sessionError}
-				</p>
-			) : null}
-			<SessionPickerDialog open={picking} onOpenChange={setPicking} />
 		</section>
 	);
 }

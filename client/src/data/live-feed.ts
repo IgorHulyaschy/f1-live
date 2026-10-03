@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 import { isSessionOver } from '../insights/qualifying.ts';
 import { type Arrival, recordArrival } from './broadcast-delay.ts';
-import { latestTime } from './snapshot-at-time.ts';
 
 /** docs/product/live-protocol.md; a change of shape bumps it on both sides. */
 const PROTOCOL_VERSION = 1;
@@ -55,13 +54,14 @@ export type Replica = {
 	snapshot: RaceSnapshot;
 };
 
-/** The newest moment a message is stamped with; NaN for one that carries none. */
+/**
+ * The newest moment a batch of events is stamped with; NaN for any other message. A state can
+ * be minutes old in its last lap or flag, as under a red flag, so it never sets the clock.
+ */
 function stampOf(message: ServerMessage): number {
-	if (message.type === 'events') {
-		return Math.max(...message.events.map((event) => Date.parse(event.at)));
-	}
-
-	return message.type === 'state' ? latestTime(message.snapshot) : Number.NaN;
+	return message.type === 'events'
+		? Math.max(...message.events.map((event) => Date.parse(event.at)))
+		: Number.NaN;
 }
 
 /**

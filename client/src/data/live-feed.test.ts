@@ -168,6 +168,10 @@ describe('LiveFeed', () => {
 		server.send(server.sockets[0], events(11, [trackStatus('red')]));
 		assert.equal(feed.getState().clockOffsetMs, -3_600_000);
 
+		// A fresh state keeps the clock: its newest stamp can be long past.
+		server.send(server.sockets[0], state(12));
+		assert.equal(feed.getState().clockOffsetMs, -3_600_000);
+
 		feed.stop();
 		mock.timers.reset();
 	});

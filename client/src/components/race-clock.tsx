@@ -85,10 +85,10 @@ export function DelayControl({ className }: { className?: string }) {
 }
 
 /**
- * The minute of a practice or qualifying session as a big mono reading. A race's lap is on the
+ * The minute of a practice or qualifying session as a mono reading. A race's lap is on the
  * live strip, so the page prints it once; tests read it by its test id.
  */
-export function LapCounter({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
+export function LapCounter() {
 	const { race, lap, stepUnit, steps } = useRaceView();
 
 	if (stepUnit === 'lap') {
@@ -103,16 +103,10 @@ export function LapCounter({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
 			<span className="sr-only" data-testid="lap-counter">
 				Min {lap}/{total}
 			</span>
-			<span
-				aria-hidden
-				className={cn('font-mono font-bold', size === 'lg' ? 'text-4xl' : 'text-lg')}
-			>
-				{size === 'lg' ? String(lap).padStart(2, '0') : lap}
+			<span aria-hidden className="font-mono text-lg font-bold">
+				{lap}
 			</span>
-			<span
-				aria-hidden
-				className={cn('text-muted-foreground font-mono', size === 'lg' ? 'text-lg' : 'text-xs')}
-			>
+			<span aria-hidden className="text-muted-foreground font-mono text-xs">
 				/{total}
 			</span>
 		</div>

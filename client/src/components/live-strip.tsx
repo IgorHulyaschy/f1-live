@@ -160,8 +160,8 @@ function ClockReading({ state }: { state: Knockout | null }) {
 }
 
 /**
- * The transport, for pages whose dashboard has no Replay tile: the session can always be moved,
- * whatever a viewer took off their screen.
+ * The transport, for pages whose dashboard has no Replay tile: on wider screens the session can
+ * always be moved, whatever a viewer took off their screen. Phones keep the strip to one line.
  */
 function StripClock() {
 	const dashboard = useShownDashboard();
@@ -172,7 +172,7 @@ function StripClock() {
 
 	return (
 		<div className="flex items-center gap-3 max-sm:hidden" data-testid="header-clock">
-			<LapCounter size="sm" />
+			<LapCounter />
 			<Transport />
 		</div>
 	);
@@ -223,7 +223,7 @@ function Elsewhere() {
  * the session on screen is not live, it points to the one that is, or to the next.
  */
 export function LiveStrip() {
-	const { race, snapshot, standings, followedDriver, spoilers, lap } = useRace();
+	const { race, snapshot, standings, followedDriver, spoilers, lap, sessionError } = useRace();
 	const [picking, setPicking] = React.useState(false);
 	const time = useScreenTime();
 	const now = useNow();
@@ -330,6 +330,11 @@ export function LiveStrip() {
 					<ChevronsUpDownIcon aria-hidden />
 				</Key>
 			</div>
+			{sessionError ? (
+				<p role="alert" className="text-danger basis-full text-xs">
+					{sessionError}
+				</p>
+			) : null}
 			<SessionPickerDialog open={picking} onOpenChange={setPicking} />
 		</section>
 	);
