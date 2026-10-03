@@ -10,6 +10,7 @@ import { createRaceSource, raceSourceKindFromEnv } from './data/race-source';
 import { DashboardPage } from './features/dashboard/dashboard-page';
 import { LibraryEntryPage, LibraryPage, SharedPage } from './features/library/library-page';
 import { WelcomePage } from './features/library/welcome';
+import { AccountPage } from './features/account/account-page';
 import { restoreScale } from './hooks/use-scale';
 import { restoreTheme } from './hooks/use-theme';
 
@@ -34,7 +35,8 @@ const router = createBrowserRouter([
 			{ path: '/library', element: <LibraryPage /> },
 			{ path: '/library/:entryId', element: <LibraryEntryPage /> },
 			{ path: '/shared', element: <SharedPage /> },
-			{ path: '/welcome', element: <WelcomePage /> }
+			{ path: '/welcome', element: <WelcomePage /> },
+			{ path: '/account', element: <AccountPage /> }
 		]
 	},
 	{

@@ -27,7 +27,7 @@ import { type Scale, SCALES, setScale, useScale } from '@/hooks/use-scale';
 
 import { shareUrl } from '@/features/library/share';
 import { useRace } from '@/data/race-context';
-import { accountStore } from '@/features/library/library-data';
+import { type SyncStatus, useSyncStatus } from '@/features/account/dashboard-sync';
 import { WelcomeBanner } from '@/features/library/welcome';
 
 import { forgetDashboard, newId, saveDashboard, useDashboards } from './dashboard-store';
@@ -43,6 +43,13 @@ import {
 } from './dashboards';
 import { useAddDashboard } from './use-add-dashboard';
 import { useCarriedSearch } from './use-carried-search';
+
+const SYNC_LABEL: Record<SyncStatus, string> = {
+	local: 'Saved in this browser',
+	pending: 'Saving to your account',
+	blocked: 'On this device only: over the Free limit',
+	synced: 'Synced to your account'
+};
 
 const SCALE_OPTIONS = SCALES.map(({ value, label }) => ({ value, label }));
 
@@ -162,7 +169,7 @@ function DashboardBar({
 	const scale = useScale();
 	const create = useCreateDashboard();
 	const add = useAddDashboard();
-	const account = accountStore.useValue();
+	const syncStatus = useSyncStatus(dashboard.id);
 	const [adding, setAdding] = React.useState(false);
 	const fileInput = React.useRef<HTMLInputElement>(null);
 	const preset = isPreset(dashboard.id);
@@ -209,7 +216,7 @@ function DashboardBar({
 			)}
 			{editing ? (
 				<span className="type-label" data-testid="save-status">
-					{account ? `Synced to @${account.handle}` : 'Saved in this browser'}
+					{SYNC_LABEL[syncStatus]}
 				</span>
 			) : null}
 			{editing ? (

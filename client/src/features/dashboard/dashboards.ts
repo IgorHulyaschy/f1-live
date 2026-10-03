@@ -1,6 +1,5 @@
 import {
 	type Dashboard,
-	GRID_COLUMNS,
 	isPresetId,
 	type Tile,
 	type TileKind,

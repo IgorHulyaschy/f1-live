@@ -3,10 +3,11 @@ import type * as React from 'react';
 
 import { Key } from '@/components/console/keys';
 import { useRace } from '@/data/race-context';
+import { useGoPro } from '@/features/account/go-pro';
 
 /**
- * Pro content for Pro viewers. Everyone else gets one line saying what they would see and one
- * key to preview it, behind a hatched edge: no blurred slabs.
+ * Pro content for Pro viewers. Everyone else gets one line saying what they would see, a key to
+ * preview it and one to go Pro, behind a hatched edge: no blurred slabs.
  */
 export function ProGate({
 	feature,
@@ -19,6 +20,7 @@ export function ProGate({
 	children: React.ReactNode;
 }) {
 	const { plan, setPlan } = useRace();
+	const goPro = useGoPro();
 
 	if (plan === 'pro') {
 		return children;
@@ -33,7 +35,10 @@ export function ProGate({
 					<span className="text-sm font-medium">{feature} is part of Pro</span>
 					{teaser ? <span className="text-muted-foreground text-xs">{teaser}</span> : null}
 				</div>
-				<Key onClick={() => setPlan('pro')}>Preview Pro</Key>
+				<span className="flex gap-2">
+					<Key onClick={() => setPlan('pro')}>Preview Pro</Key>
+					<Key onClick={goPro}>Go Pro</Key>
+				</span>
 			</div>
 		</div>
 	);

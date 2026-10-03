@@ -11,7 +11,8 @@ import { useDashboards } from '@/features/dashboard/dashboard-store';
 import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
 import { dashboardPath } from '@/features/dashboard/paths';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
-import { AccountKey } from '@/features/library/account';
+import { AccountKey } from '@/features/account/account-menu';
+import { useAccountPlan } from '@/features/account/account-store';
 import { useShownDashboard } from '@/features/library/shown-dashboard';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
@@ -133,6 +134,7 @@ function FlagBanner() {
 
 export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 	const { plan, setPlan } = useRace();
+	const accountPlan = useAccountPlan();
 	const dark = useDarkTheme();
 	const needsClock = useNeedsClock();
 
@@ -158,17 +160,26 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 						<span className="hidden lg:inline">Jump</span>
 						<Kbd className="border-0">⌘K</Kbd>
 					</Key>
-					<div className="hidden sm:block">
-						<KeyGroup label="Plan preview" options={PLAN_OPTIONS} value={plan} onChange={setPlan} />
-					</div>
-					<Key
-						className="sm:hidden"
-						pressed={plan === 'pro'}
-						aria-label="Preview Pro"
-						onClick={() => setPlan(plan === 'pro' ? 'free' : 'pro')}
-					>
-						Pro
-					</Key>
+					{accountPlan === 'pro' ? null : (
+						<>
+							<div className="hidden sm:block">
+								<KeyGroup
+									label="Plan preview"
+									options={PLAN_OPTIONS}
+									value={plan}
+									onChange={setPlan}
+								/>
+							</div>
+							<Key
+								className="sm:hidden"
+								pressed={plan === 'pro'}
+								aria-label="Preview Pro"
+								onClick={() => setPlan(plan === 'pro' ? 'free' : 'pro')}
+							>
+								Pro
+							</Key>
+						</>
+					)}
 					<AccountKey className="hidden sm:inline-flex" />
 					<Key
 						onClick={toggleTheme}

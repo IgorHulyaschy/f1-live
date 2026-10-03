@@ -11,6 +11,8 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { RaceProvider, useRace } from '@/data/race-context';
+import { AccountFooterKey, AccountSession } from '@/features/account/account-menu';
+import { useAccountPlan } from '@/features/account/account-store';
 import { CompareProvider } from '@/features/analysis/compare-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
 import type { RaceSource } from '@/data/race-source';
@@ -120,9 +122,10 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 									? ' This replay uses the real grid, strategies, race control and result; lap times are modelled from them.'
 									: null}
 							</p>
-							<Key className="sm:hidden" onClick={toggleTheme}>
-								{dark ? 'Light theme' : 'Dark theme'}
-							</Key>
+							<span className="flex gap-2 sm:hidden">
+								<AccountFooterKey />
+								<Key onClick={toggleTheme}>{dark ? 'Light theme' : 'Dark theme'}</Key>
+							</span>
 							<dl className="type-label hidden gap-4 md:flex">
 								<div className="flex gap-1.5">
 									<dt>Laps</dt>
@@ -143,6 +146,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 							</dl>
 						</footer>
 						<PitBoard />
+						<AccountSession />
 					</div>
 				</CompareProvider>
 				<CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
@@ -153,8 +157,15 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 }
 
 export function AppLayout({ source, bare = false }: { source: RaceSource; bare?: boolean }) {
+	const accountPlan = useAccountPlan();
+
 	return (
-		<RaceProvider source={source} loadingFallback={<LoadingState />} ErrorFallback={ErrorState}>
+		<RaceProvider
+			source={source}
+			accountPlan={accountPlan}
+			loadingFallback={<LoadingState />}
+			ErrorFallback={ErrorState}
+		>
 			<Console sourceKind={source.kind} bare={bare} />
 		</RaceProvider>
 	);

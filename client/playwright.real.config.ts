@@ -30,7 +30,9 @@ function app(port: number, serverPort: number) {
 		env: {
 			VITE_DATA_SOURCE: 'api',
 			VITE_API_URL: `http://127.0.0.1:${serverPort}`,
-			VITE_WS_URL: `ws://127.0.0.1:${serverPort}/live`
+			VITE_WS_URL: `ws://127.0.0.1:${serverPort}/live`,
+			// The same server, with no accounts: sign-in reads as unavailable.
+			ACCOUNTS_SERVER_URL: `http://127.0.0.1:${serverPort}`
 		}
 	};
 }

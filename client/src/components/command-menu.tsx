@@ -27,6 +27,7 @@ import {
 import { availability, formatLocalStart, type SessionEntry, sessionEntries } from '@/data/catalog';
 import { useRace } from '@/data/race-context';
 import { useNow } from '@/hooks/use-now';
+import { useAccountPlan } from '@/features/account/account-store';
 import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
 import { dashboardPath } from '@/features/dashboard/paths';
@@ -79,6 +80,8 @@ export function CommandMenu({
 		steps,
 		stepUnit
 	} = useRace();
+
+	const accountPlan = useAccountPlan();
 
 	const navigate = useNavigate();
 	const search = useCarriedSearch();
@@ -242,10 +245,12 @@ export function CommandMenu({
 					</CommandGroup>
 					<CommandSeparator />
 					<CommandGroup heading="Settings">
-						<CommandItem onSelect={() => run(() => setPlan(plan === 'pro' ? 'free' : 'pro'))}>
-							<SparklesIcon />
-							{plan === 'pro' ? 'Back to the free plan' : 'Preview Pro'}
-						</CommandItem>
+						{accountPlan === 'pro' ? null : (
+							<CommandItem onSelect={() => run(() => setPlan(plan === 'pro' ? 'free' : 'pro'))}>
+								<SparklesIcon />
+								{plan === 'pro' ? 'Back to the free plan' : 'Preview Pro'}
+							</CommandItem>
+						)}
 						<CommandItem onSelect={() => run(toggleTheme)}>
 							<MoonIcon />
 							Toggle theme
