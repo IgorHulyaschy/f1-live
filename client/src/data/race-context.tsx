@@ -8,7 +8,9 @@ import { type Catalog, defaultSessionKey, findSession, type SessionEntry } from 
 import { LiveFeed, type LiveConnection, liveSessionKey, type LiveState } from './live-feed.ts';
 import type { RaceSource } from './race-source.ts';
 import { type StandingRow, standingsAt } from '../insights/standings.ts';
+import { isTimedSession } from '../insights/qualifying.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
+import { minuteTime, sessionClock, snapshotAtTime } from './snapshot-at-time.ts';
 
 export type Plan = 'free' | 'pro';
 
@@ -37,6 +39,13 @@ type RaceContextValue = {
 	race: RaceSnapshot;
 	/** The race as it stood at `lap`. */
 	snapshot: RaceSnapshot;
+	/**
+	 * Races step lap by lap. Practice and qualifying run on the clock, so there `lap` counts
+	 * minutes from the start instead.
+	 */
+	stepUnit: 'lap' | 'minute';
+	/** The last step there is: the laps run so far, or the minutes. */
+	steps: number;
 	lap: number;
 	setLap: (lap: number) => void;
 	/** Moves the replay by `delta` laps, clamped to the laps available. */
@@ -387,7 +396,9 @@ export function RaceProvider({
 		});
 	});
 
-	const maxLap = race?.currentLap ?? 1;
+	const timed = race !== null && isTimedSession(race.session.type);
+	const clock = React.useMemo(() => (race && timed ? sessionClock(race) : null), [race, timed]);
+	const maxLap = clock ? clock.minutes : (race?.currentLap ?? 1);
 	const following = isLive && !searchParams.has('lap');
 	const defaultLap = source.kind === 'mock' ? DEFAULT_REPLAY_LAP : maxLap;
 	const lap = following ? maxLap : resolveLap(searchParams.get('lap'), maxLap, defaultLap);
@@ -465,10 +476,13 @@ export function RaceProvider({
 		[updateParams, broadcast]
 	);
 
-	const snapshot = React.useMemo(
-		() => (race ? (following ? race : snapshotAtLap(race, lap)) : null),
-		[race, lap, following]
-	);
+	const snapshot = React.useMemo(() => {
+		if (!race || following || (clock && lap >= maxLap)) {
+			return race;
+		}
+
+		return clock ? snapshotAtTime(race, minuteTime(clock, lap)) : snapshotAtLap(race, lap);
+	}, [race, lap, following, clock, maxLap]);
 
 	const plan: Plan = searchParams.get('plan') === 'pro' ? 'pro' : 'free';
 	const storedDriver = followedDriverStore.useValue();
@@ -498,6 +512,8 @@ export function RaceProvider({
 						live,
 						race,
 						snapshot,
+						stepUnit: clock ? 'minute' : 'lap',
+						steps: maxLap,
 						lap,
 						setLap: (nextLap) => {
 							updateParam('lap', String(nextLap));
@@ -531,6 +547,8 @@ export function RaceProvider({
 			live,
 			race,
 			snapshot,
+			clock,
+			maxLap,
 			lap,
 			isPlaying,
 			setPlaying,

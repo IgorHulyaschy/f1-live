@@ -119,7 +119,7 @@ export interface TrackStatusEvent {
 export interface RaceControlEvent {
 	kind: 'race_control';
 	at: string;
-	message: RaceControlMessage;
+	message: Omit<RaceControlMessage, 'at'>;
 }
 
 export interface WeatherEvent {

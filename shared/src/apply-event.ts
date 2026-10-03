@@ -91,7 +91,10 @@ export function applyEvent(state: RaceSnapshot, event: RaceEvent): RaceSnapshot 
 		case 'track_status':
 			return applyTrackStatus(state, event);
 		case 'race_control':
-			return { ...state, raceControl: [...state.raceControl, event.message] };
+			return {
+				...state,
+				raceControl: [...state.raceControl, { ...event.message, at: event.at }]
+			};
 		case 'weather':
 			return applyWeather(state, event);
 		case 'retirement':

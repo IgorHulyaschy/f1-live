@@ -1,6 +1,13 @@
-import { SESSION_TYPES, type RaceSnapshot } from '@f1-live/shared';
+import {
+	applyEvent,
+	EMPTY_SNAPSHOT,
+	type RaceEvent,
+	type RaceSnapshot,
+	SESSION_TYPES
+} from '@f1-live/shared';
 import { z } from 'zod';
 
+import { isKnockout } from '../insights/qualifying.ts';
 import { type Catalog, catalogSchema } from './catalog.ts';
 import { simulateLasVegas2025 } from './mock/simulate-race.ts';
 
@@ -79,6 +86,27 @@ async function fetchCatalog(apiUrl: string): Promise<Catalog> {
 	return catalogSchema.parse(await response.json());
 }
 
+const eventSchema = z.object({ kind: z.string(), at: z.string() });
+
+/**
+ * A session folded again from its saved events with this client's reducer. Snapshots written
+ * before the reducer logged session statuses cannot tell qualifying's parts apart; the events
+ * can, and folding a session takes milliseconds.
+ */
+async function fetchFolded(apiUrl: string, key: string): Promise<RaceSnapshot> {
+	const response = await fetchOk(`${apiUrl}/events/${encodeURIComponent(key)}.jsonl.gz`);
+	const lines = (await response.text()).split('\n').filter((line) => line.trim() !== '');
+
+	return lines.reduce((snapshot, line) => {
+		const body: unknown = JSON.parse(line);
+
+		eventSchema.parse(body);
+
+		// SAFETY: checked above; the server wrote these events for the same reducer.
+		return applyEvent(snapshot, body as RaceEvent);
+	}, EMPTY_SNAPSHOT);
+}
+
 /** The server sends the gzip file with Content-Encoding: gzip, so fetch unpacks it. */
 async function fetchSnapshot(apiUrl: string, key: string): Promise<RaceSnapshot> {
 	const response = await fetchOk(`${apiUrl}/snapshots/${encodeURIComponent(key)}.json.gz`);
@@ -87,7 +115,11 @@ async function fetchSnapshot(apiUrl: string, key: string): Promise<RaceSnapshot>
 	savedSnapshotSchema.parse(body);
 
 	// SAFETY: checked above; the rest of the body comes from the same reducer as the client's.
-	return body as RaceSnapshot;
+	const snapshot = body as RaceSnapshot;
+
+	return isKnockout(snapshot.session.type) && !snapshot.statusLog
+		? fetchFolded(apiUrl, key)
+		: snapshot;
 }
 
 export function createRaceSource(

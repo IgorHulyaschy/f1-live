@@ -119,6 +119,8 @@ export interface RaceControlMessage {
 	category: RaceControlCategory;
 	message: string;
 	driverNumber?: string;
+	/** When it was published, ISO 8601 UTC. Absent on the modelled replay. */
+	at?: string;
 }
 
 export interface WeatherSample {

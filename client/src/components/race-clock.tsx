@@ -7,12 +7,13 @@ import { cn } from '@/lib/utils';
 
 /** Previous lap, play or pause, next lap. On a live session, stepping back pauses live. */
 export function Transport({ className }: { className?: string }) {
-	const { race, lap, stepLap, playing, setPlaying, live } = useRace();
-	const atEnd = lap >= race.currentLap || live.following;
+	const { lap, steps, stepUnit, stepLap, playing, setPlaying, live } = useRace();
+	const atEnd = lap >= steps || live.following;
+	const unit = stepUnit === 'lap' ? 'lap' : 'minute';
 
 	return (
 		<div className={cn('flex', className)}>
-			<Key aria-label="Previous lap" disabled={lap <= 1} onClick={() => stepLap(-1)}>
+			<Key aria-label={`Previous ${unit}`} disabled={lap <= 1} onClick={() => stepLap(-1)}>
 				<SkipBackIcon />
 			</Key>
 			<Key
@@ -24,23 +25,29 @@ export function Transport({ className }: { className?: string }) {
 			>
 				{playing ? <PauseIcon /> : <PlayIcon />}
 			</Key>
-			<Key aria-label="Next lap" disabled={atEnd} onClick={() => stepLap(1)} className="-ml-px">
+			<Key
+				aria-label={`Next ${unit}`}
+				disabled={atEnd}
+				onClick={() => stepLap(1)}
+				className="-ml-px"
+			>
 				<SkipForwardIcon />
 			</Key>
 		</div>
 	);
 }
 
-const CONNECTION_NOTE: Record<LiveConnection, string | null> = {
+const CONNECTION_LABEL: Record<LiveConnection, string> = {
 	connecting: 'Connecting',
-	live: null,
-	stale: 'No data for a while',
+	live: 'Live',
+	stale: 'Data stale',
 	reconnecting: 'Reconnecting'
 };
 
 /**
- * "Live" while the screen follows a running session, "Back to live" once the viewer stepped back.
- * The note under it holds its line even when empty, so a dropped connection moves nothing.
+ * "Live" while the screen follows a running session, lit only while data flows; "Back to live"
+ * once the viewer stepped back. It keeps one width whatever it says, so nothing around it moves
+ * when the connection drops.
  */
 export function LiveKey({ className }: { className?: string }) {
 	const { live } = useRace();
@@ -49,39 +56,50 @@ export function LiveKey({ className }: { className?: string }) {
 		return null;
 	}
 
-	const note = CONNECTION_NOTE[live.connection];
+	const width = 'w-30 justify-center';
+
+	if (!live.following) {
+		return (
+			<Key onClick={live.backToLive} className={cn(width, className)}>
+				Back to live
+			</Key>
+		);
+	}
+
+	const flowing = live.connection === 'live';
 
 	return (
-		<div className={cn('flex flex-col items-end gap-1', className)} data-testid="live-key">
-			{live.following ? (
-				<span
-					className={cn(
-						'type-label inline-flex h-9 items-center border border-b-2 px-2.5 font-bold sm:h-7',
-						note ? 'text-muted-foreground' : 'border-foreground bg-foreground text-background'
-					)}
-				>
-					Live
-				</span>
-			) : (
-				<Key onClick={live.backToLive}>Back to live</Key>
+		<output
+			aria-live="polite"
+			data-testid="live-key"
+			className={cn(
+				'type-label inline-flex h-9 items-center border border-b-2 font-bold sm:h-7',
+				width,
+				flowing
+					? 'border-foreground bg-foreground text-background'
+					: 'text-muted-foreground border-dashed',
+				className
 			)}
-			<output aria-live="polite" className="type-label h-4 leading-4 whitespace-nowrap">
-				{note}
-			</output>
-		</div>
+		>
+			{CONNECTION_LABEL[live.connection]}
+		</output>
 	);
 }
 
-/** The lap as a big mono reading. Only one is rendered per page; tests read it by its test id. */
+/**
+ * The lap as a big mono reading; in practice and qualifying, the minute of the session. Only one
+ * is rendered per page; tests read it by its test id.
+ */
 export function LapCounter({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
-	const { race, lap } = useRace();
-	const total = race.session.totalLaps;
+	const { race, lap, stepUnit, steps } = useRace();
+	const label = stepUnit === 'lap' ? 'Lap' : 'Min';
+	const total = stepUnit === 'lap' ? race.session.totalLaps : steps;
 
 	return (
 		<div className="flex items-baseline gap-1.5 leading-none">
-			<span className="type-label">Lap</span>
+			<span className="type-label">{label}</span>
 			<span className="sr-only" data-testid="lap-counter">
-				Lap {lap}
+				{label} {lap}
 				{total > 0 ? `/${total}` : null}
 			</span>
 			<span

@@ -18,15 +18,20 @@ const TEXT_CLASS: Record<SectorMark, string> = {
 
 const SECTORS = [0, 1, 2] as const;
 
-/** Sectors coloured only when they improved; everything else stays quiet. */
+/**
+ * Sectors coloured only when they improved; everything else stays quiet. A race's first lap has
+ * no sector times; outside races any lap with them shows.
+ */
 export function MiniSectors({
 	lap,
-	marks
+	marks,
+	timed = false
 }: {
 	lap: Lap | null;
 	marks: readonly [SectorMark, SectorMark, SectorMark];
+	timed?: boolean;
 }) {
-	if (!lap || lap.lap === 1) {
+	if (!lap || (timed ? lap.sectorTimesMs.every((time) => time === 0) : lap.lap === 1)) {
 		return <span className="text-muted-foreground">-</span>;
 	}
 
@@ -40,7 +45,7 @@ export function MiniSectors({
 							TEXT_CLASS[marks[sector]]
 						)}
 					>
-						{formatSectorTime(lap.sectorTimesMs[sector])}
+						{lap.sectorTimesMs[sector] > 0 ? formatSectorTime(lap.sectorTimesMs[sector]) : '-'}
 					</span>
 					<span aria-hidden className={cn('h-0.75 w-full min-w-4', BAR_CLASS[marks[sector]])} />
 				</span>
