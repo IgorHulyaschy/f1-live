@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/select';
 import { useRaceView } from '@/data/race-context';
 import { DRILL_SECTION_TITLE } from '@/features/dashboard/dashboards';
+import { TileFillContext } from '@/features/dashboard/tile-fill';
 
 import { CompareView } from './compare-view';
 import { SectionHostContext } from './drill-parts';
@@ -125,7 +126,10 @@ export function DrillTile({
 				) : null}
 			</PanelHeader>
 			<div className="min-h-0 flex-1 overflow-auto">
-				<PartBody driverNumber={driverNumber} settings={settings} />
+				{/* The part scrolls in the tile, so its charts keep their own heights. */}
+				<TileFillContext value={false}>
+					<PartBody driverNumber={driverNumber} settings={settings} />
+				</TileFillContext>
 			</div>
 		</Panel>
 	);
