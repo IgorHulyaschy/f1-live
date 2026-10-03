@@ -1,4 +1,4 @@
-import { stat } from 'node:fs/promises';
+import { stat, statfs } from 'node:fs/promises';
 import path from 'node:path';
 
 import { buildCatalog, mergeCatalogs } from '../catalog/catalog.js';
@@ -15,6 +15,7 @@ import {
 } from '../sinks/files.js';
 import { removeTelemetry, telemetryKeys } from '../telemetry/files.js';
 import { ArchiveMissing, fetchSeasonIndex, fetchSession } from './fetch.js';
+import type { TopicSet } from './fetch.js';
 import { ingestSession } from './ingest.js';
 import type { IngestResult } from './ingest.js';
 import { adoptSession, discoverSessions, readSeasonIndexes } from './local.js';
@@ -28,12 +29,21 @@ const RESULT_REFRESH_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SESSIONS_AT_ONCE = 3;
 
+/** Seasons before this keep only what results need unless `allTopics` asks for every stream. */
+const ALL_TOPICS_FROM = 2025;
+
+const GB = 1e9;
+
 export interface ImportOptions {
 	dataDir: string;
 	/** No network at all: read the raw files and saved results already in the data directory. */
 	offline: boolean;
 	/** Build each session's telemetry from its Position.z and CarData.z. */
 	telemetry: boolean;
+	/** Download every stream of seasons before 2025 too, positions and car data included. */
+	allTopics?: boolean;
+	/** Downloads stop once the data directory's disk has less free space than this. */
+	minFreeBytes?: number;
 	now: Date;
 	log: (message: string) => void;
 }
@@ -179,16 +189,41 @@ async function fetchResults(
 	}
 }
 
+function topicsFor(target: ImportTarget, options: ImportOptions): TopicSet {
+	return options.allTopics === true || Number(target.path.slice(0, 4)) >= ALL_TOPICS_FROM
+		? 'all'
+		: 'results';
+}
+
+async function freeBytes(directory: string): Promise<number> {
+	const { bavail, bsize } = await statfs(directory);
+
+	return bavail * bsize;
+}
+
 async function fetchTargets(chosen: Chosen, options: ImportOptions): Promise<Map<number, Fetched>> {
 	const rawDir = rawDirOf(options.dataDir);
 	const fetched = new Map<number, Fetched>();
 	const total = chosen.targets.length;
+	const floor = options.minFreeBytes ?? 0;
 
 	await mapLimited(chosen.targets, SESSIONS_AT_ONCE, async (target) => {
 		let line: string;
+		const free = await freeBytes(rawDir);
+
+		if (free < floor) {
+			const failure = `stopped: ${(free / GB).toFixed(1)} GB free, below ${(floor / GB).toFixed(0)} GB`;
+
+			fetched.set(target.key, { downloaded: 0, failure });
+			options.log(`[${fetched.size}/${total}] ${target.label} (${target.key}): ${failure}`);
+
+			return;
+		}
 
 		try {
-			const stats = await fetchSession(target, rawDir, options.now);
+			const stats = await fetchSession(target, rawDir, options.now, {
+				topics: topicsFor(target, options)
+			});
 
 			fetched.set(target.key, { downloaded: stats.downloaded, failure: null });
 			line =
