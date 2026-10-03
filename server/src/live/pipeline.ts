@@ -5,7 +5,13 @@ import { z } from 'zod';
 import { F1Decoder, F1_TOPICS } from '../sources/f1/decode.js';
 import type { TopicFrame } from '../sources/f1/decode.js';
 import { FEED_TOPICS, LiveFeed, describeError } from '../sources/f1/live.js';
-import type { EventLog, FeedFrame, FeedSnapshot, LiveFeedOptions } from '../sources/f1/live.js';
+import type {
+	EventLog,
+	FeedFrame,
+	FeedSnapshot,
+	JsonValue,
+	LiveFeedOptions
+} from '../sources/f1/live.js';
 import { RawWriter } from '../sources/f1/raw-writer.js';
 import type { Recording } from './importer.js';
 import type { LiveSession } from './session.js';
@@ -30,6 +36,8 @@ export interface PipelineOptions {
 	/** The clock for the recorder and for snapshot frames; a replay runs it on session time. */
 	now?: () => number;
 	onSessionEnded?: (recording: Recording) => void;
+	/** Every frame of a topic the decoder does not read, for the opt-in position channels. */
+	onTelemetry?: (topic: string, payload: JsonValue) => void;
 }
 
 /**
@@ -99,6 +107,7 @@ export class LivePipeline {
 
 	private onFrame(frame: FeedFrame) {
 		this.writer.writeFrame(frame);
+		this.options.onTelemetry?.(frame.topic, frame.payload);
 
 		const sent = frame.timestamp === null ? Number.NaN : Date.parse(frame.timestamp);
 

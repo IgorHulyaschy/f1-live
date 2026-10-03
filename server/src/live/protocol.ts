@@ -1,4 +1,4 @@
-import type { RaceEvent, RaceSnapshot } from '@f1-live/shared';
+import type { LiveCarData, LivePositions, RaceEvent, RaceSnapshot } from '@f1-live/shared';
 import { z } from 'zod';
 
 /** Bumped when a message changes shape; documented in docs/product/live-protocol.md. */
@@ -41,14 +41,51 @@ export interface HeartbeatMessage {
 
 export type ServerMessage = StateMessage | EventsMessage | HeartbeatMessage;
 
-/** What a client may send: ask for a fresh `state`. */
-const clientMessageSchema = z.object({ type: z.literal('resync') });
+/** Opt-in streams beside the session, which a viewer without a track map never receives. */
+export const CHANNELS = ['positions', 'car_data'] as const;
 
-export function isResyncRequest(text: string): boolean {
+export type Channel = (typeof CHANNELS)[number];
+
+/** Every car's place on the circuit, up to 4 times a second. */
+export interface PositionsMessage extends LivePositions {
+	v: typeof PROTOCOL_VERSION;
+	type: 'positions';
+}
+
+/** Every car's speed, gear, pedals, rpm and DRS, up to 4 times a second. */
+export interface CarDataMessage extends LiveCarData {
+	v: typeof PROTOCOL_VERSION;
+	type: 'car_data';
+}
+
+/** The answer to a `subscribe` or `unsubscribe`: what the viewer receives, and what the feed has. */
+export interface ChannelsMessage {
+	v: typeof PROTOCOL_VERSION;
+	type: 'channels';
+	subscribed: Channel[];
+	/** Whether the feed has sent that channel's data: not without an F1 TV token. */
+	live: { [channel in Channel]: boolean };
+}
+
+export type ChannelMessage = PositionsMessage | CarDataMessage | ChannelsMessage;
+
+/** What a client may send: ask for a fresh `state`, or opt in to or out of a channel. */
+const clientMessageSchema = z.discriminatedUnion('type', [
+	z.object({ type: z.literal('resync') }),
+	z.object({ type: z.literal('subscribe'), channel: z.enum(CHANNELS) }),
+	z.object({ type: z.literal('unsubscribe'), channel: z.enum(CHANNELS) })
+]);
+
+export type ClientMessage = z.infer<typeof clientMessageSchema>;
+
+/** Reads one message from a client; null when it is not one of these. */
+export function parseClientMessage(text: string): ClientMessage | null {
 	try {
-		return clientMessageSchema.safeParse(JSON.parse(text)).success;
+		const parsed = clientMessageSchema.safeParse(JSON.parse(text));
+
+		return parsed.success ? parsed.data : null;
 	} catch {
-		return false;
+		return null;
 	}
 }
 

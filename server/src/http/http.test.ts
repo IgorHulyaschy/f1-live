@@ -22,6 +22,11 @@ before(async () => {
 
 	mkdirSync(path.join(out, 'snapshots'), { recursive: true });
 	mkdirSync(path.join(out, 'events'), { recursive: true });
+	mkdirSync(path.join(out, 'telemetry', '9858', 'laps'), { recursive: true });
+	writeFileSync(
+		path.join(out, 'telemetry', '9858', 'laps', '1-2.json.gz'),
+		gzipSync(JSON.stringify({ lap: 2 }))
+	);
 	writeFileSync(path.join(out, 'catalog.json'), JSON.stringify({ seasons: [2025] }));
 	writeFileSync(path.join(out, 'snapshots', '9858.json.gz'), gzipSync(JSON.stringify(SNAPSHOT)));
 	writeFileSync(path.join(out, 'events', '9858.ndjson.gz'), gzipSync('{"kind":"x"}\n'));
@@ -121,6 +126,14 @@ describe('saved sessions', () => {
 		assert.equal(catalog.headers['cache-control'], 'no-cache');
 		assert.deepEqual(JSON.parse(catalog.body.toString()), { seasons: [2025] });
 		assert.equal(events.headers['content-type'], 'application/x-ndjson; charset=utf-8');
+	});
+
+	it('serve a session telemetry file in its folder', async () => {
+		const response = await get('/telemetry/9858/laps/1-2.json.gz', { 'Accept-Encoding': 'gzip' });
+
+		assert.equal(response.status, 200);
+		assert.equal(response.headers['content-encoding'], 'gzip');
+		assert.deepEqual(JSON.parse(gunzipSync(response.body).toString()), { lap: 2 });
 	});
 
 	it('serve nothing else, nor anything outside out/', async () => {
