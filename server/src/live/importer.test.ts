@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { EventEmitter, once } from 'node:events';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -230,7 +231,10 @@ describe('a live session that finishes', () => {
 		},
 		async () => {
 			const dataDir = tempDir();
-			let imported: Promise<void> | undefined;
+
+			// The import's start is awaited, not polled for, so a loaded machine only takes longer.
+			const imports = new EventEmitter<{ import: [Promise<void>] }>();
+			const started = once(imports, 'import');
 
 			// What `runImportCli` runs, in this process.
 			const importer = new SessionImporter({
@@ -242,9 +246,11 @@ describe('a live session that finishes', () => {
 						{}
 					);
 
-					imported = runImport(args.selection, { ...args, log: noLog }).then(() => undefined);
+					const run = runImport(args.selection, { ...args, log: noLog }).then(() => undefined);
 
-					return imported;
+					imports.emit('import', run);
+
+					return run;
 				},
 				cliExists: () => Promise.resolve(true)
 			});
@@ -255,8 +261,9 @@ describe('a live session that finishes', () => {
 				})
 			);
 
-			await waitUntil(() => imported !== undefined, 'the import to start');
-			await imported;
+			const [run] = await started;
+
+			await run;
 
 			assert.ok(existsSync(path.join(sessionTelemetryDir(dataDir, 9858), 'index.json')));
 		}

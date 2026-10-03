@@ -1,5 +1,5 @@
 import { mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpus, loadavg, tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { EMPTY_SNAPSHOT, applyEvent } from '@f1-live/shared';
@@ -42,7 +42,8 @@ export function telemetryFrames(): TopicFrame[] {
 		.toSorted((a, b) => a.timestamp - b.timestamp);
 }
 
-const WAIT_MS = 20_000;
+/** Longer when the machine is busy, as when several worktrees run their tests at once. */
+const WAIT_MS = 20_000 * Math.max(1, (loadavg()[0] ?? 0) / cpus().length);
 
 /** Reconnects and retries in milliseconds, not seconds. */
 export const FAST_BACKOFF = { initialMs: 20, maxMs: 40 };
