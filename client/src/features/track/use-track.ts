@@ -264,6 +264,8 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 
 	const sample = React.useCallback(
 		(perf: number): Places => {
+			// Reduced motion: the picture changes once a second rather than every frame.
+			const still = reducedMotion && (followingLive || replayClock.running);
 			let time: number;
 
 			if (followingLive) {
@@ -272,11 +274,12 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 						? liveBuffer.buffer.feedTime(perf) - delayMs - LIVE_LAG_MS
 						: feedTime();
 			} else {
-				time = replayClock.now(
-					reducedMotion && replayClock.running
-						? Math.floor(perf / STILL_STEP_MS) * STILL_STEP_MS
-						: perf
-				);
+				time = replayClock.now(still ? Math.floor(perf / STILL_STEP_MS) * STILL_STEP_MS : perf);
+			}
+
+			// Live runs at real time, so a second of the feed is a second on screen.
+			if (still && followingLive) {
+				time = Math.floor(time / STILL_STEP_MS) * STILL_STEP_MS;
 			}
 
 			const samples = new Map<string, CarSample>();

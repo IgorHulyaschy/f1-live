@@ -52,6 +52,22 @@ test('the map follows the replay as it plays and as it is scrubbed', async ({ pa
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 11/50', { timeout: 6000 });
 });
 
+test('with reduced motion the map steps once a second instead of gliding', async ({ page }) => {
+	await page.emulateMedia({ reducedMotion: 'reduce' });
+	await openRace(page, '/d/track?lap=30');
+
+	const map = page.getByTestId('track-map');
+
+	await page.getByRole('button', { name: 'Play replay' }).click();
+	await page.waitForTimeout(1100);
+
+	const first = await picture(map);
+
+	await page.waitForTimeout(150);
+	expect(await picture(map)).toEqual(first);
+	await expect.poll(async () => (await picture(map)).equals(first), { timeout: 3000 }).toBe(false);
+});
+
 test('a tap on a car follows it, and the camera can follow the driver', async ({ page }) => {
 	await openRace(page, '/d/track?lap=30&driver=1');
 

@@ -21,6 +21,9 @@ export type DrawFrame = {
 	elapsed: number;
 };
 
+/** With reduced motion a moving map is redrawn this often instead of every frame. */
+const REDUCED_MOTION_MS = 1000;
+
 /** Frames drawn and the main-thread time spent drawing them, for the performance report. */
 type MapStats = { frames: number; drawMs: number };
 
@@ -217,10 +220,17 @@ export function TrackCanvas({
 		}
 	});
 
-	// While moving, one frame per display refresh; still, a frame when something changes.
+	// While moving, one frame per display refresh (once a second with reduced motion); still, a
+	// frame when something changes.
 	React.useEffect(() => {
 		if (!onScreen) {
 			return;
+		}
+
+		if (moving && reducedMotion) {
+			const timer = window.setInterval(() => paint(performance.now()), REDUCED_MOTION_MS);
+
+			return () => window.clearInterval(timer);
 		}
 
 		let frame = 0;
@@ -246,7 +256,7 @@ export function TrackCanvas({
 			cancelAnimationFrame(frame);
 			stop?.();
 		};
-	}, [onScreen, moving, paint, subscribe]);
+	}, [onScreen, moving, reducedMotion, paint, subscribe]);
 
 	return (
 		<figure
