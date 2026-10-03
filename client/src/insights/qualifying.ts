@@ -75,10 +75,16 @@ export function qualifyingProgress(snapshot: RaceSnapshot): QualifyingProgress {
 	const starts = partStarts(snapshot);
 	const status = snapshot.status ?? 'inactive';
 	const finished = isSessionOver(status) || (status === 'finished' && starts.length >= 3);
+	const log = snapshot.statusLog ?? [];
+
+	// A red flag that comes after a part's chequered flag does not reopen the part.
+	const flagged =
+		log.findLastIndex((change) => change.status === 'finished') >
+		log.findLastIndex((change) => change.status === 'started');
 
 	return {
 		part: starts.length > 0 ? Math.min(starts.length, 3) : null,
-		running: status === 'started' || status === 'aborted',
+		running: status === 'started' || (status === 'aborted' && !flagged),
 		finished
 	};
 }

@@ -195,3 +195,52 @@ describe('flying laps', () => {
 		assert.deepEqual(rows[0]?.partBestsMs, [80_000, null]);
 	});
 });
+
+describe('ranking a replayed qualifying session', () => {
+	const statuses: readonly [number, SessionStatus][] = [
+		[0, 'started'],
+		[18, 'finished'],
+		[18.1, 'aborted'],
+		[20, 'inactive'],
+		[22, 'started']
+	];
+
+	it('counts a first flying lap after an untimed out-lap', () => {
+		const snapshot = qualifying(statuses);
+
+		const untimedOutLaps = snapshot.laps
+			.filter((entry) => entry.lap <= 4)
+			.map((entry) =>
+				entry.lap === 1 ? { ...entry, lapTimeMs: 0, sectorTimesMs: [0, 0, 0] as const } : entry
+			);
+
+		const rows = standingsAt({ ...snapshot, laps: untimedOutLaps });
+
+		assert.deepEqual(rows.find((row) => row.driver.number === '1')?.partBestsMs, [90_000, 89_000]);
+	});
+
+	it('takes the cars that ran in the next part as the ones that went through', () => {
+		const snapshot = qualifying(statuses);
+
+		// Car 12's Q1 time would have been quickest, but it was deleted: it never ran in Q2.
+		const laps = [...snapshot.laps.filter((entry) => entry.lap <= 4), lap('12', 3, 6, 85_000)];
+
+		const rows = standingsAt({ ...snapshot, laps });
+
+		assert.equal(rows.at(-1)?.driver.number, '12');
+	});
+
+	it('ranks a car with no time in the last part after those with one', () => {
+		const snapshot = qualifying(FULL);
+		const laps = snapshot.laps.filter((entry) => !(entry.driverNumber === '10' && entry.lap >= 5));
+		const rows = standingsAt({ ...snapshot, laps });
+
+		assert.equal(rows[9]?.driver.number, '10');
+	});
+
+	it('does not reopen a part for a red flag after its chequered flag', () => {
+		const snapshot = qualifying(statuses.slice(0, 3));
+
+		assert.equal(qualifyingProgress(snapshot).running, false);
+	});
+});

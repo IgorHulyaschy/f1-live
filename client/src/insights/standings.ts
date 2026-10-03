@@ -364,10 +364,12 @@ function timedOrder(rows: RowFacts[], starts: readonly string[], laps: readonly 
 			laps.flatMap((lap) => (partOfLap(lap, starts) === part + 1 ? [lap.driverNumber] : []))
 		);
 
+		const byPartTime = rankIn(part);
+
 		const ranked = field.toSorted(
 			(a, b) =>
 				Number(ranNext.has(b.driver.number)) - Number(ranNext.has(a.driver.number)) ||
-				rankIn(part)(a, b)
+				byPartTime(a, b)
 		);
 
 		knockedOut.unshift(ranked.slice(cars));
