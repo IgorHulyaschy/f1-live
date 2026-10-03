@@ -77,7 +77,7 @@ export function LapNotes({ entry, flag = true }: { entry: DriverLap; flag?: bool
 						'type-label px-1 leading-4 font-bold',
 						note.tone === 'danger'
 							? 'text-danger border-danger border'
-							: 'text-flag border-flag border'
+							: 'text-flag-ink border-flag border'
 					)}
 				>
 					{note.text}

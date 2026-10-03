@@ -145,20 +145,33 @@ export function CompareView({ a, b }: { a: string; b: string }) {
 								const other = byLap.get(entry.lap.lap);
 								const both = other && entry.lap.lapTimeMs > 0 && other.lap.lapTimeMs > 0;
 
+								const traceBoth = () =>
+									open({
+										kind: 'lap',
+										driverNumber: a,
+										lap: entry.lap.lap,
+										vs: { driverNumber: b, lap: entry.lap.lap }
+									});
+
 								return (
 									<tr
 										key={entry.lap.lap}
-										onClick={() =>
-											open({
-												kind: 'lap',
-												driverNumber: a,
-												lap: entry.lap.lap,
-												vs: { driverNumber: b, lap: entry.lap.lap }
-											})
-										}
+										onClick={traceBoth}
 										className="hover:bg-accent/70 h-8 cursor-pointer border-b"
 									>
-										<td className="pr-3 font-mono font-bold">{entry.lap.lap}</td>
+										<td className="pr-3">
+											<button
+												type="button"
+												onClick={(event) => {
+													event.stopPropagation();
+													traceBoth();
+												}}
+												aria-label={`Open lap ${entry.lap.lap} of both`}
+												className="focus-visible:ring-ring font-mono font-bold focus-visible:ring-2 focus-visible:outline-none"
+											>
+												{entry.lap.lap}
+											</button>
+										</td>
 										<td className="pr-3 text-right">
 											<LapTimeText entry={entry} />
 										</td>
