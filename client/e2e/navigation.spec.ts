@@ -47,3 +47,25 @@ test('has no console errors on any page', async ({ page }) => {
 
 	expect(errors).toEqual([]);
 });
+
+for (const width of [360, 390]) {
+	test(`shows every dashboard tab and the new and library keys at ${width}px`, async ({ page }) => {
+		await page.setViewportSize({ width, height: 800 });
+		await openRace(page);
+
+		const nav = page.getByRole('navigation', { name: 'Main' });
+
+		const keys = [
+			...(await nav.getByRole('link').all()),
+			nav.getByRole('button', { name: 'New dashboard' })
+		];
+
+		for (const key of keys) {
+			const box = await key.boundingBox();
+
+			expect(box).not.toBeNull();
+			expect(box?.x).toBeGreaterThanOrEqual(0);
+			expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
+		}
+	});
+}
