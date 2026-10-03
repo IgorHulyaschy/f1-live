@@ -5,17 +5,17 @@
  * than production delivers it. The certificate is a throwaway one for localhost, made with
  * openssl at start; the browser must be told to accept it (--ignore-certificate-errors).
  *
- *   node scripts/serve-dist.ts <dir> <port>
+ * It listens on 127.0.0.1 at a port the system picks: a fixed port, or the name `localhost`,
+ * could reach another checkout's dev server on the same machine instead (scripts/budgets.ts).
  */
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { createSecureServer } from 'node:http2';
+import type { AddressInfo } from 'node:net';
 import { tmpdir } from 'node:os';
 import { extname, join, normalize } from 'node:path';
 import { brotliCompressSync, constants } from 'node:zlib';
-
-const [dir = 'dist', port = '4180'] = process.argv.slice(2);
 
 const TYPES: ReadonlyMap<string, string> = new Map([
 	['.html', 'text/html; charset=utf-8'],
@@ -43,7 +43,7 @@ const COMPRESSIBLE = new Set([
 ]);
 
 /** Compressed once at start, as a host does at deploy, so no request waits on Brotli level 11. */
-async function compressAll(): Promise<Map<string, Buffer>> {
+async function compressAll(dir: string): Promise<Map<string, Buffer>> {
 	const files = await readdir(dir, { recursive: true });
 	const compressed = new Map<string, Buffer>();
 
@@ -64,8 +64,6 @@ async function compressAll(): Promise<Map<string, Buffer>> {
 
 	return compressed;
 }
-
-const brotli = await compressAll();
 
 function localhostCertificate() {
 	const folder = mkdtempSync(join(tmpdir(), 'serve-dist-'));
@@ -94,10 +92,14 @@ function localhostCertificate() {
 		throw new Error(`openssl could not make a localhost certificate: ${made.stderr}`);
 	}
 
-	return { key: readFileSync(key), cert: readFileSync(cert) };
+	const pair = { key: readFileSync(key), cert: readFileSync(cert) };
+
+	rmSync(folder, { recursive: true });
+
+	return pair;
 }
 
-async function fileFor(pathname: string): Promise<string> {
+async function fileFor(dir: string, pathname: string): Promise<string> {
 	const path = join(dir, normalize(decodeURIComponent(pathname)));
 
 	try {
@@ -111,26 +113,48 @@ async function fileFor(pathname: string): Promise<string> {
 	return join(dir, 'index.html');
 }
 
-createSecureServer({ ...localhostCertificate(), allowHTTP1: true }, async (request, response) => {
-	const { pathname } = new URL(request.url, 'https://localhost');
-	const path = await fileFor(pathname);
-	const extension = extname(path);
+export type DistServer = { origin: string; close: () => Promise<void> };
 
-	response.setHeader('content-type', TYPES.get(extension) ?? 'application/octet-stream');
-	response.setHeader(
-		'cache-control',
-		pathname.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache'
+export async function serveDist(dir: string): Promise<DistServer> {
+	const brotli = await compressAll(dir);
+
+	const server = createSecureServer(
+		{ ...localhostCertificate(), allowHTTP1: true },
+		async (request, response) => {
+			const { pathname } = new URL(request.url, 'https://localhost');
+			const path = await fileFor(dir, pathname);
+			const extension = extname(path);
+
+			response.setHeader('content-type', TYPES.get(extension) ?? 'application/octet-stream');
+			response.setHeader(
+				'cache-control',
+				pathname.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache'
+			);
+
+			const compressed = brotli.get(path);
+
+			if (!compressed || !/\bbr\b/.test(request.headers['accept-encoding'] ?? '')) {
+				response.end(await readFile(path));
+
+				return;
+			}
+
+			response.setHeader('content-encoding', 'br');
+			response.setHeader('vary', 'accept-encoding');
+			response.end(compressed);
+		}
 	);
 
-	const compressed = brotli.get(path);
+	await new Promise<void>((resolve, reject) => {
+		server.once('error', reject);
+		server.listen(0, '127.0.0.1', resolve);
+	});
 
-	if (!compressed || !/\bbr\b/.test(request.headers['accept-encoding'] ?? '')) {
-		response.end(await readFile(path));
+	// SAFETY: a server listening on a TCP host and port reports an AddressInfo, not a pipe name.
+	const { port } = server.address() as AddressInfo;
 
-		return;
-	}
-
-	response.setHeader('content-encoding', 'br');
-	response.setHeader('vary', 'accept-encoding');
-	response.end(compressed);
-}).listen(Number(port), () => console.warn(`Serving ${dir} at https://localhost:${port}`));
+	return {
+		origin: `https://127.0.0.1:${port}`,
+		close: () => new Promise((resolve) => server.close(() => resolve()))
+	};
+}

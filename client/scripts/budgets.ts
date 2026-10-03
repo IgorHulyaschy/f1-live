@@ -5,18 +5,20 @@
  *
  * 1. A production build on the mock replay, with drawn pictures so no run depends on formula1.com.
  * 2. The initial route's scripts and styles against the size budget below.
- * 3. Lighthouse CI, mobile and desktop, on /, /analysis and /library (lighthouserc.json holds the
- *    score thresholds), then a table of the median run's scores.
+ * 3. Lighthouse CI, mobile and desktop, on /, /analysis and /library, against that build served
+ *    like a static host (serve-dist.ts); lighthouserc.json holds the score thresholds. Then a
+ *    table of the median run's scores.
  *
  * Reports land in client/.lighthouseci/<form factor>/ and are not committed.
  */
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 import { chromium } from '@playwright/test';
 
 import { gzipKilobytes, initialAssets } from './initial-assets.ts';
+import { serveDist } from './serve-dist.ts';
 
 /**
  * Gzip kilobytes the first route may fetch before it can render; about 5% above the build of
@@ -30,6 +32,8 @@ const CLIENT_DIR = fileURLToPath(new URL('..', import.meta.url));
 const OUT_DIR = 'dist-budget';
 
 const FORM_FACTORS = ['mobile', 'desktop'] as const;
+
+const ROUTES = ['/', '/analysis', '/library'] as const;
 
 type ManifestEntry = {
 	url: string;
@@ -45,6 +49,16 @@ function run(command: string, args: string[], env: Record<string, string> = {}):
 	});
 
 	return result.status === 0;
+}
+
+/** Like `run`, but leaves this process free to answer the requests of what it runs. */
+function runAsync(command: string, args: string[], env: Record<string, string>): Promise<boolean> {
+	return new Promise((resolve) => {
+		spawn(command, args, { cwd: CLIENT_DIR, stdio: 'inherit', env: { ...process.env, ...env } }).on(
+			'close',
+			(code) => resolve(code === 0)
+		);
+	});
 }
 
 async function checkBundle(): Promise<boolean> {
@@ -117,23 +131,33 @@ const bundleOk = await checkBundle();
 
 const chromePath = process.env.CHROME_PATH ?? chromium.executablePath();
 
-const lighthouseOk = FORM_FACTORS.map((formFactor) =>
-	run(
-		'npx',
-		[
-			'lhci',
-			'autorun',
-			'--config=lighthouserc.json',
-			`--upload.outputDir=.lighthouseci/${formFactor}`,
-			...(formFactor === 'desktop' ? ['--collect.settings.preset=desktop'] : [])
-		],
-		{ CHROME_PATH: chromePath }
-	)
-).every(Boolean);
+const server = await serveDist(`${CLIENT_DIR}${OUT_DIR}`);
+
+const lighthouseOk: boolean[] = [];
+
+for (const formFactor of FORM_FACTORS) {
+	lighthouseOk.push(
+		// oxlint-disable-next-line no-await-in-loop -- one form factor at a time keeps timings honest.
+		await runAsync(
+			'npx',
+			[
+				'lhci',
+				'autorun',
+				'--config=lighthouserc.json',
+				`--upload.outputDir=.lighthouseci/${formFactor}`,
+				...ROUTES.map((route) => `--collect.url=${server.origin}${route}`),
+				...(formFactor === 'desktop' ? ['--collect.settings.preset=desktop'] : [])
+			],
+			{ CHROME_PATH: chromePath }
+		)
+	);
+}
+
+await server.close();
 
 console.warn(`\n${await scoreTable()}`);
 
-if (!bundleOk || !lighthouseOk) {
+if (!bundleOk || !lighthouseOk.every(Boolean)) {
 	console.error('Budgets failed: see the size line and the Lighthouse assertions above.');
 	process.exit(1);
 }

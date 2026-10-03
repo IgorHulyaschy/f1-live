@@ -125,7 +125,8 @@ any Chromium with `PW_CHROMIUM_PATH=/path/to/chrome`.
 
 `npm run budgets` builds the mock replay with drawn pictures and serves it the way a static host
 does (HTTP/2, Brotli; `client/scripts/serve-dist.ts`, which needs `openssl` for a throwaway
-localhost certificate). It then checks:
+localhost certificate). The server takes a free port on 127.0.0.1, so a dev server another
+checkout runs on a fixed port never answers in its place. It then checks:
 
 - the first route's scripts and styles against `BUDGET` in `client/scripts/budgets.ts`, in gzip kB;
 - Lighthouse on `/`, `/analysis` and `/library`, mobile and desktop: performance 90 or more,

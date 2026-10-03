@@ -1,13 +1,6 @@
 {
 	"ci": {
 		"collect": {
-			"startServerCommand": "node scripts/serve-dist.ts dist-budget 4180",
-			"startServerReadyPattern": "Serving",
-			"url": [
-				"https://localhost:4180/",
-				"https://localhost:4180/analysis",
-				"https://localhost:4180/library"
-			],
 			"numberOfRuns": 3,
 			"settings": { "chromeFlags": "--headless=new --ignore-certificate-errors" }
 		},
