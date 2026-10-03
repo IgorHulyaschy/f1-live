@@ -40,6 +40,8 @@ const PAGES = [
 	{ name: 'quali-bahrain', path: '/session?session=11730&plan=pro' },
 	{ name: 'track-bahrain', path: '/d/track?session=11730&plan=pro' },
 	{ name: 'analysis-bahrain', path: '/analysis?session=11730' },
+	// The home, with the season's latest rounds held back as unseen.
+	{ name: 'home', path: '/', spoilers: true },
 	// The history pages on the results index of 2018 to 2026.
 	{ name: 'calendar', path: '/calendar?season=2026' },
 	{ name: 'standings', path: '/standings?season=2025&round=11' },
@@ -78,7 +80,7 @@ for (const viewport of VIEWPORTS) {
 						[theme, 'spoilers' in screen] as const
 					);
 					await page.goto(screen.path);
-					await (/^\/(calendar|standings|h2h|drivers)/.test(screen.path)
+					await (/^\/(calendar|standings|h2h|drivers|$)/.test(screen.path)
 						? expect(page.getByRole('heading', { level: 1 })).toBeVisible()
 						: expect(page.getByTestId('lap-counter')).toBeAttached());
 					// Heavy tiles below the first screen wait to be scrolled to; a print draws them all.
