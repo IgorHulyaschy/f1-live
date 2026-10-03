@@ -103,7 +103,7 @@ function GapsBody({
 	const { race, snapshot, lap, followedDriver } = useRace();
 	const fill = useTileFill();
 	const views = gapViews(snapshot);
-	const [local, setLocal] = React.useState(settings);
+	const [local, setLocal] = React.useState<GapSettings>({});
 	const chosen = { ...settings, ...local };
 	const view = chosen.view && views.includes(chosen.view) ? chosen.view : defaultGapView(views);
 	const split = view === 'race' ? 'lap' : (chosen.split ?? 'lap');

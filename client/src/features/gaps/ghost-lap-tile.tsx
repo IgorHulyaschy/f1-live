@@ -185,7 +185,11 @@ export function GhostLap({
 					max={Math.round(endMs)}
 					step={50}
 					value={Math.round(Math.min(time, endMs))}
-					onChange={(event) => clock.set(Number(event.target.value), playing ? rate : 0)}
+					onChange={(event) => {
+						// Scrubbing holds the ghosts where they are put.
+						setPlaying(false);
+						clock.set(Number(event.target.value), 0);
+					}}
 					aria-label="Time into the lap"
 					className="accent-foreground min-w-32 flex-1"
 					data-testid="ghost-scrub"
