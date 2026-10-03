@@ -64,8 +64,8 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
 ## Maps
 
 - The circuit is a neutral band. Colour on it carries meaning only: sector marks (purple, green),
-  flags (yellow, red), team colours where drivers are compared, and `--focus` for the followed
-  driver's own lap.
+  flags (yellow, red) and team colours where drivers are compared. A lap painted by speed or gear
+  is a neutral ramp, faint where slow, solid where fast.
 - Cars are team-colour discs ringed in the panel colour. The followed car is larger, with a
   forward-cut chip, because that cut means "a car". Cars placed from timing alone are hollow, and
   the panel says "Estimated".

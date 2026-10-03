@@ -343,9 +343,9 @@ function DominanceBody({ track, span }: { track: TrackReady; span: DominanceSpan
 						<TeamStripe driver={driver} className={cn(dashed.has(driver.number) && 'opacity-60')} />
 						<span className="flex flex-col">
 							<span className="type-wide text-sm font-bold">{driver.code}</span>
-							<span className="type-label">
+							<span className="type-label whitespace-nowrap">
 								{result
-									? `${result.won.get(driver.number) ?? 0} of ${result.winners.filter((winner) => winner !== null).length}`
+									? `${result.won.get(driver.number) ?? 0}/${result.winners.filter((winner) => winner !== null).length} ${times?.source === 'sectors' ? 'sectors' : 'minis'}`
 									: '-'}
 							</span>
 						</span>

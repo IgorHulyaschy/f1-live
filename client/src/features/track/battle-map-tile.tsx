@@ -214,7 +214,9 @@ function BattleMapBody({ track }: { track: TrackReady }) {
 	const focus = React.useMemo(() => watchedKey.split(','), [watchedKey]);
 
 	const look = React.useCallback<CarLook>(
-		(driver) => ({ label: driver.code, emphasis: focus.includes(driver.number) }),
+		// Only the cars in the fight are named; the rest are traffic.
+		(driver) =>
+			focus.includes(driver.number) ? { label: driver.code, emphasis: true } : { label: '' },
 		[focus]
 	);
 

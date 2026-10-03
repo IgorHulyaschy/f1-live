@@ -211,23 +211,19 @@ export function TrackCanvas({
 		[themeKey, width, height, rem, reducedMotion]
 	);
 
-	// Every render paints as part of its commit, so a new or changed map is never seen blank.
+	// Every render paints as part of its commit, on screen or not, so a map is never seen blank or
+	// stale when it scrolls into view or the page is captured whole.
 	React.useLayoutEffect(() => {
 		drawRef.current = draw;
-
-		if (onScreen) {
-			paint(performance.now());
-		}
+		paint(performance.now());
 	});
 
-	// While moving, one frame per display refresh (once a second with reduced motion); still, a
-	// frame when something changes.
+	// On screen and moving: a frame per display refresh, or once a second with reduced motion.
+	// Otherwise a frame whenever something changes.
 	React.useEffect(() => {
-		if (!onScreen) {
-			return;
-		}
+		const animate = onScreen && moving;
 
-		if (moving && reducedMotion) {
+		if (animate && reducedMotion) {
 			const timer = window.setInterval(() => paint(performance.now()), REDUCED_MOTION_MS);
 
 			return () => window.clearInterval(timer);
@@ -236,17 +232,17 @@ export function TrackCanvas({
 		let frame = 0;
 
 		const loop = (perf: number) => {
-			if (paint(perf) || moving) {
+			if ((paint(perf) && onScreen) || animate) {
 				frame = requestAnimationFrame(loop);
 			}
 		};
 
-		if (moving) {
+		if (animate) {
 			frame = requestAnimationFrame(loop);
 		}
 
 		const stop = subscribe?.(() => {
-			if (!moving) {
+			if (!animate) {
 				cancelAnimationFrame(frame);
 				frame = requestAnimationFrame(loop);
 			}

@@ -222,7 +222,7 @@ export function drawCircuit(
 	ctx.lineCap = 'round';
 
 	for (const zone of style.zones) {
-		ctx.globalAlpha = zone.alpha ?? 0.14;
+		ctx.globalAlpha = zone.alpha ?? 0.18;
 		ctx.strokeStyle = zone.colour;
 		ctx.lineWidth = trackWidth * (zone.width ?? 2.6);
 		ctx.setLineDash([]);
@@ -407,13 +407,20 @@ export function drawCars(
 
 	ctx.globalAlpha = 1;
 
+	// The followed car's label first, then the highlighted ones, then the rest where room is left.
+	const rank = (style: CarStyle) => (style.followed ? 2 : style.emphasis ? 1 : 0);
+
 	const order = cars
 		.map((car, index) => ({ car, index }))
-		.toSorted((a, b) => Number(b.car.style.followed) - Number(a.car.style.followed));
+		.toSorted((a, b) => rank(b.car.style) - rank(a.car.style));
 
 	for (const { car, index } of order) {
 		const [x, y] = screens[index] ?? [0, 0];
 		const { style } = car;
+
+		if (style.label === '') {
+			continue;
+		}
 
 		ctx.font = style.followed
 			? `800 ${Math.round(11 * unit)}px "Martian Mono Variable", ui-monospace, monospace`
@@ -425,12 +432,19 @@ export function drawCars(
 		const height = (style.followed ? 16 : 11) * unit;
 		const away = Math.hypot(x - mx, y - my) || 1;
 
+		const [ox, oy] = [(x - mx) / away, (y - my) / away];
+
+		// Outside the circuit first, then inside, then either way along it.
 		const sides: Point[] = [
-			[(x - mx) / away, (y - my) / away],
-			[-(x - mx) / away, -(y - my) / away]
+			[ox, oy],
+			[-ox, -oy],
+			[-oy, ox],
+			[oy, -ox]
 		];
 
 		let box: Box | null = null;
+		let fallback: Box | null = null;
+		let first: Box | null = null;
 
 		for (const [nx, ny] of sides) {
 			const gap = (style.followed ? 13 : 9) * unit;
@@ -444,11 +458,23 @@ export function drawCars(
 				y1: cy + height / 2
 			};
 
-			if (style.followed || !overlaps(candidate, placed)) {
+			const inside =
+				candidate.x0 >= 0 &&
+				candidate.y0 >= 0 &&
+				candidate.x1 <= view.width &&
+				candidate.y1 <= view.height;
+
+			if (inside && !overlaps(candidate, placed)) {
 				box = candidate;
 				break;
 			}
+
+			fallback ??= inside ? candidate : null;
+			first ??= candidate;
 		}
+
+		// The followed and highlighted cars keep a label even where it must overlap.
+		box ??= rank(style) > 0 ? (fallback ?? first) : null;
 
 		if (!box) {
 			continue;

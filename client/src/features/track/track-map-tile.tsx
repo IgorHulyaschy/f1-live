@@ -219,15 +219,22 @@ function TrackMapBody({
 					value={paint}
 					onChange={(value) => change({ paint: value })}
 				/>
+				{/* Secondary keys: a narrow tile keeps the camera and colours. */}
 				<Key
 					pressed={labels === 'number'}
-					aria-label="Label cars by number"
+					title="Label cars by number"
 					onClick={() => change({ labels: labels === 'number' ? 'code' : 'number' })}
+					className="hidden @xl:inline-flex"
 				>
-					#
+					No.
 				</Key>
 				{zones ? (
-					<Key pressed={showZones} onClick={() => change({ zones: !showZones })}>
+					<Key
+						pressed={showZones}
+						title="Show the DRS zones"
+						onClick={() => change({ zones: !showZones })}
+						className="hidden @xl:inline-flex"
+					>
 						DRS
 					</Key>
 				) : null}

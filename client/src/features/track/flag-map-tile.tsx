@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { useTileFill } from '../dashboard/tile-fill';
 import { flagOf, marshalSectorCount, marshalSpan, type SectorFlag, sectorFlags } from './flags';
 import { MapCanvas } from './map-canvas';
-import { MapNote, MapPending, useMapBodyClass, usePlacesNow } from './map-parts';
+import { MapNote, MapPending, usePlacesNow } from './map-parts';
 import type { MapTheme, Overlay } from './track-draw';
 import { type TrackReady, usePlaces, useTrackData } from './use-track';
 
@@ -75,7 +75,7 @@ function FlagMapBody({ track }: { track: TrackReady }) {
 		isTimedSession(race.session.type) && race.startedAt ? Date.parse(race.startedAt) : null;
 
 	const places = usePlaces(track);
-	const bodyClass = useMapBodyClass();
+	const fill = useTileFill();
 	const now = usePlacesNow(places, READ_EVERY_MS);
 
 	const count = React.useMemo(
@@ -120,14 +120,26 @@ function FlagMapBody({ track }: { track: TrackReady }) {
 			<PanelHeader title="Flag map">
 				<TrackStatusBadge status={snapshot.trackStatus} />
 			</PanelHeader>
-			<div className={cn('flex min-h-0 flex-col @3xl:flex-row', bodyClass)}>
-				<MapCanvas
-					track={track}
-					places={places}
-					label={`Flag map of ${track.outline.name}: ${flags.length === 0 ? 'no yellow flags out' : flags.map((flag) => `${LEVEL_LABEL[flag.level]} in sector ${flag.sector}`).join(', ')}`}
-					camera="full"
-					overlays={overlays}
-				/>
+			<div
+				className={cn(
+					'flex flex-col @3xl:flex-row',
+					fill ? 'min-h-48 flex-1' : '@3xl:aspect-[16/9]'
+				)}
+			>
+				<div
+					className={cn(
+						'flex',
+						fill ? 'min-h-40 flex-1' : 'aspect-[4/3] @3xl:aspect-auto @3xl:flex-1'
+					)}
+				>
+					<MapCanvas
+						track={track}
+						places={places}
+						label={`Flag map of ${track.outline.name}: ${flags.length === 0 ? 'no yellow flags out' : flags.map((flag) => `${LEVEL_LABEL[flag.level]} in sector ${flag.sector}`).join(', ')}`}
+						camera="full"
+						overlays={overlays}
+					/>
+				</div>
 				<section
 					aria-label="Flags"
 					className="flex shrink-0 flex-col border-t @3xl:w-72 @3xl:border-t-0 @3xl:border-l"

@@ -8,6 +8,7 @@ import { TeamStripe } from '@/components/driver-tag';
 import { ProGate } from '@/components/pro-gate';
 import { RaceOnly } from '@/components/race-only';
 import { useRace } from '@/data/race-context';
+import { isTimedSession } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
@@ -104,14 +105,22 @@ export function PitRejoinTile() {
 			data-testid="pit-rejoin"
 		>
 			<PanelHeader title="Pit rejoin" meta={code} />
-			<RaceOnly what="Pit rejoin">
+			{isTimedSession(snapshot.session.type) ? (
+				// A gated tile: hatched, with the line that says why.
+				<div className="relative flex min-h-24 flex-1 items-start p-4">
+					<span aria-hidden className="hatch text-foreground/10 absolute inset-0" />
+					<div className="bg-panel relative px-2 py-1">
+						<RaceOnly what="Pit rejoin">{null}</RaceOnly>
+					</div>
+				</div>
+			) : (
 				<ProGate
 					feature="Pit rejoin"
 					teaser={`Where ${code ?? 'your driver'} would come out if they boxed now, drawn among the cars on the circuit.`}
 				>
 					{track.status === 'ready' ? <PitRejoinBody track={track} /> : <MapPending data={track} />}
 				</ProGate>
-			</RaceOnly>
+			)}
 		</Panel>
 	);
 }

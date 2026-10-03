@@ -242,7 +242,7 @@ function SpeedMapBody({ track, channel }: { track: TrackReady; channel: Channel 
 							{
 								fromM: stretch.fromM,
 								toM: stretch.toM,
-								colour: theme.focus,
+								colour: theme.foreground,
 								alpha: FAINTEST + (1 - FAINTEST) * share,
 								width: 1.2
 							}
@@ -324,6 +324,10 @@ function SpeedMapBody({ track, channel }: { track: TrackReady; channel: Channel 
 					<p className="text-muted-foreground p-4 text-sm" aria-busy>
 						Loading the lap…
 					</p>
+				) : !entry ? (
+					<p className="text-muted-foreground m-auto p-4 text-sm" data-testid="speed-map-empty">
+						{driver?.code ?? 'This driver'} has no lap with car data yet.
+					</p>
 				) : (
 					<MapCanvas
 						track={track}
@@ -338,7 +342,10 @@ function SpeedMapBody({ track, channel }: { track: TrackReady; channel: Channel 
 				)}
 			</div>
 			<div
-				className="flex flex-wrap items-end gap-x-6 gap-y-2 border-t px-4 py-2.5"
+				className={cn(
+					'flex flex-wrap items-end gap-x-6 gap-y-2 border-t px-4 py-2.5',
+					!entry && 'hidden'
+				)}
 				data-testid="speed-map-legend"
 			>
 				<div className="flex flex-col gap-1">
@@ -352,7 +359,7 @@ function SpeedMapBody({ track, channel }: { track: TrackReady; channel: Channel 
 								<span
 									key={step}
 									className={cn(
-										'bg-focus h-2 w-5',
+										'bg-foreground h-2 w-5',
 										channel === 'brake' && step !== 'opacity-100' ? 'hidden' : step
 									)}
 								/>

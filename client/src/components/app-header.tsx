@@ -1,6 +1,7 @@
 import { LibraryIcon, MoonIcon, PlusIcon, SunIcon } from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { NavLink } from 'react-router';
+import * as React from 'react';
+import { NavLink, useLocation } from 'react-router';
 
 import { Key, KeyGroup } from '@/components/console/keys';
 import { Kbd } from '@/components/console/panel';
@@ -39,11 +40,23 @@ function MainNav() {
 	const search = useCarriedSearch();
 	const { dashboards } = useDashboards();
 	const create = useCreateDashboard();
+	const nav = React.useRef<HTMLElement>(null);
+	const { pathname } = useLocation();
+
+	// On a narrow screen the tabs scroll; the one on screen is kept in view.
+	React.useEffect(() => {
+		const links = nav.current?.querySelectorAll('a') ?? [];
+
+		[...links]
+			.find((link) => link.pathname === pathname)
+			?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+	}, [pathname]);
 
 	return (
 		<nav
+			ref={nav}
 			aria-label="Main"
-			className="flex h-full min-w-0 items-stretch overflow-x-auto mask-r-from-85% [scrollbar-width:none] sm:mask-none"
+			className="flex h-full min-w-0 items-stretch overflow-x-auto mask-r-from-85% [scrollbar-width:none] lg:mask-none"
 		>
 			{dashboards.map((dashboard) => (
 				<NavLink
