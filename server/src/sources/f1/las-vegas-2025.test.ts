@@ -13,6 +13,12 @@
  * - grid, and Norris second and Piastri fourth before their disqualification:
  *   https://en.wikipedia.org/wiki/2025_Las_Vegas_Grand_Prix
  * - penalties and VSC periods: the FIA race control messages quoted with each test.
+ * - fastest stop: https://www.formula1.com/en/results/2025/awards/fastest-pit-stops (Red Bull,
+ *   1.99 s, Tsunoda's stop on lap 27)
+ * - championship before the race (Norris 390, Piastri 366, Verstappen 341) and after it with the
+ *   disqualifications (390, 366, 366):
+ *   https://www.si.com/onsi/f1/updated-f1-standings-after-the-2025-las-vegas-grand-prix-following-double-mclaren-dsq
+ *   and https://fft.crash.net/f1/news/1087322/1/f1-world-championship-points-standings-after-2025-las-vegas-grand-prix
  *
  * The McLaren disqualifications came after the feed ended, so they are not in the archive.
  */
@@ -226,6 +232,9 @@ describe('2025 Las Vegas race from the archive', { skip }, () => {
 		race = frames.flatMap((frame) => decoder.decode(frame)).reduce(applyEvent, EMPTY_SNAPSHOT);
 	});
 
+	const place = (driverNumber: string) =>
+		race.championship?.drivers.find((entry) => entry.driverNumber === driverNumber);
+
 	it('names the session and follows it to the end', () => {
 		assert.deepEqual(race.session, {
 			id: '9858',
@@ -394,6 +403,49 @@ describe('2025 Las Vegas race from the archive', { skip }, () => {
 				['23', 35]
 			]
 		);
+	});
+
+	it('times the stops at a standstill, Tsunoda’s lap-27 stop among the quickest', () => {
+		const timed = race.pitStops.filter((stop) => stop.stationaryMs !== undefined);
+		const quickest = Math.min(...timed.map((stop) => stop.stationaryMs ?? Infinity));
+
+		// The feed rounds to a tenth and times differently from the award's 1.99 s.
+		assert.equal(timed.length, PIT_STOPS.length - 1);
+		assert.equal(quickest, 2200);
+		assert.equal(
+			race.pitStops.find((stop) => stop.driverNumber === '22' && stop.lap === 27)?.stationaryMs,
+			quickest
+		);
+	});
+
+	it('credits Verstappen with one pass, on lap 1, where he took the lead from Norris', () => {
+		const passes = (race.overtakes ?? []).filter((pass) => pass.driverNumber === '1');
+
+		assert.deepEqual(
+			passes.map((pass) => [pass.lap, pass.count]),
+			[[1, 1]]
+		);
+		assert.ok((race.overtakes ?? []).every((pass) => pass.lap >= 1 && pass.lap <= 50));
+	});
+
+	it('projects the championship from 390, 366 and 341 points before the race', () => {
+		assert.deepEqual(
+			['4', '81', '1'].map((driverNumber) => [
+				place(driverNumber)?.points,
+				place(driverNumber)?.predictedPoints
+			]),
+			// Second, fourth and first on the road: 18, 12 and 25 points.
+			[
+				[390, 408],
+				[366, 378],
+				[341, 366]
+			]
+		);
+	});
+
+	it('reads the wind direction with every weather sample', () => {
+		assert.ok(race.weather.length > 40);
+		assert.ok(race.weather.every((sample) => sample.windDirectionDeg !== undefined));
 	});
 
 	it('keeps each driver’s fastest lap', () => {

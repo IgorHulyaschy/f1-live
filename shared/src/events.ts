@@ -5,6 +5,7 @@
  */
 
 import type {
+	ChampionshipStandings,
 	ClassificationCorrection,
 	Driver,
 	Penalty,
@@ -157,6 +158,31 @@ export interface ClassificationCorrectionEvent {
 	correction: Omit<ClassificationCorrection, 'at'>;
 }
 
+/** The source counted a pass by `driverNumber`; `at` is when it happened. */
+export interface OvertakeEvent {
+	kind: 'overtake';
+	at: string;
+	driverNumber: string;
+	/** Cars passed in the one move. */
+	count: number;
+}
+
+/** A team radio clip was recorded; `at` is when. */
+export interface TeamRadioEvent {
+	kind: 'team_radio';
+	at: string;
+	driverNumber: string;
+	/** The clip inside the session's archive folder. */
+	path: string;
+}
+
+/** Championship places that changed: each entry replaces the one for its driver or team. */
+export interface ChampionshipEvent {
+	kind: 'championship';
+	at: string;
+	standings: ChampionshipStandings;
+}
+
 export type RaceEvent =
 	| SessionInfoEvent
 	| SessionStatusEvent
@@ -175,4 +201,7 @@ export type RaceEvent =
 	| RetirementEvent
 	| PenaltyEvent
 	| PersonalBestEvent
-	| ClassificationCorrectionEvent;
+	| ClassificationCorrectionEvent
+	| OvertakeEvent
+	| TeamRadioEvent
+	| ChampionshipEvent;

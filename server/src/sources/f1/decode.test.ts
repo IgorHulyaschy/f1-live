@@ -519,9 +519,77 @@ describe('F1Decoder', () => {
 		assert.deepEqual(
 			ofKind(decodeAll(await fixture('WeatherData')), 'weather').map((event) => event.sample),
 			[
-				{ airTempC: 16.9, trackTempC: 18, humidityPct: 38, windSpeedMs: 0.7, rainfall: false },
-				{ airTempC: 16.9, trackTempC: 17.6, humidityPct: 38, windSpeedMs: 0.7, rainfall: false }
+				{
+					airTempC: 16.9,
+					trackTempC: 18,
+					humidityPct: 38,
+					windSpeedMs: 0.7,
+					windDirectionDeg: 126,
+					rainfall: false
+				},
+				{
+					airTempC: 16.9,
+					trackTempC: 17.6,
+					humidityPct: 38,
+					windSpeedMs: 0.7,
+					windDirectionDeg: 133,
+					rainfall: false
+				}
 			]
+		);
+	});
+
+	it('reads each pass once, when it happened, without the whole-field start entry (OvertakeSeries)', async () => {
+		const passes = ofKind(decodeAll(await fixture('OvertakeSeries')), 'overtake');
+
+		assert.deepEqual(
+			passes.map((event) => [event.driverNumber, event.at, event.count]),
+			[
+				['1', '2025-11-23T04:04:20.225Z', 1],
+				['63', '2025-11-23T04:04:20.662Z', 1],
+				['6', '2025-11-23T04:04:21.213Z', 3]
+			]
+		);
+	});
+
+	it('announces team radio clips by car, without the audio (TeamRadio)', async () => {
+		assert.deepEqual(
+			ofKind(decodeAll(await fixture('TeamRadio')), 'team_radio').map((event) => [
+				event.driverNumber,
+				event.at,
+				event.path
+			]),
+			[
+				['4', '2025-11-23T03:27:47.321Z', 'TeamRadio/LANNOR01_4_20251122_192738.mp3'],
+				['16', '2025-11-23T04:22:40.153Z', 'TeamRadio/CHALEC01_16_20251122_202206.mp3'],
+				['6', '2025-11-23T04:23:42.636Z', 'TeamRadio/ISAHAD01_6_20251122_202314.mp3']
+			]
+		);
+	});
+
+	it('reads the championship before the race and its projections (ChampionshipPrediction)', async () => {
+		const snapshot = decodeAll(await fixture('ChampionshipPrediction')).reduce(
+			applyEvent,
+			EMPTY_SNAPSHOT
+		);
+
+		const driver = (number: string) =>
+			snapshot.championship?.drivers.find((place) => place.driverNumber === number);
+
+		// Norris 390, Piastri 366 and Verstappen 341 before Las Vegas; the last frame projects the
+		// order at the flag, before the McLaren disqualifications.
+		assert.deepEqual(driver('4'), {
+			driverNumber: '4',
+			points: 390,
+			position: 1,
+			predictedPoints: 408,
+			predictedPosition: 1
+		});
+		assert.equal(driver('81')?.predictedPoints, 378);
+		assert.equal(driver('1')?.points, 341);
+		assert.equal(
+			snapshot.championship?.teams.find((place) => place.team === 'McLaren')?.predictedPoints,
+			786
 		);
 	});
 
