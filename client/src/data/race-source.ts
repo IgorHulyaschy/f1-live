@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { isKnockout } from '../insights/qualifying.ts';
 import { type Catalog, catalogSchema } from './catalog.ts';
+import { createSampleTelemetrySource } from './mock/sample-telemetry.ts';
 import { createTelemetrySource, type TelemetrySource } from './telemetry-source.ts';
 
 export type RaceSourceKind = 'mock' | 'api';
@@ -150,7 +151,7 @@ export function createRaceSource(
 			return (await import('./mock/simulate-race.ts')).simulateLasVegas2025();
 		},
 		liveUrl: null,
-		telemetry: null
+		telemetry: createSampleTelemetrySource()
 	};
 }
 

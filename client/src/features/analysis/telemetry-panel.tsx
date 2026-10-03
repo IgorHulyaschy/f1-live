@@ -476,7 +476,7 @@ function TelemetryBody({
 	mode: TraceMode;
 	table: boolean;
 }) {
-	const { snapshot, followedDriver, sessionKey } = useRaceView();
+	const { snapshot, followedDriver, sessionKey, sourceKind } = useRaceView();
 	const { compared } = useComparedDrivers();
 	const fill = useTileFill();
 	const syncId = React.useId();
@@ -552,7 +552,9 @@ function TelemetryBody({
 						letter: SLOT_LETTER[slot] ?? '',
 						driver,
 						lap,
-						lapTimeMs: chosen[slot]?.lap.lapTimeMs ?? lap.lapTimeMs
+						// The modelled replay's own times are not these laps'.
+						lapTimeMs:
+							sourceKind === 'mock' ? lap.lapTimeMs : (chosen[slot]?.lap.lapTimeMs ?? lap.lapTimeMs)
 					}
 				]
 			: [];
@@ -712,6 +714,9 @@ function TelemetryBody({
 				</>
 			)}
 			<p className="text-muted-foreground text-xs">
+				{sourceKind === 'mock'
+					? 'The replay’s lap times are modelled; these traces are the real race’s laps, so only a few laps have them. '
+					: ''}
 				{index.hasCarData ? '' : 'This session has positions only, so only the delta is drawn. '}
 				Distance from the line; rules mark the mini sectors of the timing feed, heavier at the
 				sector ends. Numbers under the speed trace are each corner’s slowest point on lap A. The
@@ -722,11 +727,7 @@ function TelemetryBody({
 }
 
 /** Why there is nothing to trace, in the viewer's terms. */
-function unavailableNote(sourceKind: string, isLive: boolean): string {
-	if (sourceKind === 'mock') {
-		return 'Telemetry comes with saved sessions from the archive; this replay is modelled.';
-	}
-
+function unavailableNote(isLive: boolean): string {
 	return isLive
 		? 'Telemetry for a live session arrives from the archive once it ends.'
 		: 'This session was saved without telemetry.';
@@ -739,7 +740,7 @@ function unavailableNote(sourceKind: string, isLive: boolean): string {
  * sector.
  */
 export function TelemetryPanel() {
-	const { sourceKind, live } = useRaceView();
+	const { live } = useRaceView();
 	const telemetry = useSessionTelemetry();
 	const fill = useTileFill();
 	const [mode, setMode] = React.useState<TraceMode>('drivers');
@@ -769,7 +770,7 @@ export function TelemetryPanel() {
 					</p>
 				) : (
 					<p className="text-muted-foreground text-sm" data-testid="telemetry-unavailable">
-						{unavailableNote(sourceKind, live.isLive)}
+						{unavailableNote(live.isLive)}
 					</p>
 				)}
 			</div>

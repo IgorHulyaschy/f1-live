@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 
 import { openRace } from './fixtures.ts';
 
-// The modelled replay of the 2025 Las Vegas race: no telemetry, passes or radio, but stops,
-// flags, penalties and the championship before the race.
+// The modelled replay of the 2025 Las Vegas race: no passes or radio, but stops, flags,
+// penalties, the championship before the race and a few of the real race's laps of telemetry.
 
 test('the story strip under the replay jumps to a lap', async ({ page }) => {
 	await openRace(page, '/analysis');
@@ -15,10 +15,13 @@ test('the story strip under the replay jumps to a lap', async ({ page }) => {
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 12/50');
 });
 
-test('the telemetry tile says it needs a saved session', async ({ page }) => {
+test('the telemetry tile draws the real race’s laps on the modelled replay', async ({ page }) => {
 	await openRace(page, '/analysis');
 
-	await expect(page.getByTestId('telemetry-unavailable')).toContainText('saved sessions');
+	const telemetry = page.getByTestId('telemetry');
+	await expect(telemetry.getByTestId('telemetry-charts')).toBeVisible();
+	await expect(telemetry.getByTestId('telemetry-slot-A')).toContainText('VER');
+	await expect(telemetry).toContainText('the real race’s laps');
 });
 
 test('the versus chart and the table view', async ({ page }) => {

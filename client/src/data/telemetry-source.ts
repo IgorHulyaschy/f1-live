@@ -19,20 +19,20 @@ export type TelemetrySource = {
  */
 const sessionIndexSchema = z.object({ circuitKey: z.string(), laps: z.string() });
 
-const lapIndexSchema = z.object({
+export const lapIndexSchema = z.object({
 	hasCarData: z.boolean(),
 	laps: z.array(
 		z.object({ driverNumber: z.string(), lap: z.number(), file: z.string(), distanceM: z.number() })
 	)
 });
 
-const outlineSchema = z.object({
+export const outlineSchema = z.object({
 	lengthM: z.number(),
 	points: z.array(z.tuple([z.number(), z.number()])),
 	miniSectorStartsM: z.array(z.number())
 });
 
-const lapSchema = z.object({ t: z.array(z.number()), d: z.array(z.number()) });
+export const lapSchema = z.object({ t: z.array(z.number()), d: z.array(z.number()) });
 
 class NotFound extends Error {}
 
@@ -79,7 +79,7 @@ async function fetchLap(url: string): Promise<LapTelemetry> {
 }
 
 /** One fetch per URL for the page's life; a failed one is forgotten so it can be tried again. */
-function createCache<T>() {
+export function createCache<T>() {
 	const pending = new Map<string, Promise<T>>();
 	const done = new Map<string, T>();
 

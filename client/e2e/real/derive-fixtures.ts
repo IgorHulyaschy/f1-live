@@ -42,6 +42,12 @@ const TELEMETRY_DRIVERS = new Map([
 	['9858', ['1', '63', '12', '16', '4', '81']]
 ]);
 
+/**
+ * The modelled replay of the same race shows these too, at the lap it opens on (30): laps 29 and
+ * 30 of the first four there and of the default followed driver.
+ */
+const MOCK_REPLAY_LAPS = { key: '9858', drivers: ['1', '63', '12', '4', '16'], laps: [29, 30] };
+
 const dataDir = process.env.DATA_DIR;
 
 if (!dataDir) {
@@ -101,7 +107,12 @@ for (const [key, drivers] of TELEMETRY_DRIVERS) {
 		const best = fastestComparableLap(own, comparable);
 		const last = own.findLast((lap) => comparable.has(lap.lap));
 
-		for (const lap of new Set([best?.lap, last?.lap])) {
+		const mockLaps =
+			key === MOCK_REPLAY_LAPS.key && MOCK_REPLAY_LAPS.drivers.includes(driverNumber)
+				? MOCK_REPLAY_LAPS.laps
+				: [];
+
+		for (const lap of new Set([best?.lap, last?.lap, ...mockLaps])) {
 			const entry = lap === undefined ? undefined : comparable.get(lap);
 
 			if (entry) {

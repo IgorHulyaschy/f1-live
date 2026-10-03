@@ -260,152 +260,167 @@ export function ConditionsPanel() {
 						<EmptyNote className="px-0">No weather from this feed yet.</EmptyNote>
 					) : (
 						<>
-							<section className="flex flex-col gap-2" aria-label="Wind on the straights">
-								<dl className="flex flex-wrap gap-x-6 gap-y-2">
-									<Field label="Wind">
-										{sample.windDirectionDeg === undefined
-											? `${sample.windSpeedMs.toFixed(1)} m/s`
-											: `${sample.windSpeedMs.toFixed(1)} m/s from the ${compassPoint(sample.windDirectionDeg)}`}
-									</Field>
-									<Field label="Track">{sample.trackTempC.toFixed(1)}°</Field>
-									<Field label="Air">{sample.airTempC.toFixed(1)}°</Field>
-								</dl>
-								{sample.windDirectionDeg === undefined ? (
-									<p className="text-muted-foreground text-sm">
-										This feed gives no wind direction.
-									</p>
-								) : outline === null ? (
-									<p className="text-muted-foreground text-sm">
-										Wind on each straight needs the circuit outline, which comes with the session’s
-										telemetry.
-									</p>
-								) : table ? (
-									<DataTable
-										caption="Wind along and across each straight"
-										columns={[
-											{ key: 'where', label: 'Straight' },
-											{ key: 'length', label: 'Length', numeric: true },
-											{ key: 'head', label: 'Headwind m/s', numeric: true },
-											{ key: 'cross', label: 'Crosswind m/s', numeric: true }
-										]}
-										rows={winds.map((straight) => ({
-											id: String(straight.startM),
-											where: `${Math.round(straight.startM)} m, heading ${compassPoint(straight.bearingDeg)}`,
-											length: `${Math.round(straight.lengthM)} m`,
-											head: straight.headwindMs.toFixed(1),
-											cross: straight.crosswindMs.toFixed(1)
-										}))}
-									/>
-								) : (
-									<WindMap
-										outline={outline}
-										winds={winds}
-										windFromDeg={sample.windDirectionDeg}
-										windSpeedMs={sample.windSpeedMs}
-									/>
-								)}
-							</section>
-							{timed ? null : (
-								<section
-									className="flex flex-col gap-2"
-									aria-label="Track temperature against pace"
-								>
-									<div className="flex flex-wrap items-end gap-x-6 gap-y-2">
-										<span className="type-label">Track temperature and the field’s pace</span>
-										{link ? (
-											<Field label="Pace with each °C">
-												<Digits
-													value={`${link.secondsPerDegree >= 0 ? '+' : '−'}${Math.abs(link.secondsPerDegree).toFixed(2)} s`}
-												/>
-												<span className="text-muted-foreground">
-													{' '}
-													r {link.correlation.toFixed(2)}
-												</span>
-											</Field>
-										) : null}
-									</div>
-									{table ? (
+							<div className="grid gap-6 @4xl:grid-cols-2">
+								<section className="flex flex-col gap-2" aria-label="Wind on the straights">
+									<dl className="flex flex-wrap gap-x-6 gap-y-2">
+										<Field label="Wind">
+											{sample.windDirectionDeg === undefined
+												? `${sample.windSpeedMs.toFixed(1)} m/s`
+												: `${sample.windSpeedMs.toFixed(1)} m/s from the ${compassPoint(sample.windDirectionDeg)}`}
+										</Field>
+										<Field label="Track">{sample.trackTempC.toFixed(1)}°</Field>
+										<Field label="Air">{sample.airTempC.toFixed(1)}°</Field>
+									</dl>
+									{sample.windDirectionDeg === undefined ? (
+										<p className="text-muted-foreground text-sm">
+											This feed gives no wind direction.
+										</p>
+									) : outline === null ? (
+										<p className="text-muted-foreground text-sm">
+											Wind on each straight needs the circuit outline, which comes with the
+											session’s telemetry.
+										</p>
+									) : table ? (
 										<DataTable
-											caption="Track temperature and the field's pace on each lap"
+											caption="Wind along and across each straight"
 											columns={[
-												{ key: 'lap', label: 'Lap' },
-												{ key: 'track', label: 'Track °C', numeric: true },
-												{ key: 'air', label: 'Air °C', numeric: true },
-												{ key: 'pace', label: 'Field pace s', numeric: true }
+												{ key: 'where', label: 'Straight' },
+												{ key: 'length', label: 'Length', numeric: true },
+												{ key: 'head', label: 'Headwind m/s', numeric: true },
+												{ key: 'cross', label: 'Crosswind m/s', numeric: true }
 											]}
-											rows={rows.map((row) => ({
-												id: String(row.lap),
-												lap: `L${row.lap}`,
-												track: row.trackTempC.toFixed(1),
-												air: row.airTempC.toFixed(1),
-												pace: row.paceS === null ? null : row.paceS.toFixed(2)
+											rows={winds.map((straight) => ({
+												id: String(straight.startM),
+												where: `${Math.round(straight.startM)} m, heading ${compassPoint(straight.bearingDeg)}`,
+												length: `${Math.round(straight.lengthM)} m`,
+												head: straight.headwindMs.toFixed(1),
+												cross: straight.crosswindMs.toFixed(1)
 											}))}
 										/>
 									) : (
-										<ChartContainer
-											config={chartConfig}
-											className="aspect-auto h-48 w-full @4xl:h-56"
-										>
-											<LineChart data={rows} margin={{ left: 4, right: 4, top: 8 }}>
-												<CartesianGrid vertical={false} />
-												<XAxis
-													dataKey="lap"
-													type="number"
-													domain={[1, 'dataMax']}
-													tickLine={false}
-													axisLine={false}
-													tickFormatter={(lap: number) => `L${lap}`}
-												/>
-												<YAxis
-													yAxisId="temp"
-													tickLine={false}
-													axisLine={false}
-													width={36}
-													domain={['auto', 'auto']}
-													tickFormatter={(value: number) => `${value.toFixed(1)}°`}
-												/>
-												<YAxis
-													yAxisId="pace"
-													orientation="right"
-													tickLine={false}
-													axisLine={false}
-													width={44}
-													domain={['auto', 'auto']}
-													tickFormatter={(value: number) => `${value.toFixed(1)}`}
-												/>
-												<ChartTooltip
-													content={
-														<ChartTooltipContent
-															labelFormatter={(lap) => `Lap ${String(lap)}`}
-															valueFormatter={(value) => value.toFixed(1)}
-														/>
-													}
-												/>
-												<Line
-													yAxisId="temp"
-													dataKey="trackTempC"
-													type="linear"
-													stroke="var(--color-trackTempC)"
-													strokeWidth={2}
-													dot={false}
-													isAnimationActive={false}
-												/>
-												<Line
-													yAxisId="pace"
-													dataKey="paceS"
-													type="linear"
-													stroke="var(--color-paceS)"
-													strokeWidth={1.5}
-													strokeDasharray="4 3"
-													dot={false}
-													connectNulls
-													isAnimationActive={false}
-												/>
-											</LineChart>
-										</ChartContainer>
+										<WindMap
+											outline={outline}
+											winds={winds}
+											windFromDeg={sample.windDirectionDeg}
+											windSpeedMs={sample.windSpeedMs}
+										/>
 									)}
 								</section>
-							)}
+								{timed ? null : (
+									<section
+										className="flex flex-col gap-2"
+										aria-label="Track temperature against pace"
+									>
+										<div className="flex flex-wrap items-end gap-x-6 gap-y-2">
+											<span className="type-label">Track temperature and the field’s pace</span>
+											{link ? (
+												<Field label="Pace with each °C">
+													<Digits
+														value={`${link.secondsPerDegree >= 0 ? '+' : '−'}${Math.abs(link.secondsPerDegree).toFixed(2)} s`}
+													/>
+													<span className="text-muted-foreground">
+														{' '}
+														r {link.correlation.toFixed(2)}
+													</span>
+												</Field>
+											) : null}
+										</div>
+										{table ? (
+											<DataTable
+												caption="Track temperature and the field's pace on each lap"
+												columns={[
+													{ key: 'lap', label: 'Lap' },
+													{ key: 'track', label: 'Track °C', numeric: true },
+													{ key: 'air', label: 'Air °C', numeric: true },
+													{ key: 'pace', label: 'Field pace s', numeric: true }
+												]}
+												rows={rows.map((row) => ({
+													id: String(row.lap),
+													lap: `L${row.lap}`,
+													track: row.trackTempC.toFixed(1),
+													air: row.airTempC.toFixed(1),
+													pace: row.paceS === null ? null : row.paceS.toFixed(2)
+												}))}
+											/>
+										) : (
+											<ChartContainer
+												config={chartConfig}
+												className="aspect-auto h-48 w-full @4xl:h-56"
+											>
+												<LineChart data={rows} margin={{ left: 4, right: 4, top: 8 }}>
+													<CartesianGrid vertical={false} />
+													<XAxis
+														dataKey="lap"
+														type="number"
+														domain={[1, 'dataMax']}
+														tickLine={false}
+														axisLine={false}
+														tickFormatter={(lap: number) => `L${lap}`}
+													/>
+													<YAxis
+														yAxisId="temp"
+														tickLine={false}
+														axisLine={false}
+														width={36}
+														domain={['auto', 'auto']}
+														tickFormatter={(value: number) => `${value.toFixed(1)}°`}
+													/>
+													<YAxis
+														yAxisId="pace"
+														orientation="right"
+														tickLine={false}
+														axisLine={false}
+														width={44}
+														domain={['auto', 'auto']}
+														tickFormatter={(value: number) => `${value.toFixed(1)}`}
+													/>
+													<ChartTooltip
+														content={
+															<ChartTooltipContent
+																labelFormatter={(lap) => `Lap ${String(lap)}`}
+																valueFormatter={(value) => value.toFixed(1)}
+															/>
+														}
+													/>
+													<Line
+														yAxisId="temp"
+														dataKey="trackTempC"
+														type="linear"
+														stroke="var(--color-trackTempC)"
+														strokeWidth={2}
+														dot={false}
+														isAnimationActive={false}
+													/>
+													<Line
+														yAxisId="pace"
+														dataKey="paceS"
+														type="linear"
+														stroke="var(--color-paceS)"
+														strokeWidth={1.5}
+														strokeDasharray="4 3"
+														dot={false}
+														connectNulls
+														isAnimationActive={false}
+													/>
+												</LineChart>
+											</ChartContainer>
+										)}
+										<div className="text-muted-foreground flex flex-wrap gap-x-4 text-xs">
+											<span className="flex items-center gap-1.5">
+												<span aria-hidden className="bg-foreground h-0.5 w-4" />
+												Track temperature, left
+											</span>
+											<span className="flex items-center gap-1.5">
+												<span
+													aria-hidden
+													className="border-muted-foreground w-4 border-t-2 border-dashed"
+												/>
+												Field pace, seconds, right
+											</span>
+										</div>
+									</section>
+								)}
+							</div>
 							<p className="text-muted-foreground text-xs">
 								Straights are where the outline turns less than three degrees per 100 m; arrows show
 								the direction of travel, solid straights run into the wind and dashed ones have it
