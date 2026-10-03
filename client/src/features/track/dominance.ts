@@ -1,5 +1,7 @@
 import { type LapClock, type LapIndex, timeAtDistance, type TrackOutline } from '@f1-live/shared';
 
+import { isComparableLap } from '../../insights/telemetry-traces.ts';
+
 /** Each mini sector's time on one lap, ms, read off the lap's own clock at the mini-sector ends. */
 export function miniSectorTimes(outline: TrackOutline, lap: LapClock): number[] {
 	const ends = [...outline.miniSectorStartsM.slice(1), outline.lengthM];
@@ -94,25 +96,25 @@ const LAPS_READ = 8;
 
 type LapEntry = LapIndex['laps'][number];
 
-function usable(entry: LapEntry, until: number): boolean {
-	return (
-		!entry.partial &&
-		!entry.pitIn &&
-		!entry.pitOut &&
-		Date.parse(entry.startedAt) + entry.lapTimeMs <= until
-	);
-}
-
-/** The laps to read per driver: the fastest lap, or the fastest few for the best of each mini sector. */
+/**
+ * The laps to read per driver: the fastest lap, or the fastest few for the best of each mini sector.
+ * Only laps recorded line to line count; one cut short would win the mini sectors it never ran.
+ */
 export function lapsToRead(
 	index: LapIndex,
 	drivers: readonly string[],
 	span: DominanceSpan,
-	until: number
+	until: number,
+	lengthM: number
 ): LapEntry[] {
 	return drivers.flatMap((driverNumber) =>
 		index.laps
-			.filter((entry) => entry.driverNumber === driverNumber && usable(entry, until))
+			.filter(
+				(entry) =>
+					entry.driverNumber === driverNumber &&
+					isComparableLap(entry, lengthM) &&
+					Date.parse(entry.startedAt) + entry.lapTimeMs <= until
+			)
 			.toSorted((a, b) => a.lapTimeMs - b.lapTimeMs)
 			.slice(0, span === 'lap' ? 1 : LAPS_READ)
 	);

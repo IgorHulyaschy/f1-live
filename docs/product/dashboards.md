@@ -36,7 +36,7 @@ zone on a second.
 The Replay tile is the session's timeline, at the top of every ready-made dashboard:
 
 - **Play, speed and steps.** Previous and next lap (or minute), play and pause, and one key that
-  cycles the speed: 1×, 2×, 4×.
+  cycles the speed in multiples of real time: 1×, 10×, 60× (the default).
 - **Events.** The start (each part's start in qualifying), each flag as it comes out, the lead
   and fastest laps, passes made on track, stops, penalties and cars out, as markers over the
   barcode in their own colours. Hover one for what happened; click it to go there. The event keys

@@ -8,6 +8,7 @@ import { ProGate } from '@/components/pro-gate';
 import { Digits } from '@/components/console/digits';
 import { useRace } from '@/data/race-context';
 import { stepTime } from '@/data/session-time';
+import { isComparableLap } from '@/insights/telemetry-traces';
 import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -114,7 +115,7 @@ function useLap(track: TrackReady, choice: number | null): ChosenLap {
 	);
 
 	const fastest = laps
-		.filter((entry) => !entry.pitIn && !entry.pitOut)
+		.filter((entry) => isComparableLap(entry, track.outline.lengthM))
 		.reduce<LapEntry | null>(
 			(best, entry) => (!best || entry.lapTimeMs < best.lapTimeMs ? entry : best),
 			null

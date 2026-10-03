@@ -12,7 +12,7 @@ import { copyFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'no
 import path from 'node:path';
 import { gunzipSync } from 'node:zlib';
 
-import type { LapIndex, RaceSnapshot, ReplayManifest } from '@f1-live/shared';
+import type { LapIndex, RaceSnapshot, ReplayManifest, TrackOutline } from '@f1-live/shared';
 
 import { replayTimeline, stepTime } from '../../src/data/session-time.ts';
 import { snapshotAtLap } from '../../src/data/snapshot-at-lap.ts';
@@ -99,6 +99,8 @@ for (const [key, plan] of PLANS) {
 		path.join(target, 'circuits', `${index.circuitKey}.json`)
 	);
 
+	const circuit = readJson<TrackOutline>(path.join(source, 'circuits', `${index.circuitKey}.json`));
+
 	const manifest = readJson<ReplayManifest>(path.join(from, index.replay));
 	const origin = Date.parse(manifest.originAt);
 
@@ -121,7 +123,7 @@ for (const [key, plan] of PLANS) {
 		...lapsForZones(laps, snapshot.laps),
 		...plan.mapSteps
 			.map((step) => (step < 0 ? last + 1 + step : step))
-			.flatMap((step) => mapLaps(laps, snapshot, step, stepTime(timeline, step)))
+			.flatMap((step) => mapLaps(laps, snapshot, step, stepTime(timeline, step), circuit.lengthM))
 	]);
 
 	for (const entry of read) {
@@ -140,7 +142,8 @@ function mapLaps(
 	laps: LapIndex,
 	snapshot: RaceSnapshot,
 	step: number,
-	moment: number
+	moment: number,
+	lengthM: number
 ): LapIndex['laps'] {
 	const shown = isTimedSession(snapshot.session.type)
 		? snapshotAtTime(snapshot, moment)
@@ -152,7 +155,7 @@ function mapLaps(
 		.map((row) => row.driver.number);
 
 	return [
-		...lapsToRead(laps, [FOLLOWED, ...front], 'best', moment),
-		...lapsToRead(laps, [FOLLOWED], 'lap', moment)
+		...lapsToRead(laps, [FOLLOWED, ...front], 'best', moment, lengthM),
+		...lapsToRead(laps, [FOLLOWED], 'lap', moment, lengthM)
 	];
 }

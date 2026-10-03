@@ -112,7 +112,7 @@ function EventKeys({ events, compact }: { events: readonly TimelineEvent[]; comp
 
 /** One key that cycles the playback speed, as multiples of real time: 1×, 10×, 60×. */
 function SpeedKey() {
-	const { speed, setSpeed } = useRaceView();
+	const { speed, setSpeed, live } = useRaceView();
 	const next = nextSpeed(speed);
 
 	return (
@@ -120,6 +120,7 @@ function SpeedKey() {
 			aria-label={`Playback speed ${speed}×; press for ${next}×`}
 			title="Playback speed"
 			className="w-11 justify-center font-mono"
+			disabled={live.following}
 			onClick={() => setSpeed(next)}
 			data-testid="speed"
 		>

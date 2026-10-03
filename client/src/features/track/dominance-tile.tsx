@@ -61,7 +61,7 @@ async function timesFromLaps(
 	until: number
 ): Promise<Times> {
 	const index = await telemetry.loadLapIndex(track.sessionKey, lapsPath);
-	const entries = lapsToRead(index, drivers, span, until);
+	const entries = lapsToRead(index, drivers, span, until, track.outline.lengthM);
 
 	const laps = await Promise.all(
 		entries.map((entry) => telemetry.loadLap(track.sessionKey, entry.file))

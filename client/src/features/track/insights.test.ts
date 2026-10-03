@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import type { LapTelemetry, RaceControlMessage } from '@f1-live/shared';
+import type { LapIndex, LapTelemetry, RaceControlMessage } from '@f1-live/shared';
 
 import { PIT_LOSS_MS, pitLossOf } from '../../insights/pit-window.ts';
 import { lapsUntilInRange, roadGapMs, roadNeighbours } from './battle.ts';
-import { bestOf, dominance, miniSectorTimes } from './dominance.ts';
+import { bestOf, dominance, lapsToRead, miniSectorTimes } from './dominance.ts';
 import { drsZones, openStretches } from './drs-zones.ts';
 import { marshalSectorCount, marshalSpan, sectorFlags } from './flags.ts';
 import { rejoinAmong } from './rejoin.ts';
@@ -116,6 +116,23 @@ describe('pit rejoin', () => {
 	});
 });
 
+/** An index entry for one of PIA's laps, recorded over `distanceM`. */
+function lapEntry(lap: number, lapTimeMs: number, distanceM: number): LapIndex['laps'][number] {
+	return {
+		driverNumber: '81',
+		lap,
+		file: `laps/81-${lap}.json.gz`,
+		startedAt: new Date(Date.UTC(2026, 8, 20, 12, lap)).toISOString(),
+		lapTimeMs,
+		rows: 400,
+		distanceM,
+		bytes: 9000,
+		partial: false,
+		pitIn: false,
+		pitOut: false
+	};
+}
+
 describe('mini-sector dominance', () => {
 	it('reads each mini sector’s time off a lap’s clock', () => {
 		const times = miniSectorTimes(LAS_VEGAS, {
@@ -163,6 +180,34 @@ describe('mini-sector dominance', () => {
 				[3100, 4000, 4900]
 			]),
 			[3000, 4000, 4900]
+		);
+	});
+
+	it('reads only laps recorded line to line and done by the moment on screen', () => {
+		const index: LapIndex = {
+			v: 1,
+			sessionKey: 1,
+			circuitKey: '152',
+			stepMs: 250,
+			hasCarData: true,
+			// Lap 20's telemetry stops after 317 m though the index does not flag it partial.
+			laps: [
+				lapEntry(18, 96_000, 6140),
+				lapEntry(19, 95_000, 6150),
+				lapEntry(20, 94_000, 317),
+				lapEntry(21, 93_000, 6145)
+			]
+		};
+
+		const until = Date.UTC(2026, 8, 20, 12, 21);
+
+		assert.deepEqual(
+			lapsToRead(index, ['81'], 'best', until, LAS_VEGAS.lengthM).map((lap) => lap.lap),
+			[19, 18]
+		);
+		assert.deepEqual(
+			lapsToRead(index, ['81'], 'lap', until, LAS_VEGAS.lengthM).map((lap) => lap.lap),
+			[19]
 		);
 	});
 });
