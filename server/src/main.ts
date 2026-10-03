@@ -5,6 +5,9 @@ import websocket from '@fastify/websocket';
 import Fastify from 'fastify';
 import type { FastifyInstance } from 'fastify';
 
+import { createAccounts, injectWebhook } from './accounts/accounts.js';
+import type { Accounts } from './accounts/accounts.js';
+import { registerAccounts } from './accounts/routes.js';
 import type { Config } from './config.js';
 import { registerHealth } from './http/health.js';
 import { registerIngest } from './http/ingest.js';
@@ -63,10 +66,24 @@ export async function createServer(
 	const session = new LiveSession(config.live.logEvents);
 	const serves = config.mode !== 'ingest';
 
+	// Accounts run where viewers are; an ingest has none.
+	const accountsConfig = serves ? config.accounts : null;
+
 	await app.register(cors, {
 		origin: [...config.corsOrigins],
-		methods: ['GET', 'HEAD', 'OPTIONS']
+		// Accounts write with a session cookie; without them the server is read-only.
+		methods: accountsConfig
+			? ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'DELETE']
+			: ['GET', 'HEAD', 'OPTIONS'],
+		credentials: accountsConfig !== null
 	});
+
+	let accounts: Accounts | undefined;
+
+	if (accountsConfig) {
+		accounts = await createAccounts(accountsConfig, { log, deliverWebhook: injectWebhook(app) });
+		await registerAccounts(app, accounts);
+	}
 
 	const telemetryOptions: LiveTelemetryOptions = {
 		intervalMs: TELEMETRY_INTERVAL_MS,
@@ -179,6 +196,7 @@ export async function createServer(
 			await Promise.all(tasks);
 			await importer?.close();
 			await app.close();
+			await accounts?.close();
 		}
 	};
 }

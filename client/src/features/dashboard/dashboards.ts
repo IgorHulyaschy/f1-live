@@ -1,48 +1,24 @@
-import { z } from 'zod';
+import {
+	type Dashboard,
+	isPresetId,
+	type Tile,
+	type TileKind,
+	type TileSettings
+} from '@f1-live/shared/dashboard';
+
+export {
+	type Dashboard,
+	GRID_COLUMNS,
+	parseDashboardListText,
+	parseDashboardText,
+	type Tile,
+	TILE_KINDS,
+	type TileKind,
+	type TilePlacement,
+	type TileSettings
+} from '@f1-live/shared/dashboard';
 
 import type { Metric } from '../analysis/lap-series.ts';
-
-/** Every dashboard is laid out on this many columns, whatever the screen width. */
-export const GRID_COLUMNS = 24;
-
-export const TILE_KINDS = [
-	'session',
-	'replay',
-	'lap-strip',
-	'weather',
-	'timing',
-	'focus',
-	'gaps',
-	'box-now',
-	'race-control',
-	'chart',
-	'compare',
-	'pace',
-	'fastest-laps',
-	'stints',
-	'degradation',
-	'pit-stops',
-	'driver',
-	'grid'
-] as const;
-
-export type TileKind = (typeof TILE_KINDS)[number];
-
-export type TileSettings = { metric?: Metric };
-
-export type Tile = { id: string; kind: TileKind; settings?: TileSettings };
-
-/** Where a tile sits, in grid columns and rows. `i` is the tile id. */
-export type TilePlacement = { i: string; x: number; y: number; w: number; h: number };
-
-export type Dashboard = {
-	id: string;
-	name: string;
-	tiles: Tile[];
-	layout: TilePlacement[];
-	/** Stretch rows so the whole layout fills the window height: for wall screens and TVs. */
-	fit?: boolean;
-};
 
 export const TILE_GROUPS = ['Race', 'Drivers', 'Timing', 'Analysis', 'Strategy'] as const;
 
@@ -278,8 +254,9 @@ export const PRESETS: readonly Dashboard[] = [
 	)
 ];
 
+/** Ready-made: saved under a preset id, a dashboard is an edited preset and never counts as own. */
 export function isPreset(id: string): boolean {
-	return PRESETS.some((dashboard) => dashboard.id === id);
+	return isPresetId(id);
 }
 
 /** Tiles in reading order: top to bottom, then left to right. Phones stack them this way. */
@@ -333,111 +310,4 @@ export function swapTiles(dashboard: Dashboard, firstId: string, secondId: strin
 					: place
 		)
 	};
-}
-
-const placementSchema = z.object({
-	i: z.string(),
-	x: z
-		.int()
-		.min(0)
-		.max(GRID_COLUMNS - 1),
-	y: z.int().min(0).max(1000),
-	w: z.int().min(1).max(GRID_COLUMNS),
-	h: z.int().min(1).max(1000)
-});
-
-const tileSchema = z.object({
-	id: z.string(),
-	kind: z.enum(TILE_KINDS),
-	settings: z
-		.object({ metric: z.enum(['lapTime', 'gap', 'position', 'battle']).optional() })
-		.optional()
-});
-
-/** Lenient on the parts: a tile or placement that does not parse is dropped, not the dashboard. */
-const dashboardSchema = z.object({
-	id: z.string().min(1),
-	name: z.string(),
-	fit: z.boolean().optional(),
-	tiles: z.array(z.json()).transform((entries) =>
-		entries.flatMap((entry) => {
-			const tile = tileSchema.safeParse(entry);
-
-			return tile.success ? [tile.data] : [];
-		})
-	),
-	layout: z.array(z.json()).transform((entries) =>
-		entries.flatMap((entry) => {
-			const place = placementSchema.safeParse(entry);
-
-			return place.success ? [place.data] : [];
-		})
-	)
-});
-
-/** Keeps the first entry for each key; ids must be unique for keys, routes and the grid. */
-function uniqueBy<Entry>(entries: readonly Entry[], key: (entry: Entry) => string): Entry[] {
-	const seen = new Set<string>();
-
-	return entries.filter((entry) => {
-		const id = key(entry);
-
-		if (seen.has(id)) {
-			return false;
-		}
-
-		seen.add(id);
-
-		return true;
-	});
-}
-
-function cleanDashboard(parsed: z.infer<typeof dashboardSchema>): Dashboard {
-	const placed = new Set(parsed.layout.map((place) => place.i));
-	const tiles = uniqueBy(parsed.tiles, (tile) => tile.id).filter((tile) => placed.has(tile.id));
-	const ids = new Set(tiles.map((tile) => tile.id));
-
-	const dashboard: Dashboard = {
-		id: parsed.id,
-		name: parsed.name.slice(0, 40) || 'Untitled',
-		tiles,
-		layout: uniqueBy(parsed.layout, (place) => place.i).filter((place) => ids.has(place.i))
-	};
-
-	if (parsed.fit) {
-		dashboard.fit = true;
-	}
-
-	return dashboard;
-}
-
-/** JSON text, parsed. Text that is not JSON fails like any other schema mismatch. */
-const jsonText = z.string().transform((text, context) => {
-	try {
-		return z.json().parse(JSON.parse(text));
-	} catch {
-		context.addIssue({ code: 'custom', message: 'Not JSON' });
-
-		return z.NEVER;
-	}
-});
-
-/** Reads an exported dashboard file. */
-export function parseDashboardText(text: string): Dashboard | null {
-	const parsed = jsonText.pipe(dashboardSchema).safeParse(text);
-
-	return parsed.success ? cleanDashboard(parsed.data) : null;
-}
-
-/** Reads the saved list, keeping every dashboard that still parses. */
-export function parseDashboardListText(text: string): Dashboard[] {
-	const list = jsonText.pipe(z.array(z.json())).safeParse(text);
-
-	const dashboards = (list.success ? list.data : []).flatMap((entry) => {
-		const parsed = dashboardSchema.safeParse(entry);
-
-		return parsed.success ? [cleanDashboard(parsed.data)] : [];
-	});
-
-	return uniqueBy(dashboards, (dashboard) => dashboard.id);
 }

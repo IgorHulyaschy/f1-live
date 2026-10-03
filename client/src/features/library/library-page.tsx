@@ -4,7 +4,6 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 
 import { Key } from '@/components/console/keys';
-import { useRace } from '@/data/race-context';
 import { DashboardGrid } from '@/features/dashboard/dashboard-grid';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
 import {
@@ -15,13 +14,15 @@ import {
 	TILE_INFO
 } from '@/features/dashboard/dashboards';
 import { dashboardPath } from '@/features/dashboard/paths';
-import { FREE_OWN_DASHBOARDS, useAddDashboard } from '@/features/dashboard/use-add-dashboard';
+import { useAccount, useEntitlements } from '@/features/account/account-store';
+import { useGoPro } from '@/features/account/go-pro';
+import { SignInDialog } from '@/features/account/sign-in';
+import { useAddDashboard } from '@/features/dashboard/use-add-dashboard';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { cn } from '@/lib/utils';
 
-import { AccountDialog } from './account';
 import { COMMUNITY, type LibraryEntry } from './community';
-import { accountStore, publishDashboard, unpublishDashboard, usePublished } from './library-data';
+import { libraryAuthor, publishDashboard, unpublishDashboard, usePublished } from './library-data';
 import { decodeShare } from './share';
 
 /** A dashboard's layout drawn to scale: how it sits on a wide screen, before opening it. */
@@ -146,10 +147,11 @@ function Section({
  */
 export function LibraryPage() {
 	const search = useCarriedSearch();
-	const { plan, setPlan } = useRace();
+	const account = useAccount();
+	const entitlements = useEntitlements();
+	const goPro = useGoPro();
 	const { dashboards } = useDashboards();
 	const published = usePublished();
-	const account = accountStore.useValue();
 	const add = useAddDashboard();
 	const [signingIn, setSigningIn] = React.useState(false);
 	const own = dashboards.filter((dashboard) => !isPreset(dashboard.id));
@@ -167,9 +169,9 @@ export function LibraryPage() {
 			<Section
 				title="Yours"
 				meta={
-					plan === 'pro'
+					entitlements.ownDashboards === null
 						? `${own.length} of any number`
-						: `${own.length} of ${FREE_OWN_DASHBOARDS} on Free`
+						: `${own.length} of ${entitlements.ownDashboards} on Free`
 				}
 			>
 				{own.length === 0 ? (
@@ -184,16 +186,16 @@ export function LibraryPage() {
 						<LibraryRow key={dashboard.id} dashboard={dashboard}>
 							<Key
 								onClick={() => {
-									if (!account) {
+									if (account.status !== 'signed-in') {
 										setSigningIn(true);
 
 										return;
 									}
 
-									if (!entry && plan === 'free') {
+									if (!entry && !entitlements.publish) {
 										toast('Publishing is part of Pro', {
 											description: 'Share links work on Free; the library lists Pro dashboards.',
-											action: { label: 'Preview Pro', onClick: () => setPlan('pro') }
+											action: { label: 'Go Pro', onClick: goPro }
 										});
 
 										return;
@@ -203,7 +205,7 @@ export function LibraryPage() {
 										unpublishDashboard(entry.id);
 										toast(`${dashboard.name} is no longer in the library`);
 									} else {
-										publishDashboard(dashboard, account);
+										publishDashboard(dashboard, libraryAuthor(account.me.user));
 										toast(`${dashboard.name} is in the library`, {
 											description: 'Fans can preview it and add a copy.'
 										});
@@ -265,7 +267,11 @@ export function LibraryPage() {
 					</LibraryRow>
 				))}
 			</Section>
-			<AccountDialog open={signingIn} onOpenChange={setSigningIn} />
+			<SignInDialog
+				open={signingIn}
+				onOpenChange={setSigningIn}
+				reason="Publishing puts your name on a dashboard, so it needs an account. No password: we email you a link."
+			/>
 		</div>
 	);
 }

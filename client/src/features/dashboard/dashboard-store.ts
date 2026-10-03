@@ -1,5 +1,7 @@
+import { sameDashboard } from '@f1-live/shared/dashboard';
 import * as React from 'react';
 
+import { noteDeleted, noteSaved } from '../account/sync-meta.ts';
 import { type Dashboard, isPreset, parseDashboardListText, PRESETS } from './dashboards.ts';
 
 const STORAGE_KEY = 'pitwall-dashboards';
@@ -88,18 +90,50 @@ export function useDashboards(): { dashboards: Dashboard[]; saved: ReadonlySet<s
 
 export function saveDashboard(dashboard: Dashboard): void {
 	const saved = readSaved();
-	const exists = saved.some((entry) => entry.id === dashboard.id);
+	const existing = saved.find((entry) => entry.id === dashboard.id);
+
+	if (existing && sameDashboard(existing, dashboard)) {
+		return;
+	}
 
 	writeSaved(
-		exists
+		existing
 			? saved.map((entry) => (entry.id === dashboard.id ? dashboard : entry))
 			: [...saved, dashboard]
 	);
+	noteSaved(dashboard.id);
 }
 
 /** Deletes one of the viewer's dashboards, or puts a preset back to how it shipped. */
 export function forgetDashboard(id: string): void {
-	writeSaved(readSaved().filter((entry) => entry.id !== id));
+	const saved = readSaved();
+
+	if (!saved.some((entry) => entry.id === id)) {
+		return;
+	}
+
+	writeSaved(saved.filter((entry) => entry.id !== id));
+	noteDeleted(id);
+}
+
+export function readSavedDashboards(): readonly Dashboard[] {
+	return readSaved();
+}
+
+/** Puts in what the account holds. Not an edit made here, so nothing is sent back. */
+export function replaceSavedDashboards(saved: readonly Dashboard[]): void {
+	const current = readSaved();
+
+	if (
+		saved.length !== current.length ||
+		saved.some((dashboard, index) => {
+			const other = current[index];
+
+			return !other || !sameDashboard(dashboard, other);
+		})
+	) {
+		writeSaved(saved);
+	}
 }
 
 export function newId(prefix: string): string {
