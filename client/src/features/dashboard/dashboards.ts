@@ -23,7 +23,14 @@ export const TILE_KINDS = [
 	'degradation',
 	'pit-stops',
 	'driver',
-	'grid'
+	'grid',
+	'telemetry',
+	'story',
+	'undercut',
+	'pit-cost',
+	'pit-crews',
+	'championship',
+	'conditions'
 ] as const;
 
 export type TileKind = (typeof TILE_KINDS)[number];
@@ -188,6 +195,61 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		description: 'Every driver as a picture plate in running order. Pick one to follow.',
 		size: { w: 24, h: 10 },
 		min: { w: 6, h: 6 }
+	},
+	telemetry: {
+		group: 'Analysis',
+		title: 'Telemetry',
+		description:
+			'Speed, throttle, brake, gear and revs by distance for up to three laps, with the delta.',
+		size: { w: 24, h: 34 },
+		min: { w: 6, h: 18 }
+	},
+	story: {
+		group: 'Race',
+		title: 'Story',
+		description:
+			'The race in lanes: flags, lead, passes, stops, penalties, cars out and radio. Click to jump; short, it is a strip.',
+		size: { w: 24, h: 18 },
+		min: { w: 6, h: 3 }
+	},
+	undercut: {
+		group: 'Strategy',
+		title: 'Undercut ledger',
+		description:
+			'Each pit stop exchange: the in-lap, stop and out-laps that won or lost the place.',
+		size: { w: 12, h: 24 },
+		min: { w: 6, h: 8 },
+		pro: true
+	},
+	'pit-cost': {
+		group: 'Strategy',
+		title: 'Stop cost',
+		description: 'What a pit stop costs in race time at this circuit, under green and under a VSC.',
+		size: { w: 12, h: 12 },
+		min: { w: 6, h: 6 }
+	},
+	'pit-crews': {
+		group: 'Strategy',
+		title: 'Pit crews',
+		description: 'Every team’s stops at a standstill, ranked by their usual stop.',
+		size: { w: 12, h: 12 },
+		min: { w: 6, h: 6 }
+	},
+	championship: {
+		group: 'Analysis',
+		title: 'Championship',
+		description:
+			'The standings as the race runs, how far each contender is from the lead, and what each place is worth.',
+		size: { w: 12, h: 28 },
+		min: { w: 6, h: 10 }
+	},
+	conditions: {
+		group: 'Analysis',
+		title: 'Conditions',
+		description: 'Wind along each straight, and track temperature beside the field’s pace.',
+		size: { w: 12, h: 24 },
+		min: { w: 6, h: 10 },
+		pro: true
 	}
 };
 
@@ -238,17 +300,23 @@ export const PRESETS: readonly Dashboard[] = [
 	buildDashboard('analysis', 'Analysis', [
 		['lap-strip', 0, 0, 18, 3],
 		['replay', 18, 0, 6, 3],
-		['compare', 0, 3, 4, 18],
-		['chart', 4, 3, 20, 18, { metric: 'lapTime' }],
-		['pace', 0, 21, 14, 12],
-		['fastest-laps', 14, 21, 10, 12]
+		['story', 0, 3, 24, 3],
+		['compare', 0, 6, 4, 18],
+		['chart', 4, 6, 20, 18, { metric: 'lapTime' }],
+		['telemetry', 0, 24, 24, 34],
+		['pace', 0, 58, 14, 12],
+		['fastest-laps', 14, 58, 10, 12]
 	]),
 	buildDashboard('strategy', 'Strategy', [
 		['lap-strip', 0, 0, 18, 3],
 		['replay', 18, 0, 6, 3],
-		['stints', 0, 3, 24, 16],
-		['degradation', 0, 19, 12, 12],
-		['pit-stops', 12, 19, 12, 12]
+		['story', 0, 3, 24, 3],
+		['stints', 0, 6, 24, 16],
+		['degradation', 0, 22, 12, 18],
+		['pit-stops', 12, 22, 12, 18],
+		['undercut', 0, 40, 12, 26],
+		['pit-cost', 12, 40, 12, 13],
+		['pit-crews', 12, 53, 12, 13]
 	]),
 	buildDashboard('battle', 'Battle', [
 		['lap-strip', 0, 0, 18, 3],
@@ -264,6 +332,15 @@ export const PRESETS: readonly Dashboard[] = [
 		['grid', 0, 3, 24, 10],
 		['driver', 0, 13, 8, 16],
 		['chart', 8, 13, 16, 16, { metric: 'position' }]
+	]),
+	buildDashboard('story', 'Race story', [
+		['session', 0, 0, 16, 3],
+		['replay', 16, 0, 8, 3],
+		['story', 0, 3, 24, 20],
+		['chart', 0, 23, 14, 18, { metric: 'position' }],
+		['championship', 14, 23, 10, 36],
+		['race-control', 0, 41, 14, 18],
+		['conditions', 0, 59, 24, 26]
 	]),
 	buildDashboard(
 		'wall',

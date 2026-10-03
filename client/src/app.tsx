@@ -11,6 +11,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { RaceProvider, useRace } from '@/data/race-context';
+import { TelemetryProvider } from '@/data/telemetry-context';
 import { CompareProvider } from '@/features/analysis/compare-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
 import type { RaceSource } from '@/data/race-source';
@@ -155,7 +156,9 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 export function AppLayout({ source, bare = false }: { source: RaceSource; bare?: boolean }) {
 	return (
 		<RaceProvider source={source} loadingFallback={<LoadingState />} ErrorFallback={ErrorState}>
-			<Console sourceKind={source.kind} bare={bare} />
+			<TelemetryProvider source={source.telemetry}>
+				<Console sourceKind={source.kind} bare={bare} />
+			</TelemetryProvider>
 		</RaceProvider>
 	);
 }

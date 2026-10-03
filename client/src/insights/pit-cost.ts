@@ -142,11 +142,14 @@ export interface CrewRow {
 	driver: Driver;
 	stops: CrewStop[];
 	bestMs: number;
-	/** The team's usual stop, slow ones left out. */
-	medianMs: number;
+	/** The team's usual stop, slow ones left out; null when every stop was slow. */
+	medianMs: number | null;
 }
 
-/** Every team's stops at a standstill, ranked by their usual stop, then by their best. */
+/**
+ * Every team's stops at a standstill, ranked by their usual stop, then by their best; a team with
+ * only slow stops comes last.
+ */
 export function crewLeague(snapshot: RaceSnapshot): CrewRow[] {
 	const drivers = new Map(snapshot.drivers.map((driver) => [driver.number, driver]));
 	const byTeam = new Map<string, { driver: Driver; stops: PitStop[] }>();
@@ -182,8 +185,8 @@ export function crewLeague(snapshot: RaceSnapshot): CrewRow[] {
 				driver,
 				stops: marked.toSorted((a, b) => a.stationaryMs - b.stationaryMs),
 				bestMs: Math.min(...times),
-				medianMs: median(normal) ?? Math.min(...times)
+				medianMs: median(normal)
 			};
 		})
-		.toSorted((a, b) => a.medianMs - b.medianMs || a.bestMs - b.bestMs);
+		.toSorted((a, b) => (a.medianMs ?? Infinity) - (b.medianMs ?? Infinity) || a.bestMs - b.bestMs);
 }

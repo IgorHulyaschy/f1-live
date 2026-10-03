@@ -77,6 +77,7 @@ describe('crewLeague on the 2025 Las Vegas race', () => {
 			]
 		);
 		assert.equal(williams?.medianMs, 3250);
-		assert.equal(league.at(-1)?.team, 'Kick Sauber');
+		// Bortoleto's only stop, 14.2 s with damage, leaves Sauber no usual time.
+		assert.deepEqual([league.at(-1)?.team, league.at(-1)?.medianMs], ['Kick Sauber', null]);
 	});
 });

@@ -67,7 +67,7 @@ describe('traceRows', () => {
 		const last = rows.at(-1)?.delta1 ?? Number.NaN;
 
 		assert.ok(Math.abs(last - (norris.lapTimeMs - verstappen.lapTimeMs) / 1000) < 0.15, `${last}`);
-		assert.equal(rows[0]?.delta1, 0);
+		assert.ok(Math.abs(rows[0]?.delta1 ?? 1) < 0.05);
 		assert.equal('delta0' in (rows[0] ?? {}), false);
 	});
 

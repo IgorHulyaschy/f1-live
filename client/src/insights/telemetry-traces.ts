@@ -12,6 +12,12 @@ export const CHANNELS = ['speed', 'throttle', 'brake', 'gear', 'rpm'] as const;
 
 export type Channel = (typeof CHANNELS)[number];
 
+/**
+ * Positions are 4 Hz with about a metre of noise, which makes the raw delta jitter; it is drawn
+ * as the mean over this many rows either side.
+ */
+const DELTA_SMOOTHING_ROWS = 3;
+
 /** Channels that hold a value until the next sample instead of moving between samples. */
 const STEPPED: ReadonlySet<Channel> = new Set(['brake', 'gear']);
 
@@ -54,6 +60,18 @@ function sampleColumn(
 	});
 }
 
+/** The mean of each value and its neighbours; the ends average what they have. */
+function smooth(values: readonly number[]): number[] {
+	return values.map((_, index) => {
+		const window = values.slice(
+			Math.max(0, index - DELTA_SMOOTHING_ROWS),
+			index + DELTA_SMOOTHING_ROWS + 1
+		);
+
+		return window.reduce((sum, value) => sum + value, 0) / window.length;
+	});
+}
+
 /** How far every lap reaches, so no line runs past the end of a shorter lap. */
 export function sharedDistance(laps: readonly LapTelemetry[]): number {
 	return Math.min(...laps.map((lap) => lap.d.at(-1) ?? 0));
@@ -86,7 +104,7 @@ export function traceRows(laps: readonly LapTelemetry[], stepM: number): TraceRo
 	);
 
 	const deltas = laps.map((lap, slot) =>
-		slot === 0 ? null : alignLaps(clock(reference), clock(lap), stepM).deltaMs
+		slot === 0 ? null : smooth(alignLaps(clock(reference), clock(lap), stepM).deltaMs)
 	);
 
 	return distances.map((distance, row) => {

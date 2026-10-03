@@ -33,7 +33,10 @@ describe('windOnStraights', () => {
 	const found = straights(outline);
 
 	it('turns wind from the south into a headwind down the Strip and a tailwind up Koval Lane', () => {
-		const [koval, strip, harmon] = windOnStraights(found, { windSpeedMs: 2, windDirectionDeg: 180 });
+		const [koval, strip, harmon] = windOnStraights(found, {
+			windSpeedMs: 2,
+			windDirectionDeg: 180
+		});
 
 		assert.ok(strip && strip.headwindMs > 1.9);
 		assert.ok(koval && koval.headwindMs < -1.9);

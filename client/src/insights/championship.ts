@@ -67,6 +67,15 @@ function orderAtLap(snapshot: RaceSnapshot, lap: number): Map<string, number> {
 	);
 }
 
+/** Where a driver runs at the end of `lap`, as the projection counts it; null when out. */
+export function positionAt(
+	snapshot: RaceSnapshot,
+	driverNumber: string,
+	lap: number
+): number | null {
+	return orderAtLap(snapshot, lap).get(driverNumber) ?? null;
+}
+
 /** Who holds the fastest lap at the end of `lap`, for the seasons that paid a point for it. */
 function fastestLapHolder(snapshot: RaceSnapshot, lap: number): string | null {
 	const best = snapshot.laps.reduce<{ driverNumber: string; lapTimeMs: number } | null>(
