@@ -21,9 +21,10 @@ The whole screen is tiles on a 24-column grid, from a phone to a wall monitor: t
 replay keys and lap strip move and resize like timing or a chart.
 
 - **Ready-made.** Live, Analysis and Strategy (at `/`, `/analysis`, `/strategy`), Battle,
-  Drivers and Pit wall. Edit any of them and Reset brings it back; **+** starts your own.
-- **18 tiles in 5 groups.** Race (session, replay, lap strip, weather, race control), Drivers
-  (focus, driver, grid), Timing, Analysis and Strategy. Drag by the bar, resize from the edges,
+  Drivers, Race story and Pit wall. Edit any of them and Reset brings it back; **+** starts your own.
+- **25 tiles in 5 groups.** Race (session, replay, lap strip, story, weather, race control),
+  Drivers (focus, driver, grid), Timing, Analysis (charts, telemetry traces, championship,
+  conditions) and Strategy (stints, tyre wear, stops, undercut ledger, stop cost, pit crews). Drag by the bar, resize from the edges,
   or use the keyboard: focus a grip, arrows move, Shift and arrows resize. Edit mode bars sit in
   the gaps, so a dashboard looks the same while you build it.
 - **Any monitor.** Panels lay out by their tile's width (container queries). **Fit** stretches
@@ -120,6 +121,12 @@ real-data runs (`client/playwright.real.config.ts`) read a committed fixture of 
 race and qualifying and 2026 Baku qualifying, derived by `client/e2e/real/derive-fixtures.ts`,
 and replay a trimmed race through `replay-live`. If Playwright's own browser is not installed, point it at
 any Chromium with `PW_CHROMIUM_PATH=/path/to/chrome`.
+
+Playwright starts its own servers on fixed ports: the apps on 4173 to 4176, the servers on 3111, 3112
+and 3114. Worktrees that run e2e or shots side by side set `PW_PORT_BASE` to a different number in
+each, for example `PW_PORT_BASE=4373 CI=1 npm run test:e2e`; it moves every one of those ports
+(`client/playwright.ports.ts` lists them). Run with `CI=1`, so Playwright never reuses a server
+that another run started.
 
 ### Launch budgets
 

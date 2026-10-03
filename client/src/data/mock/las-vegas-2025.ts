@@ -446,3 +446,47 @@ export const REFERENCE_SESSION = {
 	totalLaps: REFERENCE_TOTAL_LAPS,
 	startsAt: '2025-11-23T04:00:00Z'
 } as const;
+
+/**
+ * The championship before the race, from the timing feed's ChampionshipPrediction: points and place
+ * per car and per team (Norris 390, Piastri 366, Verstappen 341).
+ */
+export const REFERENCE_CHAMPIONSHIP = {
+	drivers: [
+		['4', 390],
+		['81', 366],
+		['1', 341],
+		['63', 276],
+		['16', 214],
+		['44', 148],
+		['12', 122],
+		['23', 73],
+		['27', 43],
+		['6', 43],
+		['87', 40],
+		['14', 40],
+		['55', 38],
+		['30', 36],
+		['18', 32],
+		['31', 30],
+		['22', 28],
+		['10', 22],
+		['5', 19],
+		['43', 0]
+	],
+	teams: [
+		['McLaren', 756],
+		['Mercedes', 398],
+		['Red Bull Racing', 366],
+		['Ferrari', 362],
+		['Williams', 111],
+		['Racing Bulls', 82],
+		['Aston Martin', 72],
+		['Haas F1 Team', 70],
+		['Kick Sauber', 62],
+		['Alpine', 22]
+	]
+} as const satisfies {
+	drivers: readonly (readonly [string, number])[];
+	teams: readonly (readonly [string, number])[];
+};

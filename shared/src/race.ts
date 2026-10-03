@@ -129,6 +129,8 @@ export interface WeatherSample {
 	trackTempC: number;
 	humidityPct: number;
 	windSpeedMs: number;
+	/** Where the wind blows from, degrees clockwise from north; absent when the source has none. */
+	windDirectionDeg?: number;
 	rainfall: boolean;
 }
 
@@ -226,6 +228,52 @@ export interface PersonalBest {
 	topSpeedsKph: TopSpeeds;
 }
 
+/** A pass the timing feed credited to the car that made it. */
+export interface Overtake {
+	driverNumber: string;
+	/** The lap the car was on when it passed. */
+	lap: number;
+	/** Cars passed in the one move, usually 1. */
+	count: number;
+	/** When it happened, ISO 8601 UTC. */
+	at: string;
+}
+
+/**
+ * A team radio clip the feed announced. The audio belongs to Formula 1, so a viewer is linked to
+ * it only where the deployment allows; `path` is the clip in the archive, from the season folder.
+ */
+export interface TeamRadioClip {
+	driverNumber: string;
+	/** The lap the car was on when the clip was recorded. */
+	lap: number;
+	/** When it was recorded, ISO 8601 UTC. */
+	at: string;
+	path: string;
+}
+
+/** A place in the championship before this session, and where the source projects it now. */
+export interface ChampionshipPlace {
+	points: number;
+	position: number;
+	predictedPoints: number;
+	predictedPosition: number;
+}
+
+export interface DriverChampionshipPlace extends ChampionshipPlace {
+	driverNumber: string;
+}
+
+export interface TeamChampionshipPlace extends ChampionshipPlace {
+	/** As `Driver.team` names it. */
+	team: string;
+}
+
+export interface ChampionshipStandings {
+	drivers: readonly DriverChampionshipPlace[];
+	teams: readonly TeamChampionshipPlace[];
+}
+
 /** Everything known about a session up to `currentLap`. */
 export interface RaceSnapshot {
 	session: Session;
@@ -251,4 +299,8 @@ export interface RaceSnapshot {
 	penalties?: readonly Penalty[];
 	personalBests?: readonly PersonalBest[];
 	corrections?: readonly ClassificationCorrection[];
+	overtakes?: readonly Overtake[];
+	teamRadio?: readonly TeamRadioClip[];
+	/** Live, only with an F1 TV login; saved races have it from the archive. */
+	championship?: ChampionshipStandings;
 }

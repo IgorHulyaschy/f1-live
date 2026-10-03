@@ -50,3 +50,16 @@ export function carImageUrl(driver: Driver, width: number): string | null {
 		? transformed(`${folder.path}/${folder.year}${folder.team}carright`, `c_fit,w_${width}`)
 		: null;
 }
+
+/**
+ * Team radio audio also belongs to Formula 1. Clips are announced on the story either way; with
+ * VITE_TEAM_RADIO=link a viewer can open each one from the official archive.
+ */
+export const TEAM_RADIO_LINKS = import.meta.env.VITE_TEAM_RADIO === 'link';
+
+const ARCHIVE_HOST = 'https://livetiming.formula1.com/static';
+
+/** The clip's address in the official archive, or null while linking to it is off. */
+export function teamRadioUrl(path: string): string | null {
+	return TEAM_RADIO_LINKS ? `${ARCHIVE_HOST}/${path}` : null;
+}

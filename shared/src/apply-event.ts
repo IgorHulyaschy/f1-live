@@ -1,4 +1,5 @@
 import type {
+	ChampionshipEvent,
 	ClassificationCorrectionEvent,
 	LapCompletedEvent,
 	PenaltyEvent,
@@ -112,6 +113,34 @@ export function applyEvent(state: RaceSnapshot, event: RaceEvent): RaceSnapshot 
 			};
 		case 'classification_correction':
 			return applyCorrection(state, event);
+		case 'overtake':
+			return {
+				...state,
+				overtakes: [
+					...(state.overtakes ?? []),
+					{
+						driverNumber: event.driverNumber,
+						lap: lapAt(state, event.driverNumber, event.at),
+						count: event.count,
+						at: event.at
+					}
+				]
+			};
+		case 'team_radio':
+			return {
+				...state,
+				teamRadio: [
+					...(state.teamRadio ?? []),
+					{
+						driverNumber: event.driverNumber,
+						lap: lapAt(state, event.driverNumber, event.at),
+						at: event.at,
+						path: event.path
+					}
+				]
+			};
+		case 'championship':
+			return applyChampionship(state, event);
 	}
 }
 
@@ -119,6 +148,22 @@ function upsert<T>(items: readonly T[], item: T, matches: (existing: T) => boole
 	const index = items.findIndex(matches);
 
 	return index === -1 ? [...items, item] : items.with(index, item);
+}
+
+/**
+ * The lap a driver was on at `at`: one past the laps it had completed by then, and no later than
+ * the last lap of a race, so a clip after the flag belongs to the last lap.
+ */
+function lapAt(state: RaceSnapshot, driverNumber: string, at: string): number {
+	const done = state.laps.filter(
+		(lap) =>
+			lap.driverNumber === driverNumber && lap.completedAt !== undefined && lap.completedAt <= at
+	);
+
+	const lap = 1 + Math.max(0, ...done.map((entry) => entry.lap));
+	const { totalLaps } = state.session;
+
+	return totalLaps > 0 ? Math.min(lap, totalLaps) : lap;
 }
 
 function standingOf(state: RaceSnapshot, driverNumber: string): Standing {
@@ -475,6 +520,25 @@ function applyPenalty(state: RaceSnapshot, event: PenaltyEvent): RaceSnapshot {
 				? { ...issued, status: 'served', servedLap: penalty.lap }
 				: { ...issued, status: 'revoked' }
 		)
+	};
+}
+
+function applyChampionship(state: RaceSnapshot, event: ChampionshipEvent): RaceSnapshot {
+	const { drivers, teams } = state.championship ?? { drivers: [], teams: [] };
+
+	return {
+		...state,
+		championship: {
+			drivers: event.standings.drivers.reduce(
+				(merged, place) =>
+					upsert(merged, place, (existing) => existing.driverNumber === place.driverNumber),
+				drivers
+			),
+			teams: event.standings.teams.reduce(
+				(merged, place) => upsert(merged, place, (existing) => existing.team === place.team),
+				teams
+			)
+		}
 	};
 }
 

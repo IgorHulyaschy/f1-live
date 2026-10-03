@@ -18,12 +18,12 @@ test('free viewers see a locked pit window they can preview', async ({ page }) =
 test('the plan keys toggle Pro across pages', async ({ page }) => {
 	await openRace(page, '/strategy');
 
-	await expect(page.getByText(/is part of Pro/)).toBeVisible();
+	await expect(page.getByText(/is part of Pro/).first()).toBeVisible();
 	await page.getByRole('radio', { name: 'Pro' }).click();
 	await expect(page.getByText(/is part of Pro/)).toHaveCount(0);
 
 	await page.getByRole('radio', { name: 'Free' }).click();
-	await expect(page.getByText(/is part of Pro/)).toBeVisible();
+	await expect(page.getByText(/is part of Pro/).first()).toBeVisible();
 });
 
 test('Pro shows where the followed driver would rejoin as a ghost row', async ({ page }) => {

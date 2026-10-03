@@ -1,4 +1,6 @@
 import type {
+	ChampionshipPlace,
+	ChampionshipStandings,
 	Lap,
 	PitStop,
 	RaceControlMessage,
@@ -10,8 +12,10 @@ import type {
 	WeatherSample
 } from '@f1-live/shared';
 
+import { pointsFor } from '../../insights/championship.ts';
 import { MOCK_DRIVERS } from './drivers.ts';
 import {
+	REFERENCE_CHAMPIONSHIP,
 	REFERENCE_RACE_CONTROL,
 	REFERENCE_RESULTS,
 	REFERENCE_SESSION,
@@ -368,6 +372,57 @@ function buildRetirements(): Retirement[] {
 	}));
 }
 
+/** Places by points before the race, and with what the result at the flag pays. */
+function places(entries: readonly { points: number; gained: number }[]): ChampionshipPlace[] {
+	const projected = entries.toSorted((a, b) => b.points + b.gained - (a.points + a.gained));
+
+	return entries.map((entry, index) => ({
+		points: entry.points,
+		position: index + 1,
+		predictedPoints: entry.points + entry.gained,
+		predictedPosition: projected.indexOf(entry) + 1
+	}));
+}
+
+/** The championship before the race, projected with the classification at the flag. */
+function buildChampionship(): ChampionshipStandings {
+	const gained = new Map(
+		REFERENCE_RESULTS.map((result, index) => [
+			result.driverNumber,
+			result.retired ? 0 : pointsFor('race', 2025, index + 1)
+		])
+	);
+
+	const teamOf = new Map(MOCK_DRIVERS.map((driver) => [driver.number, driver.team]));
+
+	const teamGained = (team: string) =>
+		[...gained].reduce(
+			(total, [driverNumber, points]) => total + (teamOf.get(driverNumber) === team ? points : 0),
+			0
+		);
+
+	const { drivers, teams } = REFERENCE_CHAMPIONSHIP;
+
+	const driverPlaces = places(
+		drivers.map(([driverNumber, points]) => ({ points, gained: gained.get(driverNumber) ?? 0 }))
+	);
+
+	const teamPlaces = places(teams.map(([team, points]) => ({ points, gained: teamGained(team) })));
+
+	return {
+		drivers: drivers.flatMap(([driverNumber], index) => {
+			const place = driverPlaces[index];
+
+			return place ? [{ driverNumber, ...place }] : [];
+		}),
+		teams: teams.flatMap(([team], index) => {
+			const place = teamPlaces[index];
+
+			return place ? [{ team, ...place }] : [];
+		})
+	};
+}
+
 /** The full race; use `snapshotAtLap` for the state at a given lap. */
 export function simulateLasVegas2025(): RaceSnapshot {
 	const laps = buildLaps(planRace());
@@ -386,6 +441,7 @@ export function simulateLasVegas2025(): RaceSnapshot {
 		pitStops: buildPitStops(laps),
 		raceControl: buildRaceControl(),
 		weather: buildWeather(),
-		retirements: buildRetirements()
+		retirements: buildRetirements(),
+		championship: buildChampionship()
 	};
 }

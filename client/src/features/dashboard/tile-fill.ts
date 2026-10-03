@@ -9,3 +9,10 @@ export const TileFillContext = React.createContext(false);
 export function useTileFill(): boolean {
 	return React.useContext(TileFillContext);
 }
+
+/** The tile's height in grid rows on its dashboard; null for a tile in its own window. */
+export const TileRowsContext = React.createContext<number | null>(null);
+
+export function useTileRows(): number | null {
+	return React.useContext(TileRowsContext);
+}

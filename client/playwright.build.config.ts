@@ -1,12 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { PORTS } from './playwright.ports.ts';
+
 /**
  * The production build of the mock replay, with the `console` analytics provider so the consent
  * question is asked: the service worker, the generated site files and the consent flow exist only
  * here, not on the dev server.
  */
 
-const PORT = 4176;
+const PORT = PORTS.buildApp;
 
 const executablePath = process.env.PW_CHROMIUM_PATH;
 

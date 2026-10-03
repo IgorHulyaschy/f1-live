@@ -99,6 +99,14 @@ place in metres, then each change. Sample `i` of chunk `c` is at `originAt + t0 
 `off` lists sample ranges where the feed says the car is off the track. Between samples a client
 should interpolate; before a car's first sample and after its last it is held in place.
 
+## In the app
+
+The Telemetry tile reads `index.json`, the lap index and the circuit when a session opens, then
+each lap file it draws, once per page (`client/src/data/telemetry-source.ts`). It compares only
+laps that ran line to line (not `partial`, `pitIn` or `pitOut`, and within 1% of the circuit
+length, since the index does not flag every trip to the garage), and only laps done by the moment
+on screen. The Conditions tile uses the outline to find the straights for the wind.
+
 ## Accuracy
 
 - The outline is a racing line, a little shorter than the middle of the track: 6145 m against the

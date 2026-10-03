@@ -2,19 +2,21 @@ import { fileURLToPath } from 'node:url';
 
 import { defineConfig, devices } from '@playwright/test';
 
+import { PORTS } from './playwright.ports.ts';
+
 /**
  * The app on real data. `real` reads the committed fixture (e2e/real/data: the 2025 Las Vegas
  * race and qualifying, 2026 Baku qualifying) through the server; `live` replays a trimmed race
  * through the live path, started by its own spec.
  */
 
-export const SAVED_PORT = 3111;
+const SAVED_PORT = PORTS.realServer;
 
-export const LIVE_PORT = 3112;
+export const LIVE_PORT = PORTS.liveServer;
 
-const REAL_APP_PORT = 4174;
+const REAL_APP_PORT = PORTS.realApp;
 
-const LIVE_APP_PORT = 4175;
+export const LIVE_APP_PORT = PORTS.liveApp;
 
 const executablePath = process.env.PW_CHROMIUM_PATH;
 
