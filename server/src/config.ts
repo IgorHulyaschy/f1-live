@@ -80,6 +80,19 @@ const envSchema = z
 		}
 	});
 
+const LOOPBACK_HOSTS: ReadonlySet<string> = new Set(['localhost', '[::1]']);
+
+/**
+ * A relay URL that sends the shared secret in the clear: plain http to a host other than this
+ * machine. Over https, or to loopback (a local relay, a tunnel), the secret does not cross a network.
+ */
+export function isInsecureRelayUrl(url: string): boolean {
+	const { protocol, hostname } = new URL(url);
+	const loopback = LOOPBACK_HOSTS.has(hostname) || /^127(?:\.\d{1,3}){3}$/.test(hostname);
+
+	return protocol === 'http:' && !loopback;
+}
+
 export interface Config {
 	mode: Mode;
 	host: string;

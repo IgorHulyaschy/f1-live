@@ -13,6 +13,7 @@ import type { LiveServer, ServerOptions } from '../main.js';
 import { parseJsonStream } from '../sources/f1/archive.js';
 import { F1Decoder } from '../sources/f1/decode.js';
 import type { TopicFrame } from '../sources/f1/decode.js';
+import type { JsonObject } from '../sources/f1/live.js';
 import { CAR_DATA_TOPIC, POSITION_TOPIC } from '../sources/f1/telemetry.js';
 import { FakeUpstream } from './fake-upstream.js';
 import { LiveReplica, parseServerMessage } from './replica.js';
@@ -118,6 +119,8 @@ export interface PlaybackOptions {
 	env?: Record<string, string>;
 	server?: ServerOptions;
 	dropAfter?: readonly number[];
+	/** Topics the fake hub already holds when the server subscribes. */
+	snapshot?: JsonObject;
 }
 
 /** A server in mode `all` fed from a fake upstream playing `frames`, unpaced unless told. */
@@ -127,7 +130,8 @@ export async function startPlayback(
 ): Promise<Playback> {
 	const upstream = await FakeUpstream.start(frames, {
 		speed: options.speed ?? Number.POSITIVE_INFINITY,
-		dropAfter: options.dropAfter
+		dropAfter: options.dropAfter,
+		snapshot: options.snapshot
 	});
 
 	const base = testConfig(options.env);

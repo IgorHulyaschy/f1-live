@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { backoffDelay, describeError } from '../sources/f1/live.js';
 import type { Backoff, EventLog } from '../sources/f1/live.js';
 import type { ChannelSink } from '../telemetry/live.js';
+import { CHANNELS } from './protocol.js';
 import type { Channel } from './protocol.js';
 import type { Position, LiveSession } from './session.js';
 
@@ -16,6 +17,12 @@ const PUSH_TIMEOUT_MS = 30_000;
 
 /** A relay that stays unreachable is logged on the first failed channel push and then this often. */
 const CHANNEL_FAILURE_LOG_EVERY = 100;
+
+/** While no viewer wants a channel nothing is pushed, so an empty push this often asks who does. */
+const WANTED_PROBE_MS = 3000;
+
+/** What the relay answers to a channel push: the channels some viewer is subscribed to. */
+const wantedSchema = z.object({ wanted: z.array(z.enum(CHANNELS)) });
 
 /** What the relay answers to a push: where its copy of the session stands now. */
 export const positionSchema = z.object({ epoch: z.string(), seq: z.number().int().min(0) });
@@ -183,13 +190,21 @@ export class RelayPusher {
 	}
 }
 
-export type RelayChannelsOptions = Pick<RelayPusherOptions, 'url' | 'secret' | 'log' | 'fetchImpl'>;
+export interface RelayChannelsOptions extends Pick<
+	RelayPusherOptions,
+	'url' | 'secret' | 'log' | 'fetchImpl'
+> {
+	/** How often an empty push asks which channels are wanted, while none is; default 3 s. */
+	probeMs?: number;
+}
 
 /**
  * Ingest side of the opt-in telemetry channels: passes the messages `LiveTelemetry` has already
  * throttled to the relay, which sends them to the viewers that subscribed. The channels are a
  * live picture, not a log, so nothing is buffered for an outage: while a push is in flight, a
- * newer message of a channel replaces the one waiting, and a failed push is dropped.
+ * newer message of a channel replaces the one waiting, and a failed push is dropped. The relay
+ * answers each push with the channels its viewers want; the rest are not decoded or pushed, and
+ * an empty push every few seconds asks again.
  */
 export class RelayChannelPusher implements ChannelSink {
 	private readonly options: RelayChannelsOptions;
@@ -197,6 +212,8 @@ export class RelayChannelPusher implements ChannelSink {
 	private readonly fetchImpl: typeof fetch;
 	/** The newest message of each channel not yet sent; a flush of both is one request. */
 	private readonly waiting = new Map<Channel, string>();
+	/** What the relay last said its viewers want; nothing until it has been asked. */
+	private wanted: ReadonlySet<Channel> = new Set();
 	private sending = false;
 	private scheduled = false;
 	private failures = 0;
@@ -205,11 +222,20 @@ export class RelayChannelPusher implements ChannelSink {
 		this.options = options;
 		this.signal = signal;
 		this.fetchImpl = options.fetchImpl ?? fetch;
+
+		const probe = setInterval(() => {
+			if (this.wanted.size === 0 && !this.sending) {
+				void this.send();
+			}
+		}, options.probeMs ?? WANTED_PROBE_MS);
+
+		probe.unref();
+		signal.addEventListener('abort', () => clearInterval(probe), { once: true });
+		void this.send();
 	}
 
-	/** The relay knows its viewers, and a viewer that asks later gets the last message there. */
-	wants(): boolean {
-		return true;
+	wants(channel: Channel): boolean {
+		return this.wanted.has(channel);
 	}
 
 	/** The relay marks a channel live when its first message arrives. */
@@ -235,7 +261,7 @@ export class RelayChannelPusher implements ChannelSink {
 	private async send() {
 		this.scheduled = false;
 
-		if (this.sending || this.waiting.size === 0) {
+		if (this.sending) {
 			return;
 		}
 
@@ -260,6 +286,7 @@ export class RelayChannelPusher implements ChannelSink {
 				throw new Error(`relay answered ${response.status.toString()}`);
 			}
 
+			this.wanted = new Set(wantedSchema.parse(await response.json()).wanted);
 			this.failures = 0;
 		} catch (cause) {
 			if (!this.signal.aborted) {

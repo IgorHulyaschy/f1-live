@@ -103,6 +103,75 @@ describe('SessionImporter', () => {
 	});
 });
 
+/** An importer that only counts the sessions it is asked to import. */
+function countingImporter(runs: Recording[]) {
+	return new SessionImporter({
+		delayMs: 0,
+		log: noLog,
+		runner: (recording) => {
+			runs.push(recording);
+
+			return Promise.resolve();
+		},
+		cliExists: () => Promise.resolve(true)
+	});
+}
+
+async function sessionInfoFrame() {
+	const frame = (await loadReplayFrames(FIXTURE_DIR)).find(({ topic }) => topic === 'SessionInfo');
+
+	assert.ok(frame);
+
+	return frame;
+}
+
+describe('a live session that has already ended when the server subscribes', () => {
+	const running: Playback[] = [];
+
+	after(async () => {
+		await Promise.all(running.map((playback) => playback.stop()));
+	});
+
+	it('is not imported again: a snapshot only restates how things stand', async () => {
+		const runs: Recording[] = [];
+		const info = await sessionInfoFrame();
+
+		const playback = await startPlayback([info], {
+			snapshot: { SessionStatus: { Status: 'Finalised' } },
+			server: { importer: countingImporter(runs), rawDir: tempDir() }
+		});
+
+		running.push(playback);
+
+		await waitUntil(
+			() => playback.server.session.current.status === 'finalised',
+			'the ended session in the state'
+		);
+		await playback.upstream.done;
+		await untilQuiet(playback.server);
+		await new Promise((resolve) => setTimeout(resolve, 100));
+		assert.deepEqual(runs, []);
+	});
+
+	it('is imported when the end is announced while the server is watching', async () => {
+		const runs: Recording[] = [];
+		const info = await sessionInfoFrame();
+
+		const playback = await startPlayback(
+			[
+				info,
+				{ topic: 'SessionStatus', data: { Status: 'Finalised' }, timestamp: info.timestamp + 1000 }
+			],
+			{ server: { importer: countingImporter(runs), rawDir: tempDir() } }
+		);
+
+		running.push(playback);
+
+		await waitUntil(() => runs.length > 0, 'the import');
+		assert.equal(runs[0]?.key, 9858);
+	});
+});
+
 describe('a live session that finishes', () => {
 	const running: Playback[] = [];
 
