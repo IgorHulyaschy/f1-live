@@ -215,6 +215,9 @@ test.describe('install and screen wake', () => {
 	});
 
 	test('keeps the screen awake while the replay plays, unless switched off', async ({ page }) => {
+		// Two full loads of the dev build with the replay running: on a busy machine this needs more
+		// than the default 30 seconds.
+		test.slow();
 		await stubWakeLock(page);
 		await openRace(page, '/?lap=2');
 
