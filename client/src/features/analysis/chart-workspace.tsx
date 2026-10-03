@@ -5,6 +5,7 @@ import {
 	CartesianGrid,
 	Line,
 	LineChart,
+	type MouseHandlerDataParam,
 	ReferenceArea,
 	ReferenceLine,
 	XAxis,
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/chart';
 import { RaceOnly } from '@/components/race-only';
 import { useRaceView } from '@/data/race-context';
+import { DriverLink, useJumpTo } from '@/features/drill/drill-parts';
 import { isCleanLap } from '@/insights/clean-laps';
 import { isTimedSession } from '@/insights/qualifying';
 import { hasDrs } from '@/insights/rules';
@@ -122,6 +124,7 @@ export function ChartWorkspace({
 	};
 
 	const panelId = React.useId();
+	const jumpTo = useJumpTo();
 	const metricLabel = METRICS.find((entry) => entry.value === metric)?.label ?? '';
 	// A race chart in practice or qualifying shows only the note that it applies to races.
 	const raceChartOnClock = metric !== 'lapTime' && isTimedSession(snapshot.session.type);
@@ -164,6 +167,17 @@ export function ChartWorkspace({
 		metric === 'battle' && followed
 			? [{ key: 'interval', label: `${followed.code} gap ahead` }]
 			: drivers.map((driver) => ({ key: driver.code, label: driver.code }));
+
+	// A race's charts run lap by lap, so a click on one moves the replay to that lap.
+	const onChartClick = isTimedSession(snapshot.session.type)
+		? undefined
+		: (state: MouseHandlerDataParam) => {
+				const lap = Number(state.activeLabel);
+
+				if (Number.isInteger(lap) && lap > 0) {
+					jumpTo({ lap });
+				}
+			};
 
 	const axes = (
 		<>
@@ -309,10 +323,14 @@ export function ChartWorkspace({
 						) : (
 							<ChartContainer
 								config={config}
-								className={cn('aspect-auto w-full', fill ? 'min-h-40 flex-1' : 'h-80 @4xl:h-136')}
+								className={cn(
+									'aspect-auto w-full',
+									fill ? 'min-h-40 flex-1' : 'h-80 @4xl:h-136',
+									onChartClick && 'cursor-pointer'
+								)}
 							>
 								{metric === 'battle' ? (
-									<AreaChart data={points} margin={margin}>
+									<AreaChart data={points} margin={margin} onClick={onChartClick}>
 										{axes}
 										{flagBands(flags)}
 										<YAxis
@@ -344,7 +362,7 @@ export function ChartWorkspace({
 										/>
 									</AreaChart>
 								) : metric === 'gap' || metric === 'versus' ? (
-									<AreaChart data={points} margin={margin}>
+									<AreaChart data={points} margin={margin} onClick={onChartClick}>
 										{axes}
 										{flagBands(flags)}
 										<YAxis
@@ -361,7 +379,7 @@ export function ChartWorkspace({
 										{lines}
 									</AreaChart>
 								) : (
-									<LineChart data={points} margin={margin}>
+									<LineChart data={points} margin={margin} onClick={onChartClick}>
 										{axes}
 										{flagBands(flags)}
 										{stopRules}
@@ -390,7 +408,11 @@ export function ChartWorkspace({
 							{metric === 'battle'
 								? null
 								: drivers.map((driver) => (
-										<span key={driver.number} className="flex items-center gap-1.5">
+										<DriverLink
+											key={driver.number}
+											driver={driver}
+											className="flex items-center gap-1.5"
+										>
 											<span
 												aria-hidden
 												className={
@@ -401,7 +423,7 @@ export function ChartWorkspace({
 												style={{ '--team': `#${driver.teamColour}` }}
 											/>
 											<span className="type-wide font-bold">{driver.code}</span>
-										</span>
+										</DriverLink>
 									))}
 							<MarksLegend ranges={flags} stops={stops.size > 0 && metric !== 'lapTime'} />
 						</div>

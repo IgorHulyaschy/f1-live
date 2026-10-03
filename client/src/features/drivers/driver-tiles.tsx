@@ -11,6 +11,7 @@ import {
 	SelectValue
 } from '@/components/ui/select';
 import { useRace } from '@/data/race-context';
+import { useDrill } from '@/features/drill/use-drill';
 import { OUT_LABEL, type StandingRow } from '@/insights/standings';
 import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -106,9 +107,10 @@ export function DriverCard() {
 	);
 }
 
-/** Every driver as a picture plate in running order. Pick one to follow them. */
+/** Every driver as a picture plate in running order. Pick one to open their session. */
 export function GridWall() {
-	const { followedDriver, setFollowedDriver, standings } = useRace();
+	const { followedDriver, standings } = useRace();
+	const { open } = useDrill();
 
 	return (
 		<Panel aria-label="Grid" data-testid="grid-wall">
@@ -122,9 +124,9 @@ export function GridWall() {
 						<li key={row.driver.number} className="border-r border-b">
 							<button
 								type="button"
-								aria-pressed={followed}
-								aria-label={`P${row.position} ${row.driver.firstName} ${row.driver.lastName}, ${gapText(row)}`}
-								onClick={() => setFollowedDriver(row.driver.number)}
+								aria-current={followed ? 'true' : undefined}
+								aria-label={`P${row.position} ${row.driver.firstName} ${row.driver.lastName}, ${gapText(row)}: open their session`}
+								onClick={() => open({ kind: 'driver', driverNumber: row.driver.number })}
 								className={cn(
 									'hover:bg-accent focus-visible:bg-accent flex w-full flex-col text-left transition-colors focus-visible:outline-none',
 									followed && 'bg-accent',

@@ -9,6 +9,8 @@ import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
 import { useRace } from '@/data/race-context';
+import { DriverLink } from '@/features/drill/drill-parts';
+import { useDrill } from '@/features/drill/use-drill';
 import { useScreenTime } from '@/hooks/use-screen-time';
 import { gapToCut, improvements, knockout, recentImprovements } from '@/insights/knockout';
 import { pitPenalties, timePenalties } from '@/insights/penalties';
@@ -193,7 +195,8 @@ function CutRow({ line }: { line: CutLine }) {
 }
 
 export function TimingTower() {
-	const { snapshot, lap, plan, followedDriver, setFollowedDriver, standings } = useRace();
+	const { snapshot, lap, plan, followedDriver, standings } = useRace();
+	const { open } = useDrill();
 	const shownAt = useScreenTime();
 	const knockoutState = knockout(snapshot, standings);
 	// In qualifying the gap that matters is to the top of the part.
@@ -378,7 +381,7 @@ export function TimingTower() {
 											data-state={followed ? 'selected' : undefined}
 											data-drop-zone={inDropZone || undefined}
 											data-testid={`timing-row-${row.driver.code}`}
-											onClick={() => setFollowedDriver(row.driver.number)}
+											onClick={() => open({ kind: 'driver', driverNumber: row.driver.number })}
 											className={cn(
 												'hover:bg-accent/70 data-[state=selected]:bg-accent relative h-10 cursor-pointer border-b',
 												(row.state === 'out' || knockedOut) && 'text-muted-foreground',
@@ -428,7 +431,9 @@ export function TimingTower() {
 											</td>
 											<td>
 												<span className="flex items-center gap-2">
-													<DriverTag driver={row.driver} showName showNumber />
+													<DriverLink driver={row.driver}>
+														<DriverTag driver={row.driver} showName showNumber />
+													</DriverLink>
 													{row.state === 'pit' ? <Chip tone="flag">Pit</Chip> : null}
 													{penalty && !row.out ? <Chip tone="danger">+{penalty}s</Chip> : null}
 													{pitServes.has(row.driver.number) && !row.out ? (

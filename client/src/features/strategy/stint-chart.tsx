@@ -6,6 +6,8 @@ import { DriverTag } from '@/components/driver-tag';
 import { compoundName } from '@/components/tyre-badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useRaceView } from '@/data/race-context';
+import { DriverLink } from '@/features/drill/drill-parts';
+import { useDrill } from '@/features/drill/use-drill';
 import { cn } from '@/lib/utils';
 
 const LEGEND = ['SOFT', 'MEDIUM', 'HARD'] as const;
@@ -32,20 +34,27 @@ function percent(laps: number, total: number): string {
 function StintBar({
 	stint,
 	totalLaps,
-	ongoing
+	ongoing,
+	onOpen
 }: {
 	stint: Stint;
 	totalLaps: number;
 	ongoing: boolean;
+	/** Opens the driver's session at their stints; the driver's name next to the bars does it by keyboard. */
+	onOpen: () => void;
 }) {
 	const laps = stint.endLap - stint.startLap + 1;
 
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
-				<span
+				<button
+					type="button"
+					tabIndex={-1}
+					onClick={onOpen}
+					aria-label={`${compoundName(stint.compound)}, laps ${stint.startLap} to ${stint.endLap}: open the driver's session`}
 					className={cn(
-						'absolute inset-y-0.5 left-(--offset) w-(--size) transition-all duration-500',
+						'absolute inset-y-0.5 left-(--offset) w-(--size) cursor-pointer transition-all duration-500 hover:brightness-125',
 						BAR_CLASS[stint.compound],
 						ongoing && 'border-r-focus border-r-2'
 					)}
@@ -58,7 +67,7 @@ function StintBar({
 						{LETTER[stint.compound]}
 						{laps >= LABEL_MIN_LAPS ? <span className="ml-1 font-normal">{laps}</span> : null}
 					</span>
-				</span>
+				</button>
 			</TooltipTrigger>
 			<TooltipContent>
 				{compoundName(stint.compound)}, laps {stint.startLap}–{stint.endLap}, {laps} laps
@@ -70,6 +79,7 @@ function StintBar({
 
 export function StintChart() {
 	const { snapshot, order } = useRaceView();
+	const { open } = useDrill();
 	const drivers = new Map(snapshot.drivers.map((driver) => [driver.number, driver]));
 
 	const rows = order.flatMap((slot) => {
@@ -128,10 +138,12 @@ export function StintChart() {
 								key={row.driver.number}
 								className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3"
 							>
-								<DriverTag
-									driver={row.driver}
-									className={cn(row.state === 'out' && 'opacity-40')}
-								/>
+								<DriverLink driver={row.driver}>
+									<DriverTag
+										driver={row.driver}
+										className={cn(row.state === 'out' && 'opacity-40')}
+									/>
+								</DriverLink>
 								<div className="relative h-7 overflow-hidden border-b border-dashed">
 									{rulerMarks.map((mark) => (
 										<span
@@ -147,6 +159,7 @@ export function StintChart() {
 											stint={stint}
 											totalLaps={totalLaps}
 											ongoing={stint === last && row.state !== 'out' && stint.endLap >= now}
+											onOpen={() => open({ kind: 'driver', driverNumber: row.driver.number })}
 										/>
 									))}
 									{row.state === 'out' && last ? (

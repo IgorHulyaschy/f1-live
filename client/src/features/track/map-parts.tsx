@@ -4,6 +4,7 @@ import * as React from 'react';
 import { TeamStripe } from '@/components/driver-tag';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRace } from '@/data/race-context';
+import { useDrill } from '@/features/drill/use-drill';
 import { isTimedSession } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
@@ -140,7 +141,8 @@ export function usePlacesNow(places: PlacesSampler, everyMs: number): Places | n
  * seconds rather than every frame. Wide tiles show it as a legend whose rows follow a driver.
  */
 export function CarOrder({ places }: { places: PlacesSampler }) {
-	const { race, followedDriver, setFollowedDriver, standings } = useRace();
+	const { race, followedDriver, standings } = useRace();
+	const { open } = useDrill();
 	const timed = isTimedSession(race.session.type);
 	const sampled = usePlacesNow(places, LIST_EVERY_MS)?.cars ?? NO_CARS;
 
@@ -178,7 +180,7 @@ export function CarOrder({ places }: { places: PlacesSampler }) {
 					<li key={car.driverNumber}>
 						<button
 							type="button"
-							onClick={() => setFollowedDriver(driver.number)}
+							onClick={() => open({ kind: 'driver', driverNumber: driver.number })}
 							aria-current={driver.number === followedDriver ? 'true' : undefined}
 							className={cn(
 								'hover:bg-accent focus-visible:ring-ring grid w-full grid-cols-[1.5rem_auto_1fr] items-center gap-2 px-3 py-0.5 text-left focus-visible:ring-2 focus-visible:outline-none',
