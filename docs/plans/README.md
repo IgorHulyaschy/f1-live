@@ -33,5 +33,5 @@ These are tracked here so no plan quietly decides them.
 - Every step is its own commit, with tests and a review pass (code, plus design from screenshots).
 - Work lands in Fybex/f1-live-private. Each task has its own branch from the milestone branch (`m1`
   for now), and the coordinator merges it into `m1` once its checks and review pass. Task branches
-  never touch `master`.
+  never touch `master`; the owner merges `m1` into `master` through a pull request.
 - A plan is done when its "Done when" list passes on the hosted preview, not only locally.

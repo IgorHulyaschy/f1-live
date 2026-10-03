@@ -13,7 +13,7 @@ Working name only; the product must not use "F1" or "Formula 1" in its brand.
 | **Library**                                                                                        | **Drivers**                                                                                    |
 | ![Ready-made and fan dashboards with layout thumbnails](docs/screenshots/library-desktop-dark.png) | ![Grid of driver plates, driver card and positions](docs/screenshots/drivers-desktop-dark.png) |
 
-More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](docs/screenshots.md).
+More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](docs/screenshots.md). The whole dashboard flow, step by step: [docs/flow.md](docs/flow.md).
 
 ## Dashboards
 
