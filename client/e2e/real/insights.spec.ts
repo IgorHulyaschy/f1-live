@@ -10,6 +10,8 @@ test.describe('the race', () => {
 		page
 	}) => {
 		await openRace(page, '/analysis?session=9858');
+		// The tile sits below the first screen, which it waits for.
+		await page.getByRole('group', { name: 'Telemetry' }).scrollIntoViewIfNeeded();
 
 		// A cold dev server builds the chart code on first use.
 		const telemetry = page.getByTestId('telemetry');
@@ -87,6 +89,8 @@ test.describe('the race', () => {
 test.describe('qualifying', () => {
 	test('telemetry opens on pole; the race tools say they apply to races', async ({ page }) => {
 		await openRace(page, '/analysis?session=9854');
+		// The tile sits below the first screen, which it waits for.
+		await page.getByRole('group', { name: 'Telemetry' }).scrollIntoViewIfNeeded();
 
 		// Norris took pole with 1:47.934.
 		await expect(page.getByTestId('telemetry-slot-A')).toContainText('1:47.934');
@@ -118,6 +122,8 @@ test.describe('qualifying', () => {
 test.describe('practice', () => {
 	test('telemetry, the story by minute and the wind work; race tools say so', async ({ page }) => {
 		await openRace(page, '/analysis?session=9852');
+		// The tile sits below the first screen, which it waits for.
+		await page.getByRole('group', { name: 'Telemetry' }).scrollIntoViewIfNeeded();
 
 		await expect(page.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
 

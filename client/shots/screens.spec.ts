@@ -48,6 +48,8 @@ async function switchToLightTheme(page: Page): Promise<void> {
 }
 
 async function shoot(page: Page, file: string): Promise<void> {
+	// Heavy tiles below the first screen wait to be scrolled to; a print draws them all at once.
+	await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
 	// Let charts finish their entry animation and fonts settle.
 	await page.evaluate(() => document.fonts.ready);
 	await page.waitForTimeout(800);
