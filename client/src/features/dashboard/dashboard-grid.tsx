@@ -195,6 +195,42 @@ function TileBar({
 	);
 }
 
+const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+/**
+ * A tile that scrolls but holds nothing to press is a tab stop, so the keyboard can scroll it.
+ * Tiles with keys or links inside are reached through those, and add no stop of their own.
+ */
+function useScrollStop(body: React.RefObject<HTMLDivElement | null>, fill: boolean): boolean {
+	const [stop, setStop] = React.useState(false);
+
+	React.useEffect(() => {
+		const element = body.current;
+
+		if (!fill || !element) {
+			return;
+		}
+
+		const update = () =>
+			setStop(
+				element.scrollHeight > element.clientHeight &&
+					!element.firstElementChild?.querySelector(FOCUSABLE)
+			);
+
+		const observer = new ResizeObserver(update);
+
+		observer.observe(element);
+
+		if (element.firstElementChild) {
+			observer.observe(element.firstElementChild);
+		}
+
+		return () => observer.disconnect();
+	}, [body, fill]);
+
+	return fill && stop;
+}
+
 function TileBody({
 	dashboard,
 	tile,
@@ -206,11 +242,19 @@ function TileBody({
 	fill: boolean;
 	onChange: (dashboard: Dashboard) => void;
 }) {
+	const body = React.useRef<HTMLDivElement>(null);
+	const scrollStop = useScrollStop(body, fill);
+
 	return (
 		<div
+			ref={body}
+			role={scrollStop ? 'group' : undefined}
+			aria-label={scrollStop ? tileTitle(tile) : undefined}
+			// oxlint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+			tabIndex={scrollStop ? 0 : undefined}
 			className={cn(
 				fill &&
-					'min-h-0 flex-1 overflow-auto overscroll-contain [&_[data-slot=panel-header]]:sticky [&_[data-slot=panel-header]]:top-0 [&_[data-slot=panel-header]]:z-10'
+					'min-h-0 flex-1 overflow-auto overscroll-contain focus-visible:ring-2 focus-visible:ring-(--color-ring) focus-visible:outline-none focus-visible:ring-inset [&_[data-slot=panel-header]]:sticky [&_[data-slot=panel-header]]:top-0 [&_[data-slot=panel-header]]:z-10'
 			)}
 		>
 			<TileFillContext value={fill}>

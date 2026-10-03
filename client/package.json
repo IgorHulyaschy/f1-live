@@ -8,10 +8,12 @@
 		"build": "npm run typecheck && vite build",
 		"preview": "vite preview",
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.sw.json",
-		"test:unit": "node --test 'src/**/*.test.ts'",
+		"test:unit": "node --test 'src/**/*.test.ts' 'scripts/**/*.test.ts'",
 		"test:e2e": "playwright test --project=e2e && playwright test -c playwright.build.config.ts --project=pwa && playwright test -c playwright.real.config.ts --project=real --project=live",
 		"test:stack": "playwright test -c playwright.stack.config.ts",
 		"brand-assets": "node scripts/brand-assets.ts",
+		"budgets": "node scripts/budgets.ts",
+		"italic-instances": "node scripts/italic-instances.ts",
 		"shots": "playwright test --project=shots && playwright test -c playwright.build.config.ts --project=shots-build && playwright test -c playwright.real.config.ts --project=shots-real"
 	},
 	"dependencies": {

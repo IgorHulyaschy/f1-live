@@ -134,7 +134,32 @@ jobs:
       - run: docker compose --profile replay down -v
         if: always()
 
-  # ---------------------------------------------------------------------------------------------
-  # T10: Lighthouse CI and the accessibility/quality budgets go here, as a job of their own that
-  # needs `build` (it may reuse the client build). Keep the job independent of `e2e` and `stack`.
-  # ---------------------------------------------------------------------------------------------
+  # The axe budget runs with the e2e job (client/e2e/accessibility.spec.ts).
+  budgets:
+    name: Launch budgets
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - run: npx playwright install --with-deps chromium
+        working-directory: client
+      # Its own mock build, served over HTTP/2 with Brotli; then the first route's size, and
+      # Lighthouse CI on /, /analysis and /library, mobile and desktop.
+      - run: npm run budgets
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse
+          path: client/.lighthouseci/
+          retention-days: 14

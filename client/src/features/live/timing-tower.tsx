@@ -64,7 +64,7 @@ function Chip({
 			title={title}
 			className={cn(
 				'type-label shrink-0 px-1 leading-4 font-bold',
-				tone === 'flag' && 'bg-flag text-background',
+				tone === 'flag' && 'bg-flag text-foreground dark:text-background',
 				tone === 'danger' && 'bg-danger text-background',
 				tone === 'outline' && 'text-foreground border'
 			)}
