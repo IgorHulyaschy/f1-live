@@ -7,7 +7,8 @@ import { z } from 'zod';
 import { testConfig } from '../live/test-harness.js';
 import { createServer, type LiveServer } from '../main.js';
 
-const APP = 'http://app.test';
+// Development rules (printed links, fake payments) hold only for an app on this machine.
+const APP = 'http://localhost:5199';
 
 let server: LiveServer;
 

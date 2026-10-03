@@ -1,5 +1,7 @@
 import type { IncomingHttpHeaders } from 'node:http';
 
+import type { BillingInterval } from '@f1-live/shared/plans';
+
 /**
  * A payment provider as the accounts server sees it: a hosted checkout, a hosted page to manage
  * billing, signed webhooks, and the current state of a subscription. Stripe and the fake provider
@@ -24,9 +26,7 @@ export interface PaymentProvider {
 
 export type PaymentProviderName = 'stripe' | 'fake';
 
-export const BILLING_INTERVALS = ['month', 'year'] as const;
-
-export type BillingInterval = (typeof BILLING_INTERVALS)[number];
+export { BILLING_INTERVALS, type BillingInterval } from '@f1-live/shared/plans';
 
 /** Provider statuses, narrowed to what decides a plan. */
 export type SubscriptionStatus = 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete';

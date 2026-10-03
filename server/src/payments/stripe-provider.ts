@@ -26,6 +26,8 @@ export type StripeProviderOptions = {
 
 const PRICE_CACHE_MS = 10 * 60 * 1000;
 
+const CHECKOUT_MINUTES = 30;
+
 /** A reference Stripe sends either as an id or, when expanded, as the object. */
 const stripeRef = z.union([z.string(), z.object({ id: z.string() }).transform((ref) => ref.id)]);
 
@@ -110,6 +112,8 @@ export class StripeProvider implements PaymentProvider {
 					? { customer: request.customerId }
 					: { customer_email: request.email }),
 				subscription_data: { metadata: { userId: request.userId } },
+				// Stripe's shortest: a checkout left open in another tab cannot buy Pro twice a day later.
+				expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_MINUTES * 60,
 				success_url: request.successUrl,
 				cancel_url: request.cancelUrl
 			})

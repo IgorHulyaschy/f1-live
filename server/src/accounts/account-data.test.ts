@@ -10,7 +10,7 @@ import { deleteAccount, exportAccount } from './account-data.js';
 import { applyWebhook } from './billing.js';
 import { writeDocument } from './dashboards.js';
 import { type OpenDatabase, openDatabase } from './db/database.js';
-import { dashboard, session, subscription, user } from './db/schema.js';
+import { dashboard, session, subscription, user, verification } from './db/schema.js';
 
 const NOW = new Date('2026-10-03T12:00:00.000Z');
 
@@ -57,6 +57,13 @@ async function proAccount(id: string, provider: FakeProvider): Promise<string> {
 	const { db } = database;
 
 	await db.insert(user).values({ id, name: 'Fan', email: `${id}@example.test` });
+	// An unused sign-in link, stored the way Better Auth's magic link stores it.
+	await db.insert(verification).values({
+		id: `${id}-link`,
+		identifier: `${id}-link-token`,
+		value: JSON.stringify({ email: `${id}@example.test`, attempt: 0 }),
+		expiresAt: new Date(NOW.getTime() + 300_000)
+	});
 	await db.insert(session).values({
 		id: `${id}-session`,
 		token: `${id}-token`,
@@ -104,7 +111,13 @@ async function rowsOf(id: string) {
 		users: (await db.select().from(user).where(eq(user.id, id))).length,
 		sessions: (await db.select().from(session).where(eq(session.userId, id))).length,
 		dashboards: (await db.select().from(dashboard).where(eq(dashboard.userId, id))).length,
-		subscriptions: (await db.select().from(subscription).where(eq(subscription.userId, id))).length
+		subscriptions: (await db.select().from(subscription).where(eq(subscription.userId, id))).length,
+		signInLinks: (
+			await db
+				.select()
+				.from(verification)
+				.where(eq(verification.id, `${id}-link`))
+		).length
 	};
 }
 
@@ -136,7 +149,8 @@ describe('deleteAccount', () => {
 			users: 1,
 			sessions: 1,
 			dashboards: 2,
-			subscriptions: 1
+			subscriptions: 1,
+			signInLinks: 1
 		});
 
 		await deleteAccount(database.db, provider, 'leaving', NOW);
@@ -146,8 +160,46 @@ describe('deleteAccount', () => {
 			users: 0,
 			sessions: 0,
 			dashboards: 0,
-			subscriptions: 0
+			subscriptions: 0,
+			signInLinks: 0
 		});
+	});
+
+	it('cancels a payment that lands after its account was deleted', async () => {
+		const { db } = database;
+		const paid: string[] = [];
+
+		const provider: FakeProvider = new FakeProvider({
+			publicUrl: 'http://app.test',
+			webhookSecret: 'unit-test-webhook-secret',
+			statePath: null,
+			now: () => NOW,
+			deliver: async (payload, signature) => {
+				const notice = await provider.parseWebhook(payload, { [FAKE_SIGNATURE_HEADER]: signature });
+
+				if (notice) {
+					paid.push(notice.subscriptionId);
+					await applyWebhook(db, provider, notice, quiet);
+				}
+			}
+		});
+
+		await db.insert(user).values({ id: 'gone', name: '', email: 'gone@example.test' });
+
+		const { url } = await provider.createCheckout({
+			userId: 'gone',
+			email: 'gone@example.test',
+			interval: 'year',
+			customerId: null,
+			successUrl: 'http://app.test/account?checkout=success',
+			cancelUrl: 'http://app.test/account?checkout=cancelled'
+		});
+
+		await deleteAccount(db, provider, 'gone', NOW);
+		await provider.pay(url.split('/').at(-1) ?? '');
+
+		assert.equal((await provider.getSubscription(paid[0] ?? '')).status, 'canceled');
+		assert.equal((await rowsOf('gone')).subscriptions, 0);
 	});
 
 	it('deletes nothing when the provider cannot end the subscription', async () => {

@@ -1,5 +1,5 @@
 import { dashboardSchema } from '@f1-live/shared/dashboard';
-import { PLAN_IDS } from '@f1-live/shared/plans';
+import { BILLING_INTERVALS, type BillingInterval, PLAN_IDS } from '@f1-live/shared/plans';
 import { z } from 'zod';
 
 import type { PushOp, PushOutcome, RemoteDoc } from './sync-rules';
@@ -9,10 +9,6 @@ import type { PushOp, PushOutcome, RemoteDoc } from './sync-rules';
  * in development, and a deployment serves it under the app's origin or a same-site one.
  */
 const BASE = import.meta.env.VITE_ACCOUNTS_URL ?? '';
-
-const BILLING_INTERVALS = ['month', 'year'] as const;
-
-export type BillingInterval = (typeof BILLING_INTERVALS)[number];
 
 const entitlementsSchema = z.object({
 	ownDashboards: z.int().nullable(),
@@ -228,12 +224,10 @@ export async function pushDocument(op: PushOp): Promise<PushOutcome> {
 		return { kind: 'stale', document: documentReply.parse(await response.json()).document };
 	}
 
-	if (response.status === 403) {
-		const limit = limitReply.safeParse(await response.clone().json());
+	if (!response.ok) {
+		const limit = limitReply.safeParse(await response.json().catch(() => null));
 
-		if (limit.success) {
-			return { kind: 'limit', limit: limit.data.limit };
-		}
+		return limit.success ? { kind: 'limit', limit: limit.data.limit } : { kind: 'refused' };
 	}
 
 	return { kind: 'saved', document: (await json(response, documentReply)).document };

@@ -1,9 +1,9 @@
 import type { Dashboard } from '@f1-live/shared/dashboard';
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, eq, isNotNull, sql } from 'drizzle-orm';
 
 import { type PaymentProvider, PaymentProviderError } from '../payments/provider.js';
 import type { AccountsDatabase } from './db/database.js';
-import { account, dashboard, session, user } from './db/schema.js';
+import { account, dashboard, session, user, verification } from './db/schema.js';
 import { isLive, subscriptionsOf } from './entitlements.js';
 
 /** Everything the account server holds about a person, minus secrets such as session tokens. */
@@ -91,7 +91,8 @@ export async function exportAccount(
 
 /**
  * Deletes an account and everything under it (sessions, sign-in methods, dashboards,
- * subscriptions cascade with the user row). A live subscription is ended with the provider
+ * subscriptions cascade with the user row; unused sign-in links name the email, so they go
+ * too). Every subscription not yet ended, live or still settling, is ended with the provider
  * first; if the provider refuses, nothing is deleted, so nobody is billed for a gone account.
  */
 export async function deleteAccount(
@@ -100,10 +101,15 @@ export async function deleteAccount(
 	userId: string,
 	now: Date
 ): Promise<void> {
-	const live = (await subscriptionsOf(db, userId)).filter((record) => isLive(record, now));
+	const open = (await subscriptionsOf(db, userId)).filter((record) => record.status !== 'canceled');
 
-	for (const record of live) {
+	for (const record of open) {
 		if (record.provider !== provider.name) {
+			// One left behind by a provider this server no longer runs; only a live one blocks.
+			if (!isLive(record, now)) {
+				continue;
+			}
+
 			throw new PaymentProviderError(
 				`Subscription ${record.id} is with ${record.provider}, which this server is not set up for`
 			);
@@ -112,5 +118,15 @@ export async function deleteAccount(
 		await provider.cancelSubscription(record.id);
 	}
 
-	await db.delete(user).where(eq(user.id, userId));
+	const [person] = await db.select({ email: user.email }).from(user).where(eq(user.id, userId));
+
+	await db.transaction(async (tx) => {
+		if (person) {
+			await tx
+				.delete(verification)
+				.where(sql`strpos(${verification.value}, ${JSON.stringify(person.email)}) > 0`);
+		}
+
+		await tx.delete(user).where(eq(user.id, userId));
+	});
 }

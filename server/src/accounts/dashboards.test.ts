@@ -129,6 +129,24 @@ describe('writeDocument', () => {
 		});
 	});
 
+	it('forgets deletion markers after 90 days', async () => {
+		const userId = await newUser();
+
+		await save(userId, board('board-a'), 0, minutes(-200 * 24 * 60));
+		await writeDocument(
+			database.db,
+			userId,
+			PLAN_ENTITLEMENTS.free,
+			{ id: 'board-a', dashboard: null, baseVersion: 1, updatedAt: minutes(-100 * 24 * 60) },
+			NOW
+		);
+		await save(userId, board('board-b'));
+
+		const ids = (await listDocuments(database.db, userId)).map((document) => document.id);
+
+		assert.deepEqual(ids, ['board-b']);
+	});
+
 	it('returns the newer copy when an older edit arrives from another device', async () => {
 		const userId = await newUser();
 

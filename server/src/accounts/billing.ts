@@ -30,8 +30,16 @@ export async function applyWebhook(
 		? await db.select({ id: user.id }).from(user).where(eq(user.id, userId))
 		: [];
 
-	// A subscription of a deleted account, or one bought outside the app: nothing to update.
 	if (!owner) {
+		// Bought for an account deleted before this event arrived: nobody may be billed for it.
+		if (userId && state.status !== 'canceled') {
+			await provider.cancelSubscription(state.subscriptionId);
+			log('billing-orphan-cancelled', { subscription: state.subscriptionId });
+
+			return;
+		}
+
+		// Ended already, or bought outside the app: nothing to update.
 		log('billing-webhook-ignored', { event: notice.eventId, subscription: state.subscriptionId });
 
 		return;

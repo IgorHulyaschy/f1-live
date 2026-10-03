@@ -8,6 +8,11 @@ export const PLAN_IDS = ['free', 'pro'] as const;
 
 export type PlanId = (typeof PLAN_IDS)[number];
 
+/** How often Pro is billed; the prices themselves live with the payment provider. */
+export const BILLING_INTERVALS = ['month', 'year'] as const;
+
+export type BillingInterval = (typeof BILLING_INTERVALS)[number];
+
 export type Entitlements = {
 	/** Dashboards of the viewer's own; edited ready-made ones do not count. `null` is any number. */
 	ownDashboards: number | null;

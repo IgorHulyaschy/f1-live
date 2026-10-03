@@ -39,7 +39,9 @@ export type PushOutcome =
 	| { kind: 'saved'; document: RemoteDoc }
 	/** Another device's newer edit won; this is it. */
 	| { kind: 'stale'; document: RemoteDoc }
-	| { kind: 'limit'; limit: number };
+	| { kind: 'limit'; limit: number }
+	/** The account will not take this one (too big, malformed): it stays here, the rest go on. */
+	| { kind: 'refused' };
 
 export type SyncNotice =
 	| { kind: 'replaced'; name: string }
@@ -72,8 +74,9 @@ export function recordSave(meta: SyncMeta, id: string, now: string): SyncMeta {
 export function recordDelete(meta: SyncMeta, id: string, now: string): SyncMeta {
 	const { [id]: entry, ...rest } = meta.docs;
 
-	// Never confirmed by an account: there is nothing to tell it.
-	if (!entry || entry.version === 0) {
+	// Signed out and never confirmed: nothing to tell. Signed in, its first save may be on its
+	// way, so the deletion is kept and sent; the account answers it either way.
+	if (!entry || (entry.version === 0 && meta.accountId === null)) {
 		return { ...meta, docs: rest };
 	}
 
@@ -212,7 +215,7 @@ export function settle(
 	const entry = state.meta.docs[id];
 	const editedSince = entry?.updatedAt !== op.updatedAt;
 
-	if (outcome.kind === 'limit') {
+	if (outcome.kind === 'limit' || outcome.kind === 'refused') {
 		if (!entry || editedSince) {
 			return { ...state, notice: null };
 		}
@@ -220,7 +223,8 @@ export function settle(
 		return {
 			saved: state.saved,
 			meta: { ...state.meta, docs: { ...state.meta.docs, [id]: { ...entry, blocked: true } } },
-			notice: entry.blocked ? null : { kind: 'limit', limit: outcome.limit }
+			notice:
+				outcome.kind === 'limit' && !entry.blocked ? { kind: 'limit', limit: outcome.limit } : null
 		};
 	}
 

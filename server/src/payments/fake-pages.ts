@@ -194,7 +194,7 @@ function page(brand: string, title: string, body: string): string {
 	main { max-width: 32rem; margin: 0 auto; padding: 3rem 1rem; display: grid; gap: 1.25rem; }
 	header { border-bottom: 2px solid var(--strong); padding-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
 	h1 { margin: 0; font-size: 1.5rem; font-weight: 900; font-style: italic; letter-spacing: 0.02em; text-transform: uppercase; }
-	.label, dt, button, a.pressed { font: 600 11px/1 ui-monospace, monospace; letter-spacing: 0.08em; text-transform: uppercase; }
+	.label, dt, button, a.pressed { font: 600 11px/1 ui-monospace, 'SF Mono', Menlo, Consolas, 'DejaVu Sans Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase; }
 	.label, dt { color: var(--muted); }
 	dl { margin: 0; display: grid; }
 	dl div { display: flex; gap: 1rem; border-bottom: 1px solid var(--rule); padding: 0.5rem 0; }

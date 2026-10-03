@@ -1,3 +1,4 @@
+import type { BillingInterval } from '@f1-live/shared/plans';
 import { DownloadIcon, ExternalLinkIcon, SparklesIcon, Trash2Icon } from 'lucide-react';
 import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
@@ -23,7 +24,6 @@ import {
 } from './account-store';
 import {
 	type AccountsConfig,
-	type BillingInterval,
 	billingPortalUrl,
 	checkoutUrl,
 	deleteAccount,
@@ -189,7 +189,7 @@ function PlanSection({ me, focus }: { me: Me; focus: boolean }) {
 		: null;
 
 	return (
-		<Section title="Plan" meta={plan === 'pro' ? 'Pro' : 'Free'}>
+		<Section title="Plan">
 			<div className="flex flex-wrap gap-x-10 gap-y-3">
 				<Field label="Plan">{plan === 'pro' ? 'Pro' : 'Free'}</Field>
 				{subscription ? (

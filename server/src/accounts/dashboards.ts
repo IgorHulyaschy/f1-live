@@ -1,6 +1,6 @@
 import { type Dashboard, PRESET_IDS, sameDashboard } from '@f1-live/shared/dashboard';
 import { canAddOwnDashboard, type Entitlements } from '@f1-live/shared/plans';
-import { and, count, eq, isNotNull, notInArray } from 'drizzle-orm';
+import { and, count, eq, isNotNull, isNull, lt, notInArray } from 'drizzle-orm';
 
 import type { AccountsDatabase } from './db/database.js';
 import { dashboard, user } from './db/schema.js';
@@ -31,8 +31,17 @@ export type WriteOutcome =
 	| { kind: 'limit'; limit: number }
 	| { kind: 'too-many'; limit: number };
 
-/** A guard against runaway clients, far above any real use; Pro's "any number" is not this. */
+/**
+ * A guard against runaway clients, far above any real use; Pro's "any number" is not this.
+ * Deletion markers count too, so creating and deleting in a loop cannot grow an account forever.
+ */
 export const MAX_DOCUMENTS = 1000;
+
+/**
+ * Deletion markers are forgotten after this. A device away longer than that offers its copy of
+ * a deleted dashboard again, as a new one.
+ */
+export const TOMBSTONE_DAYS = 90;
 
 type Stored = { version: number; updatedAt: Date };
 
@@ -104,14 +113,24 @@ export async function writeDocument(
 		const creating = write.dashboard !== null && !stored?.document;
 
 		if (creating) {
-			const live = and(eq(dashboard.userId, userId), isNotNull(dashboard.document));
+			const mine = eq(dashboard.userId, userId);
+
+			await tx
+				.delete(dashboard)
+				.where(
+					and(
+						mine,
+						isNull(dashboard.document),
+						lt(dashboard.updatedAt, new Date(now.getTime() - TOMBSTONE_DAYS * 86_400_000))
+					)
+				);
 
 			const [own] = await tx
 				.select({ total: count() })
 				.from(dashboard)
-				.where(and(live, notInArray(dashboard.id, [...PRESET_IDS])));
+				.where(and(mine, isNotNull(dashboard.document), notInArray(dashboard.id, [...PRESET_IDS])));
 
-			const [all] = await tx.select({ total: count() }).from(dashboard).where(live);
+			const [all] = await tx.select({ total: count() }).from(dashboard).where(mine);
 
 			if (
 				!PRESET_IDS.some((id) => id === write.id) &&

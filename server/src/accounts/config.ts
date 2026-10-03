@@ -11,6 +11,7 @@ import type { BillingInterval } from '../payments/provider.js';
  * without real values.
  */
 export interface AccountsConfig {
+	/** Production rules: real secret, Postgres, SMTP, Stripe, https. */
 	production: boolean;
 	/** The product name in emails and payment pages; the owner's to choose. */
 	brand: string;
@@ -48,6 +49,8 @@ const DEVELOPMENT_SECRET = 'pitwall-development-only-secret-never-use-in-product
 const DEVELOPMENT_FAKE_WEBHOOK_SECRET = 'fake-provider-development-webhook-secret';
 
 const MIN_SECRET_LENGTH = 32;
+
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 /** An env var that may be absent or blank; blank counts as absent. */
 const optional = z
@@ -100,10 +103,16 @@ export function loadAccountsConfig(
 		return null;
 	}
 
-	const production = values.NODE_ENV === 'production';
 	const problems: string[] = [];
 	const appUrl = new URL(values.APP_URL).origin;
 	const publicUrl = (values.ACCOUNTS_PUBLIC_URL ?? appUrl).replace(/\/+$/, '');
+	// Development stand-ins (a known secret, printed sign-in links, free Pro) only ever serve this
+	// machine: an app reachable from anywhere else gets production rules, NODE_ENV or not.
+
+	const production =
+		values.NODE_ENV === 'production' ||
+		![appUrl, publicUrl].every((url) => LOOPBACK_HOSTS.has(new URL(url).hostname));
+
 	const brand = values.BRAND_NAME ?? 'Pitwall';
 	const accountsDir = db === 'pglite' ? path.join(server.dataDir, 'accounts') : null;
 

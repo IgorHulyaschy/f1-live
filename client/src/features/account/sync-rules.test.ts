@@ -126,6 +126,22 @@ describe('pull', () => {
 		assert.deepEqual(reconcile(deleted, [remote('board-a', 2, null)]).meta.docs, {});
 	});
 
+	it('deletes a dashboard whose first save was still on its way', () => {
+		const created = recordSave({ accountId: 'acct', docs: {} }, 'board-x', T1);
+		const put: PushOp = { kind: 'put', dashboard: board('board-x'), baseVersion: 0, updatedAt: T1 };
+		const deleted = { saved: [], meta: recordDelete(created, 'board-x', T2) };
+
+		const landed = settle(deleted, put, {
+			kind: 'saved',
+			document: remote('board-x', 1, 'board-x', T1)
+		});
+
+		assert.deepEqual(landed.saved, []);
+		assert.deepEqual(reconcile(landed, [remote('board-x', 1, 'board-x', T1)]).push, [
+			{ kind: 'delete', id: 'board-x', baseVersion: 1, updatedAt: T2 }
+		]);
+	});
+
 	it('does not tell the account about a dashboard it never had', () => {
 		const meta = recordDelete(recordSave(EMPTY_META, 'board-a', T1), 'board-a', T2);
 

@@ -150,7 +150,17 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 
 		// Signed out is an answer, not an error: every visitor asks, so it is never a 401.
 		scope.get('/api/me', async (request, reply) => {
-			const session = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
+			const { headers, response: session } = await auth.api.getSession({
+				headers: fromNodeHeaders(request.headers),
+				returnHeaders: true
+			});
+
+			// Using the app slides the session forward; the renewed cookie rides on this answer.
+			const renewed = headers.getSetCookie();
+
+			if (renewed.length > 0) {
+				reply.header('set-cookie', renewed);
+			}
 
 			if (!session) {
 				return reply.type('application/json').send('null');

@@ -39,6 +39,21 @@ describe('accounts settings', () => {
 		);
 	});
 
+	it('apply production rules to any app reachable beyond this machine, NODE_ENV or not', () => {
+		assert.throws(
+			() => loadConfig({ ACCOUNTS_DB: 'pglite', APP_URL: 'https://pitwall.example' }),
+			/BETTER_AUTH_SECRET[\s\S]*SMTP_URL[\s\S]*STRIPE_SECRET_KEY/
+		);
+		assert.throws(
+			() =>
+				loadConfig({
+					ACCOUNTS_DB: 'pglite',
+					ACCOUNTS_PUBLIC_URL: 'http://192.168.1.20:5173'
+				}),
+			/PAYMENTS_PROVIDER|STRIPE_SECRET_KEY/
+		);
+	});
+
 	it('refuse development stand-ins in production, listing every missing value', () => {
 		assert.throws(
 			() => loadConfig({ NODE_ENV: 'production', ACCOUNTS_DB: 'pglite' }),

@@ -47,7 +47,7 @@ import { useCarriedSearch } from './use-carried-search';
 const SYNC_LABEL: Record<SyncStatus, string> = {
 	local: 'Saved in this browser',
 	pending: 'Saving to your account',
-	blocked: 'On this device only: over the Free limit',
+	blocked: 'On this device only: not in your account',
 	synced: 'Synced to your account'
 };
 
