@@ -115,7 +115,7 @@ test('an account syncs dashboards, holds the Free limit, goes Pro and can be del
 
 	await page.reload();
 	await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
-	expect((await page.request.get('/api/me')).status()).toBe(401);
+	expect(await (await page.request.get('/api/me')).json()).toBeNull();
 
 	await otherContext.close();
 });
@@ -123,6 +123,14 @@ test('an account syncs dashboards, holds the Free limit, goes Pro and can be del
 test('without an account, the account page offers sign-in and dashboards stay here', async ({
 	page
 }) => {
+	const errors: string[] = [];
+
+	page.on('console', (message) => {
+		if (message.type() === 'error') {
+			errors.push(message.text());
+		}
+	});
+
 	await openRace(page, '/account');
 
 	await expect(page.getByRole('region', { name: 'Sign in' }).getByLabel('Email')).toBeVisible();
@@ -130,4 +138,5 @@ test('without an account, the account page offers sign-in and dashboards stay he
 
 	await page.goto('/d/battle?edit=1');
 	await expect(page.getByTestId('save-status')).toHaveText('Saved in this browser');
+	expect(errors, 'a signed-out visitor costs no failed requests').toEqual([]);
 });

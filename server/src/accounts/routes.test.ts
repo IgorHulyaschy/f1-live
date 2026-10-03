@@ -109,7 +109,11 @@ describe('accounts API', () => {
 		assert.equal(me.user.email, 'first@example.test');
 		assert.equal(me.plan, 'free');
 		assert.equal(me.entitlements.ownDashboards, 3);
-		assert.equal((await call('GET', '/api/me')).status, 401);
+		const anonymous = await call('GET', '/api/me');
+
+		assert.equal(anonymous.status, 200);
+		assert.equal(anonymous.json(), null);
+		assert.equal((await call('GET', '/api/me/dashboards')).status, 401);
 	});
 
 	it('holds the Free limit against direct API calls, then lifts it after a fake checkout', async () => {
@@ -230,7 +234,7 @@ describe('accounts API', () => {
 
 		assert.equal(deleted.status, 200, deleted.body);
 		assert.ok(deleted.cookies.some((value) => /Max-Age=0/i.test(value)));
-		assert.equal((await call('GET', '/api/me', { cookie })).status, 401);
+		assert.equal((await call('GET', '/api/me', { cookie })).json(), null);
 
 		const fresh = await signIn('leaver@example.test');
 

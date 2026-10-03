@@ -148,8 +148,15 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 			})
 		);
 
+		// Signed out is an answer, not an error: every visitor asks, so it is never a 401.
 		scope.get('/api/me', async (request, reply) => {
-			const user = await signedIn(request);
+			const session = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
+
+			if (!session) {
+				return reply.type('application/json').send('null');
+			}
+
+			const { user } = session;
 			const records = await subscriptionsOf(db, user.id);
 			const { plan, entitlements, subscription } = planFor(records, now());
 

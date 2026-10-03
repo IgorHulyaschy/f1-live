@@ -21,7 +21,7 @@ const entitlementsSchema = z.object({
 	publish: z.boolean()
 });
 
-const meSchema = z.object({
+export const meSchema = z.object({
 	user: z.object({
 		id: z.string(),
 		email: z.string(),
@@ -140,8 +140,9 @@ async function json<Value>(response: Response, schema: z.ZodType<Value>): Promis
 	return schema.parse(body);
 }
 
-export async function fetchMe(): Promise<Me> {
-	return json(await send('GET', '/api/me'), meSchema);
+/** The signed-in account, or null when nobody is signed in. */
+export async function fetchMe(): Promise<Me | null> {
+	return json(await send('GET', '/api/me'), meSchema.nullable());
 }
 
 export async function fetchConfig(): Promise<AccountsConfig> {

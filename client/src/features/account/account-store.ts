@@ -1,12 +1,15 @@
 import { type Entitlements, PLAN_ENTITLEMENTS, type PlanId } from '@f1-live/shared/plans';
 import * as React from 'react';
 
+import { createLocalStore } from '@/lib/local-store';
+
 import {
 	type AccountsConfig,
 	AccountsError,
 	fetchConfig,
 	fetchMe,
 	type Me,
+	meSchema,
 	signOutSession
 } from './api';
 import { readSyncMeta, writeSyncMeta } from './sync-meta';
@@ -24,14 +27,21 @@ export type AccountState =
 /** Sign-in, sign-out and account deletion in one window update the others through storage. */
 const CHANGED_KEY = 'pitwall-account-changed';
 
+/**
+ * The account as last seen, so a reload starts on the right plan instead of flashing Free while
+ * the session is checked. The check that follows always wins.
+ */
+const lastSeen = createLocalStore<Me | null>('pitwall-account-seen', meSchema.nullable(), null);
+
 const listeners = new Set<() => void>();
 
-let state: AccountState = { status: 'loading' };
+let state: AccountState | null = null;
 
 let loading: Promise<void> | null = null;
 
 function setState(next: AccountState): void {
 	state = next;
+	lastSeen.set(next.status === 'signed-in' ? next.me : null);
 
 	for (const listener of listeners) {
 		listener();
@@ -39,6 +49,12 @@ function setState(next: AccountState): void {
 }
 
 export function readAccount(): AccountState {
+	if (!state) {
+		const seen = lastSeen.get();
+
+		state = seen ? { status: 'signed-in', me: seen } : { status: 'loading' };
+	}
+
 	return state;
 }
 
@@ -46,11 +62,11 @@ export function readAccount(): AccountState {
 export function refreshAccount(): Promise<void> {
 	loading ??= fetchMe()
 		.then(
-			(me) => setState({ status: 'signed-in', me }),
+			(me) => setState(me ? { status: 'signed-in', me } : { status: 'signed-out' }),
 			(cause: unknown) => {
 				if (cause instanceof AccountsError && cause.kind === 'signed-out') {
 					setState({ status: 'signed-out' });
-				} else if (state.status !== 'signed-in') {
+				} else if (readAccount().status !== 'signed-in') {
 					// A blip while signed in keeps the session; anything else means no accounts here.
 					setState({ status: 'unavailable' });
 				}
@@ -104,11 +120,7 @@ function onStorage(event: StorageEvent): void {
 const LOADING: AccountState = { status: 'loading' };
 
 export function useAccount(): AccountState {
-	return React.useSyncExternalStore(
-		subscribe,
-		() => state,
-		() => LOADING
-	);
+	return React.useSyncExternalStore(subscribe, readAccount, () => LOADING);
 }
 
 /** What the viewer may do: the account's plan, or Free when signed out. */
