@@ -111,7 +111,7 @@ export function straightGeometry(rem: number, style: LabelStyle): StraightGeomet
 				gap: 0.25 * rem
 			}
 		: {
-				labelWidth: 4.25 * rem,
+				labelWidth: 5 * rem,
 				labelHeight: 1.25 * rem,
 				carLength: 1.25 * rem,
 				carWidth: 0.55 * rem,
