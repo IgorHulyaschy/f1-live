@@ -4,8 +4,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 /**
  * The app on real data. `real` reads the committed fixture (e2e/real/data: the 2025 Las Vegas
- * race and qualifying, 2026 Baku qualifying) through the server; `live` replays a trimmed race
- * through the live path, started by its own spec.
+ * race and qualifying, 2026 Baku qualifying) through the server; `live` replays a trimmed race and
+ * qualifying session through the live path, started by its own spec, and `shots-live` shoots the
+ * qualifying one.
  */
 
 export const SAVED_PORT = 3111;
@@ -69,6 +70,12 @@ export default defineConfig({
 			testDir: './shots',
 			testMatch: 'real.spec.ts',
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${REAL_APP_PORT}` }
+		},
+		{
+			name: 'shots-live',
+			testDir: './shots',
+			testMatch: 'live.spec.ts',
+			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${LIVE_APP_PORT}` }
 		}
 	],
 	webServer: [

@@ -95,6 +95,28 @@ export function defaultSessionKey(catalog: Catalog, liveKey: string | null): str
 	);
 }
 
+/** The first session still to start after `now`. */
+export function nextSession(catalog: Catalog, now: number): SessionEntry | null {
+	return (
+		sessionEntries(catalog)
+			.filter((entry) => Date.parse(entry.session.startsAt) > now)
+			.toSorted((a, b) => a.session.startsAt.localeCompare(b.session.startsAt))[0] ?? null
+	);
+}
+
+/** "2 d 4 h", "3 h 20 min" or "12 min" until a start. */
+export function formatUntil(fromMs: number, toMs: number): string {
+	const minutes = Math.max(1, Math.ceil((toMs - fromMs) / 60_000));
+	const hours = Math.floor(minutes / 60);
+	const days = Math.floor(hours / 24);
+
+	if (days > 0) {
+		return `${days} d ${hours % 24} h`;
+	}
+
+	return hours > 0 ? `${hours} h ${minutes % 60} min` : `${minutes} min`;
+}
+
 export const SESSION_TYPE_LABEL: Record<SessionType, string> = {
 	race: 'Race',
 	sprint: 'Sprint',

@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { isSessionOver } from '../insights/qualifying.ts';
 import { type Arrival, recordArrival } from './broadcast-delay.ts';
+import { latestTime } from './snapshot-at-time.ts';
 
 /** docs/product/live-protocol.md; a change of shape bumps it on both sides. */
 const PROTOCOL_VERSION = 1;
@@ -53,6 +54,15 @@ export type Replica = {
 	sessionId: string | null;
 	snapshot: RaceSnapshot;
 };
+
+/** The newest moment a message is stamped with; NaN for one that carries none. */
+function stampOf(message: ServerMessage): number {
+	if (message.type === 'events') {
+		return Math.max(...message.events.map((event) => Date.parse(event.at)));
+	}
+
+	return message.type === 'state' ? latestTime(message.snapshot) : Number.NaN;
+}
 
 /**
  * One step of the protocol's client rules. `resync` means this copy cannot follow the message
@@ -113,6 +123,11 @@ export type LiveState = {
 	replica: Replica | null;
 	/** The session's states as they arrived, for a broadcast delay. */
 	arrivals: readonly Arrival[];
+	/**
+	 * The feed's clock minus this device's: how far the newest event that arrived was stamped
+	 * ahead of the moment it arrived. Replays run on the clock of the session they replay.
+	 */
+	clockOffsetMs: number;
 };
 
 /** What the feed hears from a socket. */
@@ -160,7 +175,12 @@ export class LiveFeed {
 	private readonly notifyMs: number;
 	private readonly random: () => number;
 	private readonly listeners = new Set<() => void>();
-	private state: LiveState = { connection: 'connecting', replica: null, arrivals: [] };
+	private state: LiveState = {
+		connection: 'connecting',
+		replica: null,
+		arrivals: [],
+		clockOffsetMs: 0
+	};
 	private socket: SocketLike | null = null;
 	private attempt = 0;
 	private stopped = true;
@@ -245,7 +265,12 @@ export class LiveFeed {
 					})
 				: this.state.arrivals;
 
-		this.update({ connection: 'live', replica, arrivals }, replica === previous);
+		const stamped = stampOf(message);
+
+		const clockOffsetMs =
+			Number.isFinite(stamped) && stamped > 0 ? stamped - Date.now() : this.state.clockOffsetMs;
+
+		this.update({ connection: 'live', replica, arrivals, clockOffsetMs }, replica === previous);
 	}
 
 	private dropped(socket: SocketLike): void {

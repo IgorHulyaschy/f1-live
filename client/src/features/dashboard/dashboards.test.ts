@@ -6,6 +6,7 @@ import { PRESET_IDS } from '@f1-live/shared/dashboard';
 import { arrangeTile } from './arrange.ts';
 import {
 	addTile,
+	buildDashboard,
 	GRID_COLUMNS,
 	parseDashboardListText,
 	parseDashboardText,
@@ -52,11 +53,18 @@ describe('presets and library dashboards', () => {
 	});
 });
 
-describe('dashboard edits', () => {
-	const live = PRESETS[0];
+/** The Live preset as it shipped before the session layouts: a fixed layout to edit. */
+const live = buildDashboard('live', 'Live', [
+	['session', 0, 0, 16, 3],
+	['replay', 16, 0, 8, 3],
+	['lap-strip', 0, 3, 24, 2],
+	['timing', 0, 5, 16, 23],
+	['focus', 16, 5, 8, 15],
+	['race-control', 16, 20, 8, 8]
+]);
 
+describe('dashboard edits', () => {
 	it('adds a tile under everything else', () => {
-		assert.ok(live);
 		const next = addTile(live, 'pit-stops', 'new');
 		const place = next.layout.find((entry) => entry.i === 'new');
 
@@ -64,7 +72,6 @@ describe('dashboard edits', () => {
 	});
 
 	it('stacks tiles top to bottom, then left to right', () => {
-		assert.ok(live);
 		assert.deepEqual(
 			readingOrder(live).map((tile) => tile.kind),
 			['session', 'replay', 'lap-strip', 'timing', 'focus', 'race-control']
@@ -72,7 +79,6 @@ describe('dashboard edits', () => {
 	});
 
 	it('moves a tile by swapping places', () => {
-		assert.ok(live);
 		const swapped = swapTiles(live, 'live-3', 'live-4');
 
 		assert.deepEqual(
@@ -119,9 +125,6 @@ describe('parsing', () => {
 
 describe('share links', () => {
 	it('carry a dashboard whole, names with any characters included', () => {
-		const live = PRESETS[0];
-
-		assert.ok(live);
 		const named = { ...live, name: 'Vegas – Ферарі 🏁' };
 
 		assert.deepEqual(decodeShare(encodeShare(named)), named);
@@ -134,10 +137,7 @@ describe('share links', () => {
 });
 
 describe('keyboard arranging', () => {
-	const live = PRESETS[0];
-
 	it('moves a tile above the one over it', () => {
-		assert.ok(live);
 		assert.deepEqual(
 			readingOrder(arrangeTile(live, 'live-5', 'ArrowUp', false)).map((tile) => tile.kind),
 			['session', 'replay', 'lap-strip', 'timing', 'race-control', 'focus']
@@ -145,7 +145,6 @@ describe('keyboard arranging', () => {
 	});
 
 	it('resizes within the grid and the tile minimum', () => {
-		assert.ok(live);
 		const wider = arrangeTile(live, 'live-4', 'ArrowRight', true);
 		const narrower = arrangeTile(live, 'live-4', 'ArrowLeft', true);
 

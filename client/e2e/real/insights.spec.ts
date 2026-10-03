@@ -85,7 +85,7 @@ test.describe('the race', () => {
 });
 
 test.describe('qualifying', () => {
-	test('telemetry opens on pole; the race tools say they apply to races', async ({ page }) => {
+	test('telemetry opens on pole; the race tools shrink to what they are for', async ({ page }) => {
 		await openRace(page, '/analysis?session=9854');
 
 		// Norris took pole with 1:47.934.
@@ -97,14 +97,16 @@ test.describe('qualifying', () => {
 
 		await Promise.all(
 			['undercut', 'pit-cost', 'pit-crews'].map((tile) =>
-				expect(page.getByTestId(tile).getByTestId('race-only')).toBeVisible()
+				expect(page.getByTestId(`tile-${tile}`).getByTestId('tile-away')).toContainText(
+					'Races only'
+				)
 			)
 		);
 
-		await expect(page.getByTestId('tyre-life-applies')).toBeVisible();
+		await expect(page.getByTestId('tile-degradation')).toContainText('Races and practice');
 
 		await openRace(page, '/d/story?session=9854&plan=pro');
-		await expect(page.getByTestId('championship').getByTestId('race-only')).toBeVisible();
+		await expect(page.getByTestId('tile-championship')).toContainText('Races only');
 		await expect(
 			page
 				.getByTestId('story')
@@ -116,7 +118,7 @@ test.describe('qualifying', () => {
 });
 
 test.describe('practice', () => {
-	test('telemetry, the story by minute and the wind work; race tools say so', async ({ page }) => {
+	test('telemetry, the story by minute and the wind work; race tools shrink', async ({ page }) => {
 		await openRace(page, '/analysis?session=9852');
 
 		await expect(page.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
@@ -125,7 +127,9 @@ test.describe('practice', () => {
 
 		await Promise.all(
 			['undercut', 'pit-cost', 'pit-crews'].map((tile) =>
-				expect(page.getByTestId(tile).getByTestId('race-only')).toBeVisible()
+				expect(page.getByTestId(`tile-${tile}`).getByTestId('tile-away')).toContainText(
+					'Races only'
+				)
 			)
 		);
 
@@ -135,6 +139,6 @@ test.describe('practice', () => {
 		await openRace(page, '/d/story?session=9852&plan=pro');
 		await expect(page.getByTestId('story')).toContainText('fastest lap');
 		await expect(page.getByTestId('conditions').locator('svg text').first()).toBeVisible();
-		await expect(page.getByTestId('championship').getByTestId('race-only')).toBeVisible();
+		await expect(page.getByTestId('tile-championship')).toContainText('Races only');
 	});
 });

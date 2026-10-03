@@ -12,7 +12,8 @@ test('arrow keys step laps and number keys switch pages', async ({ page }) => {
 	await page.keyboard.press('ArrowLeft');
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 19/50');
 
-	await page.keyboard.press('3');
+	// Race day's tabs: Race, Strategy, Battle, Analysis.
+	await page.keyboard.press('2');
 	await expect(page.getByTestId('stint-timeline')).toBeVisible();
 	await expect(page).toHaveURL(/\/strategy\?lap=19/);
 });

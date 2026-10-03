@@ -11,7 +11,7 @@
 		"test:unit": "node --test 'src/**/*.test.ts'",
 		"test:e2e": "playwright test --project=e2e && playwright test -c playwright.real.config.ts --project=real --project=live",
 		"test:stack": "playwright test -c playwright.stack.config.ts",
-		"shots": "playwright test --project=shots && playwright test -c playwright.real.config.ts --project=shots-real"
+		"shots": "playwright test --project=shots && playwright test -c playwright.real.config.ts --project=shots-real --project=shots-live"
 	},
 	"dependencies": {
 		"@f1-live/shared": "0.1.0",

@@ -1,19 +1,32 @@
-import { LibraryIcon, MoonIcon, PlusIcon, SunIcon } from 'lucide-react';
+import {
+	ChevronDownIcon,
+	LayoutDashboardIcon,
+	LibraryIcon,
+	MoonIcon,
+	PlusIcon,
+	SunIcon
+} from 'lucide-react';
 import { AnimatePresence, motion } from 'motion/react';
-import { NavLink } from 'react-router';
+import { NavLink, useLocation, useNavigate } from 'react-router';
 
 import { Key, KeyGroup } from '@/components/console/keys';
 import { Kbd } from '@/components/console/panel';
-import { LapCounter, Transport } from '@/components/race-clock';
+import { LiveStrip } from '@/components/live-strip';
 import { TRACK_STATUS_LABEL } from '@/components/track-status-badge';
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { useRace } from '@/data/race-context';
-import { useDashboards } from '@/features/dashboard/dashboard-store';
 import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
-import { dashboardPath } from '@/features/dashboard/paths';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
+import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
 import { AccountKey } from '@/features/account/account-menu';
 import { useAccountPlan } from '@/features/account/account-store';
-import { useShownDashboard } from '@/features/library/shown-dashboard';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
 
@@ -35,21 +48,27 @@ function Wordmark() {
 	);
 }
 
-/** Dashboards as tabs: presets first, then the viewer's own, then a key to start a new one. */
+/**
+ * Dashboards as tabs: the session's own layout first, the ready-made ones that suit the session,
+ * then the viewer's own. Every other ready-made dashboard is one click away under More.
+ */
 function MainNav() {
 	const search = useCarriedSearch();
-	const { dashboards } = useDashboards();
+	const { tabs, more } = useDashboardNav();
 	const create = useCreateDashboard();
+	const navigate = useNavigate();
+	const { pathname } = useLocation();
+	const moreActive = more.some((entry) => entry.path === pathname);
 
 	return (
 		<nav
 			aria-label="Main"
 			className="flex h-full min-w-0 items-stretch overflow-x-auto mask-r-from-85% [scrollbar-width:none] sm:mask-none"
 		>
-			{dashboards.map((dashboard) => (
+			{tabs.map((entry) => (
 				<NavLink
-					key={dashboard.id}
-					to={{ pathname: dashboardPath(dashboard.id), search }}
+					key={entry.dashboard.id}
+					to={{ pathname: entry.path, search }}
 					end
 					className={({ isActive }) =>
 						cn(
@@ -60,18 +79,48 @@ function MainNav() {
 				>
 					{({ isActive }) => (
 						<>
-							{dashboard.name || 'Untitled'}
-							{isActive ? (
-								<motion.span
-									layoutId="nav-indicator"
-									className="bg-focus absolute inset-x-1.5 -bottom-px h-0.75 sm:inset-x-3.5"
-									transition={{ type: 'spring', stiffness: 600, damping: 45 }}
-								/>
-							) : null}
+							{entry.label}
+							{isActive ? <NavIndicator /> : null}
 						</>
 					)}
 				</NavLink>
 			))}
+			{more.length > 0 ? (
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<button
+							type="button"
+							className={cn(
+								'type-wide relative flex shrink-0 items-center gap-1 px-1.5 text-xs font-bold whitespace-nowrap transition-colors outline-none focus-visible:underline sm:px-3.5',
+								moreActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+							)}
+						>
+							More
+							<ChevronDownIcon aria-hidden className="size-3.5" />
+							{moreActive ? <NavIndicator /> : null}
+						</button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="start" className="w-56">
+						<DropdownMenuLabel>
+							<span className="type-label">Ready-made</span>
+						</DropdownMenuLabel>
+						{more.map((entry) => (
+							<DropdownMenuItem
+								key={entry.dashboard.id}
+								onSelect={() => void navigate({ pathname: entry.path, search })}
+							>
+								<LayoutDashboardIcon />
+								{entry.label}
+							</DropdownMenuItem>
+						))}
+						<DropdownMenuSeparator />
+						<DropdownMenuItem onSelect={() => void navigate({ pathname: '/library', search })}>
+							<LibraryIcon />
+							Library: fan dashboards
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			) : null}
 			<span className="flex shrink-0 items-center gap-1 px-1.5">
 				<Key aria-label="New dashboard" onClick={() => create()} className="h-7 px-1.5 sm:h-7">
 					<PlusIcon />
@@ -96,14 +145,14 @@ function MainNav() {
 	);
 }
 
-/**
- * Lap and transport in the bar itself, for pages whose dashboard has no Replay tile: the race can
- * always be moved, whatever a viewer took off their screen.
- */
-function useNeedsClock(): boolean {
-	const dashboard = useShownDashboard();
-
-	return !dashboard?.tiles.some((tile) => tile.kind === 'replay');
+function NavIndicator() {
+	return (
+		<motion.span
+			layoutId="nav-indicator"
+			className="bg-focus absolute inset-x-1.5 -bottom-px h-0.75 sm:inset-x-3.5"
+			transition={{ type: 'spring', stiffness: 600, damping: 45 }}
+		/>
+	);
 }
 
 /** A full-width marshal banner while the race is neutralised. */
@@ -136,7 +185,6 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 	const { plan, setPlan } = useRace();
 	const accountPlan = useAccountPlan();
 	const dark = useDarkTheme();
-	const needsClock = useNeedsClock();
 
 	return (
 		<header className="bg-background/90 sticky top-0 z-40 mb-4 border-b backdrop-blur-sm">
@@ -146,12 +194,6 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 				</NavLink>
 				<MainNav />
 				<div className="ml-auto flex items-center gap-1 sm:gap-2">
-					{needsClock ? (
-						<div className="hidden items-center gap-3 sm:flex" data-testid="header-clock">
-							<Transport className="hidden 2xl:flex" />
-							<LapCounter size="sm" />
-						</div>
-					) : null}
 					<Key
 						onClick={onOpenCommand}
 						aria-label="Search drivers, laps and pages"
@@ -190,6 +232,7 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 					</Key>
 				</div>
 			</div>
+			<LiveStrip />
 			<FlagBanner />
 		</header>
 	);
