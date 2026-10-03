@@ -4,8 +4,9 @@ import { describe, it } from 'node:test';
 import { simulateLasVegas2025 } from '../data/mock/simulate-race.ts';
 import { snapshotAtLap } from '../data/snapshot-at-lap.ts';
 import { battleAhead } from './battle.ts';
-import { timePenalties } from './penalties.ts';
-import { PIT_LOSS_MS, predictRejoin } from './pit-window.ts';
+import { pitPenalties, timePenalties } from './penalties.ts';
+import { PIT_LOSS_MS, pitLossOf, predictRejoin } from './pit-window.ts';
+import { oneSecondAid } from './rules.ts';
 import { standingsAt } from './standings.ts';
 import { stintPaces, tyreCorrectedPace } from './tyre-pace.ts';
 
@@ -27,6 +28,45 @@ describe('standingsAt', () => {
 			['ALB', 'BOR', 'STR']
 		);
 		assert.ok(rows.slice(0, 17).every((row) => row.state !== 'out'));
+	});
+
+	describe('after a disqualification', () => {
+		const final = snapshotAtLap(race, 50);
+		const [first, second, third] = standingsAt(final);
+
+		const without = (driverNumber: string | undefined) => ({
+			...final,
+			corrections: [
+				{
+					driverNumber: driverNumber ?? '',
+					kind: 'disqualified' as const,
+					reason: 'Plank wear',
+					at: '2025-11-23T12:00:00.000Z'
+				}
+			]
+		});
+
+		it('measures the car behind the excluded one to the car ahead of it', () => {
+			const corrected = without(second?.driver.number);
+			const rows = standingsAt(corrected);
+
+			assert.equal(rows[1]?.driver.number, third?.driver.number);
+			assert.equal(rows[1]?.intervalMs, (third?.gapToLeaderMs ?? 0) - (first?.gapToLeaderMs ?? 0));
+			assert.equal(rows[1]?.gapToLeaderMs, third?.gapToLeaderMs);
+			assert.equal(
+				battleAhead(corrected, third?.driver.number ?? '')?.ahead.code,
+				first?.driver.code
+			);
+		});
+
+		it('measures every gap to the new leader when the leader is excluded', () => {
+			const rows = standingsAt(without(first?.driver.number));
+
+			assert.equal(rows[0]?.driver.number, second?.driver.number);
+			assert.equal(rows[0]?.gapToLeaderMs, 0);
+			assert.equal(rows[1]?.intervalMs, (third?.gapToLeaderMs ?? 0) - (second?.gapToLeaderMs ?? 0));
+			assert.equal(rows[1]?.gapToLeaderMs, rows[1]?.intervalMs);
+		});
 	});
 
 	it('marks exactly one holder of the fastest lap', () => {
@@ -52,6 +92,14 @@ describe('predictRejoin', () => {
 
 		assert.equal(prediction?.cheapStop, true);
 		assert.equal(prediction?.pitLossMs, PIT_LOSS_MS.neutralised);
+	});
+
+	it('measures the stop on the session’s own green-flag stops once there are some', () => {
+		const snapshot = snapshotAtLap(race, 40);
+		const measured = pitLossOf(snapshot);
+
+		assert.ok(measured.stops > 0);
+		assert.equal(predictRejoin(snapshot, '1')?.pitLossMs, measured.greenMs);
 	});
 
 	it('returns null for a retired driver', () => {
@@ -95,5 +143,47 @@ describe('timePenalties', () => {
 	it('shows a penalty once and clears it when served', () => {
 		assert.equal(timePenalties(snapshotAtLap(race, 30)).get('23'), 5);
 		assert.equal(timePenalties(snapshotAtLap(race, 40)).has('23'), false);
+	});
+});
+
+describe('pitPenalties', () => {
+	it('shows a drive-through until the lap it is served', () => {
+		const snapshot = {
+			...snapshotAtLap(race, 30),
+			penalties: [
+				{
+					driverNumber: '11',
+					kind: 'drive_through' as const,
+					reason: 'Unsafe release',
+					lap: 9,
+					status: 'served' as const,
+					servedLap: 12
+				}
+			]
+		};
+
+		assert.equal(pitPenalties({ ...snapshot, currentLap: 10 }).get('11'), 'DT');
+		assert.equal(pitPenalties({ ...snapshot, currentLap: 12 }).has('11'), false);
+	});
+});
+
+describe('oneSecondAid', () => {
+	it('is DRS until 2025 and follows race control switching it on and off', () => {
+		assert.deepEqual(oneSecondAid(snapshotAtLap(race, 1)).code, 'DRS');
+		assert.equal(oneSecondAid(snapshotAtLap(race, 30)).enabled, true);
+	});
+
+	it('is overtake mode from 2026', () => {
+		const snapshot = {
+			...snapshotAtLap(race, 30),
+			session: { ...race.session, startsAt: '2026-10-04T07:00:00.000Z' },
+			raceControl: [{ lap: 3, category: 'other' as const, message: 'OVERTAKE DISABLED' }]
+		};
+
+		assert.deepEqual(oneSecondAid(snapshot), {
+			code: 'OVT',
+			name: 'overtake mode',
+			enabled: false
+		});
 	});
 });

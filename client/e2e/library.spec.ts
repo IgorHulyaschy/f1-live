@@ -29,7 +29,7 @@ test('a share link opens the same dashboard in another browser', async ({ page, 
 	await other.close();
 });
 
-test('Free keeps three dashboards of your own; Pro keeps more', async ({ page }) => {
+test('Free keeps three dashboards of your own and points to Pro', async ({ page }) => {
 	const addFromLibrary = async (name: string) => {
 		await page.goto('/library');
 		await page.getByRole('button', { name }).click();
@@ -46,9 +46,12 @@ test('Free keeps three dashboards of your own; Pro keeps more', async ({ page })
 	await expect(page.getByText('Free keeps 3 dashboards of your own')).toBeVisible();
 	await expect(page).toHaveURL(/\/library/);
 
-	await page.getByRole('button', { name: 'Preview Pro' }).click();
-	await page.getByRole('button', { name: 'Add Driver wall' }).click();
-	await expect(page).toHaveURL(/\/d\/board-/);
+	// Pro is bought on the account page; e2e/accounts.spec.ts runs the whole way there.
+	await page.getByRole('button', { name: 'Go Pro' }).click();
+	await expect(page).toHaveURL(/\/account\?.*upgrade=1/);
+	await expect(page.getByRole('region', { name: 'Sign in' })).toContainText(
+		'Pro belongs to your account'
+	);
 });
 
 test('first run picks a driver and a starting dashboard', async ({ page }) => {
@@ -66,7 +69,7 @@ test('first run picks a driver and a starting dashboard', async ({ page }) => {
 	await expect(page.getByRole('combobox', { name: 'Followed driver' })).toHaveText(/NOR/);
 });
 
-test('without a Replay tile the lap moves from the top bar', async ({ page }) => {
+test('without a Replay tile the transport moves to the session strip', async ({ page }) => {
 	await openRace(page, '/?edit=1');
 
 	await expect(page.getByTestId('header-clock')).toHaveCount(0);

@@ -3,6 +3,9 @@ node_modules/
 
 # Build output
 dist/
+client/dist-e2e/
+client/dist-budget/
+.lighthouseci/
 *.tsbuildinfo
 
 # Playwright
@@ -26,5 +29,6 @@ client/shots/output/
 .DS_Store
 Thumbs.db
 
-# Raw live-timing dumps
+# Raw live-timing dumps and recordings
 live-update-*.json
+/data/

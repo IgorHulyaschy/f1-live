@@ -1,17 +1,17 @@
-import { motion } from 'motion/react';
+import { m } from 'motion/react';
 
 import { Digits } from '@/components/console/digits';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { ProGate } from '@/components/pro-gate';
 import { TyreBadge } from '@/components/tyre-badge';
-import { useRace } from '@/data/race-context';
+import { useRaceView } from '@/data/race-context';
 import { tyreCorrectedPace } from '@/insights/tyre-pace';
 
 const SHOWN_DRIVERS = 10;
 
 export function PaceRanking() {
-	const { snapshot } = useRace();
+	const { snapshot } = useRaceView();
 	const ranking = tyreCorrectedPace(snapshot).slice(0, SHOWN_DRIVERS);
 	const scale = Math.max(...ranking.map((entry) => entry.deltaToBestSeconds), 0.5);
 	const leader = ranking[0]?.driver.code;
@@ -45,7 +45,7 @@ export function PaceRanking() {
 											<span className="type-label text-fastest pl-1 font-bold">Quickest</span>
 										) : (
 											<>
-												<motion.span
+												<m.span
 													className="bg-foreground/45 h-3 shrink-0"
 													initial={{ width: 0 }}
 													animate={{ width: `${(entry.deltaToBestSeconds / scale) * 80}%` }}

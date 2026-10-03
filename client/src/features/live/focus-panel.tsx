@@ -1,6 +1,8 @@
 import { Digits } from '@/components/console/digits';
+import { EmptyNote } from '@/components/console/empty-note';
 import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { ProGate } from '@/components/pro-gate';
+import { RaceOnly } from '@/components/race-only';
 import { TyreBadge } from '@/components/tyre-badge';
 import {
 	Select,
@@ -10,6 +12,8 @@ import {
 	SelectValue
 } from '@/components/ui/select';
 import { useRace } from '@/data/race-context';
+import { isTimedSession } from '@/insights/qualifying';
+import { OUT_LABEL } from '@/insights/standings';
 import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -17,12 +21,18 @@ import { BoxNow } from './box-now';
 import { GapLadder } from './gap-ladder';
 
 export function FocusPanel() {
-	const { followedDriver, setFollowedDriver, standings } = useRace();
+	const { race, followedDriver, setFollowedDriver, standings } = useRace();
 	const rows = standings;
+	const timed = isTimedSession(race.session.type);
 	const row = rows.find((entry) => entry.driver.number === followedDriver) ?? rows[0];
 
 	if (!row) {
-		return null;
+		return (
+			<Panel data-focus-panel aria-label="Followed driver" data-testid="followed-driver">
+				<PanelHeader title="Focus" />
+				<EmptyNote />
+			</Panel>
+		);
 	}
 
 	const gained = row.positionsGained ?? 0;
@@ -53,7 +63,7 @@ export function FocusPanel() {
 				style={{ '--team': `#${row.driver.teamColour}` }}
 			>
 				<span className="bg-team text-background cut-corner type-wide flex min-w-28 items-center justify-center px-4 text-5xl font-black italic">
-					{row.state === 'out' ? 'Out' : `P${row.position}`}
+					{row.out ? OUT_LABEL[row.out] : `P${row.position}`}
 				</span>
 				<div className="flex min-w-0 flex-col justify-center gap-2 px-4 py-3">
 					<span className="type-wide truncate text-lg leading-none font-black">
@@ -63,8 +73,8 @@ export function FocusPanel() {
 						#{row.driver.number} {row.driver.team}
 					</span>
 					<span className="type-label">
-						Grid P{row.gridPosition ?? '-'}
-						{gained === 0 ? null : (
+						{timed ? `${row.lapsCompleted} laps` : `Grid P${row.gridPosition ?? '-'}`}
+						{gained === 0 || timed ? null : (
 							<span className={cn('ml-2', gained > 0 ? 'text-personal-best' : 'text-danger')}>
 								{gained > 0 ? `+${gained}` : gained}
 							</span>
@@ -97,12 +107,14 @@ export function FocusPanel() {
 				<GapLadder />
 			</div>
 			<div className="px-4 py-4">
-				<ProGate
-					feature="Pit stop prediction"
-					teaser={`Where ${row.driver.code} comes out if they box this lap, and whether it is into traffic.`}
-				>
-					<BoxNow driverNumber={row.driver.number} />
-				</ProGate>
+				<RaceOnly what="Pit stop prediction">
+					<ProGate
+						feature="Pit stop prediction"
+						teaser={`Where ${row.driver.code} comes out if they box this lap, and whether it is into traffic.`}
+					>
+						<BoxNow driverNumber={row.driver.number} />
+					</ProGate>
+				</RaceOnly>
 			</div>
 		</Panel>
 	);

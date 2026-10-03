@@ -20,12 +20,26 @@ More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](doc
 The whole screen is tiles on a 24-column grid, from a phone to a wall monitor: the race title,
 replay keys and lap strip move and resize like timing or a chart.
 
-- **Ready-made.** Live, Analysis and Strategy (at `/`, `/analysis`, `/strategy`), Battle,
-  Drivers and Pit wall. Edit any of them and Reset brings it back; **+** starts your own.
-- **18 tiles in 5 groups.** Race (session, replay, lap strip, weather, race control), Drivers
-  (focus, driver, grid), Timing, Analysis and Strategy. Drag by the bar, resize from the edges,
-  or use the keyboard: focus a grip, arrows move, Shift and arrows resize. Edit mode bars sit in
+- **Session-aware.** `/` opens the layout for the session on screen: Race, Quali or Practice,
+  named in the first tab. A live strip under the top bar says on every page whether a session is
+  live, which part, the time left, the flag and who is in the drop zone, or what starts next.
+- **One timeline.** The Replay tile plays at 1×, 10× and 60× real time, jumps between events
+  (flags, stops, your driver's moments) with Shift and the arrows, and scrubs along the race
+  barcode. Track maps move smoothly between laps.
+- **Ready-made.** The three session layouts, Analysis and Strategy (at `/analysis`,
+  `/strategy`), Battle, Track, Drivers, Race story and Pit wall; the ones a session does not need
+  wait under More. Edit any of them and Reset brings it back; **+** starts your own.
+- **34 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
+  Drivers (focus, driver, grid), Timing (with knockout and best sectors), Track (track map,
+  battle map, pit rejoin, mini-sector dominance, flag map, speed map), Analysis (charts,
+  telemetry traces, long runs, championship, conditions) and Strategy (stints, tyre wear, stops,
+  undercut ledger, stop cost, pit crews). Tiles for another kind of session shrink to one line.
+  Drag by the bar, resize from the edges, or use the keyboard: focus a grip, arrows move, Shift
+  and arrows resize. Edit mode bars sit in
   the gaps, so a dashboard looks the same while you build it.
+- **Maps.** Every car on the circuit, smooth at the display's refresh rate: from the replay's
+  car positions, the live feed's positions channel, or estimated from timing when there are
+  none.
 - **Any monitor.** Panels lay out by their tile's width (container queries). **Fit** stretches
   rows to the window height; text size runs from S to TV; narrow screens stack tiles.
 - **Windows.** Pop out a tile or a dashboard; lap, driver, plan, compared drivers and play/pause
@@ -35,7 +49,9 @@ replay keys and lap strip move and resize like timing or a chart.
   server needed. Export/Import does the same with a file.
 - **First run.** `/welcome` picks the driver you follow and a starting dashboard.
 - **Free and Pro.** Free keeps 3 dashboards of your own; Pro keeps any number, unlocks Pro tiles
-  and publishing. Accounts and the fan library are mocked in the browser for now.
+  and publishing. Accounts are real: an emailed sign-in link (Google and Apple when set up),
+  dashboards synced across devices, Pro through Stripe or a fake provider in development, and
+  an account page to export or delete everything. The fan library is still mocked.
 - **Pictures.** Driver photos, team logos and cars load from formula1.com in the viewer's browser,
   using the references the timing feed publishes; nothing is stored in the repo, and each has a
   drawn fallback. A paid launch needs a media licence first.
@@ -47,11 +63,11 @@ Design rules: [docs/design/identity.md](docs/design/identity.md). What comes nex
 
 ## Layout
 
-| Workspace | What it is                                                                   |
-| --------- | ---------------------------------------------------------------------------- |
-| `shared`  | Race data contract shared by server and client (`shared/src/race.ts`).       |
-| `server`  | Fastify + Postgres. Subscribes to the live timing feed and serves `/onLoad`. |
-| `client`  | React 19, Vite, Tailwind 4, shadcn/ui and shadcn charts (Recharts).          |
+| Workspace | What it is                                                                             |
+| --------- | -------------------------------------------------------------------------------------- |
+| `shared`  | Contracts shared by server and client: race data, the dashboard document, plans.       |
+| `server`  | One Fastify process: the live feed, `WS /live`, saved sessions, and accounts (`/api`). |
+| `client`  | React 19, Vite, Tailwind 4, shadcn/ui and shadcn charts (Recharts).                    |
 
 ## Getting started
 
@@ -62,30 +78,93 @@ npm install
 cp client/.env.example client/.env   # VITE_DATA_SOURCE=mock
 npm run dev -w client
 
-# Server against Postgres and the live feed
-cp server/.env.example server/.env   # set DATABASE_URL
-npm run migrations:up -w server
+# Client on real data: set VITE_DATA_SOURCE=api in client/.env, then run the server below
+
+# Server: live feed, WS /live and saved sessions on one port (3000); no database needed
+cp server/.env.example server/.env   # optional
 npm run dev -w server
+
+# Accounts too: PGlite in data/accounts, sign-in links in the server log, fake payments.
+# Vite sends /api to the server, so sign-in works on http://localhost:5173 with no account anywhere.
+ACCOUNTS_DB=pglite npm run dev -w server
+
+# With no session live, replay a saved one through the same live path
+npm run fetch:f1 -w server -- 9858
+npm run replay-live -w server -- --key 9858 --speed 10
 ```
+
+The WebSocket protocol, the ingest/relay split for cloud hosts and the load smoke are in
+[docs/product/live-protocol.md](docs/product/live-protocol.md).
 
 The mock replay is the 2025 Las Vegas Grand Prix. Grid, stints, race control, weather, VSC laps
 and the order at the flag are real (from `server/data-examples`); lap and sector times are
-modelled and calibrated to the real gaps. Set `VITE_DATA_SOURCE=api` to read from the server.
+modelled and calibrated to the real gaps.
+
+With `VITE_DATA_SOURCE=api` the client reads `catalog.json` and saved sessions from
+`VITE_API_URL` and follows `WS /live` at `VITE_WS_URL`. The Session tile and ⌘K pick any
+season, meeting and session (`?session=<key>` links to one); opening the app during a live
+session goes to it. Live sessions can run behind the feed by a broadcast delay, and spoiler-free
+mode opens sessions at the start with results hidden.
+
+## Run the production build locally
+
+```sh
+docker compose up --build                 # http://localhost:8080
+docker compose --profile replay up        # also replays a saved race through ingest -> relay
+```
+
+Postgres, the relay and accounts API, and the client as static files behind Caddy. Hosting it for
+real, the CI workflow and the owner's checklist are in [docs/deploy.md](docs/deploy.md).
 
 ## Checks
 
-| Command                       | What it runs                                                |
-| ----------------------------- | ----------------------------------------------------------- |
-| `npm run check`               | Typecheck (TypeScript 7), oxlint and Prettier.              |
-| `npm run lint`                | oxlint with the anti-slop and shadcn lint plugins.          |
-| `npm run format`              | Prettier.                                                   |
-| `npm run test:unit -w client` | Node test runner over the mock race and insights.           |
-| `npm run test:e2e`            | Playwright against the mock replay.                         |
-| `npm run shots`               | Screenshots of 10 screens at 6 sizes, free/Pro, dark/light. |
+| Command                       | What it runs                                               |
+| ----------------------------- | ---------------------------------------------------------- |
+| `npm run check`               | Typecheck (TypeScript 7), oxlint and Prettier.             |
+| `npm run lint`                | oxlint with the anti-slop and shadcn lint plugins.         |
+| `npm run format`              | Prettier.                                                  |
+| `npm run test:unit -w client` | Node test runner over the mock race and insights.          |
+| `npm run test:e2e`            | Playwright on the mock replay, then on real data and live. |
+| `npm run shots`               | Screenshots on the mock and on real data, dark/light.      |
+| `npm run budgets`             | Initial bundle size and Lighthouse CI, mobile and desktop. |
 
-Shots land in `client/shots/output/<viewport>/<page>-<plan>-<theme>.png` (not committed) and are
-meant for design and quality audits. If Playwright's own browser is not installed, point it at
+Shots land in `client/shots/output/<viewport>/<page>-<plan>-<theme>.png` and, on real data, in
+`client/shots/output/real/` (not committed); they are meant for design and quality audits. The
+real-data runs (`client/playwright.real.config.ts`) read a committed fixture of the 2025 Las Vegas
+race and qualifying and 2026 Baku qualifying, derived by `client/e2e/real/derive-fixtures.ts`,
+and replay a trimmed race through `replay-live`. If Playwright's own browser is not installed, point it at
 any Chromium with `PW_CHROMIUM_PATH=/path/to/chrome`.
+
+Playwright starts its own servers on fixed ports: the apps on 4173 to 4176, the servers on 3111, 3112
+and 3114. Worktrees that run e2e or shots side by side set `PW_PORT_BASE` to a different number in
+each, for example `PW_PORT_BASE=4373 CI=1 npm run test:e2e`; it moves every one of those ports
+(`client/playwright.ports.ts` lists them). Run with `CI=1`, so Playwright never reuses a server
+that another run started.
+
+### Launch budgets
+
+`npm run budgets` builds the mock replay with drawn pictures and serves it the way a static host
+does (HTTP/2, Brotli; `client/scripts/serve-dist.ts`, which needs `openssl` for a throwaway
+localhost certificate). The server takes a free port on 127.0.0.1, so a dev server another
+checkout runs on a fixed port never answers in its place. It then checks:
+
+- the first route's scripts and styles against `BUDGET` in `client/scripts/budgets.ts`, in gzip kB;
+- Lighthouse on `/`, `/analysis` and `/library`, mobile and desktop: performance 90 or more,
+  accessibility, best practices and SEO 95 or more, judged on the median of three runs
+  (`client/lighthouserc.json`). Reports land in `client/.lighthouseci/`.
+
+The local run is the strict one: every score is a hard limit, on a stable machine before a release.
+On CI (a shared 2-core runner, where mobile performance scores 59-79 against 89-95 on a Mac) mobile
+performance only warns; the other scores, desktop performance and the size budget still fail the
+job, and the score table goes to the job summary.
+
+`npm run test:e2e` also runs axe on every main route in both themes and fails on any serious or
+critical violation (`client/e2e/accessibility.spec.ts`), and covers the production build's
+manifest, offline shell and consent question (`client/e2e/build/`).
+
+The brand (name, domain, support address, social links) lives in `client/src/brand.ts`, and the
+legal text in `client/src/legal/content.ts`; `npm run brand-assets -w client` redraws the favicon,
+install icons and share card after a change.
 
 The anti-slop oxlint plugin is vendored in `tools/oxlint/anti-slop` (see `UPSTREAM.md`). shadcn
 primitives live in `client/src/components/ui`; screens compose them through variants rather than

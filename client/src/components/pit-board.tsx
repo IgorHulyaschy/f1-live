@@ -4,6 +4,7 @@ import { TyreBadge } from '@/components/tyre-badge';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useRace } from '@/data/race-context';
 import { battleAhead } from '@/insights/battle';
+import { OUT_LABEL } from '@/insights/standings';
 
 /**
  * The followed driver as a pit board, pinned to the bottom of the screen on phones so the one
@@ -23,12 +24,15 @@ export function PitBoard() {
 
 	const ahead = battleAhead(snapshot, row.driver.number);
 
-	// Scroll to this dashboard's focus panel, or open Live, which always has one.
+	// Scroll to this dashboard's focus panel or the driver's row in the tower, or open the
+	// session's layout, which always has the tower.
 	const showFocus = () => {
-		const panel = document.querySelector('[data-focus-panel]');
+		const panel =
+			document.querySelector('[data-focus-panel]') ??
+			document.querySelector(`[data-testid="timing-row-${CSS.escape(row.driver.code)}"]`);
 
 		if (panel) {
-			panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
 			return;
 		}
@@ -46,7 +50,7 @@ export function PitBoard() {
 			style={{ '--team': `#${row.driver.teamColour}` }}
 		>
 			<span className="bg-team text-background cut-forward type-wide px-3 py-1 text-xl font-black italic">
-				{row.state === 'out' ? 'OUT' : `P${row.position}`}
+				{row.out ? OUT_LABEL[row.out] : `P${row.position}`}
 			</span>
 			<span className="flex min-w-0 flex-col">
 				<span className="type-wide text-sm font-bold">{row.driver.code}</span>

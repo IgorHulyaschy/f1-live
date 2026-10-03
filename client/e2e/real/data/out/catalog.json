@@ -1,0 +1,200 @@
+{
+	"seasons": [
+		{
+			"year": 2025,
+			"meetings": [
+				{
+					"key": 1274,
+					"name": "Las Vegas Grand Prix",
+					"officialName": "FORMULA 1 HEINEKEN LAS VEGAS GRAND PRIX 2025",
+					"location": "Las Vegas",
+					"sessions": [
+						{
+							"key": 9851,
+							"type": "practice",
+							"name": "Practice 1",
+							"startsAt": "2025-11-21T00:30:00.000Z",
+							"status": "finished",
+							"circuit": "Las Vegas",
+							"country": {
+								"code": "USA",
+								"name": "United States"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": false
+							}
+						},
+						{
+							"key": 9852,
+							"type": "practice",
+							"name": "Practice 2",
+							"startsAt": "2025-11-21T04:00:00.000Z",
+							"status": "finished",
+							"circuit": "Las Vegas",
+							"country": {
+								"code": "USA",
+								"name": "United States"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": true
+							}
+						},
+						{
+							"key": 9853,
+							"type": "practice",
+							"name": "Practice 3",
+							"startsAt": "2025-11-22T00:30:00.000Z",
+							"status": "finished",
+							"circuit": "Las Vegas",
+							"country": {
+								"code": "USA",
+								"name": "United States"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": false
+							}
+						},
+						{
+							"key": 9854,
+							"type": "qualifying",
+							"name": "Qualifying",
+							"startsAt": "2025-11-22T04:00:00.000Z",
+							"status": "finished",
+							"circuit": "Las Vegas",
+							"country": {
+								"code": "USA",
+								"name": "United States"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": true
+							}
+						},
+						{
+							"key": 9858,
+							"type": "race",
+							"name": "Race",
+							"startsAt": "2025-11-23T04:00:00.000Z",
+							"status": "finished",
+							"circuit": "Las Vegas",
+							"country": {
+								"code": "USA",
+								"name": "United States"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": true
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"year": 2026,
+			"meetings": [
+				{
+					"key": 1295,
+					"name": "Azerbaijan Grand Prix",
+					"officialName": "FORMULA 1 QATAR AIRWAYS AZERBAIJAN GRAND PRIX 2026",
+					"location": "Baku",
+					"sessions": [
+						{
+							"key": 11370,
+							"type": "practice",
+							"name": "Practice 1",
+							"startsAt": "2026-09-24T08:30:00.000Z",
+							"status": "finished",
+							"circuit": "Baku",
+							"country": {
+								"code": "AZE",
+								"name": "Azerbaijan"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": false
+							}
+						},
+						{
+							"key": 11371,
+							"type": "practice",
+							"name": "Practice 2",
+							"startsAt": "2026-09-24T12:00:00.000Z",
+							"status": "finished",
+							"circuit": "Baku",
+							"country": {
+								"code": "AZE",
+								"name": "Azerbaijan"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": false
+							}
+						},
+						{
+							"key": 11372,
+							"type": "practice",
+							"name": "Practice 3",
+							"startsAt": "2026-09-25T08:30:00.000Z",
+							"status": "finished",
+							"circuit": "Baku",
+							"country": {
+								"code": "AZE",
+								"name": "Azerbaijan"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": false
+							}
+						},
+						{
+							"key": 11373,
+							"type": "qualifying",
+							"name": "Qualifying",
+							"startsAt": "2026-09-25T12:00:00.000Z",
+							"status": "finished",
+							"circuit": "Baku",
+							"country": {
+								"code": "AZE",
+								"name": "Azerbaijan"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": true
+							}
+						},
+						{
+							"key": 11377,
+							"type": "race",
+							"name": "Race",
+							"startsAt": "2026-09-26T11:00:00.000Z",
+							"status": "finished",
+							"circuit": "Baku",
+							"country": {
+								"code": "AZE",
+								"name": "Azerbaijan"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": false
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}

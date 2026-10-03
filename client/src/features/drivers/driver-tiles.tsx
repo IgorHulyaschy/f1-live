@@ -1,5 +1,6 @@
 import { CarSide, DriverPortrait, TeamLogo } from '@/components/driver-media';
 import { Digits } from '@/components/console/digits';
+import { EmptyNote } from '@/components/console/empty-note';
 import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { TyreBadge } from '@/components/tyre-badge';
 import {
@@ -10,20 +11,24 @@ import {
 	SelectValue
 } from '@/components/ui/select';
 import { useRace } from '@/data/race-context';
-import type { StandingRow } from '@/insights/standings';
+import { OUT_LABEL, type StandingRow } from '@/insights/standings';
 import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 function gapText(row: StandingRow): string {
-	if (row.state === 'out') {
-		return 'Out';
+	if (row.out) {
+		return OUT_LABEL[row.out];
 	}
 
 	if (row.lapsDown > 0) {
 		return `+${row.lapsDown}L`;
 	}
 
-	return row.position === 1 || row.gapToLeaderMs === null ? 'Leader' : formatGap(row.gapToLeaderMs);
+	if (row.position === 1 && row.lapsCompleted > 0) {
+		return 'Leader';
+	}
+
+	return row.gapToLeaderMs === null || row.gapToLeaderMs === 0 ? '-' : formatGap(row.gapToLeaderMs);
 }
 
 /** The driver you follow, large: picture, car, team and where they run. */
@@ -32,7 +37,12 @@ export function DriverCard() {
 	const row = standings.find((entry) => entry.driver.number === followedDriver) ?? standings[0];
 
 	if (!row) {
-		return null;
+		return (
+			<Panel aria-label="Driver" data-testid="driver-card">
+				<PanelHeader title="Driver" />
+				<EmptyNote />
+			</Panel>
+		);
 	}
 
 	const { driver } = row;
@@ -103,6 +113,7 @@ export function GridWall() {
 	return (
 		<Panel aria-label="Grid" data-testid="grid-wall">
 			<PanelHeader title="Grid" meta="Running order" />
+			{standings.length === 0 ? <EmptyNote /> : null}
 			<ol className="grid grid-cols-3 @md:grid-cols-5 @4xl:grid-cols-10">
 				{standings.map((row) => {
 					const followed = row.driver.number === followedDriver;
@@ -116,11 +127,14 @@ export function GridWall() {
 								onClick={() => setFollowedDriver(row.driver.number)}
 								className={cn(
 									'hover:bg-accent focus-visible:bg-accent flex w-full flex-col text-left transition-colors focus-visible:outline-none',
-									followed && 'bg-accent',
-									row.state === 'out' && 'opacity-50'
+									followed && 'bg-accent'
 								)}
 							>
-								<DriverPortrait driver={row.driver} tinted={followed} className="h-24 w-full" />
+								<DriverPortrait
+									driver={row.driver}
+									tinted={followed}
+									className={cn('h-24 w-full', row.state === 'out' && 'opacity-50')}
+								/>
 								<span className="flex flex-col gap-1 px-2 py-1.5">
 									<span className="flex items-baseline gap-1.5">
 										<span className="font-mono text-xs font-bold">{row.position}</span>

@@ -6,7 +6,7 @@ charging.
 
 | #   | Plan                                                 | Outcome                                                         | Blocked on                                       |
 | --- | ---------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------ |
-| 1   | [Real race data](01-real-data.md)                    | Any 2025/2026 race replays from real data; live sessions update | Network access to `livetiming.formula1.com`      |
+| 1   | [Real race data](01-real-data.md)                    | Any 2025/2026 race replays from real data; live sessions update | Nothing                                          |
 | 2   | [Hosted preview](02-hosted-preview.md)               | A link fans can open on any screen during a Grand Prix          | Hosting accounts (owner)                         |
 | 3   | [Accounts and payments](03-accounts-and-payments.md) | Sign-in, dashboards synced across devices, Pro through Stripe   | Free/Pro split confirmed; Stripe account (owner) |
 | 4   | [Launch readiness](04-launch-readiness.md)           | A name, legal pages, a picture licence or own artwork, support  | Owner decisions                                  |
@@ -31,5 +31,7 @@ These are tracked here so no plan quietly decides them.
 ## How each plan is run
 
 - Every step is its own commit, with tests and a review pass (code, plus design from screenshots).
-- Work lands on `master` of Fybex/f1-live-private. Nothing is pushed to the upstream repository.
+- Work lands in Fybex/f1-live-private. Each task has its own branch from the milestone branch (`m1`
+  for now), and the coordinator merges it into `m1` once its checks and review pass. Task branches
+  never touch `master`; the owner merges `m1` into `master` through a pull request.
 - A plan is done when its "Done when" list passes on the hosted preview, not only locally.

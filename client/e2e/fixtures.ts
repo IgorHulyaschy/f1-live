@@ -1,4 +1,6 @@
+import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Page } from '@playwright/test';
+import { z } from 'zod';
 
 /**
  * Opens a page of the mock replay as a returning viewer and waits until the race has loaded.
@@ -9,4 +11,46 @@ export async function openRace(page: Page, path = '/'): Promise<void> {
 	await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
 	await page.goto(path);
 	await expect(page.getByTestId('lap-counter')).toBeVisible();
+}
+
+/** The sign-in link the accounts server would have emailed; the dev mailbox hands it to tests. */
+export async function mailedLink(page: Page, email: string): Promise<string> {
+	const response = await page.request.get(`/api/dev/mailbox?to=${encodeURIComponent(email)}`);
+
+	expect(response.ok()).toBe(true);
+
+	return z.object({ link: z.url() }).parse(await response.json()).link;
+}
+
+/** Signs a browser in the quick way: ask for a link, then open it, as the email would. */
+export async function signInWithLink(page: Page, email: string): Promise<void> {
+	const origin = new URL(page.url()).origin;
+
+	const asked = await page.request.post('/api/auth/sign-in/magic-link', {
+		headers: { origin },
+		data: { email, callbackURL: `${origin}/account` }
+	});
+
+	expect(asked.ok()).toBe(true);
+	await page.goto(await mailedLink(page, email));
+	await expect(page.getByTestId('account-menu')).toBeAttached();
+}
+
+/** A fresh address per run, so a reused accounts server never mixes runs. */
+export function testEmail(name: string): string {
+	return `${name}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}@example.test`;
+}
+
+/** Serious and critical axe violations on the page, one line each; the budget allows none. */
+export async function seriousViolations(page: Page): Promise<string[]> {
+	// The race number painted behind a driver photo is decoration and hidden from assistive tech;
+	// WCAG 1.4.3 sets no contrast for it.
+	const results = await new AxeBuilder({ page }).exclude('.plate-number').analyze();
+
+	return results.violations
+		.filter((violation) => violation.impact === 'serious' || violation.impact === 'critical')
+		.map(
+			(violation) =>
+				`${violation.id} (${violation.impact}): ${violation.nodes.map((node) => node.target.join(' ')).join(', ')}`
+		);
 }

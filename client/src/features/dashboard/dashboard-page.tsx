@@ -15,6 +15,7 @@ import * as React from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 
+import { BRAND, brandSlug } from '@/brand';
 import { Key, KeyGroup } from '@/components/console/keys';
 import {
 	Dialog,
@@ -26,7 +27,8 @@ import {
 import { type Scale, SCALES, setScale, useScale } from '@/hooks/use-scale';
 
 import { shareUrl } from '@/features/library/share';
-import { accountStore } from '@/features/library/library-data';
+import { useRace, useRaceView } from '@/data/race-context';
+import { type SyncStatus, useSyncStatus } from '@/features/account/dashboard-sync';
 import { WelcomeBanner } from '@/features/library/welcome';
 
 import { forgetDashboard, newId, saveDashboard, useDashboards } from './dashboard-store';
@@ -40,8 +42,17 @@ import {
 	TILE_INFO,
 	TILE_KINDS
 } from './dashboards';
+import { SessionOffer } from './session-offer';
+import { sessionLayoutId } from './session-layouts';
 import { useAddDashboard } from './use-add-dashboard';
 import { useCarriedSearch } from './use-carried-search';
+
+const SYNC_LABEL: Record<SyncStatus, string> = {
+	local: 'Saved in this browser',
+	pending: 'Saving to your account',
+	blocked: 'On this device only: not in your account',
+	synced: 'Synced to your account'
+};
 
 const SCALE_OPTIONS = SCALES.map(({ value, label }) => ({ value, label }));
 
@@ -112,7 +123,7 @@ function download(dashboard: Dashboard): void {
 	const link = document.createElement('a');
 
 	link.href = url;
-	link.download = `pitwall-${dashboard.name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}.json`;
+	link.download = `${brandSlug()}-${dashboard.name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}.json`;
 	link.click();
 	URL.revokeObjectURL(url);
 }
@@ -131,8 +142,8 @@ export function useCreateDashboard(): (from?: Dashboard) => void {
 	};
 }
 
-async function copyShareLink(dashboard: Dashboard): Promise<void> {
-	const url = shareUrl(dashboard);
+async function copyShareLink(dashboard: Dashboard, sessionKey: string): Promise<void> {
+	const url = shareUrl(dashboard, sessionKey);
 
 	try {
 		await navigator.clipboard.writeText(url);
@@ -157,10 +168,11 @@ function DashboardBar({
 }) {
 	const navigate = useNavigate();
 	const search = useCarriedSearch();
+	const { sessionKey } = useRace();
 	const scale = useScale();
 	const create = useCreateDashboard();
 	const add = useAddDashboard();
-	const account = accountStore.useValue();
+	const syncStatus = useSyncStatus(dashboard.id);
 	const [adding, setAdding] = React.useState(false);
 	const fileInput = React.useRef<HTMLInputElement>(null);
 	const preset = isPreset(dashboard.id);
@@ -177,7 +189,7 @@ function DashboardBar({
 				toast(`Imported ${parsed.name}`);
 			}
 		} catch {
-			toast('That file is not a Pitwall dashboard.');
+			toast(`That file is not a ${BRAND.name} dashboard.`);
 		}
 	};
 
@@ -207,7 +219,7 @@ function DashboardBar({
 			)}
 			{editing ? (
 				<span className="type-label" data-testid="save-status">
-					{account ? `Synced to @${account.handle}` : 'Saved in this browser'}
+					{SYNC_LABEL[syncStatus]}
 				</span>
 			) : null}
 			{editing ? (
@@ -277,7 +289,7 @@ function DashboardBar({
 						onChange={setScale}
 					/>
 				</span>
-				<Key aria-label="Copy share link" onClick={() => void copyShareLink(dashboard)}>
+				<Key aria-label="Copy share link" onClick={() => void copyShareLink(dashboard, sessionKey)}>
 					<Share2Icon />
 					<span className="hidden sm:inline">Share</span>
 				</Key>
@@ -315,10 +327,14 @@ function DashboardBar({
 	);
 }
 
-/** A dashboard by id: presets at their old addresses, everything else under /d/:id. */
+/**
+ * A dashboard by id: the session's own layout at `/`, presets at their old addresses, everything
+ * else under /d/:id.
+ */
 export function DashboardPage({ id: fixedId }: { id?: string }) {
 	const params = useParams();
-	const id = fixedId ?? params.id ?? 'live';
+	const { race } = useRaceView();
+	const id = fixedId ?? params.id ?? sessionLayoutId(race.session.type);
 	const { dashboards, saved } = useDashboards();
 	const [searchParams, setSearchParams] = useSearchParams();
 	const dashboard = dashboards.find((entry) => entry.id === id);
@@ -350,6 +366,7 @@ export function DashboardPage({ id: fixedId }: { id?: string }) {
 	return (
 		<div data-testid={`dashboard-${dashboard.id}`}>
 			{isPreset(dashboard.id) ? <WelcomeBanner /> : null}
+			<SessionOffer dashboard={dashboard} />
 			<DashboardBar
 				dashboard={dashboard}
 				edited={saved.has(dashboard.id)}

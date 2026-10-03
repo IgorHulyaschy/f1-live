@@ -1,0 +1,70 @@
+# The client as static files, with the saved sessions beside it and a proxy to the relay.
+# TLS ends at the platform in front of this (or at a Caddy of your own), so it listens on plain HTTP.
+{
+	admin off
+	auto_https off
+}
+
+:{$PORT:8080} {
+	root * /srv/app
+
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# The accounts API and the live socket go to the relay. Same origin, so the sign-in cookie needs
+	# no CORS and no cookie domain. WebSockets pass through reverse_proxy as they are.
+	handle /api/* {
+		reverse_proxy {$RELAY_UPSTREAM:relay:3000}
+	}
+
+	handle /live {
+		reverse_proxy {$RELAY_UPSTREAM:relay:3000}
+	}
+
+	# The import's output (catalog, snapshots, events, telemetry), mounted read-only. A .gz file is
+	# sent as it is with Content-Encoding: gzip, which every browser accepts; this is the same
+	# header set that deploy/scripts/upload-data.sh gives the files on a bucket.
+	handle_path /data/* {
+		root * /srv/data
+
+		@catalog path /catalog.json
+		header @catalog Cache-Control "no-cache"
+
+		@gzipped path *.gz
+		header @gzipped Content-Encoding gzip
+		header @gzipped Cache-Control "public, max-age=300, must-revalidate"
+
+		@json path *.json.gz
+		header @json Content-Type "application/json; charset=utf-8"
+
+		@lines path *.jsonl.gz *.ndjson.gz
+		header @lines Content-Type "application/x-ndjson; charset=utf-8"
+
+		file_server
+	}
+
+	handle {
+		encode zstd gzip
+
+		# Vite hashes every file under /assets, so a changed file has a new name.
+		@hashed path /assets/*
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+		# Everything else, index.html first, is revalidated on every visit (an ETag makes it a 304).
+		@unhashed not path /assets/*
+		header @unhashed Cache-Control "no-cache"
+
+		header {
+			X-Content-Type-Options nosniff
+			Referrer-Policy strict-origin-when-cross-origin
+			-Server
+		}
+
+		# Single-page app: any path that is not a file is the app's.
+		try_files {path} /index.html
+		file_server {
+			precompressed br gzip
+		}
+	}
+}

@@ -1,50 +1,38 @@
-import { z } from 'zod';
+import type { SessionType } from '@f1-live/shared';
+import {
+	type Dashboard,
+	isPresetId,
+	type Tile,
+	type TileKind,
+	type TileSettings
+} from '@f1-live/shared/dashboard';
+
+export {
+	type Dashboard,
+	GRID_COLUMNS,
+	parseDashboardListText,
+	parseDashboardText,
+	type Tile,
+	TILE_KINDS,
+	type TileKind,
+	type TilePlacement,
+	type TileSettings
+} from '@f1-live/shared/dashboard';
 
 import type { Metric } from '../analysis/lap-series.ts';
 
-/** Every dashboard is laid out on this many columns, whatever the screen width. */
-export const GRID_COLUMNS = 24;
+export const TILE_GROUPS = ['Race', 'Drivers', 'Timing', 'Track', 'Analysis', 'Strategy'] as const;
 
-export const TILE_KINDS = [
-	'session',
-	'replay',
-	'lap-strip',
-	'weather',
-	'timing',
-	'focus',
-	'gaps',
-	'box-now',
-	'race-control',
-	'chart',
-	'compare',
-	'pace',
-	'fastest-laps',
-	'stints',
-	'degradation',
-	'pit-stops',
-	'driver',
-	'grid'
-] as const;
+/** Sessions by what they are for: racing, a knockout for the grid, or practice. */
+export type SessionKind = 'race' | 'quali' | 'practice';
 
-export type TileKind = (typeof TILE_KINDS)[number];
+export function sessionKind(type: SessionType): SessionKind {
+	if (type === 'race' || type === 'sprint') {
+		return 'race';
+	}
 
-export type TileSettings = { metric?: Metric };
-
-export type Tile = { id: string; kind: TileKind; settings?: TileSettings };
-
-/** Where a tile sits, in grid columns and rows. `i` is the tile id. */
-export type TilePlacement = { i: string; x: number; y: number; w: number; h: number };
-
-export type Dashboard = {
-	id: string;
-	name: string;
-	tiles: Tile[];
-	layout: TilePlacement[];
-	/** Stretch rows so the whole layout fills the window height: for wall screens and TVs. */
-	fit?: boolean;
-};
-
-export const TILE_GROUPS = ['Race', 'Drivers', 'Timing', 'Analysis', 'Strategy'] as const;
+	return type === 'practice' ? 'practice' : 'quali';
+}
 
 type TileInfo = {
 	title: string;
@@ -55,6 +43,8 @@ type TileInfo = {
 	pro?: boolean;
 	/** At most one per dashboard: the masthead and the lap clock. */
 	single?: boolean;
+	/** The kinds of session the tile means something in; every kind when absent. */
+	sessions?: readonly SessionKind[];
 };
 
 export const TILE_INFO: Record<TileKind, TileInfo> = {
@@ -69,8 +59,9 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 	replay: {
 		group: 'Race',
 		title: 'Replay',
-		description: 'Lap counter with previous, play and next.',
-		size: { w: 8, h: 3 },
+		description:
+			'The timeline: play at three speeds, jump between events, scrub the laps or minutes.',
+		size: { w: 24, h: 4 },
 		min: { w: 4, h: 3 },
 		single: true
 	},
@@ -107,7 +98,8 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		title: 'Gaps',
 		description: 'Two cars ahead and two behind your driver, closing or opening.',
 		size: { w: 7, h: 6 },
-		min: { w: 4, h: 4 }
+		min: { w: 4, h: 4 },
+		sessions: ['race']
 	},
 	'box-now': {
 		group: 'Strategy',
@@ -115,7 +107,8 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		description: 'Where your driver would rejoin if they pitted this lap.',
 		size: { w: 7, h: 6 },
 		min: { w: 4, h: 4 },
-		pro: true
+		pro: true,
+		sessions: ['race']
 	},
 	'race-control': {
 		group: 'Race',
@@ -144,7 +137,8 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		description: 'Pace with fuel load and tyre age taken out.',
 		size: { w: 12, h: 12 },
 		min: { w: 6, h: 5 },
-		pro: true
+		pro: true,
+		sessions: ['race', 'practice']
 	},
 	'fastest-laps': {
 		group: 'Timing',
@@ -158,7 +152,8 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		title: 'Stints',
 		description: 'Every car’s tyre history across the race.',
 		size: { w: 24, h: 16 },
-		min: { w: 6, h: 6 }
+		min: { w: 6, h: 6 },
+		sessions: ['race', 'practice']
 	},
 	degradation: {
 		group: 'Strategy',
@@ -166,14 +161,16 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		description: 'How fast each stint is losing time per lap.',
 		size: { w: 12, h: 12 },
 		min: { w: 6, h: 5 },
-		pro: true
+		pro: true,
+		sessions: ['race', 'practice']
 	},
 	'pit-stops': {
 		group: 'Strategy',
 		title: 'Pit stops',
 		description: 'Every stop against the typical stop time.',
 		size: { w: 12, h: 12 },
-		min: { w: 6, h: 5 }
+		min: { w: 6, h: 5 },
+		sessions: ['race']
 	},
 	driver: {
 		group: 'Drivers',
@@ -188,6 +185,143 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		description: 'Every driver as a picture plate in running order. Pick one to follow.',
 		size: { w: 24, h: 10 },
 		min: { w: 6, h: 6 }
+	},
+	telemetry: {
+		group: 'Analysis',
+		title: 'Telemetry',
+		description:
+			'Speed, throttle, brake, gear and revs by distance for up to three laps, with the delta.',
+		size: { w: 24, h: 34 },
+		min: { w: 6, h: 18 }
+	},
+	story: {
+		group: 'Race',
+		title: 'Story',
+		description:
+			'The race in lanes: flags, lead, passes, stops, penalties, cars out and radio. Click to jump; short, it is a strip.',
+		size: { w: 24, h: 18 },
+		min: { w: 6, h: 3 }
+	},
+	undercut: {
+		group: 'Strategy',
+		title: 'Undercut ledger',
+		description:
+			'Each pit stop exchange: the in-lap, stop and out-laps that won or lost the place.',
+		size: { w: 12, h: 24 },
+		min: { w: 6, h: 8 },
+		pro: true,
+		sessions: ['race']
+	},
+	'pit-cost': {
+		group: 'Strategy',
+		title: 'Stop cost',
+		description: 'What a pit stop costs in race time at this circuit, under green and under a VSC.',
+		size: { w: 12, h: 12 },
+		min: { w: 6, h: 6 },
+		sessions: ['race']
+	},
+	'pit-crews': {
+		group: 'Strategy',
+		title: 'Pit crews',
+		description: 'Every team’s stops at a standstill, ranked by their usual stop.',
+		size: { w: 12, h: 12 },
+		min: { w: 6, h: 6 },
+		sessions: ['race']
+	},
+	championship: {
+		group: 'Analysis',
+		title: 'Championship',
+		description:
+			'The standings as the race runs, how far each contender is from the lead, and what each place is worth.',
+		size: { w: 12, h: 28 },
+		min: { w: 6, h: 10 },
+		sessions: ['race']
+	},
+	conditions: {
+		group: 'Analysis',
+		title: 'Conditions',
+		description: 'Wind along each straight, and track temperature beside the field’s pace.',
+		size: { w: 12, h: 24 },
+		min: { w: 6, h: 10 },
+		pro: true
+	},
+	knockout: {
+		group: 'Timing',
+		title: 'Knockout',
+		description:
+			'Qualifying as it stands: the drop zone with each car’s gap to the cut, pole, and who just improved.',
+		size: { w: 9, h: 13 },
+		min: { w: 5, h: 8 },
+		sessions: ['quali']
+	},
+	sectors: {
+		group: 'Timing',
+		title: 'Best sectors',
+		description:
+			'Who holds each fastest sector, and every driver’s ideal lap from their own best sectors.',
+		size: { w: 10, h: 12 },
+		min: { w: 5, h: 6 }
+	},
+	'long-runs': {
+		group: 'Analysis',
+		title: 'Long runs',
+		description:
+			'Practice race runs: each driver’s longest run on one set, its pace and fall-off, and laps per compound.',
+		size: { w: 9, h: 14 },
+		min: { w: 5, h: 6 },
+		sessions: ['practice']
+	},
+	'track-map': {
+		group: 'Track',
+		title: 'Track map',
+		description:
+			'Every car on the circuit, live or in the replay; follow a driver or colour the sectors.',
+		size: { w: 12, h: 16 },
+		min: { w: 5, h: 8 }
+	},
+	'battle-map': {
+		group: 'Track',
+		title: 'Battle map',
+		description:
+			'Your driver and the cars either side on the circuit: road gaps, closing rate and laps until in range.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 }
+	},
+	'pit-rejoin': {
+		group: 'Track',
+		title: 'Pit rejoin',
+		description:
+			'Where your driver would come out if they boxed now, drawn among the cars, from this circuit’s pit loss.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 },
+		pro: true,
+		sessions: ['race']
+	},
+	dominance: {
+		group: 'Track',
+		title: 'Dominance',
+		description:
+			'The circuit painted by who is quickest in each mini sector, for two or three drivers.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 },
+		pro: true
+	},
+	'flag-map': {
+		group: 'Track',
+		title: 'Flag map',
+		description:
+			'Yellow and double-yellow marshal sectors on the circuit, with the messages that raised them.',
+		size: { w: 12, h: 14 },
+		min: { w: 5, h: 8 }
+	},
+	'speed-map': {
+		group: 'Track',
+		title: 'Speed map',
+		description:
+			'One lap painted by speed, gear, throttle or braking, with top speed and the slowest corners.',
+		size: { w: 10, h: 16 },
+		min: { w: 5, h: 10 },
+		pro: true
 	}
 };
 
@@ -195,7 +329,8 @@ const METRIC_TITLE: Record<Metric, string> = {
 	lapTime: 'Lap times',
 	gap: 'Gap',
 	position: 'Positions',
-	battle: 'Battle'
+	battle: 'Battle',
+	versus: 'Versus'
 };
 
 export function tileTitle(tile: Tile): string {
@@ -224,62 +359,103 @@ export function buildDashboard(
 	};
 }
 
-/** Ready-made dashboards. Each can be edited; edits are saved over it and can be reset. */
+/**
+ * Ready-made dashboards. Each can be edited; edits are saved over it and can be reset. The first
+ * three are the session layouts: `/` opens the one for the session on screen. Each opens with the
+ * Replay tile, the session's timeline.
+ */
 export const PRESETS: readonly Dashboard[] = [
-	buildDashboard('live', 'Live', [
-		['session', 0, 0, 16, 3],
-		['replay', 16, 0, 8, 3],
-		['lap-strip', 0, 3, 24, 2],
-		['timing', 0, 5, 16, 23],
-		['focus', 16, 5, 8, 15],
-		['race-control', 16, 20, 8, 8]
+	// Race keeps the Live preset's id, so an edited Live opens as an edited Race.
+	buildDashboard('live', 'Race', [
+		['replay', 0, 0, 24, 4],
+		['timing', 0, 4, 15, 25],
+		['focus', 15, 4, 9, 15],
+		['race-control', 15, 19, 9, 10],
+		['track-map', 0, 29, 10, 14],
+		['stints', 10, 29, 14, 14]
+	]),
+	buildDashboard('quali', 'Quali', [
+		['timing', 0, 0, 15, 25],
+		['replay', 15, 0, 9, 6],
+		['knockout', 15, 6, 9, 12],
+		['race-control', 15, 18, 9, 7],
+		['track-map', 0, 25, 12, 12],
+		['sectors', 12, 25, 12, 12]
+	]),
+	buildDashboard('practice', 'Practice', [
+		['timing', 0, 0, 15, 25],
+		['replay', 15, 0, 9, 6],
+		['long-runs', 15, 6, 9, 10],
+		['race-control', 15, 16, 9, 9],
+		['track-map', 0, 25, 10, 14],
+		['stints', 10, 25, 14, 14]
 	]),
 	buildDashboard('analysis', 'Analysis', [
-		['lap-strip', 0, 0, 18, 3],
-		['replay', 18, 0, 6, 3],
-		['compare', 0, 3, 4, 18],
-		['chart', 4, 3, 20, 18, { metric: 'lapTime' }],
-		['pace', 0, 21, 14, 12],
-		['fastest-laps', 14, 21, 10, 12]
+		['replay', 0, 0, 24, 4],
+		['compare', 0, 4, 4, 18],
+		['chart', 4, 4, 20, 18, { metric: 'lapTime' }],
+		['telemetry', 0, 22, 24, 34],
+		['pace', 0, 56, 14, 12],
+		['fastest-laps', 14, 56, 10, 12]
 	]),
 	buildDashboard('strategy', 'Strategy', [
-		['lap-strip', 0, 0, 18, 3],
-		['replay', 18, 0, 6, 3],
-		['stints', 0, 3, 24, 16],
-		['degradation', 0, 19, 12, 12],
-		['pit-stops', 12, 19, 12, 12]
+		['replay', 0, 0, 24, 4],
+		['stints', 0, 4, 24, 16],
+		['degradation', 0, 20, 12, 18],
+		['pit-stops', 12, 20, 12, 18],
+		['undercut', 0, 38, 12, 26],
+		['pit-cost', 12, 38, 12, 13],
+		['pit-crews', 12, 51, 12, 13]
 	]),
 	buildDashboard('battle', 'Battle', [
-		['lap-strip', 0, 0, 18, 3],
-		['replay', 18, 0, 6, 3],
-		['timing', 0, 3, 9, 23],
-		['chart', 9, 3, 15, 15, { metric: 'battle' }],
-		['gaps', 9, 18, 7, 8],
-		['box-now', 16, 18, 8, 8]
+		['replay', 0, 0, 24, 4],
+		['timing', 0, 4, 9, 23],
+		['chart', 9, 4, 15, 15, { metric: 'battle' }],
+		['gaps', 9, 19, 7, 8],
+		['box-now', 16, 19, 8, 8]
+	]),
+	buildDashboard('track', 'Track', [
+		['replay', 0, 0, 24, 4],
+		['track-map', 0, 4, 14, 24],
+		['battle-map', 14, 4, 10, 12],
+		['pit-rejoin', 14, 16, 10, 12],
+		['dominance', 0, 28, 8, 16],
+		['flag-map', 8, 28, 8, 16],
+		['speed-map', 16, 28, 8, 16]
 	]),
 	buildDashboard('drivers', 'Drivers', [
-		['session', 0, 0, 16, 3],
-		['replay', 16, 0, 8, 3],
-		['grid', 0, 3, 24, 10],
-		['driver', 0, 13, 8, 16],
-		['chart', 8, 13, 16, 16, { metric: 'position' }]
+		['session', 0, 0, 24, 3],
+		['replay', 0, 3, 24, 4],
+		['grid', 0, 7, 24, 10],
+		['driver', 0, 17, 8, 16],
+		['chart', 8, 17, 16, 16, { metric: 'position' }]
 	]),
 	buildDashboard(
 		'wall',
 		'Pit wall',
 		[
-			['timing', 0, 0, 10, 23],
-			['focus', 10, 0, 7, 13],
-			['race-control', 10, 13, 7, 10],
-			['chart', 17, 0, 7, 11, { metric: 'gap' }],
-			['stints', 17, 11, 7, 12]
+			['timing', 0, 0, 8, 23],
+			['track-map', 8, 0, 9, 14],
+			['chart', 8, 14, 9, 9, { metric: 'gap' }],
+			['focus', 17, 0, 7, 13],
+			['race-control', 17, 13, 7, 10]
 		],
 		{ fit: true }
-	)
+	),
+	buildDashboard('story', 'Race story', [
+		['session', 0, 0, 24, 3],
+		['replay', 0, 3, 24, 4],
+		['story', 0, 7, 24, 20],
+		['chart', 0, 27, 14, 18, { metric: 'position' }],
+		['championship', 14, 27, 10, 36],
+		['race-control', 0, 45, 14, 18],
+		['conditions', 0, 63, 24, 26]
+	])
 ];
 
+/** Ready-made: saved under a preset id, a dashboard is an edited preset and never counts as own. */
 export function isPreset(id: string): boolean {
-	return PRESETS.some((dashboard) => dashboard.id === id);
+	return isPresetId(id);
 }
 
 /** Tiles in reading order: top to bottom, then left to right. Phones stack them this way. */
@@ -333,111 +509,4 @@ export function swapTiles(dashboard: Dashboard, firstId: string, secondId: strin
 					: place
 		)
 	};
-}
-
-const placementSchema = z.object({
-	i: z.string(),
-	x: z
-		.int()
-		.min(0)
-		.max(GRID_COLUMNS - 1),
-	y: z.int().min(0).max(1000),
-	w: z.int().min(1).max(GRID_COLUMNS),
-	h: z.int().min(1).max(1000)
-});
-
-const tileSchema = z.object({
-	id: z.string(),
-	kind: z.enum(TILE_KINDS),
-	settings: z
-		.object({ metric: z.enum(['lapTime', 'gap', 'position', 'battle']).optional() })
-		.optional()
-});
-
-/** Lenient on the parts: a tile or placement that does not parse is dropped, not the dashboard. */
-const dashboardSchema = z.object({
-	id: z.string().min(1),
-	name: z.string(),
-	fit: z.boolean().optional(),
-	tiles: z.array(z.json()).transform((entries) =>
-		entries.flatMap((entry) => {
-			const tile = tileSchema.safeParse(entry);
-
-			return tile.success ? [tile.data] : [];
-		})
-	),
-	layout: z.array(z.json()).transform((entries) =>
-		entries.flatMap((entry) => {
-			const place = placementSchema.safeParse(entry);
-
-			return place.success ? [place.data] : [];
-		})
-	)
-});
-
-/** Keeps the first entry for each key; ids must be unique for keys, routes and the grid. */
-function uniqueBy<Entry>(entries: readonly Entry[], key: (entry: Entry) => string): Entry[] {
-	const seen = new Set<string>();
-
-	return entries.filter((entry) => {
-		const id = key(entry);
-
-		if (seen.has(id)) {
-			return false;
-		}
-
-		seen.add(id);
-
-		return true;
-	});
-}
-
-function cleanDashboard(parsed: z.infer<typeof dashboardSchema>): Dashboard {
-	const placed = new Set(parsed.layout.map((place) => place.i));
-	const tiles = uniqueBy(parsed.tiles, (tile) => tile.id).filter((tile) => placed.has(tile.id));
-	const ids = new Set(tiles.map((tile) => tile.id));
-
-	const dashboard: Dashboard = {
-		id: parsed.id,
-		name: parsed.name.slice(0, 40) || 'Untitled',
-		tiles,
-		layout: uniqueBy(parsed.layout, (place) => place.i).filter((place) => ids.has(place.i))
-	};
-
-	if (parsed.fit) {
-		dashboard.fit = true;
-	}
-
-	return dashboard;
-}
-
-/** JSON text, parsed. Text that is not JSON fails like any other schema mismatch. */
-const jsonText = z.string().transform((text, context) => {
-	try {
-		return z.json().parse(JSON.parse(text));
-	} catch {
-		context.addIssue({ code: 'custom', message: 'Not JSON' });
-
-		return z.NEVER;
-	}
-});
-
-/** Reads an exported dashboard file. */
-export function parseDashboardText(text: string): Dashboard | null {
-	const parsed = jsonText.pipe(dashboardSchema).safeParse(text);
-
-	return parsed.success ? cleanDashboard(parsed.data) : null;
-}
-
-/** Reads the saved list, keeping every dashboard that still parses. */
-export function parseDashboardListText(text: string): Dashboard[] {
-	const list = jsonText.pipe(z.array(z.json())).safeParse(text);
-
-	const dashboards = (list.success ? list.data : []).flatMap((entry) => {
-		const parsed = dashboardSchema.safeParse(entry);
-
-		return parsed.success ? [cleanDashboard(parsed.data)] : [];
-	});
-
-	return uniqueBy(dashboards, (dashboard) => dashboard.id);
 }

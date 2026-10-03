@@ -1,0 +1,16 @@
+# Netlify for the client. Put this file at the repository root for a Git-connected site, or deploy
+# the folder by hand: `netlify deploy --prod --dir client/dist` (docs/deploy.md).
+# The saved sessions still come from a bucket (deploy/scripts/upload-data.sh): they are far larger
+# than a site's file limits.
+
+[build]
+  command = "npm ci && npm run build -w client && cp deploy/static/_headers deploy/static/_redirects client/dist/"
+  publish = "client/dist"
+
+[build.environment]
+  NODE_VERSION = "24"
+  VITE_DATA_SOURCE = "api"
+  # Replace with the real hosts (docs/deploy.md has the list).
+  VITE_API_URL = "https://data.example.com"
+  VITE_WS_URL = "wss://api.example.com/live"
+  VITE_ACCOUNTS_URL = "https://api.example.com"

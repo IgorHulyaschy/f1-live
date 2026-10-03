@@ -11,11 +11,11 @@ It should tell us which dashboards and tiles people actually keep.
 
 ## Shape
 
-| Part     | Recommended                                       | Why                                                              |
-| -------- | ------------------------------------------------- | ---------------------------------------------------------------- |
-| Client   | Static build on Cloudflare Pages (or Vercel)      | The client is a static Vite app; previews per branch come free   |
-| Server   | One small always-on container (Fly.io or Railway) | Holds the single upstream feed connection and the viewer sockets |
-| Database | Managed Postgres (Neon, or the host's own)        | Raw frames and snapshots; nothing per user yet                   |
+| Part    | Recommended                                       | Why                                                              |
+| ------- | ------------------------------------------------- | ---------------------------------------------------------------- |
+| Client  | Static build on Cloudflare Pages (or Vercel)      | The client is a static Vite app; previews per branch come free   |
+| Server  | One small always-on container (Fly.io or Railway) | Holds the single upstream feed connection and the viewer sockets |
+| Storage | A persistent volume on the server's host          | `data/`: raw feed files and snapshots; no database for race data |
 
 These are recommendations; any host that runs a Node container and serves static files works.
 
@@ -26,7 +26,8 @@ These are recommendations; any host that runs a Node container and serves static
    - Client environment variables for the API URL and data source.
    - Restrict CORS to the preview origin; `main.ts` already has the TODO.
 2. **Deploy pipeline.**
-   - GitHub Actions on the fork runs the existing checks: format, lint, typecheck, unit and e2e.
+   - GitHub Actions on Fybex/f1-live-private runs the existing checks: format, lint, typecheck, unit
+     and e2e.
    - Then it deploys `master` to production and pull requests to preview URLs.
 3. **Access.**
    - A shared invite code, or the host's own password protection, while the preview is private.
@@ -54,5 +55,5 @@ These are recommendations; any host that runs a Node container and serves static
 
 ## Needs from the owner
 
-- Accounts on the chosen hosts, with deploy tokens added as GitHub secrets on the fork.
+- Accounts on the chosen hosts, with deploy tokens added as GitHub secrets on Fybex/f1-live-private.
 - The list of people to invite.

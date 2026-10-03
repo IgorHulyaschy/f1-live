@@ -1,31 +1,32 @@
+import { canAddOwnDashboard } from '@f1-live/shared/plans';
 import { useNavigate, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 
-import { useRace } from '@/data/race-context';
+import { useEntitlements } from '@/features/account/account-store';
+import { useGoPro } from '@/features/account/go-pro';
 
 import { newId, saveDashboard, useDashboards } from './dashboard-store';
 import { type Dashboard, isPreset } from './dashboards';
 import { dashboardPath } from './paths';
 
-/** Dashboards of their own a Free viewer keeps; presets do not count. Pro keeps any number. */
-export const FREE_OWN_DASHBOARDS = 3;
-
 /**
- * Saves a new dashboard of the viewer's own under a fresh id and opens it, unless Free is full:
- * then it says so once and offers Pro, and returns false.
+ * Saves a new dashboard of the viewer's own under a fresh id and opens it, unless the plan is
+ * full: then it says so once and offers Pro, and returns false. The account server holds the
+ * same limit, so this only saves a round trip.
  */
 export function useAddDashboard(): (dashboard: Dashboard, options?: { edit?: boolean }) => boolean {
 	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
-	const { plan, setPlan } = useRace();
+	const entitlements = useEntitlements();
+	const goPro = useGoPro();
 	const { dashboards } = useDashboards();
 	const own = dashboards.filter((dashboard) => !isPreset(dashboard.id)).length;
 
 	return (dashboard, { edit = false } = {}) => {
-		if (plan === 'free' && own >= FREE_OWN_DASHBOARDS) {
-			toast(`Free keeps ${FREE_OWN_DASHBOARDS} dashboards of your own`, {
-				description: 'Delete one to make room, or preview Pro to keep any number.',
-				action: { label: 'Preview Pro', onClick: () => setPlan('pro') }
+		if (!canAddOwnDashboard(entitlements, own)) {
+			toast(`Free keeps ${entitlements.ownDashboards} dashboards of your own`, {
+				description: 'Delete one to make room, or go Pro to keep any number.',
+				action: { label: 'Go Pro', onClick: goPro }
 			});
 
 			return false;

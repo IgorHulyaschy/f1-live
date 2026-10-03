@@ -22,6 +22,9 @@ export function decodeShare(code: string): Dashboard | null {
 	}
 }
 
-export function shareUrl(dashboard: Dashboard): string {
-	return `${window.location.origin}/shared?d=${encodeShare(dashboard)}`;
+/** The link also names the session on screen, so the receiver sees the dashboard on it. */
+export function shareUrl(dashboard: Dashboard, sessionKey: string): string {
+	const params = new URLSearchParams({ d: encodeShare(dashboard), session: sessionKey });
+
+	return `${window.location.origin}/shared?${params}`;
 }
