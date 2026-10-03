@@ -120,6 +120,12 @@ race and qualifying and 2026 Baku qualifying, derived by `client/e2e/real/derive
 and replay a trimmed race through `replay-live`. If Playwright's own browser is not installed, point it at
 any Chromium with `PW_CHROMIUM_PATH=/path/to/chrome`.
 
+Playwright starts its own servers on fixed ports: the apps on 4173 to 4175, the servers on 3111, 3112
+and 3114. Worktrees that run e2e or shots side by side set `PW_PORT_BASE` to a different number in
+each, for example `PW_PORT_BASE=4373 CI=1 npm run test:e2e`; it moves every one of those ports
+(`client/playwright.ports.ts` lists them). Run with `CI=1`, so Playwright never reuses a server
+that another run started.
+
 The anti-slop oxlint plugin is vendored in `tools/oxlint/anti-slop` (see `UPSTREAM.md`). shadcn
 primitives live in `client/src/components/ui`; screens compose them through variants rather than
 restyling them, which `@shadcn/lint` enforces.
