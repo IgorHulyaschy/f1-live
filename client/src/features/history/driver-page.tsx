@@ -70,7 +70,9 @@ export function DriverPage() {
 	const mates = teammates(seasons, id);
 
 	const hidden = driverWeekends(seasons, id).flatMap((weekend) =>
-		Object.values(weekend.sessions).filter((session) => !include(session.key))
+		Object.values(weekend.sessions).flatMap((session) =>
+			session && !include(session.key) ? [session] : []
+		)
 	);
 
 	const career = summaries.reduce(

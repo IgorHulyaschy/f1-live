@@ -31,7 +31,14 @@ import {
 } from '@/insights/head-to-head';
 
 import { Breakdown, EventList, Facts, GapTrend, Scoreboard } from './h2h-sections';
-import { contenderOf, ContenderPicker, contenders, defaultPair, type H2HMode } from './h2h-picker';
+import {
+	type Contender,
+	contenderOf,
+	ContenderPicker,
+	contenders,
+	defaultPair,
+	type H2HMode
+} from './h2h-picker';
 import {
 	HiddenNote,
 	includedKeys,
@@ -128,8 +135,8 @@ export function HeadToHeadPage() {
 	const fallback = mode === 'drivers' ? defaultPair(seasons, followedDriver) : null;
 	const idA = params.get('a') ?? fallback?.[0] ?? list[0]?.id ?? null;
 	const idB = params.get('b') ?? fallback?.[1] ?? list[1]?.id ?? null;
-	const a = contenderOf(list, idA);
-	const b = contenderOf(list, idB);
+	const listedA = contenderOf(list, idA);
+	const listedB = contenderOf(list, idB);
 
 	const sides = React.useMemo(
 		(): { a: Side; b: Side } | null =>
@@ -179,6 +186,18 @@ export function HeadToHeadPage() {
 		() => (sides && range ? sharedEvents(seasons, sides.a, sides.b, range, include) : []),
 		[seasons, sides, range, include]
 	);
+
+	// A driver wears the colour of the team they drove for in the range, not their latest team.
+	const colourIn = (side: 'a' | 'b', listed: Contender | null) => {
+		const event = events.find((entry) => entry.race ?? entry.qualifying);
+		const team = (event?.race ?? event?.qualifying)?.[side][0]?.team;
+		const colour = seasons.find((season) => season.season === event?.season)?.teams[team ?? ''];
+
+		return listed && mode === 'drivers' && colour ? { ...listed, colour } : listed;
+	};
+
+	const a = colourIn('a', listedA);
+	const b = colourIn('b', listedB);
 
 	const totals = React.useMemo(() => (sides ? headToHead(events, sides) : null), [events, sides]);
 	const hidden = sides && range ? hiddenSessions(seasons, sides.a, sides.b, range, include) : [];

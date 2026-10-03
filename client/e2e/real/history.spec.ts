@@ -91,3 +91,20 @@ test('the standings show the championship after a chosen round', async ({ page }
 	await expect(rows.nth(1)).toContainText('NOR');
 	await expect(rows.nth(1)).toContainText('201');
 });
+
+test('a driver page sums up every season and links each weekend to its session', async ({
+	page
+}) => {
+	await openHistory(page, '/drivers/lando-norris');
+
+	await expect(page.getByTestId('driver-page').getByRole('heading', { level: 1 })).toHaveText(
+		'Lando Norris',
+		{ timeout: 15_000 }
+	);
+	await expect(page.getByTestId('driver-seasons').getByRole('row')).not.toHaveCount(1);
+	await expect(page.getByTestId('driver-teammates')).toContainText('Oscar Piastri');
+
+	const link = page.getByTestId('driver-weekends').getByRole('link').first();
+
+	await expect(link).toHaveAttribute('href', /session=\d+/);
+});

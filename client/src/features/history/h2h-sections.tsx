@@ -142,12 +142,15 @@ export function Scoreboard({
 				meta={`${totals.events} weekends, ${totals.racesTogether} races together`}
 			/>
 			<div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3 px-4 pt-3">
-				<span className="type-wide truncate text-sm font-black italic" data-testid="h2h-name-a">
+				<span
+					className="type-wide text-sm leading-tight font-black wrap-anywhere italic"
+					data-testid="h2h-name-a"
+				>
 					{pair.a.label}
 				</span>
 				<span className="type-label">vs</span>
 				<span
-					className="type-wide truncate text-right text-sm font-black italic"
+					className="type-wide text-right text-sm leading-tight font-black wrap-anywhere italic"
 					data-testid="h2h-name-b"
 				>
 					{pair.b.label}
