@@ -12,7 +12,7 @@ import { useRace } from '@/data/race-context';
 import { pitPenalties, timePenalties } from '@/insights/penalties';
 import { predictRejoin } from '@/insights/pit-window';
 import { type CutLine, cutLines, isTimedSession } from '@/insights/qualifying';
-import { hasDrs } from '@/insights/rules';
+import { oneSecondAid } from '@/insights/rules';
 import { OUT_LABEL, type StandingRow } from '@/insights/standings';
 import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -164,7 +164,7 @@ function CutRow({ line }: { line: CutLine }) {
 }
 
 export function TimingTower() {
-	const { race, snapshot, lap, plan, followedDriver, setFollowedDriver, standings } = useRace();
+	const { snapshot, lap, plan, followedDriver, setFollowedDriver, standings } = useRace();
 	const [mode, setMode] = React.useState<GapMode>('interval');
 	const [view, setView] = React.useState<View>('full');
 	const rows = standings;
@@ -175,7 +175,7 @@ export function TimingTower() {
 	const followedIndex = rows.findIndex((row) => row.driver.number === followedDriver);
 	const rejoin = plan === 'pro' && !timed ? predictRejoin(snapshot, followedDriver) : null;
 	const lines = cutLines(snapshot, rows.length);
-	const oneSecondChip = hasDrs(race.session) ? 'DRS' : 'OVT';
+	const aid = oneSecondAid(snapshot);
 	// Rows flash only for a change the viewer saw happen, not on the lap the tower opened on.
 	const [openedOnLap] = React.useState(lap);
 	const flashes = lap !== openedOnLap;
@@ -286,6 +286,7 @@ export function TimingTower() {
 
 								const withinOneSecond =
 									!timed &&
+									aid.enabled !== false &&
 									mode === 'interval' &&
 									row.intervalMs !== null &&
 									row.intervalMs < ONE_SECOND_MS &&
@@ -370,15 +371,8 @@ export function TimingTower() {
 											<td className="pr-4 text-right whitespace-nowrap">
 												<span className="flex items-center justify-end gap-2">
 													{withinOneSecond ? (
-														<Chip
-															tone="outline"
-															title={
-																oneSecondChip === 'DRS'
-																	? 'Within a second: DRS'
-																	: 'Within a second: overtake mode'
-															}
-														>
-															{oneSecondChip}
+														<Chip tone="outline" title={`Within a second: ${aid.name}`}>
+															{aid.code}
 														</Chip>
 													) : null}
 													<GapReading row={row} mode={mode} timed={timed} />

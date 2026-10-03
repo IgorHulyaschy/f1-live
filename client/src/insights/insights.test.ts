@@ -6,6 +6,7 @@ import { snapshotAtLap } from '../data/snapshot-at-lap.ts';
 import { battleAhead } from './battle.ts';
 import { pitPenalties, timePenalties } from './penalties.ts';
 import { PIT_LOSS_MS, predictRejoin } from './pit-window.ts';
+import { oneSecondAid } from './rules.ts';
 import { standingsAt } from './standings.ts';
 import { stintPaces, tyreCorrectedPace } from './tyre-pace.ts';
 
@@ -116,5 +117,26 @@ describe('pitPenalties', () => {
 
 		assert.equal(pitPenalties({ ...snapshot, currentLap: 10 }).get('11'), 'DT');
 		assert.equal(pitPenalties({ ...snapshot, currentLap: 12 }).has('11'), false);
+	});
+});
+
+describe('oneSecondAid', () => {
+	it('is DRS until 2025 and follows race control switching it on and off', () => {
+		assert.deepEqual(oneSecondAid(snapshotAtLap(race, 1)).code, 'DRS');
+		assert.equal(oneSecondAid(snapshotAtLap(race, 30)).enabled, true);
+	});
+
+	it('is overtake mode from 2026', () => {
+		const snapshot = {
+			...snapshotAtLap(race, 30),
+			session: { ...race.session, startsAt: '2026-10-04T07:00:00.000Z' },
+			raceControl: [{ lap: 3, category: 'other' as const, message: 'OVERTAKE DISABLED' }]
+		};
+
+		assert.deepEqual(oneSecondAid(snapshot), {
+			code: 'OVT',
+			name: 'overtake mode',
+			enabled: false
+		});
 	});
 });

@@ -4,7 +4,7 @@ import { TeamStripe } from '@/components/driver-tag';
 import { useRace } from '@/data/race-context';
 import { battleAhead } from '@/insights/battle';
 import { isTimedSession } from '@/insights/qualifying';
-import { hasDrs } from '@/insights/rules';
+import { oneSecondAid } from '@/insights/rules';
 import type { StandingRow } from '@/insights/standings';
 import { cn } from '@/lib/utils';
 
@@ -44,7 +44,7 @@ function Trend({ closing }: { closing: number | null }) {
 export function GapLadder() {
 	const { snapshot, followedDriver, standings } = useRace();
 	const timed = isTimedSession(snapshot.session.type);
-	const oneSecond = hasDrs(snapshot.session) ? 'DRS' : 'OVT';
+	const aid = oneSecondAid(snapshot);
 	const rows = standings.filter((row) => row.state !== 'out' && row.lapsDown === 0);
 	const index = rows.findIndex((row) => row.driver.number === followedDriver);
 	const subject = rows[index];
@@ -101,8 +101,12 @@ export function GapLadder() {
 							<span className="text-muted-foreground font-mono text-sm">-</span>
 						) : (
 							<span className="flex items-center gap-2">
-								{adjacent && ahead && !timed && Math.abs(gap) < ONE_SECOND ? (
-									<span className="type-label text-foreground border px-1">{oneSecond}</span>
+								{adjacent &&
+								ahead &&
+								!timed &&
+								aid.enabled !== false &&
+								Math.abs(gap) < ONE_SECOND ? (
+									<span className="type-label text-foreground border px-1">{aid.code}</span>
 								) : null}
 								<Digits
 									value={`${gap < 0 ? '−' : '+'}${Math.abs(gap).toFixed(3)}`}

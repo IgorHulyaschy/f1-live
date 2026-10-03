@@ -23,6 +23,7 @@ import {
 import { RaceOnly } from '@/components/race-only';
 import { useRace } from '@/data/race-context';
 import { isCleanLap } from '@/insights/clean-laps';
+import { hasDrs } from '@/insights/rules';
 import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -164,7 +165,11 @@ export function ChartWorkspace({
 				className={cn('flex flex-col gap-3 p-4', fill && 'min-h-0 flex-1')}
 				data-testid={`chart-${metric}`}
 			>
-				<p className="text-muted-foreground text-xs">{METRIC_NOTE[metric]}</p>
+				<p className="text-muted-foreground text-xs">
+					{metric === 'battle' && !hasDrs(snapshot.session)
+						? 'Gap to the car directly ahead. The band is the one-second overtake-mode window.'
+						: METRIC_NOTE[metric]}
+				</p>
 				{snapshot.laps.length === 0 ? (
 					<EmptyNote className="px-0" />
 				) : (

@@ -6,6 +6,7 @@ import { KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { useRace } from '@/data/race-context';
 import { isTimedSession } from '@/insights/qualifying';
+import { isAidSwitch } from '@/insights/rules';
 import { cn } from '@/lib/utils';
 
 const VISIBLE_MESSAGES = 7;
@@ -40,6 +41,13 @@ function readable(message: string): string {
 		.replaceAll(KEEP_UPPERCASE, (word) => word.toUpperCase());
 
 	return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+/** The category code, with 2026's overtake-mode switches read like DRS ones. */
+function categoryOf(message: RaceControlMessage): { code: string; tone: string } {
+	return isAidSwitch(message) && message.message.includes('OVERTAKE')
+		? { code: 'OVT', tone: CATEGORY.drs.tone }
+		: CATEGORY[message.category];
 }
 
 function matches(message: RaceControlMessage, filter: Filter, driverNumber: string): boolean {
@@ -120,7 +128,7 @@ export function RaceControlFeed() {
 				<ol className="flex flex-col" data-testid="race-control">
 					<AnimatePresence initial={false} mode="popLayout">
 						{messages.map((message, index) => {
-							const category = CATEGORY[message.category];
+							const category = categoryOf(message);
 
 							// Race control can repeat a message on the same lap. The list is newest first, so
 							// count the older copies below: a new copy then never takes an old one's key.
