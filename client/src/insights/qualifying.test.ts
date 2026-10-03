@@ -107,6 +107,9 @@ describe('qualifying', () => {
 		// Car 11 is measured against the fastest Q2 time, car 12 against the fastest Q1 time.
 		assert.equal(rows[10]?.gapToLeaderMs, 1000);
 		assert.equal(rows[11]?.gapToLeaderMs, 1100);
+		// Intervals stay within a part, so the first car out in Q2 has none.
+		assert.equal(rows[10]?.intervalMs, null);
+		assert.equal(rows[1]?.intervalMs, 50);
 	});
 
 	it('replays the order as it stood during the session', () => {

@@ -325,8 +325,8 @@ function timedOrder(snapshot: RaceSnapshot, rows: RowFacts[]): RowFacts[] {
 	return [...field.toSorted(byTime), ...knockedOut.flat()];
 }
 
-/** The part a row's best lap is from: the last one the driver set a time in. */
-function lastTimedPart(row: StandingRow): number {
+/** The part a row's best lap is from, counted from 0: the last one the driver set a time in. */
+export function lastTimedPart(row: Pick<StandingRow, 'partBestsMs'>): number {
 	return row.partBestsMs.findLastIndex((time) => time !== null);
 }
 
@@ -342,7 +342,14 @@ function withTimedGaps(rows: StandingRow[]): StandingRow[] {
 		const part = lastTimedPart(row);
 		const own = part === -1 ? null : (row.partBestsMs[part] ?? null);
 		const fastest = part === -1 ? null : fastestByPart(part);
-		const ahead = index > 0 && part !== -1 ? (rows[index - 1]?.partBestsMs[part] ?? null) : null;
+		const above = rows[index - 1];
+
+		// Intervals stay within a part: the first car out in a part is measured to its fastest.
+		const ahead =
+			above && part !== -1 && lastTimedPart(above) === part
+				? (above.partBestsMs[part] ?? null)
+				: null;
+
 		const interval = own === null || ahead === null ? null : own - ahead;
 
 		return {

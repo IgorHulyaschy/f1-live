@@ -11,9 +11,9 @@ import { TyreBadge } from '@/components/tyre-badge';
 import { useRace } from '@/data/race-context';
 import { pitPenalties, timePenalties } from '@/insights/penalties';
 import { predictRejoin } from '@/insights/pit-window';
-import { type CutLine, cutLines, isTimedSession } from '@/insights/qualifying';
+import { type CutLine, cutLines, isKnockout, isTimedSession } from '@/insights/qualifying';
 import { oneSecondAid } from '@/insights/rules';
-import { OUT_LABEL, type StandingRow } from '@/insights/standings';
+import { lastTimedPart, OUT_LABEL, type StandingRow } from '@/insights/standings';
 import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -91,7 +91,8 @@ function GapReading({ row, mode, timed }: { row: StandingRow; mode: GapMode; tim
 			return <span className="type-label">No time</span>;
 		}
 
-		const value = mode === 'leader' ? row.gapToLeaderMs : row.intervalMs;
+		// The first car of a part has no interval within it; its gap to the part's fastest stands in.
+		const value = mode === 'leader' ? row.gapToLeaderMs : (row.intervalMs ?? row.gapToLeaderMs);
 
 		return value === null || value === 0 ? (
 			<span className="type-label">{row.gapToLeaderMs === 0 ? 'Fastest' : '-'}</span>
@@ -113,7 +114,22 @@ function GapReading({ row, mode, timed }: { row: StandingRow; mode: GapMode; tim
 	return value === null ? <span>-</span> : <Digits value={formatGap(value)} />;
 }
 
-function LapTime({ row, lap }: { row: StandingRow; lap: Lap | null }) {
+/**
+ * A lap time, purple when it is the fastest of the session and green when it is the driver's
+ * best. In a best-lap column every time is a best, so only purple is shown there; in qualifying
+ * the part it was set in leads it.
+ */
+function LapTime({
+	row,
+	lap,
+	bestColumn = false,
+	part
+}: {
+	row: StandingRow;
+	lap: Lap | null;
+	bestColumn?: boolean;
+	part?: string;
+}) {
 	if (!lap || lap.lapTimeMs <= 0) {
 		return <span className="text-muted-foreground">-</span>;
 	}
@@ -121,14 +137,17 @@ function LapTime({ row, lap }: { row: StandingRow; lap: Lap | null }) {
 	const isBest = lap.lapTimeMs === row.bestLapMs;
 
 	return (
-		<span
-			className={cn(
-				'font-mono',
-				isBest && row.hasFastestLap && 'text-fastest',
-				isBest && !row.hasFastestLap && 'text-personal-best'
-			)}
-		>
-			{formatLapTime(lap.lapTimeMs)}
+		<span className="inline-flex items-baseline gap-1.5">
+			{part ? <span className="type-label">{part}</span> : null}
+			<span
+				className={cn(
+					'font-mono',
+					isBest && row.hasFastestLap && 'text-fastest',
+					isBest && !row.hasFastestLap && !bestColumn && 'text-personal-best'
+				)}
+			>
+				{formatLapTime(lap.lapTimeMs)}
+			</span>
 		</span>
 	);
 }
@@ -173,6 +192,10 @@ export function TimingTower() {
 	const [view, setView] = React.useState<View>('full');
 	const rows = standings;
 	const timed = isTimedSession(snapshot.session.type);
+	const knockout = isKnockout(snapshot.session.type);
+	const partPrefix = snapshot.session.type === 'sprint_qualifying' ? 'SQ' : 'Q';
+	// The modelled replay has no speed traps; the column only shows when the data has them.
+	const hasTraps = rows.some((row) => row.speedTrapKph !== null);
 	const before = timed ? new Map<string, number>() : previousPositions(snapshot.laps, lap);
 	const penalties = timePenalties(snapshot);
 	const pitServes = pitPenalties(snapshot);
@@ -255,7 +278,10 @@ export function TimingTower() {
 								</th>
 								<th
 									scope="col"
-									className="type-label hidden pr-4 text-right font-normal @5xl:table-cell"
+									className={cn(
+										'type-label hidden pr-4 text-right font-normal',
+										hasTraps && (timed ? '@3xl:table-cell' : '@5xl:table-cell')
+									)}
 								>
 									Trap
 								</th>
@@ -361,7 +387,7 @@ export function TimingTower() {
 														</Chip>
 													) : null}
 													{row.outReason ? (
-														<span className="text-muted-foreground hidden truncate text-xs @4xl:inline">
+														<span className="text-muted-foreground hidden max-w-56 truncate text-xs @4xl:inline">
 															{row.outReason}
 														</span>
 													) : null}
@@ -383,7 +409,20 @@ export function TimingTower() {
 													timed ? '@lg:table-cell' : '@2xl:table-cell'
 												)}
 											>
-												<LapTime row={row} lap={timed ? row.bestLap : row.lastLap} />
+												{timed ? (
+													<LapTime
+														row={row}
+														lap={row.bestLap}
+														bestColumn
+														part={
+															knockout && row.bestLap
+																? `${partPrefix}${lastTimedPart(row) + 1}`
+																: undefined
+														}
+													/>
+												) : (
+													<LapTime row={row} lap={row.lastLap} />
+												)}
 											</td>
 											<td className="hidden pr-4 @2xl:table-cell">
 												<MiniSectors lap={row.lastLap} marks={row.sectorMarks} timed={timed} />
@@ -398,7 +437,12 @@ export function TimingTower() {
 													/>
 												)}
 											</td>
-											<td className="hidden pr-4 text-right font-mono @5xl:table-cell">
+											<td
+												className={cn(
+													'hidden pr-4 text-right font-mono',
+													hasTraps && (timed ? '@3xl:table-cell' : '@5xl:table-cell')
+												)}
+											>
 												{row.speedTrapKph ?? '-'}
 											</td>
 											<td className="pr-4">

@@ -323,14 +323,14 @@ function placeholderSnapshot(entry: SessionEntry): RaceSnapshot {
 	};
 }
 
-/**
- * Which session to show: the one in the address, else the live one, else the latest saved. A
- * first visit waits briefly for the live feed so it can open on a running session; the choice is
- * then kept, so a session going live later does not pull the screen away. `settled` turns true
- * once the choice is made, even when there is nothing to choose.
- */
 type SessionChoice = { key: string | null; settled: boolean };
 
+/**
+ * Which session to show: the one in the address, else the live one, else the latest saved. A
+ * first visit waits briefly for the live feed so it can open on a running session, and with
+ * nothing in the address the screen moves to a session when it goes live, as a TV would.
+ * `settled` turns true once the choice is made, even when there is nothing to choose.
+ */
 function useSessionKey(
 	catalog: Loadable<Catalog>,
 	live: LiveState,
@@ -354,11 +354,14 @@ function useSessionKey(
 	}, [probeOver]);
 
 	const fallback =
-		requested === null && chosen === null && decided && catalog.status === 'ready'
+		requested === null &&
+		decided &&
+		catalog.status === 'ready' &&
+		(chosen === null || (liveKey !== null && liveKey !== chosen))
 			? defaultSessionKey(catalog.value, liveKey)
 			: null;
 
-	if (fallback !== null) {
+	if (fallback !== null && fallback !== chosen) {
 		setChosen(fallback);
 	}
 

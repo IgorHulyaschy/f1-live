@@ -23,6 +23,7 @@ import {
 import { RaceOnly } from '@/components/race-only';
 import { useRaceView } from '@/data/race-context';
 import { isCleanLap } from '@/insights/clean-laps';
+import { isTimedSession } from '@/insights/qualifying';
 import { hasDrs } from '@/insights/rules';
 import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -85,6 +86,8 @@ export function ChartWorkspace({
 
 	const panelId = React.useId();
 	const metricLabel = METRICS.find((entry) => entry.value === metric)?.label ?? '';
+	// A race chart in practice or qualifying shows only the note that it applies to races.
+	const raceChartOnClock = metric !== 'lapTime' && isTimedSession(snapshot.session.type);
 	const neutralised = neutralisedRanges(snapshot);
 
 	const lapTicks = [
@@ -165,7 +168,7 @@ export function ChartWorkspace({
 				className={cn('flex flex-col gap-3 p-4', fill && 'min-h-0 flex-1')}
 				data-testid={`chart-${metric}`}
 			>
-				<p className="text-muted-foreground text-xs">
+				<p className={cn('text-muted-foreground text-xs', raceChartOnClock && 'hidden')}>
 					{metric === 'battle' && !hasDrs(snapshot.session)
 						? 'Gap to the car directly ahead. The band is the one-second overtake-mode window.'
 						: METRIC_NOTE[metric]}
