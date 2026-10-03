@@ -40,6 +40,13 @@ const PAGES = [
 	{ name: 'quali-bahrain', path: '/?session=11730&plan=pro' },
 	{ name: 'track-bahrain', path: '/d/track?session=11730&plan=pro' },
 	{ name: 'analysis-bahrain', path: '/analysis?session=11730' },
+	// The history pages on the results index of 2018 to 2026.
+	{ name: 'calendar', path: '/calendar?season=2026' },
+	{ name: 'standings', path: '/standings?season=2025&round=11' },
+	{ name: 'standings-teams', path: '/standings?season=2021&view=teams' },
+	{ name: 'h2h', path: '/h2h?a=lando-norris&b=oscar-piastri&from=2023.1&to=2025.24' },
+	{ name: 'h2h-hamilton-bottas', path: '/h2h?a=lewis-hamilton&b=valtteri-bottas&preset=teammates' },
+	{ name: 'driver-history', path: '/drivers/lando-norris' },
 	// Spoiler protection on a finished session the viewer has not seen.
 	{ name: 'spoiler-start-quali', path: '/?session=11373', spoilers: true },
 	{ name: 'spoiler-start-race', path: '/?session=9858', spoilers: true },
@@ -71,7 +78,9 @@ for (const viewport of VIEWPORTS) {
 						[theme, 'spoilers' in screen] as const
 					);
 					await page.goto(screen.path);
-					await expect(page.getByTestId('lap-counter')).toBeAttached();
+					await (/^\/(calendar|standings|h2h|drivers)/.test(screen.path)
+						? expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+						: expect(page.getByTestId('lap-counter')).toBeAttached());
 					// Heavy tiles below the first screen wait to be scrolled to; a print draws them all.
 					await page.evaluate(() => window.dispatchEvent(new Event('beforeprint')));
 					// Telemetry and maps load after the session; wait for them so the charts are drawn.

@@ -25,7 +25,8 @@ test('head to head shows the totals of two teammates and a fact that links to it
 }) => {
 	await openHistory(page, '/h2h?a=lando-norris&b=oscar-piastri&from=2023.1&to=2025.24');
 
-	await expect(page.getByTestId('h2h-name-a')).toHaveText('Lando Norris');
+	// The first visit compiles the page and loads three seasons in the dev server.
+	await expect(page.getByTestId('h2h-name-a')).toHaveText('Lando Norris', { timeout: 15_000 });
 	await expect(totals(page).getByRole('listitem').filter({ hasText: 'Races' })).toContainText('70');
 	await expect(totals(page).getByRole('listitem').filter({ hasText: 'Qualifying' })).toContainText(
 		'48'
@@ -84,7 +85,8 @@ test('the standings show the championship after a chosen round', async ({ page }
 
 	const rows = page.getByTestId('standings-row');
 
-	await expect(rows.nth(0)).toContainText('PIA');
+	// The first visit compiles the page and loads the season in the dev server.
+	await expect(rows.nth(0)).toContainText('PIA', { timeout: 15_000 });
 	await expect(rows.nth(0)).toContainText('216');
 	await expect(rows.nth(1)).toContainText('NOR');
 	await expect(rows.nth(1)).toContainText('201');
