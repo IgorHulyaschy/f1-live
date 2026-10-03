@@ -153,6 +153,11 @@ checkout runs on a fixed port never answers in its place. It then checks:
   accessibility, best practices and SEO 95 or more, judged on the median of three runs
   (`client/lighthouserc.json`). Reports land in `client/.lighthouseci/`.
 
+The local run is the strict one: every score is a hard limit, on a stable machine before a release.
+On CI (a shared 2-core runner, where mobile performance scores 59-79 against 89-95 on a Mac) mobile
+performance only warns; the other scores, desktop performance and the size budget still fail the
+job, and the score table goes to the job summary.
+
 `npm run test:e2e` also runs axe on every main route in both themes and fails on any serious or
 critical violation (`client/e2e/accessibility.spec.ts`), and covers the production build's
 manifest, offline shell and consent question (`client/e2e/build/`).
