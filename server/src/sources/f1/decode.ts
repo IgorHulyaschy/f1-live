@@ -98,6 +98,7 @@ const driverListSchema = keyed(
 	z
 		.object({
 			Tla: z.string(),
+			FullName: z.string(),
 			FirstName: z.string(),
 			LastName: z.string(),
 			TeamName: z.string(),
@@ -258,7 +259,7 @@ function compoundOf(text: string): TyreCompound {
 	return TYRE_COMPOUNDS.find((compound) => compound === text) ?? 'UNKNOWN';
 }
 
-function sessionTypeOf(type: string, name: string): SessionType {
+export function sessionTypeOf(type: string, name: string): SessionType {
 	const sprint = name.toLowerCase().includes('sprint');
 
 	if (type === 'Race') {
@@ -273,7 +274,7 @@ function sessionTypeOf(type: string, name: string): SessionType {
 }
 
 /** Local start "2025-11-22T20:00:00" with offset "-08:00:00" in UTC. */
-function utcStart(startDate: string, gmtOffset: string): string {
+export function utcStart(startDate: string, gmtOffset: string): string {
 	const offset = /^[+-]/.test(gmtOffset) ? gmtOffset : `+${gmtOffset}`;
 
 	return new Date(`${startDate}${offset.slice(0, 6)}`).toISOString();
@@ -381,6 +382,38 @@ interface BestEntry {
 	sectors: [string, string, string];
 	speeds: { I1: string; I2: string; FL: string; ST: string };
 	sent: string;
+}
+
+/** Some sessions list the field without teams: the driver still enters, with a neutral grey. */
+const UNKNOWN_TEAM = '';
+
+const UNKNOWN_TEAM_COLOUR = '808080';
+
+/** "Max VERSTAPPEN" as "Max" and "Verstappen"; the surname is the words in capitals. */
+function namesFromFullName(fullName: string): { firstName: string; lastName: string } | null {
+	const words = fullName.trim().split(/\s+/);
+	const surnameAt = words.findIndex((word) => word.length > 1 && word === word.toUpperCase());
+
+	if (surnameAt === -1) {
+		return null;
+	}
+
+	return {
+		firstName: words.slice(0, surnameAt).join(' '),
+		lastName: words
+			.slice(surnameAt)
+			.map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+			.join(' ')
+	};
+}
+
+/** The feed's own first and last name, or those read from FullName when it lists only that. */
+function driverNames(fields: DriverFields): { firstName: string; lastName: string } | null {
+	if (fields.FirstName !== undefined && fields.LastName !== undefined) {
+		return { firstName: fields.FirstName, lastName: fields.LastName };
+	}
+
+	return fields.FullName === undefined ? null : namesFromFullName(fields.FullName);
 }
 
 /**
@@ -505,25 +538,20 @@ export class F1Decoder {
 
 			this.drivers.set(number, merged);
 
-			const { Tla, FirstName, LastName, TeamName, TeamColour } = merged;
+			const { Tla } = merged;
+			const names = driverNames(merged);
 
-			if (
-				Tla === undefined ||
-				FirstName === undefined ||
-				LastName === undefined ||
-				TeamName === undefined ||
-				TeamColour === undefined
-			) {
+			if (Tla === undefined || names === null) {
 				return [];
 			}
 
 			const driver: Driver = {
 				number,
 				code: Tla,
-				firstName: FirstName,
-				lastName: LastName,
-				team: TeamName,
-				teamColour: TeamColour
+				firstName: names.firstName,
+				lastName: names.lastName,
+				team: merged.TeamName ?? UNKNOWN_TEAM,
+				teamColour: merged.TeamColour ?? UNKNOWN_TEAM_COLOUR
 			};
 
 			if (merged.HeadshotUrl) {

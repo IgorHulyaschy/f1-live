@@ -1,0 +1,21 @@
+{
+	"key": 9858,
+	"corrections": [
+		{
+			"driverNumber": "4",
+			"kind": "disqualified",
+			"reason": "Technical non-conformity: excessive wear of the plank assembly",
+			"at": "2025-11-23T12:00:00Z",
+			"source": "https://www.fia.com/system/files/decision-document/2025_las_vegas_grand_prix_-_infringement_-_car_4_-_technical_non-conformity_plank_assembly.pdf",
+			"note": "The FIA document is dated 2025-11-23; the time of day is approximate."
+		},
+		{
+			"driverNumber": "81",
+			"kind": "disqualified",
+			"reason": "Technical non-conformity: excessive wear of the plank assembly",
+			"at": "2025-11-23T12:00:00Z",
+			"source": "https://www.fia.com/system/files/decision-document/2025_las_vegas_grand_prix_-_infringement_-_car_81_-_technical_non-conformity_plank_assembly_corrected.pdf",
+			"note": "The FIA document is dated 2025-11-23; the time of day is approximate."
+		}
+	]
+}

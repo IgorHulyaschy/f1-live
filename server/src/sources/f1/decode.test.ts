@@ -136,6 +136,55 @@ describe('F1Decoder', () => {
 		});
 	});
 
+	// 2026 Barcelona Practice 1 (key 11300) lists its drivers without names or teams beyond FullName.
+	it('enters a driver whose list has no team or split name, reading the name from FullName (DriverList)', () => {
+		const events = decodeAll([
+			frame('DriverList', '00:00:01.000', {
+				'3': { RacingNumber: '3', FullName: 'Max VERSTAPPEN', Tla: 'VER', Line: 1 },
+				'12': { RacingNumber: '12', FullName: 'Andrea Kimi ANTONELLI', Tla: 'ANT', Line: 2 },
+				'43': { RacingNumber: '43', FullName: 'Franco COLAPINTO', Tla: 'COL' }
+			}),
+			frame('DriverList', '00:00:02.000', { '3': { Line: 2 } })
+		]);
+
+		assert.deepEqual(
+			ofKind(events, 'driver_entry').map((event) => event.driver),
+			[
+				{
+					number: '3',
+					code: 'VER',
+					firstName: 'Max',
+					lastName: 'Verstappen',
+					team: '',
+					teamColour: '808080'
+				},
+				{
+					number: '12',
+					code: 'ANT',
+					firstName: 'Andrea Kimi',
+					lastName: 'Antonelli',
+					team: '',
+					teamColour: '808080'
+				},
+				{
+					number: '43',
+					code: 'COL',
+					firstName: 'Franco',
+					lastName: 'Colapinto',
+					team: '',
+					teamColour: '808080'
+				}
+			]
+		);
+	});
+
+	it('does not enter a driver the list names only by abbreviation (DriverList)', () => {
+		assert.deepEqual(
+			decodeAll([frame('DriverList', '00:00:01.000', { '3': { Tla: 'VER', Line: 1 } })]),
+			[]
+		);
+	});
+
 	it('takes the race distance once (LapCount)', async () => {
 		assert.deepEqual(decodeAll(await fixture('LapCount')), [
 			{ kind: 'race_distance', at: at('00:00:01.453'), totalLaps: 50 }

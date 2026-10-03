@@ -78,14 +78,31 @@ Every tile works unchanged, because the server serves the same `RaceSnapshot` co
    - `live.ts` subscribes to every topic the decoder reads and writes the frames to `data/raw` in
      the archive format, while feeding the decoder.
    - It reconnects with backoff and resubscribes, and a heartbeat watchdog catches a stalled feed.
-4. **Import and outputs** in `server/src/sinks/`.
-   - The import reduces a session's raw files to `data/out/snapshots/<sessionKey>.json.gz`, and the
-     season's `Index.json` to `data/out/catalog.json`. It is idempotent, and it can rebuild every
-     session from `data/raw`.
-   - `WebSocket /live` sends the snapshot on connect, then events, which the client applies with
-     `applyEvent`.
+4. **Import and outputs** in `server/src/import/`, `server/src/sinks/files.ts` and `server/src/catalog/`.
+   - `npm run import -w server -- 2025 "Las Vegas"`, `-- 2025,2026` (whole seasons), `-- --key 9858`
+     or `-- --from-dir <raw root> [--key <k>]` for live recordings. `--data-dir` (or `DATA_DIR`)
+     moves `data/`; `--offline` uses no network.
+   - It saves each session's `Index.json` and topic files to `data/raw/<archive path>/`. A session
+     that ended more than three hours ago and has every file is skipped without a request, a
+     missing file is fetched alone, and requests retry with backoff and a concurrency limit.
+   - Per session: raw, then the decoder, then `RaceEvent[]`, then `applyEvent`, then
+     `data/out/events/<key>.jsonl.gz` and `data/out/snapshots/<key>.json.gz`. A topic that fails to
+     decode goes to `data/out/errors/<key>.json` and the batch goes on. The same raw files give
+     the same bytes.
+   - `data/out/catalog.json` lists seasons, meetings and sessions from the seasons' `Index.json`,
+     upcoming sessions too, with each session's status and the outputs it has.
+   - `npm run rebuild -w server` derives every output again from `data/raw` with no network. It is
+     the way to ship a decoder fix.
+   - `ingestSession({ rawDir, key, dataDir })` (`server/src/import/ingest.ts`) is the one function
+     the live server calls when a session ends.
 5. **Corrections.** Decisions taken after the feed ends, such as the McLaren disqualifications at
-   the 2025 Las Vegas race, are added as classification correction events on top of the archive.
+   the 2025 Las Vegas race, are added as classification correction events after the session's own
+   events. Two sources, the later winning a conflict for the same driver and kind:
+   - OpenF1 (`server/src/sources/openf1/`): the session result's disqualifications, and the
+     whole-second time penalties, applied or withdrawn, found by comparing its race times with the
+     feed's final gaps. The responses are saved to `data/openf1/` so a rebuild needs no network.
+     Cars a lap down have no gap to compare, so their reclassification is not found.
+   - A committed file `server/corrections/<key>.json` (format in its README) for anything else.
 6. **Client data source.**
    - The API source reads `RaceSnapshot` directly, and the hand mapping is deleted.
    - A session picker in the Session tile and the ⌘K palette lets you choose a meeting and session.
