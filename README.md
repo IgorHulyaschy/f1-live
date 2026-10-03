@@ -112,6 +112,7 @@ real, the CI workflow and the owner's checklist are in [docs/deploy.md](docs/dep
 | `npm run test:unit -w client` | Node test runner over the mock race and insights.          |
 | `npm run test:e2e`            | Playwright on the mock replay, then on real data and live. |
 | `npm run shots`               | Screenshots on the mock and on real data, dark/light.      |
+| `npm run budgets`             | Initial bundle size and Lighthouse CI, mobile and desktop. |
 
 Shots land in `client/shots/output/<viewport>/<page>-<plan>-<theme>.png` and, on real data, in
 `client/shots/output/real/` (not committed); they are meant for design and quality audits. The
@@ -119,6 +120,25 @@ real-data runs (`client/playwright.real.config.ts`) read a committed fixture of 
 race and qualifying and 2026 Baku qualifying, derived by `client/e2e/real/derive-fixtures.ts`,
 and replay a trimmed race through `replay-live`. If Playwright's own browser is not installed, point it at
 any Chromium with `PW_CHROMIUM_PATH=/path/to/chrome`.
+
+### Launch budgets
+
+`npm run budgets` builds the mock replay with drawn pictures and serves it the way a static host
+does (HTTP/2, Brotli; `client/scripts/serve-dist.ts`, which needs `openssl` for a throwaway
+localhost certificate). It then checks:
+
+- the first route's scripts and styles against `BUDGET` in `client/scripts/budgets.ts`, in gzip kB;
+- Lighthouse on `/`, `/analysis` and `/library`, mobile and desktop: performance 90 or more,
+  accessibility, best practices and SEO 95 or more, judged on the median of three runs
+  (`client/lighthouserc.json`). Reports land in `client/.lighthouseci/`.
+
+`npm run test:e2e` also runs axe on every main route in both themes and fails on any serious or
+critical violation (`client/e2e/accessibility.spec.ts`), and covers the production build's
+manifest, offline shell and consent question (`client/e2e/build/`).
+
+The brand (name, domain, support address, social links) lives in `client/src/brand.ts`, and the
+legal text in `client/src/legal/content.ts`; `npm run brand-assets -w client` redraws the favicon,
+install icons and share card after a change.
 
 The anti-slop oxlint plugin is vendored in `tools/oxlint/anti-slop` (see `UPSTREAM.md`). shadcn
 primitives live in `client/src/components/ui`; screens compose them through variants rather than

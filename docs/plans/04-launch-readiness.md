@@ -44,6 +44,21 @@ The recommendation is drawn plates at launch, then our own artwork. A licence is
 - Error reporting (Sentry or similar) on the client and server.
 - A race-weekend runbook, built from [plan 2](02-hosted-preview.md)'s checklist.
 
+## Ready in code
+
+Each owner decision has a slot with a working default, so the launch is a change of values, not of code.
+
+| Item                | Where                                                                                | Default until the owner decides                                                                   |
+| ------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Name and domain     | `client/src/brand.ts`                                                                | Pitwall at `pitwall.example` (reserved, never resolves)                                           |
+| Support and socials | `client/src/brand.ts`                                                                | `support@pitwall.example`, no social links                                                        |
+| Legal text          | `client/src/legal/content.ts`, at `/legal/terms`, `/legal/privacy`, `/legal/cookies` | A plain-English draft marked "Draft, pending legal review"; "Owner to supply" notes mark the gaps |
+| Analytics           | `client/src/platform/analytics.ts`, `VITE_ANALYTICS_PROVIDER`                        | None; a provider gets a consent question before it starts                                         |
+| Error reporting     | `client/src/platform/errors.ts`, chosen in `client/src/main.tsx`                     | Browser console in development, nothing in production                                             |
+| Private preview     | `VITE_SITE_NOINDEX=true`                                                             | Indexed, with a sitemap                                                                           |
+
+Pictures and the data route stay as described above. `npm run brand-assets -w client` redraws the icons and the share card after a rename.
+
 ## Done when
 
 - A cleared name and domain.
