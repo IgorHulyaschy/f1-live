@@ -31,6 +31,14 @@ export interface SessionStatusEvent {
 	status: SessionStatus;
 }
 
+/** The feed set the session clock: `remainingMs` left at `at`, counting down while `running`. */
+export interface SessionClockEvent {
+	kind: 'session_clock';
+	at: string;
+	remainingMs: number;
+	running: boolean;
+}
+
 export interface RaceDistanceEvent {
 	kind: 'race_distance';
 	at: string;
@@ -186,6 +194,7 @@ export interface ChampionshipEvent {
 export type RaceEvent =
 	| SessionInfoEvent
 	| SessionStatusEvent
+	| SessionClockEvent
 	| RaceDistanceEvent
 	| DriverEntryEvent
 	| GridPositionEvent

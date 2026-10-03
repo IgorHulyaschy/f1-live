@@ -341,6 +341,19 @@ describe('applyEvent', () => {
 		assert.equal(snapshot.startedAt, at(0));
 	});
 
+	it('logs the session clock, stopped and running', () => {
+		const snapshot = replay([
+			...started(),
+			{ kind: 'session_clock', at: at(-60), remainingMs: 1_080_000, running: false },
+			{ kind: 'session_clock', at: at(1), remainingMs: 1_079_000, running: true }
+		]);
+
+		assert.deepEqual(snapshot.clockLog, [
+			{ at: at(-60), remainingMs: 1_080_000, running: false },
+			{ at: at(1), remainingMs: 1_079_000, running: true }
+		]);
+	});
+
 	it('keeps the latest weather sample of each lap', () => {
 		const snapshot = replay([
 			...started(),

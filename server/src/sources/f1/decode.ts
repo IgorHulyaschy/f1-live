@@ -32,6 +32,7 @@ export interface TopicFrame {
 export const F1_TOPICS = [
 	'SessionInfo',
 	'SessionStatus',
+	'ExtrapolatedClock',
 	'DriverList',
 	'LapCount',
 	'TrackStatus',
@@ -100,6 +101,10 @@ const sessionInfoSchema = z
 	.partial();
 
 const sessionStatusSchema = z.object({ Status: z.string() }).partial();
+
+const clockSchema = z
+	.object({ Utc: z.string(), Remaining: z.string(), Extrapolating: z.boolean() })
+	.partial();
 
 const driverListSchema = keyed(
 	z
@@ -290,6 +295,15 @@ export function parseDuration(text: string): number | null {
 	return Math.round((Number(match[1] ?? 0) * 60 + Number(match[2])) * 1000);
 }
 
+const CLOCK_TIME = /^(\d+):(\d{2}):(\d{2})$/;
+
+/** The session clock's "01:59:59", in ms. */
+function parseClockTime(text: string): number | null {
+	const match = CLOCK_TIME.exec(text.trim());
+
+	return match ? ((Number(match[1]) * 60 + Number(match[2])) * 60 + Number(match[3])) * 1000 : null;
+}
+
 /** The leader's gap reads "LAP 12"; a lapped car's "1L", which is not a time. */
 function parseGap(text: string, position: number): number | null {
 	return position === 1 || text.startsWith('LAP') ? 0 : parseDuration(text);
@@ -470,6 +484,8 @@ function driverNames(fields: DriverFields): { firstName: string; lastName: strin
 export class F1Decoder {
 	private started = false;
 	private sessionStatus: SessionStatus | null = null;
+	private clock: z.output<typeof clockSchema> = {};
+	private clockSent = '';
 	private trackStatus: TrackStatus | null = null;
 	private totalLaps: number | null = null;
 	private sessionInfo: z.output<typeof sessionInfoSchema> = {};
@@ -500,6 +516,8 @@ export class F1Decoder {
 				return this.onSessionInfo(parse(sessionInfoSchema, frame), at);
 			case 'SessionStatus':
 				return this.onSessionStatus(parse(sessionStatusSchema, frame), at);
+			case 'ExtrapolatedClock':
+				return this.onClock(parse(clockSchema, frame), at);
 			case 'DriverList':
 				return this.onDriverList(parse(driverListSchema, frame), at);
 			case 'LapCount':
@@ -587,6 +605,31 @@ export class F1Decoder {
 		this.started ||= status === 'started';
 
 		return [{ kind: 'session_status', at, status }];
+	}
+
+	/** `Remaining` was the time left at `Utc`, and counts down from there while extrapolating. */
+	private onClock(update: z.output<typeof clockSchema>, at: string): RaceEvent[] {
+		this.clock = { ...this.clock, ...update };
+
+		const remainingMs = parseClockTime(this.clock.Remaining ?? '');
+
+		if (remainingMs === null) {
+			return [];
+		}
+
+		const utc = Date.parse(this.clock.Utc ?? '');
+		const clockAt = Number.isFinite(utc) ? new Date(utc).toISOString() : at;
+		const running = this.clock.Extrapolating ?? false;
+
+		const sent = `${remainingMs} ${running}`;
+
+		if (sent === this.clockSent) {
+			return [];
+		}
+
+		this.clockSent = sent;
+
+		return [{ kind: 'session_clock', at: clockAt, remainingMs, running }];
 	}
 
 	private onDriverList(update: z.output<typeof driverListSchema>, at: string): RaceEvent[] {
