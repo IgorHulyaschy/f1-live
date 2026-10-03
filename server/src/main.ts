@@ -24,7 +24,7 @@ const FEED_BACKOFF: Backoff = { initialMs: 1000, maxMs: 30_000 };
 
 const FEED_STATS_INTERVAL_MS = 60_000;
 
-/** The viewers only ever send `{"type":"resync"}`. */
+/** Viewers send `resync`, `subscribe` and `unsubscribe`: all short. */
 const MAX_VIEWER_MESSAGE_BYTES = 1024;
 
 /** Position and car data frames go to opted-in viewers at most this often: 4 a second. */

@@ -272,7 +272,11 @@ export async function buildTelemetry(options: BuildOptions): Promise<TelemetryRe
 
 	const facts = foldSession(frames.filter((frame) => !telemetryTopics.has(frame.topic)));
 	const { snapshot } = facts;
-	const circuitKey = facts.circuitKey ?? snapshot.session.circuit;
+	const circuitKey = facts.circuitKey;
+
+	if (circuitKey === null) {
+		return { status: 'skipped', key, reason: 'SessionInfo has no circuit key' };
+	}
 
 	if (snapshot.laps.length === 0) {
 		return { status: 'skipped', key, reason: 'the session has no completed laps' };

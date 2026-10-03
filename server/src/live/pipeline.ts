@@ -36,7 +36,7 @@ export interface PipelineOptions {
 	/** The clock for the recorder and for snapshot frames; a replay runs it on session time. */
 	now?: () => number;
 	onSessionEnded?: (recording: Recording) => void;
-	/** Every frame of a topic the decoder does not read, for the opt-in position channels. */
+	/** Every frame as it arrives, for the opt-in position channels; they pick the topics they read. */
 	onTelemetry?: (topic: string, payload: JsonValue) => void;
 }
 

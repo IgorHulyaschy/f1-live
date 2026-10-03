@@ -28,6 +28,9 @@ export interface LiveTelemetryOptions {
 
 const payloadSchema = z.string();
 
+/** A car silent for this long is no longer on the circuit. */
+const STALE_MS = 10_000;
+
 /**
  * The live feed's `Position.z` and `CarData.z`, throttled, quantised and passed on to the viewers
  * that opted in. Nothing is decoded while nobody wants a channel, so a viewer without a track map
@@ -39,6 +42,8 @@ export class LiveTelemetry {
 	private readonly positions: LivePositions = { at: 0, cars: {} };
 	private readonly carData: LiveCarData = { at: 0, cars: {} };
 	private readonly dirty = new Set<Channel>();
+	/** When each car was last heard, per channel, to drop one that stopped (a car from an earlier session). */
+	private readonly heard = new Map<string, number>();
 	private readonly timer: NodeJS.Timeout;
 
 	constructor(sink: ChannelSink, options: LiveTelemetryOptions) {
@@ -57,14 +62,20 @@ export class LiveTelemetry {
 			return;
 		}
 
-		this.sink.markLive(channel);
+		const wanted = this.sink.wants(channel);
 
-		if (!this.sink.wants(channel)) {
+		if (!wanted) {
+			if (payloadSchema.safeParse(payload).success) {
+				this.sink.markLive(channel);
+			}
+
 			return;
 		}
 
 		try {
 			const text = payloadSchema.parse(payload);
+
+			this.sink.markLive(channel);
 
 			if (channel === 'positions') {
 				this.takePositions(text);
@@ -88,6 +99,7 @@ export class LiveTelemetry {
 
 			for (const [driver, car] of sample.cars) {
 				if (car.x !== 0 || car.y !== 0) {
+					this.heard.set(`positions/${driver}`, sample.at);
 					this.positions.cars[driver] = [
 						Math.round(car.x),
 						Math.round(car.y),
@@ -103,6 +115,7 @@ export class LiveTelemetry {
 			this.carData.at = Math.max(this.carData.at, sample.at);
 
 			for (const [driver, reading] of sample.cars) {
+				this.heard.set(`car_data/${driver}`, sample.at);
 				this.carData.cars[driver] = [
 					Math.round(reading.speedKph),
 					reading.gear,
@@ -115,7 +128,19 @@ export class LiveTelemetry {
 		}
 	}
 
+	/** Cars not heard from for this long are left out, so one that is gone is not shown frozen. */
+	private prune(channel: Channel, cars: { [driverNumber: string]: readonly number[] }, at: number) {
+		for (const driver of Object.keys(cars)) {
+			if (at - (this.heard.get(`${channel}/${driver}`) ?? at) > STALE_MS) {
+				delete cars[driver];
+			}
+		}
+	}
+
 	private flush() {
+		this.prune('positions', this.positions.cars, this.positions.at);
+		this.prune('car_data', this.carData.cars, this.carData.at);
+
 		for (const channel of this.dirty) {
 			if (channel === 'positions') {
 				const message: PositionsMessage = {

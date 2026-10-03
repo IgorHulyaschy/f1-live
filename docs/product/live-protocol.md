@@ -58,7 +58,8 @@ protocol exactly as before. There is no new version: `"v"` stays 1.
 
 The client sends `{"type":"subscribe","channel":"positions"}` or `"car_data"`, and
 `{"type":"unsubscribe","channel":"…"}` to stop. An unknown channel is ignored. Every subscribe
-and unsubscribe is answered with:
+and unsubscribe is answered with the message below, which is also sent unasked when the feed
+first sends a channel the viewer has subscribed to:
 
 ```json
 {

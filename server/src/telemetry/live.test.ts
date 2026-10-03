@@ -20,6 +20,20 @@ function position(at: string, x: number, y: number, status = 'OnTrack'): string 
 	});
 }
 
+/** A position frame with cars 1, 2, ... at (x, x) for each x given. */
+function two(at: string, xs: readonly number[]): string {
+	return compress({
+		Position: [
+			{
+				Timestamp: at,
+				Entries: Object.fromEntries(
+					xs.map((x, index) => [String(index + 1), { Status: 'OnTrack', X: x, Y: x, Z: 0 }])
+				)
+			}
+		]
+	});
+}
+
 function setup(wanted: readonly Channel[]) {
 	const published: { channel: Channel; message: JsonObject }[] = [];
 	const live = new Set<Channel>();
@@ -108,5 +122,16 @@ describe('LiveTelemetry', () => {
 		assert.equal(published.length, 0);
 		assert.equal(errors.length, 2);
 		assert.match(errors[0] ?? '', /^Position\.z:/);
+	});
+
+	it('drops a car that has been silent for ten seconds', async () => {
+		const { telemetry, published } = setup(['positions']);
+
+		telemetry.ingest('Position.z', two('2025-11-23T04:21:00.000Z', [10, 20]));
+		telemetry.ingest('Position.z', two('2025-11-23T04:21:30.000Z', [30]));
+		await sleep(INTERVAL_MS * 3);
+		telemetry.close();
+
+		assert.deepEqual(published[0]?.message.cars, { '1': [3, 3, 1] });
 	});
 });

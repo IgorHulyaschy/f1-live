@@ -13,7 +13,8 @@ npm run fetch:f1 -w server -- 9858                 # raw archive, once
 npm run telemetry -w server -- --key 9858 [--svg out.svg] [--rebuild-outline]
 ```
 
-From code (the import calls this once a session is saved; a session without `Position.z` gives
+From code (the import should call this once a session is saved; it is not wired in yet because the
+import CLI is separate work; a session without `Position.z` gives
 `{ status: 'skipped', reason }` and is not an error):
 
 ```ts
