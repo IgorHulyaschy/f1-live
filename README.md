@@ -1,6 +1,7 @@
 # Pitwall (f1-live)
 
-Live and post-race Formula 1 insights: timing, battles, pit windows, tyre strategy and pace.
+A hub of Formula 1 knowledge: ask any question and get the answer with its proof, dig into deep
+stats, and follow any session live or replay it later without spoilers.
 Working name only; the product must not use "F1" or "Formula 1" in its brand.
 
 ![Live dashboard: timing tower, followed driver and race control](docs/screenshots/live-desktop-dark.png)
