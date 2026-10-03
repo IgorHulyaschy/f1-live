@@ -43,7 +43,9 @@ export const TILE_KINDS = [
 	'pit-rejoin',
 	'dominance',
 	'flag-map',
-	'speed-map'
+	'speed-map',
+	'gap-distance',
+	'ghost-lap'
 ] as const;
 
 export type TileKind = (typeof TILE_KINDS)[number];
@@ -67,7 +69,17 @@ export const trackMapSettingsSchema = z.object({
 
 export type TrackMapSettings = z.infer<typeof trackMapSettingsSchema>;
 
-export type TileSettings = { metric?: (typeof TILE_METRICS)[number] } & TrackMapSettings;
+/** What the gap distance tile keeps: the field it shows, how many cars, and by lap or sector. */
+export const gapSettingsSchema = z.object({
+	view: z.enum(['best', 'q1', 'q2', 'q3', 'race']).optional(),
+	field: z.enum(['top10', 'all']).optional(),
+	split: z.enum(['lap', 'sectors']).optional()
+});
+
+export type GapSettings = z.infer<typeof gapSettingsSchema>;
+
+export type TileSettings = { metric?: (typeof TILE_METRICS)[number] } & TrackMapSettings &
+	GapSettings;
 
 export type Tile = { id: string; kind: TileKind; settings?: TileSettings };
 
@@ -125,6 +137,7 @@ const tileSchema = z.object({
 	settings: z
 		.object({ metric: z.enum(TILE_METRICS).optional() })
 		.extend(trackMapSettingsSchema.shape)
+		.extend(gapSettingsSchema.shape)
 		.optional()
 });
 
@@ -223,7 +236,8 @@ export function parseDashboardListText(text: string): Dashboard[] {
 
 const SETTING_KEYS = [
 	'metric',
-	...trackMapSettingsSchema.keyof().options
+	...trackMapSettingsSchema.keyof().options,
+	...gapSettingsSchema.keyof().options
 ] as const satisfies readonly (keyof TileSettings)[];
 
 function sameSettings(a: TileSettings | undefined, b: TileSettings | undefined): boolean {

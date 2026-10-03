@@ -97,6 +97,14 @@ const SpeedMapTile = React.lazy(async () => ({
 	default: (await import('@/features/track/speed-map-tile')).SpeedMapTile
 }));
 
+const GapsTile = React.lazy(async () => ({
+	default: (await import('@/features/gaps/gaps-tile')).GapsTile
+}));
+
+const GhostLapTile = React.lazy(async () => ({
+	default: (await import('@/features/gaps/ghost-lap-tile')).GhostLapTile
+}));
+
 const TrackMapTile = React.lazy(async () => ({
 	default: (await import('@/features/track/track-map-tile')).TrackMapTile
 }));
@@ -354,6 +362,25 @@ export function TileContent({
 						channel={tile.settings?.channel}
 						onChannelChange={(channel) => onSettingsChange?.({ ...tile.settings, channel })}
 					/>
+				</LazyTile>
+			);
+		}
+
+		case 'gap-distance': {
+			return (
+				<LazyTile tile={tile}>
+					<GapsTile
+						settings={tile.settings}
+						onSettingsChange={(settings) => onSettingsChange?.({ ...tile.settings, ...settings })}
+					/>
+				</LazyTile>
+			);
+		}
+
+		case 'ghost-lap': {
+			return (
+				<LazyTile tile={tile}>
+					<GhostLapTile />
 				</LazyTile>
 			);
 		}

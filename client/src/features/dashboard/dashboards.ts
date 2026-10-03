@@ -322,6 +322,23 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		size: { w: 10, h: 16 },
 		min: { w: 5, h: 10 },
 		pro: true
+	},
+	'gap-distance': {
+		group: 'Track',
+		title: 'Gap distance',
+		description:
+			'Every car on one straight, behind the fastest by the metres its gap is worth: by part, by sector, or the race as it runs.',
+		size: { w: 24, h: 16 },
+		min: { w: 6, h: 10 }
+	},
+	'ghost-lap': {
+		group: 'Track',
+		title: 'Ghost lap',
+		description:
+			'The best laps run together from the same line, so the gaps grow and shrink corner by corner.',
+		size: { w: 12, h: 18 },
+		min: { w: 6, h: 12 },
+		pro: true
 	}
 };
 
@@ -369,9 +386,9 @@ export const PRESETS: readonly Dashboard[] = [
 	buildDashboard('live', 'Race', [
 		['replay', 0, 0, 24, 4],
 		['timing', 0, 4, 15, 25],
-		['focus', 15, 4, 9, 15],
-		['race-control', 15, 19, 9, 10],
-		['track-map', 0, 29, 10, 14],
+		['track-map', 15, 4, 9, 13],
+		['focus', 15, 17, 9, 12],
+		['race-control', 0, 29, 10, 14],
 		['stints', 10, 29, 14, 14]
 	]),
 	buildDashboard('quali', 'Quali', [
@@ -380,7 +397,8 @@ export const PRESETS: readonly Dashboard[] = [
 		['knockout', 15, 6, 9, 12],
 		['race-control', 15, 18, 9, 7],
 		['track-map', 0, 25, 12, 12],
-		['sectors', 12, 25, 12, 12]
+		['sectors', 12, 25, 12, 12],
+		['gap-distance', 0, 37, 24, 16]
 	]),
 	buildDashboard('practice', 'Practice', [
 		['timing', 0, 0, 15, 25],
@@ -421,7 +439,9 @@ export const PRESETS: readonly Dashboard[] = [
 		['pit-rejoin', 14, 16, 10, 12],
 		['dominance', 0, 28, 8, 16],
 		['flag-map', 8, 28, 8, 16],
-		['speed-map', 16, 28, 8, 16]
+		['speed-map', 16, 28, 8, 16],
+		['gap-distance', 0, 44, 14, 18],
+		['ghost-lap', 14, 44, 10, 18]
 	]),
 	buildDashboard('drivers', 'Drivers', [
 		['session', 0, 0, 24, 3],

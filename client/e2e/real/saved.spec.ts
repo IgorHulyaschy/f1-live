@@ -68,7 +68,8 @@ test('the session picker opens another session and keeps it in the address', asy
 
 	await page.getByRole('button', { name: 'Sessions' }).click();
 	await page.getByRole('button', { name: 'Season 2026' }).click();
-	await expect(picker.getByRole('button', { name: /Azerbaijan/ })).toBeVisible();
+	// 2026 opens on its latest meeting, Bahrain; Baku is the one before.
+	await picker.getByRole('button', { name: /Azerbaijan/ }).click();
 	await picker.getByTestId('session-11373').click();
 	await expect(page).toHaveURL(/session=11373/);
 });

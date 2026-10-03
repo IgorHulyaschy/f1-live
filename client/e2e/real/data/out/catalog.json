@@ -193,6 +193,99 @@
 							}
 						}
 					]
+				},
+				{
+					"key": 1308,
+					"name": "Bahrain Grand Prix",
+					"officialName": "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX IN MALAYSIA 2026",
+					"location": "Kuala Lumpur",
+					"sessions": [
+						{
+							"key": 11727,
+							"type": "practice",
+							"name": "Practice 1",
+							"startsAt": "2026-10-02T04:30:00.000Z",
+							"status": "finished",
+							"circuit": "Kuala Lumpur",
+							"country": {
+								"code": "BRN",
+								"name": "Bahrain"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": false
+							}
+						},
+						{
+							"key": 11728,
+							"type": "practice",
+							"name": "Practice 2",
+							"startsAt": "2026-10-02T08:00:00.000Z",
+							"status": "finished",
+							"circuit": "Kuala Lumpur",
+							"country": {
+								"code": "BRN",
+								"name": "Bahrain"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": false
+							}
+						},
+						{
+							"key": 11729,
+							"type": "practice",
+							"name": "Practice 3",
+							"startsAt": "2026-10-03T04:30:00.000Z",
+							"status": "finished",
+							"circuit": "Kuala Lumpur",
+							"country": {
+								"code": "BRN",
+								"name": "Bahrain"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": false
+							}
+						},
+						{
+							"key": 11730,
+							"type": "qualifying",
+							"name": "Qualifying",
+							"startsAt": "2026-10-03T08:00:00.000Z",
+							"status": "live",
+							"circuit": "Kuala Lumpur",
+							"country": {
+								"code": "BRN",
+								"name": "Bahrain"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": true
+							}
+						},
+						{
+							"key": 11731,
+							"type": "race",
+							"name": "Race",
+							"startsAt": "2026-10-04T07:00:00.000Z",
+							"status": "upcoming",
+							"circuit": "Kuala Lumpur",
+							"country": {
+								"code": "BRN",
+								"name": "Bahrain"
+							},
+							"outputs": {
+								"raw": false,
+								"events": false,
+								"snapshot": false
+							}
+						}
+					]
 				}
 			]
 		}

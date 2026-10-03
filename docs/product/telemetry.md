@@ -107,6 +107,11 @@ laps that ran line to line (not `partial`, `pitIn` or `pitOut`, and within 1% of
 length, since the index does not flag every trip to the garage), and only laps done by the moment
 on screen. The Conditions tile uses the outline to find the straights for the wind.
 
+Gap distance (`client/src/insights/gap-distance.ts`) turns a lap-time gap into metres by
+running it backwards from the line on the car's own speed channel, after scaling the official
+gap onto the telemetry clock: telemetry lap times run a few tens of milliseconds off the
+official ones, and positions jump by metres between samples where the speed does not.
+
 ## Accuracy
 
 - The outline is a racing line, a little shorter than the middle of the track: 6145 m against the

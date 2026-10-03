@@ -36,6 +36,10 @@ const PAGES = [
 	{ name: 'track-start', path: '/d/track?session=9858&lap=1&plan=pro' },
 	{ name: 'track-qualifying', path: '/d/track?session=11373&plan=pro' },
 	{ name: 'wall-race', path: '/d/wall?session=9858&lap=30' },
+	// 2026 Bahrain qualifying: the gap tile in the Quali layout, the gap visuals, the quali charts.
+	{ name: 'quali-bahrain', path: '/?session=11730&plan=pro' },
+	{ name: 'track-bahrain', path: '/d/track?session=11730&plan=pro' },
+	{ name: 'analysis-bahrain', path: '/analysis?session=11730' },
 	// Spoiler protection on a finished session the viewer has not seen.
 	{ name: 'spoiler-start-quali', path: '/?session=11373', spoilers: true },
 	{ name: 'spoiler-start-race', path: '/?session=9858', spoilers: true },

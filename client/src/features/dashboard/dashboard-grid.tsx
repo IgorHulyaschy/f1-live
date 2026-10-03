@@ -237,7 +237,14 @@ function useScrollStop(body: React.RefObject<HTMLDivElement | null>, fill: boole
 }
 
 /** Tiles whose first render is heavy (a chart library, long traces): they wait until near. */
-const DEFERRED_TILES: ReadonlySet<TileKind> = new Set(['chart', 'telemetry', 'story', 'track-map']);
+const DEFERRED_TILES: ReadonlySet<TileKind> = new Set([
+	'chart',
+	'telemetry',
+	'story',
+	'track-map',
+	'gap-distance',
+	'ghost-lap'
+]);
 
 /** A tile for another kind of session, shrunk to the line saying what it is for. */
 function AwayTile({ tile }: { tile: Tile }) {

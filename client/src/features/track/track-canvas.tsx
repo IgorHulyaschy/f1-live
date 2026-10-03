@@ -2,6 +2,7 @@ import { useReducedMotion } from 'motion/react';
 import * as React from 'react';
 
 import { useRace } from '@/data/race-context';
+import { useElementSize } from '@/hooks/use-element-size';
 import { useDarkTheme } from '@/hooks/use-theme';
 import { useRemPixels } from '@/hooks/use-scale';
 import { cn } from '@/lib/utils';
@@ -33,43 +34,6 @@ declare global {
 	interface Window {
 		pitwallMapStats?: MapStats;
 	}
-}
-
-type Size = { width: number; height: number };
-
-function measure(element: HTMLElement): Size {
-	const rect = element.getBoundingClientRect();
-
-	return { width: Math.round(rect.width), height: Math.round(rect.height) };
-}
-
-/** The box's size, measured before the first paint so a new map is drawn at once. */
-function useSize(ref: React.RefObject<HTMLElement | null>): Size {
-	const [size, setSize] = React.useState<Size>({ width: 0, height: 0 });
-
-	React.useLayoutEffect(() => {
-		const element = ref.current;
-
-		if (!element) {
-			return;
-		}
-
-		setSize(measure(element));
-
-		const observer = new ResizeObserver(() => {
-			const next = measure(element);
-
-			setSize((current) =>
-				current.width === next.width && current.height === next.height ? current : next
-			);
-		});
-
-		observer.observe(element);
-
-		return () => observer.disconnect();
-	}, [ref]);
-
-	return size;
 }
 
 /** Whether the element is on screen and the page is in front: a hidden map draws nothing. */
@@ -125,7 +89,7 @@ export function TrackCanvas({
 }) {
 	const box = React.useRef<HTMLElement>(null);
 	const canvas = React.useRef<HTMLCanvasElement>(null);
-	const { width, height } = useSize(box);
+	const { width, height } = useElementSize(box);
 	const onScreen = useOnScreen(box);
 	const rem = useRemPixels();
 	const dark = useDarkTheme();
