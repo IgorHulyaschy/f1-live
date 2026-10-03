@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/chart';
 import { type Catalog, sessionEntries } from '@/data/catalog';
 import { useRaceView } from '@/data/race-context';
+import { isTimedSession } from '@/insights/qualifying';
 import {
 	championshipSwing,
 	contenders,
@@ -137,7 +138,14 @@ export function ChampionshipSwing() {
 			data-testid="championship"
 			className={cn('min-h-0', fill && 'h-full')}
 		>
-			<PanelHeader title="Championship" meta={lap > 0 ? `as it stands after L${lap}` : undefined}>
+			<PanelHeader
+				title="Championship"
+				meta={
+					lap > 0 && !isTimedSession(snapshot.session.type)
+						? `as it stands after L${lap}`
+						: undefined
+				}
+			>
 				<KeyGroup label="Championship" options={VIEWS} value={view} onChange={setView} />
 				<TableKey table={table} onTableChange={setTable} />
 			</PanelHeader>

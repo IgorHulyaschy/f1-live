@@ -100,17 +100,15 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 				{life.compounds.map((entry) => (
 					<div key={entry.compound} className="flex items-end gap-3">
 						<TyreBadge compound={entry.compound} />
-						<Field label="Wear a lap">
+						<Field label="Per lap">
 							<Digits value={formatDeltaSeconds(entry.wearSecondsPerLap, 3)} />
 						</Field>
 						{life.comparable ? (
-							<Field label="New, to quickest">
+							<Field label="When new">
 								<Digits value={formatDeltaSeconds(entry.newOffsetS, 2)} />
 							</Field>
 						) : null}
-						<Field label="Cliff">
-							{entry.cliff ? `Lap ${entry.cliff.age} of its life` : 'None seen'}
-						</Field>
+						<Field label="Cliff">{entry.cliff ? `Lap ${entry.cliff.age}` : 'None'}</Field>
 					</div>
 				))}
 			</div>

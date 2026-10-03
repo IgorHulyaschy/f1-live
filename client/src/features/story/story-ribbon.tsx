@@ -190,7 +190,7 @@ export function StoryRibbon() {
 								onClick={() => setLap(step)}
 								onMouseEnter={() => setHovered(step)}
 								onMouseLeave={() => setHovered(null)}
-								aria-label={`Go to ${stepWord(stepUnit, step).toLowerCase()}${summary ? `: ${summary}` : ''}`}
+								aria-label={`Story, ${stepWord(stepUnit, step).toLowerCase()}${summary ? `: ${summary}` : ''}`}
 								title={`${stepWord(stepUnit, step)}${summary ? `: ${summary}` : ''}`}
 								className={cn(
 									'group relative flex min-w-0 flex-1 cursor-pointer flex-col gap-px disabled:cursor-default',

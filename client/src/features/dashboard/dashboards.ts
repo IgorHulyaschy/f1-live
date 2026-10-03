@@ -300,20 +300,22 @@ export const PRESETS: readonly Dashboard[] = [
 	buildDashboard('analysis', 'Analysis', [
 		['lap-strip', 0, 0, 18, 3],
 		['replay', 18, 0, 6, 3],
-		['story', 0, 3, 24, 3],
 		['compare', 0, 6, 4, 18],
 		['chart', 4, 6, 20, 18, { metric: 'lapTime' }],
-		['telemetry', 0, 24, 24, 34],
 		['pace', 0, 58, 14, 12],
-		['fastest-laps', 14, 58, 10, 12]
+		['fastest-laps', 14, 58, 10, 12],
+		// Added after the first six so their tile ids, and pop-out links to them, stay the same.
+		['story', 0, 3, 24, 3],
+		['telemetry', 0, 24, 24, 34]
 	]),
 	buildDashboard('strategy', 'Strategy', [
 		['lap-strip', 0, 0, 18, 3],
 		['replay', 18, 0, 6, 3],
-		['story', 0, 3, 24, 3],
 		['stints', 0, 6, 24, 16],
 		['degradation', 0, 22, 12, 18],
 		['pit-stops', 12, 22, 12, 18],
+		// As in Analysis, new tiles come after the first five.
+		['story', 0, 3, 24, 3],
 		['undercut', 0, 40, 12, 26],
 		['pit-cost', 12, 40, 12, 13],
 		['pit-crews', 12, 53, 12, 13]

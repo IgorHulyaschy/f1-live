@@ -167,7 +167,7 @@ const CHANNEL_SPECS: readonly ChannelSpec[] = [
 	{
 		channel: 'rpm',
 		label: 'RPM',
-		format: (value) => value.toFixed(0),
+		format: (value) => `${(value / 1000).toFixed(1)}k`,
 		grow: 'flex-2',
 		height: 'h-20'
 	}

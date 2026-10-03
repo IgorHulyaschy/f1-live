@@ -62,7 +62,8 @@ function useTurned(outline: TrackOutline) {
 		const points = outline.points.map(([x, y]) => turn(x, y));
 		const xs = points.map(([x]) => x);
 		const ys = points.map(([, y]) => y);
-		const pad = (Math.max(...xs) - Math.min(...xs)) * 0.08;
+		// Room around the circuit for the labels beside its straights.
+		const pad = (Math.max(...xs) - Math.min(...xs)) * 0.16;
 
 		return {
 			points,
@@ -87,21 +88,42 @@ function screenVector(
 	return turn(Math.sin(radians), Math.cos(radians));
 }
 
+/** A small arrow pointing along a screen direction, for the map's legend. */
+function LegendArrow({
+	direction,
+	className
+}: {
+	direction: readonly [number, number];
+	className: string;
+}) {
+	const angle = (Math.atan2(direction[1], direction[0]) * 180) / Math.PI;
+
+	return (
+		<svg viewBox="-6 -6 12 12" className={cn('size-4 shrink-0', className)} aria-hidden>
+			<g transform={`rotate(${angle})`}>
+				<line x1={-4.5} y1={0} x2={2} y2={0} stroke="currentColor" strokeWidth={1.5} />
+				<path d="M1,-3 L5,0 L1,3 z" fill="currentColor" />
+			</g>
+		</svg>
+	);
+}
+
 function WindMap({
 	outline,
 	winds,
-	windFromDeg
+	windFromDeg,
+	windSpeedMs
 }: {
 	outline: TrackOutline;
 	winds: readonly StraightWind[];
 	windFromDeg: number;
+	windSpeedMs: number;
 }) {
 	const { points, turn, box } = useTurned(outline);
+	const markerId = React.useId();
 	const step = outline.lengthM / outline.points.length;
 	const unit = box.width / 60;
-	const north = screenVector(turn, 0);
-	const blowing = screenVector(turn, windFromDeg + 180);
-	const corner = { x: box.x + unit * 5, y: box.y + unit * 5 };
+	const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 
 	const stretch = (startM: number, endM: number) => {
 		const from = Math.round(startM / step);
@@ -116,110 +138,90 @@ function WindMap({
 	};
 
 	return (
-		<svg
-			viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
-			className="text-foreground h-auto max-h-80 w-full"
-		>
-			<title>{`The circuit, with the wind from the ${compassPoint(windFromDeg)}`}</title>
-			<polyline
-				points={points.map(([x, y]) => `${x},${y}`).join(' ')}
-				fill="none"
-				stroke="currentColor"
-				strokeOpacity={0.3}
-				strokeWidth={unit * 0.6}
-				strokeLinejoin="round"
-			/>
-			{winds.map((straight) => {
-				const run = stretch(straight.startM, straight.endM);
-				const [midX, midY] = turn(straight.midX, straight.midY);
-				const along = screenVector(turn, straight.bearingDeg);
-
-				return (
-					<g key={straight.startM}>
-						<polyline
-							points={run.map(([x, y]) => `${x},${y}`).join(' ')}
-							fill="none"
-							stroke="currentColor"
-							strokeWidth={unit * (Math.abs(straight.headwindMs) < 0.3 ? 1 : 1.6)}
-							strokeDasharray={straight.headwindMs < 0 ? `${unit * 2} ${unit}` : undefined}
-						/>
-						<line
-							x1={midX - along[0] * unit * 3}
-							y1={midY - along[1] * unit * 3}
-							x2={midX + along[0] * unit * 3}
-							y2={midY + along[1] * unit * 3}
-							stroke="currentColor"
-							strokeWidth={unit * 0.5}
-							markerEnd="url(#travel)"
-						/>
-						<text
-							x={midX + along[1] * unit * 4}
-							y={midY - along[0] * unit * 4}
-							fontSize={unit * 2.6}
-							textAnchor="middle"
-							dominantBaseline="middle"
-							className="fill-foreground font-mono"
-						>
-							{windWord(straight)}
-						</text>
-					</g>
-				);
-			})}
-			<g className="text-muted-foreground">
-				<line
-					x1={corner.x}
-					y1={corner.y}
-					x2={corner.x + north[0] * unit * 4}
-					y2={corner.y + north[1] * unit * 4}
+		<figure className="flex flex-col gap-2">
+			<svg
+				viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
+				className="text-foreground h-auto max-h-80 w-full"
+			>
+				<title>{`The circuit, with the wind from the ${compassPoint(windFromDeg)}`}</title>
+				<defs>
+					<marker
+						id={markerId}
+						viewBox="0 0 6 6"
+						refX="3"
+						refY="3"
+						markerWidth="4"
+						markerHeight="4"
+						orient="auto"
+					>
+						<path d="M0,0 L6,3 L0,6 z" fill="currentColor" />
+					</marker>
+				</defs>
+				<polyline
+					points={points.map(([x, y]) => `${x},${y}`).join(' ')}
+					fill="none"
 					stroke="currentColor"
-					strokeWidth={unit * 0.4}
-					markerEnd="url(#travel)"
+					strokeOpacity={0.3}
+					strokeWidth={unit * 0.6}
+					strokeLinejoin="round"
 				/>
-				<text
-					x={corner.x + north[0] * unit * 6}
-					y={corner.y + north[1] * unit * 6}
-					fontSize={unit * 2.4}
-					textAnchor="middle"
-					dominantBaseline="middle"
-					className="fill-muted-foreground font-mono"
-				>
-					N
-				</text>
-			</g>
-			<line
-				x1={box.x + box.width - unit * 6 - blowing[0] * unit * 4}
-				y1={box.y + unit * 6 - blowing[1] * unit * 4}
-				x2={box.x + box.width - unit * 6 + blowing[0] * unit * 4}
-				y2={box.y + unit * 6 + blowing[1] * unit * 4}
-				stroke="var(--flag)"
-				strokeWidth={unit * 0.8}
-				markerEnd="url(#wind)"
-			/>
-			<defs>
-				<marker
-					id="travel"
-					viewBox="0 0 6 6"
-					refX="3"
-					refY="3"
-					markerWidth="4"
-					markerHeight="4"
-					orient="auto"
-				>
-					<path d="M0,0 L6,3 L0,6 z" fill="currentColor" />
-				</marker>
-				<marker
-					id="wind"
-					viewBox="0 0 6 6"
-					refX="3"
-					refY="3"
-					markerWidth="3"
-					markerHeight="3"
-					orient="auto"
-				>
-					<path d="M0,0 L6,3 L0,6 z" fill="var(--flag)" />
-				</marker>
-			</defs>
-		</svg>
+				{winds.map((straight) => {
+					const run = stretch(straight.startM, straight.endM);
+					const [midX, midY] = turn(straight.midX, straight.midY);
+					const along = screenVector(turn, straight.bearingDeg);
+					// The label goes on the side of the straight away from the middle of the circuit.
+					const side = along[1] * (midX - centre.x) - along[0] * (midY - centre.y) >= 0 ? 1 : -1;
+					const across = [along[1] * side, -along[0] * side] as const;
+					const anchor = Math.abs(across[0]) < 0.5 ? 'middle' : across[0] > 0 ? 'start' : 'end';
+
+					return (
+						<g key={straight.startM}>
+							<polyline
+								points={run.map(([x, y]) => `${x},${y}`).join(' ')}
+								fill="none"
+								stroke="currentColor"
+								strokeWidth={unit * (Math.abs(straight.headwindMs) < 0.3 ? 1 : 1.6)}
+								strokeDasharray={straight.headwindMs < 0 ? `${unit * 2} ${unit}` : undefined}
+							/>
+							<line
+								x1={midX - along[0] * unit * 3}
+								y1={midY - along[1] * unit * 3}
+								x2={midX + along[0] * unit * 3}
+								y2={midY + along[1] * unit * 3}
+								stroke="currentColor"
+								strokeWidth={unit * 0.5}
+								markerEnd={`url(#${CSS.escape(markerId)})`}
+							/>
+							<text
+								x={midX + across[0] * unit * 3}
+								y={midY + across[1] * unit * 3}
+								fontSize={unit * 2.6}
+								textAnchor={anchor}
+								dominantBaseline={
+									across[1] > 0.5 ? 'hanging' : across[1] < -0.5 ? 'auto' : 'middle'
+								}
+								className="fill-foreground font-mono"
+							>
+								{windWord(straight)}
+							</text>
+						</g>
+					);
+				})}
+			</svg>
+			<figcaption className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+				<span className="flex items-center gap-1.5">
+					<LegendArrow direction={screenVector(turn, 0)} className="text-muted-foreground" />
+					North
+				</span>
+				<span className="flex items-center gap-1.5">
+					<LegendArrow
+						direction={screenVector(turn, windFromDeg + 180)}
+						className="text-flag-ink"
+					/>
+					Wind, {windSpeedMs.toFixed(1)} m/s from the {compassPoint(windFromDeg)}
+				</span>
+			</figcaption>
+		</figure>
 	);
 }
 
@@ -246,7 +248,7 @@ export function ConditionsPanel() {
 			data-testid="conditions"
 			className={cn('min-h-0', fill && 'h-full')}
 		>
-			<PanelHeader title="Conditions" meta={sample ? `Lap ${sample.lap}` : undefined}>
+			<PanelHeader title="Conditions" meta={sample && !timed ? `Lap ${sample.lap}` : undefined}>
 				<TableKey table={table} onTableChange={setTable} />
 			</PanelHeader>
 			<div className={cn('flex flex-col gap-4 p-4', fill && 'min-h-0 flex-1 overflow-y-auto')}>
@@ -295,7 +297,12 @@ export function ConditionsPanel() {
 										}))}
 									/>
 								) : (
-									<WindMap outline={outline} winds={winds} windFromDeg={sample.windDirectionDeg} />
+									<WindMap
+										outline={outline}
+										winds={winds}
+										windFromDeg={sample.windDirectionDeg}
+										windSpeedMs={sample.windSpeedMs}
+									/>
 								)}
 							</section>
 							{timed ? null : (
@@ -355,7 +362,7 @@ export function ConditionsPanel() {
 													axisLine={false}
 													width={36}
 													domain={['auto', 'auto']}
-													tickFormatter={(value: number) => `${value.toFixed(0)}°`}
+													tickFormatter={(value: number) => `${value.toFixed(1)}°`}
 												/>
 												<YAxis
 													yAxisId="pace"
@@ -402,9 +409,9 @@ export function ConditionsPanel() {
 							<p className="text-muted-foreground text-xs">
 								Straights are where the outline turns less than three degrees per 100 m; arrows show
 								the direction of travel, solid straights run into the wind and dashed ones have it
-								behind. The yellow arrow is where the wind blows. The pace is the field’s median
-								clean lap with the fuel burnt added back; it moves with the track temperature, but
-								also with grip building up as the race goes on.
+								behind. The pace is the field’s median clean lap with the fuel burnt added back; it
+								moves with the track temperature, but also with grip building up as the race goes
+								on.
 							</p>
 						</>
 					)}

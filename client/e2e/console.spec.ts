@@ -47,7 +47,7 @@ test('the analysis chart switches metric', async ({ page }) => {
 	await expect(page.getByTestId('chart-battle')).toBeVisible();
 });
 
-for (const path of ['/', '/analysis', '/strategy']) {
+for (const path of ['/', '/analysis', '/strategy', '/d/story']) {
 	test(`phones never scroll sideways on ${path}`, async ({ page }) => {
 		await page.setViewportSize({ width: 360, height: 800 });
 		await openRace(page, path);

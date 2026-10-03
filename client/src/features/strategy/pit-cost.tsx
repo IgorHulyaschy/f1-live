@@ -94,7 +94,7 @@ export function PitCost() {
 						/>
 					) : (
 						<figure className="flex flex-col gap-1">
-							<div className="relative h-16 border-b" aria-hidden>
+							<div className="relative h-16 overflow-hidden border-b" aria-hidden>
 								<span className="bg-rule-strong absolute inset-y-0 left-1/2 w-px" />
 								{costed.map((entry, index) => {
 									const driver = drivers.get(entry.stop.driverNumber);
