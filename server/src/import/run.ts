@@ -84,7 +84,17 @@ async function loadSeasons(selection: Selection, options: ImportOptions): Promis
 			? selection.years
 			: Array.from({ length: thisYear - FIRST_SEASON + 1 }, (_, index) => thisYear - index);
 
-	const files = await mapLimited(years, 3, (year) => fetchSeasonIndex(year, rawDir));
+	const files = await mapLimited(years, 3, async (year) => {
+		try {
+			return await fetchSeasonIndex(year, rawDir);
+		} catch (error) {
+			const reason = error instanceof Error ? error.message : String(error);
+
+			options.log(`season ${year}: kept the saved index: ${reason}`);
+
+			return null;
+		}
+	});
 
 	options.log(
 		`season indexes: ${files.filter((file) => file !== null).length} of ${years.length} fetched`
@@ -260,7 +270,9 @@ async function importFromArchive(
 				? await ingestRaw(target, options, fetched.get(target.key)?.downloaded ?? 0)
 				: { key: target.key, label: target.label, result: null, failure, downloadedFiles: 0 }
 		);
-		options.log(`ingested ${target.label} (${target.key})`);
+		options.log(
+			`${failure === null ? 'ingested' : 'not ingested:'} ${target.label} (${target.key})`
+		);
 	}
 
 	return { outcomes, skipped: chosen.skipped };

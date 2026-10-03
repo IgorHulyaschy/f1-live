@@ -29,6 +29,11 @@ export function parseSessionResult(text: string): SessionResultRow[] {
 /** Penalties come in whole seconds; a difference further from one than this is not a penalty. */
 const WHOLE_SECOND_TOLERANCE_MS = 300;
 
+/** Fewer cars than this give no reliable common difference; more than this is not a penalty. */
+const MIN_TIMED_CARS = 3;
+
+const MAX_PENALTY_SECONDS = 60;
+
 interface Timed {
 	driverNumber: string;
 	/** The official race time less the reference car's, in milliseconds. */
@@ -94,6 +99,10 @@ function timePenalties(
 		differenceMs: car.officialMs - car.feedMs
 	}));
 
+	if (cars.length < MIN_TIMED_CARS) {
+		return [];
+	}
+
 	const common = mostCommon(cars.map((car) => Math.round(car.differenceMs / 1000)));
 
 	return cars.flatMap((car) => {
@@ -101,7 +110,9 @@ function timePenalties(
 		const seconds = Math.round(extraMs / 1000);
 		const isWholeSeconds = Math.abs(extraMs - seconds * 1000) <= WHOLE_SECOND_TOLERANCE_MS;
 
-		return seconds !== 0 && isWholeSeconds ? [{ driverNumber: car.driverNumber, seconds }] : [];
+		return seconds !== 0 && Math.abs(seconds) <= MAX_PENALTY_SECONDS && isWholeSeconds
+			? [{ driverNumber: car.driverNumber, seconds }]
+			: [];
 	});
 }
 

@@ -136,6 +136,21 @@ describe('correctionsFromResult', () => {
 		assert.deepEqual(correctionsFromResult(rows, FEED, END), []);
 	});
 
+	it('finds no penalty with fewer than three timed cars, or one beyond a minute', () => {
+		assert.deepEqual(
+			correctionsFromResult(parse([row(1, 4800), row(63, 4815)]), FEED.slice(0, 2), END),
+			[]
+		);
+		assert.deepEqual(
+			correctionsFromResult(
+				parse([row(1, 4800), row(63, 4810), row(12, 4820), row(16, 4900)]),
+				FEED,
+				END
+			),
+			[]
+		);
+	});
+
 	it('rejects a response that is not a session result', () => {
 		assert.throws(() => parseSessionResult('{"detail":"No results found."}'));
 	});

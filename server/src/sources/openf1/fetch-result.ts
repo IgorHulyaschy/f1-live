@@ -1,8 +1,5 @@
-import { mkdir, writeFile } from 'node:fs/promises';
-import path from 'node:path';
-
 import { fetchPolitely } from '../../pkg/http.js';
-import { openF1CacheOf } from '../../sinks/files.js';
+import { openF1CacheOf, writeAtomic } from '../../sinks/files.js';
 import { OPENF1_URL, parseSessionResult } from './session-result.js';
 
 /**
@@ -31,10 +28,7 @@ export async function fetchMeetingResults(
 		const own = rows.filter((row) => row.session_key === key);
 
 		if (own.length > 0) {
-			const file = openF1CacheOf(dataDir, key);
-
-			await mkdir(path.dirname(file), { recursive: true });
-			await writeFile(file, JSON.stringify(own));
+			await writeAtomic(openF1CacheOf(dataDir, key), JSON.stringify(own));
 			saved.push(key);
 		}
 	}

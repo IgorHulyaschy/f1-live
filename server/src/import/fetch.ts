@@ -74,8 +74,20 @@ function listedFiles(indexText: string): string[] {
 	return ['Index.json', ...Object.values(Feeds).map((feed) => feed.StreamPath)];
 }
 
+function settledAt(target: ImportTarget): number {
+	return Date.parse(target.endsAt) + SETTLE_MS;
+}
+
 function isSettled(target: ImportTarget, now: Date): boolean {
-	return Date.parse(target.endsAt) + SETTLE_MS < now.getTime();
+	return settledAt(target) < now.getTime();
+}
+
+/** A file saved after the session settled is final; one saved while it ran may be cut short. */
+async function isFinal(file: string, target: ImportTarget): Promise<boolean> {
+	return stat(file).then(
+		(info) => info.mtimeMs >= settledAt(target),
+		() => false
+	);
 }
 
 /** True when a settled session has every file its saved Index.json lists, so it needs no request. */
@@ -91,7 +103,7 @@ async function isComplete(directory: string, target: ImportTarget, now: Date): P
 	}
 
 	const present = await Promise.all(
-		listedFiles(index).map((file) => exists(path.join(directory, file)))
+		listedFiles(index).map((file) => isFinal(path.join(directory, file), target))
 	);
 
 	return present.every(Boolean);
@@ -129,14 +141,18 @@ export async function fetchSession(
 	const wanted = await Promise.all(
 		files
 			.slice(1)
-			.map(async (file) => ((await exists(path.join(directory, file))) && settled ? null : file))
+			.map(async (file) =>
+				(await isFinal(path.join(directory, file), target)) && settled ? null : file
+			)
 	);
 
 	await mapLimited(
 		wanted.filter((file) => file !== null),
 		FILES_AT_ONCE,
 		async (file) => {
-			bytes += await downloadFile(`${url}${file}`, path.join(directory, file));
+			const size = await downloadFile(`${url}${file}`, path.join(directory, file));
+
+			bytes += size;
 			downloaded += 1;
 		}
 	);

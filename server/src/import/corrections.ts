@@ -41,7 +41,7 @@ export function mergeCorrections(
 	return merged.toSorted(
 		(a, b) =>
 			a.at.localeCompare(b.at) ||
-			a.correction.driverNumber.localeCompare(b.correction.driverNumber) ||
+			Number(a.correction.driverNumber) - Number(b.correction.driverNumber) ||
 			a.correction.kind.localeCompare(b.correction.kind)
 	);
 }

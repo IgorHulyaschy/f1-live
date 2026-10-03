@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -136,6 +136,25 @@ describe('fetchSession', () => {
 		requests = [];
 
 		assert.equal((await fetchSession(TARGET, root, justAfter, baseUrl)).downloaded, 3);
+	});
+
+	it('fetches again a file saved while the session ran, once the session has settled', async () => {
+		const root = newRoot();
+
+		await fetchSession(TARGET, root, SETTLED, baseUrl);
+
+		const cutShort = new Date('2025-01-01T15:00:00Z');
+
+		utimesSync(path.join(root, TARGET.path, 'TimingData.jsonStream'), cutShort, cutShort);
+		requests = [];
+
+		const stats = await fetchSession(TARGET, root, SETTLED, baseUrl);
+
+		assert.equal(stats.downloaded, 2);
+		assert.deepEqual(requests.toSorted(), [
+			`/${TARGET.path}/Index.json`,
+			`/${TARGET.path}/TimingData.jsonStream`
+		]);
 	});
 
 	it('says the archive has nothing for a session it answers 403 for', async () => {

@@ -9,6 +9,9 @@ export interface RetryPolicy {
 
 export const POLITE_RETRY: RetryPolicy = { attempts: 5, baseDelayMs: 1000 };
 
+/** A stalled connection or body fails after this and is tried again. */
+const REQUEST_TIMEOUT_MS = 120_000;
+
 /** Statuses worth another try: the server is busy or limiting us. */
 const RETRYABLE = new Set([408, 425, 429, 500, 502, 503, 504]);
 
@@ -35,7 +38,7 @@ export async function fetchPolitely(
 		let delayMs = policy.baseDelayMs * 2 ** (attempt - 1);
 
 		try {
-			const response = await fetch(url);
+			const response = await fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
 
 			if (!RETRYABLE.has(response.status)) {
 				return response;

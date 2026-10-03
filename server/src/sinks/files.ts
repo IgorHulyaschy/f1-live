@@ -53,7 +53,7 @@ export function errorsPathOf(dataDir: string, key: number): string {
 }
 
 /** Writes through a temporary file, so a reader never sees half a file. */
-async function writeAtomic(file: string, content: string | Uint8Array): Promise<void> {
+export async function writeAtomic(file: string, content: string | Uint8Array): Promise<void> {
 	await mkdir(path.dirname(file), { recursive: true });
 
 	const temporary = `${file}.tmp`;
@@ -120,7 +120,7 @@ export async function outputKeys(
 	const names = await readdir(path.join(outDirOf(dataDir), folder)).catch(() => []);
 
 	return names.flatMap((name) => {
-		const key = /^(\d+)\.json/.exec(name)?.[1];
+		const key = /^(\d+)\.jsonl?\.gz$/.exec(name)?.[1];
 
 		return key === undefined ? [] : [Number(key)];
 	});

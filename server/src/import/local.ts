@@ -24,7 +24,9 @@ async function isSessionDir(directory: string): Promise<boolean> {
 async function recordedKey(directory: string): Promise<number | null> {
 	const text = await readFile(path.join(directory, '_recording.json'), 'utf8').catch(() => null);
 
-	return text === null ? null : recordingSchema.parse(JSON.parse(text)).key;
+	const recording = recordingSchema.safeParse(text === null ? null : JSON.parse(text));
+
+	return recording.success ? recording.data.key : null;
 }
 
 /** Every folder under `root` that holds `.jsonStream` files, in path order. */
