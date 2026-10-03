@@ -13,7 +13,7 @@ Working name only; the product must not use "F1" or "Formula 1" in its brand.
 | **Library**                                                                                        | **Drivers**                                                                                    |
 | ![Ready-made and fan dashboards with layout thumbnails](docs/screenshots/library-desktop-dark.png) | ![Grid of driver plates, driver card and positions](docs/screenshots/drivers-desktop-dark.png) |
 
-More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](docs/screenshots.md).
+More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](docs/screenshots.md). The whole dashboard flow, step by step: [docs/flow.md](docs/flow.md).
 
 ## Dashboards
 
@@ -159,6 +159,11 @@ checkout runs on a fixed port never answers in its place. It then checks:
 - Lighthouse on `/`, `/analysis` and `/library`, mobile and desktop: performance 90 or more,
   accessibility, best practices and SEO 95 or more, judged on the median of three runs
   (`client/lighthouserc.json`). Reports land in `client/.lighthouseci/`.
+
+The local run is the strict one: every score is a hard limit, on a stable machine before a release.
+On CI (a shared 2-core runner, where mobile performance scores 59-79 against 89-95 on a Mac) mobile
+performance only warns; the other scores, desktop performance and the size budget still fail the
+job, and the score table goes to the job summary.
 
 `npm run test:e2e` also runs axe on every main route in both themes and fails on any serious or
 critical violation (`client/e2e/accessibility.spec.ts`), and covers the production build's

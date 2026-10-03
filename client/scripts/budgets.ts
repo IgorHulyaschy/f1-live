@@ -9,10 +9,14 @@
  *    like a static host (serve-dist.ts); lighthouserc.json holds the score thresholds. Then a
  *    table of the median run's scores.
  *
+ * Locally every score is a hard limit. On CI (a shared 2-core runner) mobile performance only warns;
+ * the other scores, desktop performance and the size budget still fail the job, and the score table
+ * goes to the job summary.
+ *
  * Reports land in client/.lighthouseci/<form factor>/ and are not committed.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { appendFile, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 import { chromium } from '@playwright/test';
@@ -32,6 +36,21 @@ const CLIENT_DIR = fileURLToPath(new URL('..', import.meta.url));
 const OUT_DIR = 'dist-budget';
 
 const FORM_FACTORS = ['mobile', 'desktop'] as const;
+
+/**
+ * Ubuntu 24.04 runners forbid the unprivileged user namespaces Chrome's sandbox needs, so Chrome
+ * launched outside Playwright dies on start there. The flags replace the ones in
+ * lighthouserc.json, so they repeat them; macOS keeps the config's own.
+ */
+const LINUX_CHROME_FLAGS =
+	'--headless=new --ignore-certificate-errors --no-sandbox --disable-dev-shm-usage';
+
+/**
+ * Mobile performance is a warning on CI: a shared 2-core runner scores 59-79 where the owner's Mac
+ * scores 89-95, from long tasks alone, so there it is noise. Everything else stays an error, and
+ * the local run stays strict.
+ */
+const MOBILE_RC = `${OUT_DIR}/lighthouserc.mobile-ci.json`;
 
 const ROUTES = ['/', '/analysis', '/library'] as const;
 
@@ -101,7 +120,9 @@ async function scoreTable(): Promise<string> {
 	const rows = await Promise.all(
 		FORM_FACTORS.map(async (formFactor) => {
 			const manifest: ManifestEntry[] = JSON.parse(
-				await readFile(`${CLIENT_DIR}.lighthouseci/${formFactor}/manifest.json`, 'utf8')
+				await readFile(`${CLIENT_DIR}.lighthouseci/${formFactor}/manifest.json`, 'utf8').catch(
+					() => '[]'
+				)
 			);
 
 			return manifest.flatMap((entry) =>
@@ -111,6 +132,19 @@ async function scoreTable(): Promise<string> {
 	);
 
 	return ['form     route       perf a11y  b-p  seo', ...rows.flat()].join('\n');
+}
+
+async function hasReports(): Promise<boolean> {
+	const reads = await Promise.all(
+		FORM_FACTORS.map((formFactor) =>
+			readFile(`${CLIENT_DIR}.lighthouseci/${formFactor}/manifest.json`).then(
+				() => true,
+				() => false
+			)
+		)
+	);
+
+	return reads.some(Boolean);
 }
 
 const built = run(
@@ -134,6 +168,14 @@ const server = await serveDist(`${CLIENT_DIR}${OUT_DIR}`);
 
 const lighthouseOk: boolean[] = [];
 
+if (process.env.CI) {
+	const rc = JSON.parse(await readFile(`${CLIENT_DIR}lighthouserc.json`, 'utf8'));
+	const [, options] = rc.ci.assert.assertions['categories:performance'];
+
+	rc.ci.assert.assertions['categories:performance'] = ['warn', options];
+	await writeFile(`${CLIENT_DIR}${MOBILE_RC}`, JSON.stringify(rc));
+}
+
 try {
 	for (const formFactor of FORM_FACTORS) {
 		lighthouseOk.push(
@@ -143,9 +185,12 @@ try {
 				[
 					'lhci',
 					'autorun',
-					'--config=lighthouserc.json',
+					`--config=${formFactor === 'mobile' && process.env.CI ? MOBILE_RC : 'lighthouserc.json'}`,
 					`--upload.outputDir=.lighthouseci/${formFactor}`,
 					...ROUTES.map((route) => `--collect.url=${server.origin}${route}`),
+					...(process.platform === 'linux'
+						? [`--collect.settings.chromeFlags=${LINUX_CHROME_FLAGS}`]
+						: []),
 					...(formFactor === 'desktop' ? ['--collect.settings.preset=desktop'] : [])
 				],
 				{ CHROME_PATH: chromePath }
@@ -156,7 +201,19 @@ try {
 	await server.close();
 }
 
-console.warn(`\n${await scoreTable()}`);
+const table = await scoreTable();
+
+console.warn(`\n${table}`);
+
+if (process.env.GITHUB_STEP_SUMMARY) {
+	await appendFile(process.env.GITHUB_STEP_SUMMARY, `\`\`\`\n${table}\n\`\`\`\n`);
+}
+
+if (!lighthouseOk.every(Boolean) && !(await hasReports())) {
+	console.error(
+		'Lighthouse wrote no report. If the log above shows Chrome dying on launch (for example "No usable sandbox"), the runs never started.'
+	);
+}
 
 if (!bundleOk || !lighthouseOk.every(Boolean)) {
 	console.error('Budgets failed: see the size line and the Lighthouse assertions above.');
