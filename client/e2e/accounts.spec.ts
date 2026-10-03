@@ -35,6 +35,9 @@ test('an account syncs dashboards, holds the Free limit, goes Pro and can be del
 	page,
 	browser
 }) => {
+	// One journey through two browsers and a checkout: longer than a page check.
+	test.slow();
+
 	const email = testEmail('fan');
 
 	await openRace(page, '/library');

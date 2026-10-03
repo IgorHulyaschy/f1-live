@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import type { PaymentProvider, WebhookNotice } from '../payments/provider.js';
 import type { EventLog } from '../sources/f1/live.js';
 import type { AccountsDatabase } from './db/database.js';
-import { subscription, user } from './db/schema.js';
+import { deletedAccount, subscription, user } from './db/schema.js';
 
 /**
  * Records what a webhook is about. The event only names the subscription; its state is read
@@ -31,15 +31,22 @@ export async function applyWebhook(
 		: [];
 
 	if (!owner) {
+		const [deleted] = userId
+			? await db
+					.select({ userId: deletedAccount.userId })
+					.from(deletedAccount)
+					.where(eq(deletedAccount.userId, userId))
+			: [];
+
 		// Bought for an account deleted before this event arrived: nobody may be billed for it.
-		if (userId && state.status !== 'canceled') {
+		if (deleted && state.status !== 'canceled') {
 			await provider.cancelSubscription(state.subscriptionId);
 			log('billing-orphan-cancelled', { subscription: state.subscriptionId });
 
 			return;
 		}
 
-		// Ended already, or bought outside the app: nothing to update.
+		// Ended already, or not this server's (another product, another deployment): leave it.
 		log('billing-webhook-ignored', { event: notice.eventId, subscription: state.subscriptionId });
 
 		return;

@@ -3,7 +3,7 @@ import { and, eq, isNotNull, sql } from 'drizzle-orm';
 
 import { type PaymentProvider, PaymentProviderError } from '../payments/provider.js';
 import type { AccountsDatabase } from './db/database.js';
-import { account, dashboard, session, user, verification } from './db/schema.js';
+import { account, dashboard, deletedAccount, session, user, verification } from './db/schema.js';
 import { isLive, subscriptionsOf } from './entitlements.js';
 
 /** Everything the account server holds about a person, minus secrets such as session tokens. */
@@ -122,11 +122,15 @@ export async function deleteAccount(
 
 	await db.transaction(async (tx) => {
 		if (person) {
+			// Links keep the address as it was typed; accounts keep it in lower case.
 			await tx
 				.delete(verification)
-				.where(sql`strpos(${verification.value}, ${JSON.stringify(person.email)}) > 0`);
+				.where(
+					sql`strpos(lower(${verification.value}), ${JSON.stringify(person.email.toLowerCase())}) > 0`
+				);
 		}
 
 		await tx.delete(user).where(eq(user.id, userId));
+		await tx.insert(deletedAccount).values({ userId }).onConflictDoNothing();
 	});
 }

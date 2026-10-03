@@ -45,6 +45,8 @@ export function createAuth(config: AccountsConfig, db: AccountsDatabase, mailer:
 				}
 			})
 		],
+		// Better Auth would key this on NODE_ENV alone; production rules here also cover public URLs.
+		rateLimit: { enabled: config.production },
 		telemetry: { enabled: false }
 	});
 }

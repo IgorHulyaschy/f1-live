@@ -57,11 +57,11 @@ async function proAccount(id: string, provider: FakeProvider): Promise<string> {
 	const { db } = database;
 
 	await db.insert(user).values({ id, name: 'Fan', email: `${id}@example.test` });
-	// An unused sign-in link, stored the way Better Auth's magic link stores it.
+	// An unused sign-in link, stored the way Better Auth's magic link stores it: as typed.
 	await db.insert(verification).values({
 		id: `${id}-link`,
 		identifier: `${id}-link-token`,
-		value: JSON.stringify({ email: `${id}@example.test`, attempt: 0 }),
+		value: JSON.stringify({ email: `${id}@Example.TEST`, attempt: 0 }),
 		expiresAt: new Date(NOW.getTime() + 300_000)
 	});
 	await db.insert(session).values({
@@ -200,6 +200,38 @@ describe('deleteAccount', () => {
 
 		assert.equal((await provider.getSubscription(paid[0] ?? '')).status, 'canceled');
 		assert.equal((await rowsOf('gone')).subscriptions, 0);
+	});
+
+	it('leaves alone a payment for an account this server never had', async () => {
+		const paid: string[] = [];
+
+		const provider: FakeProvider = new FakeProvider({
+			publicUrl: 'http://app.test',
+			webhookSecret: 'unit-test-webhook-secret',
+			statePath: null,
+			now: () => NOW,
+			deliver: async (payload, signature) => {
+				const notice = await provider.parseWebhook(payload, { [FAKE_SIGNATURE_HEADER]: signature });
+
+				if (notice) {
+					paid.push(notice.subscriptionId);
+					await applyWebhook(database.db, provider, notice, quiet);
+				}
+			}
+		});
+
+		const { url } = await provider.createCheckout({
+			userId: 'another-products-customer',
+			email: 'someone@example.test',
+			interval: 'month',
+			customerId: null,
+			successUrl: 'http://app.test/account?checkout=success',
+			cancelUrl: 'http://app.test/account?checkout=cancelled'
+		});
+
+		await provider.pay(url.split('/').at(-1) ?? '');
+
+		assert.equal((await provider.getSubscription(paid[0] ?? '')).status, 'active');
 	});
 
 	it('deletes nothing when the provider cannot end the subscription', async () => {

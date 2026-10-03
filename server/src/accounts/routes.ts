@@ -20,6 +20,8 @@ const DASHBOARD_BODY_LIMIT = 256 * 1024;
 
 const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
+const LOOPBACK_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+
 /** Better Auth checks its own origins (and Apple posts back from its own); webhooks are signed. */
 const OWN_ORIGIN_CHECK = ['/api/auth/', WEBHOOK_PATH];
 
@@ -317,6 +319,11 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 
 		if (devMailbox) {
 			scope.get('/api/dev/mailbox', async (request, reply) => {
+				// Sign-in links for any address: only ever for this machine.
+				if (!LOOPBACK_IPS.has(request.ip)) {
+					throw new HttpError(404, 'not_found', 'Not here');
+				}
+
 				const { to } = mailboxQuery.parse(request.query);
 				const link = devMailbox.lastLink(to);
 

@@ -109,6 +109,15 @@ export const dashboard = accountsSchema.table(
 	(table) => [primaryKey({ columns: [table.userId, table.id] })]
 );
 
+/**
+ * Accounts deleted here, by id only: a payment that lands for one of them afterwards is
+ * cancelled, while events naming an id this server never had are left alone.
+ */
+export const deletedAccount = accountsSchema.table('deleted_account', {
+	userId: text('user_id').primaryKey(),
+	deletedAt: timestamp('deleted_at', { withTimezone: true }).defaultNow().notNull()
+});
+
 /** The payment provider's view of a subscription, refreshed from every webhook. */
 export const subscription = accountsSchema.table(
 	'subscription',

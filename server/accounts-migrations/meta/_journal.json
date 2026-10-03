@@ -8,6 +8,13 @@
       "when": 1790985318539,
       "tag": "0000_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791002832235,
+      "tag": "0001_deleted_accounts",
+      "breakpoints": true
     }
   ]
 }
