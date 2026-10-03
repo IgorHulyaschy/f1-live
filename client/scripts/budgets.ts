@@ -41,6 +41,14 @@ const FORM_FACTORS = ['mobile', 'desktop'] as const;
 const LINUX_CHROME_FLAGS =
 	'--headless=new --ignore-certificate-errors --no-sandbox --disable-dev-shm-usage';
 
+/**
+ * Lighthouse's mobile preset slows the CPU 4x from a reference machine. A 2-core Actions runner
+ * benchmarks at about 2100 against 3700 on the owner's Mac and, with Chrome and the static server
+ * sharing it, lost 30 points from long tasks alone. The multiplier brings the runner back to the
+ * reference machine; the score thresholds stay as they are.
+ */
+const LINUX_CPU_SLOWDOWN = 2;
+
 const ROUTES = ['/', '/analysis', '/library'] as const;
 
 type ManifestEntry = {
@@ -170,7 +178,10 @@ try {
 					`--upload.outputDir=.lighthouseci/${formFactor}`,
 					...ROUTES.map((route) => `--collect.url=${server.origin}${route}`),
 					...(process.platform === 'linux'
-						? [`--collect.settings.chromeFlags=${LINUX_CHROME_FLAGS}`]
+						? [
+								`--collect.settings.chromeFlags=${LINUX_CHROME_FLAGS}`,
+								`--collect.settings.throttling.cpuSlowdownMultiplier=${LINUX_CPU_SLOWDOWN}`
+							]
 						: []),
 					...(formFactor === 'desktop' ? ['--collect.settings.preset=desktop'] : [])
 				],
