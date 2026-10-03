@@ -90,6 +90,7 @@ const sessionInfoSchema = z
 		Name: z.string(),
 		StartDate: z.string(),
 		GmtOffset: z.string(),
+		Path: z.string(),
 		Meeting: z.object({
 			Name: z.string(),
 			Country: z.object({ Code: z.string() }),
@@ -1124,7 +1125,7 @@ export class F1Decoder {
 					kind: 'team_radio',
 					at: new Date(recorded).toISOString(),
 					driverNumber: capture.RacingNumber,
-					path: capture.Path
+					path: `${this.sessionInfo.Path ?? ''}${capture.Path}`
 				}
 			];
 		});

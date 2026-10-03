@@ -54,6 +54,7 @@ test.describe('the race', () => {
 			.getByTestId('undercut-exchange')
 			.filter({ hasText: 'PIA' })
 			.filter({ hasText: 'Answers L24' });
+
 		await expect(piastri).toContainText('Gained the place');
 		await expect(page.getByTestId('tyre-crossovers')).toContainText('A new medium is quicker');
 		await expect(page.getByTestId('pit-cost')).toContainText('21.6 s');

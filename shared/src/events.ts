@@ -172,7 +172,7 @@ export interface TeamRadioEvent {
 	kind: 'team_radio';
 	at: string;
 	driverNumber: string;
-	/** The clip inside the session's archive folder. */
+	/** The clip in the archive, from the season folder. */
 	path: string;
 }
 

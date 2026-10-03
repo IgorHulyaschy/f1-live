@@ -13,6 +13,7 @@ import {
 	storyMarks,
 	type StoryTone
 } from '@/insights/race-story';
+import { teamRadioUrl } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
@@ -90,6 +91,35 @@ function LaneCell({ lane, marks }: { lane: StoryLane; marks: readonly StoryMark[
 					)}
 				/>
 			))}
+		</span>
+	);
+}
+
+/** A lane's marks in the table: their text, radio clips as links where the deployment allows. */
+function laneCell(marks: readonly StoryMark[]): React.ReactNode {
+	if (marks.length === 0) {
+		return null;
+	}
+
+	return (
+		<span className="flex flex-wrap gap-x-2">
+			{marks.map((mark, index) => {
+				const url = mark.clip ? teamRadioUrl(mark.clip) : null;
+
+				return url ? (
+					<a
+						key={index}
+						href={url}
+						target="_blank"
+						rel="noreferrer"
+						className="underline underline-offset-2"
+					>
+						{mark.text}
+					</a>
+				) : (
+					<span key={index}>{mark.text}</span>
+				);
+			})}
 		</span>
 	);
 }
@@ -265,10 +295,7 @@ export function StoryRibbon() {
 										...Object.fromEntries(
 											lanes.map((lane) => [
 												lane,
-												stepMarks
-													.filter((mark) => mark.lane === lane)
-													.map((mark) => mark.text)
-													.join('; ') || null
+												laneCell(stepMarks.filter((mark) => mark.lane === lane))
 											])
 										)
 									}))}

@@ -45,6 +45,8 @@ export interface StoryMark {
 	driverNumber?: string;
 	text: string;
 	tone: StoryTone;
+	/** A radio clip's place in the archive. */
+	clip?: string;
 }
 
 const FLAG_TEXT: Record<Exclude<TrackStatus, 'green'>, string> = {
@@ -421,7 +423,8 @@ export function storyMarks(snapshot: RaceSnapshot): StoryMark[] {
 				step,
 				driverNumber: clip.driverNumber,
 				text: `${code(clip.driverNumber)} team radio`,
-				tone: 'radio'
+				tone: 'radio',
+				clip: clip.path
 			});
 		}
 	}

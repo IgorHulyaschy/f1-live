@@ -241,7 +241,7 @@ export interface Overtake {
 
 /**
  * A team radio clip the feed announced. The audio belongs to Formula 1, so a viewer is linked to
- * it only where the deployment allows; `path` is the clip inside the session's archive folder.
+ * it only where the deployment allows; `path` is the clip in the archive, from the season folder.
  */
 export interface TeamRadioClip {
 	driverNumber: string;

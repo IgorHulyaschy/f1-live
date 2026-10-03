@@ -552,17 +552,19 @@ describe('F1Decoder', () => {
 		);
 	});
 
-	it('announces team radio clips by car, without the audio (TeamRadio)', async () => {
+	it('announces team radio clips by car, where the archive keeps them (TeamRadio)', async () => {
+		const folder = '2025/2025-11-22_Las_Vegas_Grand_Prix/2025-11-22_Race/';
+
 		assert.deepEqual(
-			ofKind(decodeAll(await fixture('TeamRadio')), 'team_radio').map((event) => [
+			ofKind(decodeAll(await fixture('SessionInfo', 'TeamRadio')), 'team_radio').map((event) => [
 				event.driverNumber,
 				event.at,
 				event.path
 			]),
 			[
-				['4', '2025-11-23T03:27:47.321Z', 'TeamRadio/LANNOR01_4_20251122_192738.mp3'],
-				['16', '2025-11-23T04:22:40.153Z', 'TeamRadio/CHALEC01_16_20251122_202206.mp3'],
-				['6', '2025-11-23T04:23:42.636Z', 'TeamRadio/ISAHAD01_6_20251122_202314.mp3']
+				['4', '2025-11-23T03:27:47.321Z', `${folder}TeamRadio/LANNOR01_4_20251122_192738.mp3`],
+				['16', '2025-11-23T04:22:40.153Z', `${folder}TeamRadio/CHALEC01_16_20251122_202206.mp3`],
+				['6', '2025-11-23T04:23:42.636Z', `${folder}TeamRadio/ISAHAD01_6_20251122_202314.mp3`]
 			]
 		);
 	});
