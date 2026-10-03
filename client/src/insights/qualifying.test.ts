@@ -4,7 +4,7 @@ import { describe, it } from 'node:test';
 import { EMPTY_SNAPSHOT, type Lap, type RaceSnapshot, type SessionStatus } from '@f1-live/shared';
 
 import { snapshotAtTime } from '../data/snapshot-at-time.ts';
-import { cutLines, qualifyingProgress, secondPartCars } from './qualifying.ts';
+import { cutLines, qualifyingProgress, secondPartCars, sessionMinutes } from './qualifying.ts';
 import { standingsAt } from './standings.ts';
 
 const START_MS = Date.UTC(2026, 9, 3, 8, 0, 0);
@@ -276,5 +276,17 @@ describe('ranking a replayed qualifying session', () => {
 		const snapshot = qualifying(statuses.slice(0, 3));
 
 		assert.equal(qualifyingProgress(snapshot).running, false);
+	});
+});
+
+describe('sessionMinutes', () => {
+	it('counts a session that has just begun to its planned length', () => {
+		assert.equal(sessionMinutes('practice', 3), 60);
+		assert.equal(sessionMinutes('qualifying', 3), 60);
+		assert.equal(sessionMinutes('sprint_qualifying', 3), 44);
+	});
+
+	it('counts one that has run past it to the minutes it ran', () => {
+		assert.equal(sessionMinutes('qualifying', 68), 68);
 	});
 });

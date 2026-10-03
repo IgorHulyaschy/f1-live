@@ -89,7 +89,6 @@ test('qualifying is ordered by best lap, with the knockout lines', async ({ page
 	await expect(rows.nth(1)).toHaveAttribute('data-testid', 'timing-row-VER');
 	await expect(rows.nth(2)).toHaveAttribute('data-testid', 'timing-row-SAI');
 	await expect(rows.nth(0)).toContainText('Fastest');
-	await expect(page.getByTestId('lap-counter')).toHaveText(/^Min \d+\/60$/);
 	await expect(page.getByTestId('cut-line')).toHaveCount(2);
 	await expect(page.getByTestId('race-only').first()).toContainText('applies to races');
 });
