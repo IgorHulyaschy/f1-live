@@ -83,13 +83,13 @@ function LibraryRow({
 
 	return (
 		<li
-			className="flex flex-wrap items-center gap-x-4 gap-y-3 border-b py-3"
+			className="flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-3 border-b py-3"
 			data-testid="library-row"
 		>
 			<LayoutThumb dashboard={dashboard} />
 			<div className="flex min-w-48 flex-1 flex-col gap-1">
-				<span className="flex flex-wrap items-baseline gap-x-3">
-					<span className="type-wide text-sm font-bold">{dashboard.name}</span>
+				<span className="flex min-w-0 flex-wrap items-baseline gap-x-3">
+					<span className="type-wide max-w-full truncate text-sm font-bold">{dashboard.name}</span>
 					{by ? <span className="type-label">by @{by}</span> : null}
 				</span>
 				{description ? (
@@ -112,7 +112,7 @@ function LibraryRow({
 			</div>
 			{adds === undefined ? null : (
 				<span className="flex flex-col font-mono sm:w-20 sm:items-end">
-					<span className="text-sm font-bold">{adds.toLocaleString('en')}</span>
+					<span className="text-sm font-bold">{adds.toLocaleString()}</span>
 					<span className="type-label">adds</span>
 				</span>
 			)}
@@ -303,7 +303,7 @@ function DashboardPreview({ entry }: { entry: Omit<LibraryEntry, 'id'> | null })
 				>
 					<ArrowLeftIcon aria-hidden className="size-3.5" />
 				</Link>
-				<h1 className="type-wide text-sm font-bold">{entry.dashboard.name}</h1>
+				<h1 className="type-wide min-w-0 truncate text-sm font-bold">{entry.dashboard.name}</h1>
 				<span className="type-label">
 					{entry.author ? `Preview, by @${entry.author}` : 'Preview, shared with you'}
 				</span>

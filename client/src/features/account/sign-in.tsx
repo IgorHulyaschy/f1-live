@@ -80,8 +80,8 @@ export function SignInForm() {
 				</p>
 				<p className="text-muted-foreground text-sm">
 					We sent a sign-in link to{' '}
-					<span className="text-foreground font-medium">{step.email}</span>. It works once, for 5
-					minutes, on the device you open it on.
+					<span className="text-foreground font-medium break-all">{step.email}</span>. It works
+					once, for 5 minutes, on the device you open it on.
 				</p>
 				{config?.devMailbox ? (
 					<p className="type-label">Development server: the link is in its log</p>
@@ -112,6 +112,8 @@ export function SignInForm() {
 					type="email"
 					required
 					autoComplete="email"
+					name="email"
+					spellCheck={false}
 					value={email}
 					onChange={(event) => setEmail(event.target.value)}
 					placeholder="you@example.com"

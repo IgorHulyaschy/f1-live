@@ -190,6 +190,8 @@ function DashboardBar({
 			{editing ? (
 				<input
 					aria-label="Dashboard name"
+					name="dashboard-name"
+					autoComplete="off"
 					value={dashboard.name}
 					maxLength={40}
 					onChange={(event) => onChange({ ...dashboard, name: event.target.value })}
@@ -200,10 +202,10 @@ function DashboardBar({
 							onChange({ ...dashboard, name: name || 'Untitled' });
 						}
 					}}
-					className="type-wide border-rule-strong focus-visible:border-foreground h-9 w-56 border-b-2 bg-transparent text-sm font-bold outline-none sm:h-7"
+					className="type-wide border-rule-strong focus-visible:border-foreground h-9 w-56 max-w-full min-w-0 border-b-2 bg-transparent text-sm font-bold outline-none sm:h-7"
 				/>
 			) : (
-				<h1 className="type-wide text-sm font-bold">{dashboard.name}</h1>
+				<h1 className="type-wide min-w-0 truncate text-sm font-bold">{dashboard.name}</h1>
 			)}
 			{editing ? (
 				<span className="type-label" data-testid="save-status">

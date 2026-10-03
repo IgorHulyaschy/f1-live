@@ -54,7 +54,7 @@ function StintBar({
 					onClick={onOpen}
 					aria-label={`${compoundName(stint.compound)}, laps ${stint.startLap} to ${stint.endLap}: open the driver's session`}
 					className={cn(
-						'absolute inset-y-0.5 left-(--offset) w-(--size) cursor-pointer transition-all duration-500 hover:brightness-125',
+						'absolute inset-y-0.5 left-(--offset) w-(--size) cursor-pointer transition duration-500 hover:brightness-125',
 						BAR_CLASS[stint.compound],
 						ongoing && 'border-r-focus border-r-2'
 					)}
