@@ -1,8 +1,8 @@
 # Track map performance
 
 The maps hold 60 fps while a replay plays at 1× and 10× on the Pit wall preset at 2560 px, with
-the main thread busy 6% of the time, and still about 59 fps with the CPU slowed four times. Six
-maps at once (the Track preset) hold 58 to 60 fps.
+the main thread busy about 5% of the time, and still about 58.5 fps with the CPU slowed four
+times. Six maps at once (the Track preset) hold 59 to 60 fps.
 
 ## Method
 
@@ -20,21 +20,21 @@ maps at once (the Track preset) hold 58 to 60 fps.
 
 | Speed | Pixel ratio | CPU | fps  | Slowest frame | Main thread busy | Script | Map draw per frame |
 | ----- | ----------- | --- | ---- | ------------- | ---------------- | ------ | ------------------ |
-| 1×    | 1           | ×1  | 60.0 | 17 ms         | 5.7%             | 1.9%   | 0.29 ms            |
-| 10×   | 1           | ×1  | 59.9 | 33 ms         | 5.7%             | 1.9%   | 0.29 ms            |
-| 1×    | 2           | ×1  | 60.0 | 17 ms         | 11.2%            | 2.1%   | 0.33 ms            |
-| 10×   | 2           | ×1  | 60.0 | 17 ms         | 10.9%            | 2.1%   | 0.31 ms            |
-| 1×    | 1           | ×4  | 59.3 | 100 ms        | 24.3%            | 8.4%   | 1.30 ms            |
-| 10×   | 1           | ×4  | 59.0 | 133 ms        | 24.1%            | 8.0%   | 1.29 ms            |
-| 1×    | 2           | ×4  | 58.7 | 167 ms        | 42.7%            | 7.6%   | 1.18 ms            |
-| 10×   | 2           | ×4  | 58.4 | 217 ms        | 44.4%            | 8.5%   | 1.36 ms            |
+| 1×    | 1           | ×1  | 60.0 | 17 ms         | 5.2%             | 1.5%   | 0.24 ms            |
+| 10×   | 1           | ×1  | 60.0 | 17 ms         | 5.6%             | 1.7%   | 0.26 ms            |
+| 1×    | 2           | ×1  | 59.9 | 33 ms         | 10.3%            | 1.7%   | 0.26 ms            |
+| 10×   | 2           | ×1  | 59.6 | 50 ms         | 13.3%            | 2.5%   | 0.39 ms            |
+| 1×    | 1           | ×4  | 58.6 | 183 ms        | 25.7%            | 8.9%   | 1.38 ms            |
+| 10×   | 1           | ×4  | 58.8 | 133 ms        | 25.4%            | 8.4%   | 1.32 ms            |
+| 1×    | 2           | ×4  | 58.5 | 200 ms        | 46.0%            | 8.9%   | 1.33 ms            |
+| 10×   | 2           | ×4  | 58.3 | 233 ms        | 45.9%            | 8.2%   | 1.30 ms            |
 
 ## Track preset: six maps at once
 
 | Speed | Pixel ratio | CPU | fps  | Main thread busy | Map draws a second | Draw per map frame |
 | ----- | ----------- | --- | ---- | ---------------- | ------------------ | ------------------ |
-| 10×   | 1           | ×1  | 59.3 | 22.2%            | 314                | 0.21 ms            |
-| 10×   | 1           | ×4  | 58.2 | 80.3%            | 307                | 0.80 ms            |
+| 10×   | 1           | ×1  | 59.9 | 20.7%            | 312                | 0.17 ms            |
+| 10×   | 1           | ×4  | 58.9 | 72.7%            | 312                | 0.63 ms            |
 
 Before the circuit was drawn once per still camera and copied, the same ×4 run held 34 fps with
 the main thread 98% busy.
@@ -52,5 +52,5 @@ the main thread 98% busy.
 ## Not measured
 
 - A real phone and a real mid laptop: the CPU throttling is an estimate of them.
-- The slowest single frames under ×4 throttling (100 to 217 ms) were not traced to a cause; they
+- The slowest single frames under ×4 throttling (130 to 230 ms) were not traced to a cause; they
   come a few times in 8 s and the average stays at 58 to 59 fps.
