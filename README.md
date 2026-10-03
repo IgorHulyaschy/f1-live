@@ -15,6 +15,11 @@ Working name only; the product must not use "F1" or "Formula 1" in its brand.
 
 More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](docs/screenshots.md). The whole dashboard flow, step by step: [docs/flow.md](docs/flow.md).
 
+## History
+
+Seasons from 2018 on: a calendar with `.ics` export, standings after any round, driver pages and a
+head to head for any two drivers or teams. See [docs/product/history.md](docs/product/history.md).
+
 ## Dashboards
 
 The whole screen is tiles on a 24-column grid, from a phone to a wall monitor: the race title,
@@ -38,7 +43,7 @@ replay keys and lap strip move and resize like timing or a chart.
 - **Ready-made.** The three session layouts, Analysis and Strategy (at `/analysis`,
   `/strategy`), Battle, Track, Drivers, Race story and Pit wall; the ones a session does not need
   wait under More. Edit any of them and Reset brings it back; **+** starts your own.
-- **37 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
+- **38 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
   Drivers (focus, driver, grid, driver view), Timing (with knockout and best sectors), Track (track map,
   battle map, pit rejoin, mini-sector dominance, flag map, speed map, gap distance, ghost lap),
   Analysis (charts, telemetry traces, long runs, championship, conditions) and Strategy (stints,

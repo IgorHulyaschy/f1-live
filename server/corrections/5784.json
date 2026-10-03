@@ -1,0 +1,13 @@
+{
+	"key": 5784,
+	"corrections": [
+		{
+			"driverNumber": "11",
+			"kind": "time_penalty",
+			"seconds": 5,
+			"reason": "Ignoring blue flags; decided after the race",
+			"at": "2020-08-16T18:00:00Z",
+			"source": "https://www.formula1.com/en/results/2020/races/1050/spain/race-result"
+		}
+	]
+}

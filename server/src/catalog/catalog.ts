@@ -15,6 +15,8 @@ export interface CatalogSession {
 	name: string;
 	/** ISO 8601, UTC. */
 	startsAt: string;
+	/** The scheduled end, ISO 8601 UTC; catalogs written before it was kept have none. */
+	endsAt?: string;
 	status: CatalogStatus;
 	circuit: string;
 	country: { code: string; name: string };
@@ -73,6 +75,7 @@ function catalogMeeting(
 				type: session.type,
 				name: session.name,
 				startsAt: session.startsAt,
+				endsAt: session.endsAt,
 				status: sessionStatus(session, now),
 				circuit: meeting.circuit,
 				country: meeting.country,
@@ -127,6 +130,7 @@ const catalogSchema = z.object({
 							type: z.enum(SESSION_TYPES),
 							name: z.string(),
 							startsAt: z.string(),
+							endsAt: z.string().optional(),
 							status: z.enum(['upcoming', 'live', 'finished']),
 							circuit: z.string(),
 							country: z.object({ code: z.string(), name: z.string() }),

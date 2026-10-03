@@ -97,6 +97,10 @@ const SpeedMapTile = React.lazy(async () => ({
 	default: (await import('@/features/track/speed-map-tile')).SpeedMapTile
 }));
 
+const SeasonStandingsTile = React.lazy(async () => ({
+	default: (await import('@/features/history/standings-tile')).SeasonStandingsTile
+}));
+
 const GapsTile = React.lazy(async () => ({
 	default: (await import('@/features/gaps/gaps-tile')).GapsTile
 }));
@@ -377,6 +381,14 @@ export function TileContent({
 						settings={tile.settings}
 						onSettingsChange={(settings) => onSettingsChange?.({ ...tile.settings, ...settings })}
 					/>
+				</LazyTile>
+			);
+		}
+
+		case 'season-standings': {
+			return (
+				<LazyTile tile={tile}>
+					<SeasonStandingsTile />
 				</LazyTile>
 			);
 		}

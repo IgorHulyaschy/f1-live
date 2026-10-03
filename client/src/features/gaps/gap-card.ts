@@ -58,9 +58,9 @@ export type CardContent = {
 	theme: CardTheme;
 };
 
-const SANS = '"Hubot Sans Variable", ui-sans-serif, system-ui, sans-serif';
+export const SANS = '"Hubot Sans Variable", ui-sans-serif, system-ui, sans-serif';
 
-const MONO = '"Martian Mono Variable", ui-monospace, monospace';
+export const MONO = '"Martian Mono Variable", ui-monospace, monospace';
 
 /** The fonts the card uses, so a first export does not fall back to system faces. */
 export async function loadCardFonts(): Promise<void> {

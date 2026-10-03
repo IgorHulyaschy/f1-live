@@ -1,5 +1,5 @@
 import { createWriteStream } from 'node:fs';
-import { access, mkdir, readFile, rename, rm, stat } from 'node:fs/promises';
+import { access, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
@@ -7,6 +7,8 @@ import { pipeline } from 'node:stream/promises';
 import { z } from 'zod';
 
 import { fetchPolitely, mapLimited } from '../pkg/http.js';
+import { CLOCK_TOPICS } from '../sources/f1/archive.js';
+import { F1_TOPICS } from '../sources/f1/decode.js';
 import type { ImportTarget } from './select.js';
 
 export const ARCHIVE_URL = 'https://livetiming.formula1.com/static';
@@ -19,9 +21,33 @@ const FILES_AT_ONCE = 4;
 /** A live recording's marker (raw-writer.ts); an archive download must not mix into that folder. */
 const RECORDING_FILE = '_recording.json';
 
+/**
+ * Written in a session folder the archive publishes no Index.json for (2018 to 2021): the streams
+ * it answered 403 for, so a complete folder is known without asking again.
+ */
+const ABSENT_FILE = '_archive.json';
+
+/** What a session download keeps: every stream the archive has, or only what results need. */
+export type TopicSet = 'all' | 'results';
+
+/** The decoder's topics and the clock lines that place them; no car data or positions. */
+const RESULT_STREAMS: readonly string[] = [...new Set([...F1_TOPICS, ...CLOCK_TOPICS])].map(
+	(topic) => `${topic}.jsonStream`
+);
+
+const TELEMETRY_STREAMS = ['Position.z.jsonStream', 'CarData.z.jsonStream'];
+
+const absentSchema = z.object({ absent: z.array(z.string()) });
+
 const sessionIndexSchema = z.object({
 	Feeds: z.record(z.string(), z.object({ StreamPath: z.string() }))
 });
+
+export interface FetchOptions {
+	baseUrl?: string;
+	/** Default: every stream. */
+	topics?: TopicSet;
+}
 
 export interface FetchStats {
 	/** Files the session lists, Index.json included. */
@@ -67,11 +93,25 @@ async function downloadFile(url: string, file: string): Promise<number> {
 	return (await stat(file)).size;
 }
 
-/** The stream files a session's Index.json lists, with Index.json itself first. */
-function listedFiles(indexText: string): string[] {
+function keeps(file: string, topics: TopicSet): boolean {
+	return topics === 'all' || RESULT_STREAMS.includes(file);
+}
+
+/** The stream files a session's Index.json lists that `topics` keeps, with Index.json itself first. */
+function listedFiles(indexText: string, topics: TopicSet): string[] {
 	const { Feeds } = sessionIndexSchema.parse(JSON.parse(indexText.replace(/^﻿/, '')));
 
-	return ['Index.json', ...Object.values(Feeds).map((feed) => feed.StreamPath)];
+	return [
+		'Index.json',
+		...Object.values(Feeds)
+			.map((feed) => feed.StreamPath)
+			.filter((file) => keeps(file, topics))
+	];
+}
+
+/** The streams to ask for in a session folder that has no Index.json. */
+function unlistedFiles(topics: TopicSet): string[] {
+	return topics === 'all' ? [...RESULT_STREAMS, ...TELEMETRY_STREAMS] : [...RESULT_STREAMS];
 }
 
 function settledAt(target: ImportTarget): number {
@@ -90,74 +130,138 @@ async function isFinal(file: string, target: ImportTarget): Promise<boolean> {
 	);
 }
 
-/** True when a settled session has every file its saved Index.json lists, so it needs no request. */
-async function isComplete(directory: string, target: ImportTarget, now: Date): Promise<boolean> {
+/** The files a saved folder should hold: what its Index.json lists, or what the archive did not refuse. */
+async function expectedFiles(directory: string, topics: TopicSet): Promise<string[] | null> {
+	const index = await readFile(path.join(directory, 'Index.json'), 'utf8').catch(() => null);
+
+	if (index !== null) {
+		return listedFiles(index, topics);
+	}
+
+	const absent = await readFile(path.join(directory, ABSENT_FILE), 'utf8').catch(() => null);
+
+	if (absent === null) {
+		return null;
+	}
+
+	const refused = new Set(absentSchema.parse(JSON.parse(absent)).absent);
+
+	return unlistedFiles(topics).filter((file) => !refused.has(file));
+}
+
+/** True when a settled session has every file it should, so it needs no request. */
+async function isComplete(
+	directory: string,
+	target: ImportTarget,
+	now: Date,
+	topics: TopicSet
+): Promise<boolean> {
 	if (!isSettled(target, now)) {
 		return false;
 	}
 
-	const index = await readFile(path.join(directory, 'Index.json'), 'utf8').catch(() => null);
+	const files = await expectedFiles(directory, topics);
 
-	if (index === null) {
+	if (files === null) {
 		return false;
 	}
 
 	const present = await Promise.all(
-		listedFiles(index).map((file) => isFinal(path.join(directory, file), target))
+		files.map((file) => isFinal(path.join(directory, file), target))
 	);
 
 	return present.every(Boolean);
 }
 
+/** Index.json and the streams it lists; null when the archive publishes none for the session. */
+async function fetchListing(
+	url: string,
+	directory: string,
+	topics: TopicSet
+): Promise<{ files: string[]; bytes: number } | null> {
+	const indexFile = path.join(directory, 'Index.json');
+
+	try {
+		const bytes = await downloadFile(`${url}Index.json`, indexFile);
+
+		return { files: listedFiles(await readFile(indexFile, 'utf8'), topics), bytes };
+	} catch (error) {
+		if (error instanceof ArchiveMissing) {
+			return null;
+		}
+
+		throw error;
+	}
+}
+
 /**
- * Saves the session's Index.json and every stream it lists into `<rawDir>/<archive path>/`. A
- * settled session with all its files is skipped without a request, and a file already there is
- * kept, so a run that stopped half way resumes. A session still running or just ended is fetched
- * again whole, because its files grow.
+ * Saves the session's Index.json and every stream it lists that `topics` keeps into
+ * `<rawDir>/<archive path>/`. Older sessions have no Index.json; then each stream `topics` names is
+ * asked for, and the ones the archive refuses are noted in `_archive.json`. A settled session with
+ * all its files is skipped without a request, and a file already there is kept, so a run that
+ * stopped half way resumes. A session still running or just ended is fetched again whole, because
+ * its files grow.
  */
 export async function fetchSession(
 	target: ImportTarget,
 	rawDir: string,
 	now: Date,
-	baseUrl = ARCHIVE_URL
+	options: FetchOptions = {}
 ): Promise<FetchStats> {
+	const { baseUrl = ARCHIVE_URL, topics = 'all' } = options;
 	const directory = path.join(rawDir, target.path);
 
 	if (await exists(path.join(directory, RECORDING_FILE))) {
 		throw new Error(`${directory} holds a live recording; import it with --from-dir`);
 	}
 
-	if (await isComplete(directory, target, now)) {
+	if (await isComplete(directory, target, now, topics)) {
 		return { files: 0, downloaded: 0, bytes: 0 };
 	}
 
 	const url = `${baseUrl}/${target.path}/`;
-	const indexFile = path.join(directory, 'Index.json');
 	const settled = isSettled(target, now);
-	let bytes = await downloadFile(`${url}Index.json`, indexFile);
-	const files = listedFiles(await readFile(indexFile, 'utf8'));
-	let downloaded = 1;
+	const listing = await fetchListing(url, directory, topics);
+	const files = listing?.files.slice(1) ?? unlistedFiles(topics);
+	let bytes = listing?.bytes ?? 0;
+	let downloaded = listing === null ? 0 : 1;
+	const absent: string[] = [];
 
 	const wanted = await Promise.all(
-		files
-			.slice(1)
-			.map(async (file) =>
-				(await isFinal(path.join(directory, file), target)) && settled ? null : file
-			)
+		files.map(async (file) =>
+			(await isFinal(path.join(directory, file), target)) && settled ? null : file
+		)
 	);
 
 	await mapLimited(
 		wanted.filter((file) => file !== null),
 		FILES_AT_ONCE,
 		async (file) => {
-			const size = await downloadFile(`${url}${file}`, path.join(directory, file));
+			try {
+				bytes += await downloadFile(`${url}${file}`, path.join(directory, file));
+				downloaded += 1;
+			} catch (error) {
+				if (listing !== null || !(error instanceof ArchiveMissing)) {
+					throw error;
+				}
 
-			bytes += size;
-			downloaded += 1;
+				absent.push(file);
+			}
 		}
 	);
 
-	return { files: files.length, downloaded, bytes };
+	if (listing === null) {
+		if (absent.includes('SessionInfo.jsonStream')) {
+			throw new ArchiveMissing(`${url} has neither Index.json nor SessionInfo.jsonStream`);
+		}
+
+		await writeFile(
+			path.join(directory, ABSENT_FILE),
+			`${JSON.stringify({ absent: absent.toSorted() })}\n`
+		);
+	}
+
+	return { files: (listing === null ? 0 : 1) + files.length - absent.length, downloaded, bytes };
 }
 
 /** Saves a season's Index.json to `<rawDir>/<year>/Index.json`; null when the archive has none yet. */

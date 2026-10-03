@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
 
+import { EMPTY_SNAPSHOT } from '@f1-live/shared';
 import type { ClassificationCorrectionEvent, Standing } from '@f1-live/shared';
 
 import { ManualCorrections, parseManualCorrections } from '../sources/manual/corrections.js';
@@ -21,7 +22,7 @@ after(() => {
 });
 
 function target(key: number): CorrectionTarget {
-	return { key, endedAt: '', standings: [] };
+	return { key, endedAt: '', standings: [], snapshot: EMPTY_SNAPSHOT };
 }
 
 function correction(

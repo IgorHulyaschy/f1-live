@@ -9,7 +9,9 @@ import {
 	SkipBackIcon,
 	SkipForwardIcon,
 	SparklesIcon,
-	SunMediumIcon
+	SunMediumIcon,
+	SwordsIcon,
+	TrophyIcon
 } from 'lucide-react';
 import * as React from 'react';
 import { useNavigate } from 'react-router';
@@ -188,6 +190,30 @@ export function CommandMenu({
 						<CommandItem value="new dashboard" onSelect={() => run(() => create())}>
 							<PlusIcon />
 							New dashboard
+						</CommandItem>
+					</CommandGroup>
+					<CommandSeparator />
+					<CommandGroup heading="Season">
+						<CommandItem
+							value="calendar schedule countdown ics"
+							onSelect={() => run(() => void navigate('/calendar'))}
+						>
+							<CalendarIcon />
+							Calendar
+						</CommandItem>
+						<CommandItem
+							value="standings championship table points"
+							onSelect={() => run(() => void navigate('/standings'))}
+						>
+							<TrophyIcon />
+							Standings
+						</CommandItem>
+						<CommandItem
+							value="head to head h2h compare teammates history"
+							onSelect={() => run(() => void navigate('/h2h'))}
+						>
+							<SwordsIcon />
+							Head to head
 						</CommandItem>
 					</CommandGroup>
 					<CommandSeparator />

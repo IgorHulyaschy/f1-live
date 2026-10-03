@@ -11,7 +11,8 @@ const SERVED = [
 	{ route: '/catalog.json', file: 'catalog.json', cache: 'no-cache' },
 	{ route: '/snapshots/*', dir: 'snapshots', cache: 'public, max-age=300, must-revalidate' },
 	{ route: '/events/*', dir: 'events', cache: 'public, max-age=300, must-revalidate' },
-	{ route: '/telemetry/*', dir: 'telemetry', cache: 'public, max-age=300, must-revalidate' }
+	{ route: '/telemetry/*', dir: 'telemetry', cache: 'public, max-age=300, must-revalidate' },
+	{ route: '/results/*', dir: 'results', cache: 'public, max-age=300, must-revalidate' }
 ] as const;
 
 const FILE_NAME = /^[\w.-]+$/;

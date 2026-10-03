@@ -126,6 +126,9 @@ to it and its layout.
   (1600 × 1000), and under the timing in Quali and Practice, beside Best sectors or Stints.
   Quali ends with Gap distance: the grid as metres behind pole.
 
+The **Season standings** tile (Analysis, add it from the library) lists the top ten of the open
+session's season after the latest round the viewer has seen; it links to `/standings`.
+
 ## What ships by default
 
 | Ready-made | For                      | Tiles                                                                           |
@@ -142,7 +145,7 @@ to it and its layout.
 | Race story | What happened, and why   | Session, Replay, Story, Positions chart, Championship, Race control, Conditions |
 
 Viewers can edit any of them; Reset puts it back as shipped. Race keeps the id the Live preset
-had (`live`), so an edited Live opens as an edited Race. There are 37 tiles in 6 groups (Race,
+had (`live`), so an edited Live opens as an edited Race. There are 38 tiles in 6 groups (Race,
 Drivers, Timing, Track, Analysis, Strategy). Nine of them are Pro: Box now, True pace, Tyre wear,
 Undercut ledger, Conditions, Pit rejoin, Dominance, Speed map and Ghost lap.
 

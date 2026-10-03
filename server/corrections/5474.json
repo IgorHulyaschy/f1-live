@@ -1,0 +1,21 @@
+{
+	"key": 5474,
+	"corrections": [
+		{
+			"driverNumber": "7",
+			"kind": "time_penalty",
+			"seconds": 30,
+			"reason": "Clutch use at the start broke the driver-aid rules (drive-through converted after the race)",
+			"at": "2019-07-28T20:00:00Z",
+			"source": "https://www.formula1.com/en/results/2019/races/1010/germany/race-result"
+		},
+		{
+			"driverNumber": "99",
+			"kind": "time_penalty",
+			"seconds": 30,
+			"reason": "Clutch use at the start broke the driver-aid rules (drive-through converted after the race)",
+			"at": "2019-07-28T20:00:00Z",
+			"source": "https://www.formula1.com/en/results/2019/races/1010/germany/race-result"
+		}
+	]
+}

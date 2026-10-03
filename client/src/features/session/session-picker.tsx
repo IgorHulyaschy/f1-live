@@ -1,7 +1,8 @@
 import { EyeOffIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { Key, KeyGroup } from '@/components/console/keys';
+import { Key } from '@/components/console/keys';
+import { SeasonSwitch } from '@/components/season-switch';
 import {
 	Dialog,
 	DialogContent,
@@ -122,12 +123,11 @@ export function SessionPicker({ onPicked }: { onPicked?: () => void }) {
 		<div className="flex min-h-0 flex-col gap-3" data-testid="session-picker">
 			<div className="flex flex-wrap items-center justify-between gap-2">
 				{years.length > 1 ? (
-					<KeyGroup
-						label="Season"
-						options={years.map((value) => ({ value: String(value), label: value }))}
-						value={String(year)}
+					<SeasonSwitch
+						years={years}
+						value={year}
 						onChange={(value) => {
-							setYear(Number(value));
+							setYear(value);
 							setMeetingKey(null);
 						}}
 					/>

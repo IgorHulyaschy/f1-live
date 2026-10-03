@@ -90,7 +90,35 @@ const router = createBrowserRouter([
 					library('/library/:entryId', ROUTE_META.libraryEntry, 'LibraryEntryPage'),
 					library('/shared', ROUTE_META.shared, 'SharedPage'),
 					{ path: '/welcome', element: <WelcomePage />, handle: handle(ROUTE_META.welcome) },
-					{ path: '/account', element: <AccountPage />, handle: handle(ROUTE_META.account) }
+					{ path: '/account', element: <AccountPage />, handle: handle(ROUTE_META.account) },
+					{
+						path: '/calendar',
+						handle: handle(ROUTE_META.calendar),
+						lazy: async () => ({
+							Component: (await import('./features/history/calendar-page')).CalendarPage
+						})
+					},
+					{
+						path: '/standings',
+						handle: handle(ROUTE_META.standings),
+						lazy: async () => ({
+							Component: (await import('./features/history/standings-page')).StandingsPage
+						})
+					},
+					{
+						path: '/h2h',
+						handle: handle(ROUTE_META.headToHead),
+						lazy: async () => ({
+							Component: (await import('./features/history/h2h-page')).HeadToHeadPage
+						})
+					},
+					{
+						path: '/drivers/:id',
+						handle: handle(ROUTE_META.driver),
+						lazy: async () => ({
+							Component: (await import('./features/history/driver-page')).DriverPage
+						})
+					}
 				]
 			},
 			{

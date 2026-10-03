@@ -1,7 +1,8 @@
-import { stat } from 'node:fs/promises';
+import { mkdir, stat, statfs } from 'node:fs/promises';
 import path from 'node:path';
 
 import { buildCatalog, mergeCatalogs } from '../catalog/catalog.js';
+import type { Catalog } from '../catalog/catalog.js';
 import type { IndexedSeason } from '../catalog/season-index.js';
 import { mapLimited } from '../pkg/http.js';
 import { fetchMeetingResults } from '../sources/openf1/fetch-result.js';
@@ -13,8 +14,16 @@ import {
 	readCatalog,
 	writeCatalog
 } from '../sinks/files.js';
+import {
+	readAdjustments,
+	readSnapshot,
+	resultsPathOf,
+	seasonResults,
+	writeSeasonResults
+} from '../results/season.js';
 import { removeTelemetry, telemetryKeys } from '../telemetry/files.js';
 import { ArchiveMissing, fetchSeasonIndex, fetchSession } from './fetch.js';
+import type { TopicSet } from './fetch.js';
 import { ingestSession } from './ingest.js';
 import type { IngestResult } from './ingest.js';
 import { adoptSession, discoverSessions, readSeasonIndexes } from './local.js';
@@ -28,12 +37,21 @@ const RESULT_REFRESH_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SESSIONS_AT_ONCE = 3;
 
+/** Seasons before this keep only what results need unless `allTopics` asks for every stream. */
+const ALL_TOPICS_FROM = 2025;
+
+const GB = 1e9;
+
 export interface ImportOptions {
 	dataDir: string;
 	/** No network at all: read the raw files and saved results already in the data directory. */
 	offline: boolean;
 	/** Build each session's telemetry from its Position.z and CarData.z. */
 	telemetry: boolean;
+	/** Download every stream of seasons before 2025 too, positions and car data included. */
+	allTopics?: boolean;
+	/** Downloads stop once the data directory's disk has less free space than this. */
+	minFreeBytes?: number;
 	now: Date;
 	log: (message: string) => void;
 }
@@ -179,16 +197,44 @@ async function fetchResults(
 	}
 }
 
+function topicsFor(target: ImportTarget, options: ImportOptions): TopicSet {
+	return options.allTopics === true || Number(target.path.slice(0, 4)) >= ALL_TOPICS_FROM
+		? 'all'
+		: 'results';
+}
+
+async function freeBytes(directory: string): Promise<number> {
+	// A fresh data folder has no raw/ yet; its disk is the nearest folder that exists.
+	await mkdir(directory, { recursive: true });
+
+	const { bavail, bsize } = await statfs(directory);
+
+	return bavail * bsize;
+}
+
 async function fetchTargets(chosen: Chosen, options: ImportOptions): Promise<Map<number, Fetched>> {
 	const rawDir = rawDirOf(options.dataDir);
 	const fetched = new Map<number, Fetched>();
 	const total = chosen.targets.length;
+	const floor = options.minFreeBytes ?? 0;
 
 	await mapLimited(chosen.targets, SESSIONS_AT_ONCE, async (target) => {
 		let line: string;
+		const free = await freeBytes(rawDir);
+
+		if (free < floor) {
+			const failure = `stopped: ${(free / GB).toFixed(1)} GB free, below ${(floor / GB).toFixed(0)} GB`;
+
+			fetched.set(target.key, { downloaded: 0, failure });
+			options.log(`[${fetched.size}/${total}] ${target.label} (${target.key}): ${failure}`);
+
+			return;
+		}
 
 		try {
-			const stats = await fetchSession(target, rawDir, options.now);
+			const stats = await fetchSession(target, rawDir, options.now, {
+				topics: topicsFor(target, options)
+			});
 
 			fetched.set(target.key, { downloaded: stats.downloaded, failure: null });
 			line =
@@ -209,7 +255,7 @@ async function fetchTargets(chosen: Chosen, options: ImportOptions): Promise<Map
 }
 
 /** Rebuilds `out/catalog.json` from the season indexes under the raw directory. */
-async function writeCatalogFromRaw(options: ImportOptions): Promise<void> {
+async function writeCatalogFromRaw(options: ImportOptions): Promise<Catalog> {
 	const rawDir = rawDirOf(options.dataDir);
 	const seasons = await readSeasonIndexes(rawDir);
 
@@ -224,14 +270,52 @@ async function writeCatalogFromRaw(options: ImportOptions): Promise<void> {
 
 	// The raw folder may hold fewer season indexes than the catalog has seen, as on an ingest host
 	// that only records: what the catalog already lists stays.
-	await writeCatalog(
-		options.dataDir,
-		mergeCatalogs(
-			await readCatalog(options.dataDir),
-			buildCatalog(seasons, available, options.now),
-			available
-		)
+	const catalog = mergeCatalogs(
+		await readCatalog(options.dataDir),
+		buildCatalog(seasons, available, options.now),
+		available
 	);
+
+	await writeCatalog(options.dataDir, catalog);
+
+	return catalog;
+}
+
+/**
+ * Writes the results index of each season a session of `keys` belongs to, and of each season that
+ * has none yet (`out/results/<season>.json.gz`).
+ */
+async function writeResults(
+	catalog: Catalog,
+	keys: ReadonlySet<number>,
+	options: ImportOptions
+): Promise<void> {
+	const adjustments = await readAdjustments();
+
+	for (const season of catalog.seasons) {
+		const touched = season.meetings.some((meeting) =>
+			meeting.sessions.some((session) => keys.has(session.key))
+		);
+
+		// oxlint-disable-next-line no-await-in-loop -- one season at a time keeps memory flat.
+		if (!touched && (await fileExists(resultsPathOf(options.dataDir, season.year)))) {
+			continue;
+		}
+
+		// oxlint-disable-next-line no-await-in-loop -- see above.
+		const results = await seasonResults(
+			season,
+			(key) => readSnapshot(options.dataDir, key),
+			adjustments
+		);
+
+		// oxlint-disable-next-line no-await-in-loop -- see above.
+		const bytes = await writeSeasonResults(options.dataDir, results);
+
+		options.log(
+			`results ${season.year}: ${results.rounds.length} rounds, ${(bytes / 1e3).toFixed(0)} KB`
+		);
+	}
 }
 
 /** Sessions from the season indexes: fetch them unless offline, then ingest each. */
@@ -352,8 +436,13 @@ export async function runImport(
 ): Promise<ImportReport> {
 	const started = Date.now();
 	const { outcomes, skipped } = await importSelection(selection, options);
+	const catalog = await writeCatalogFromRaw(options);
 
-	await writeCatalogFromRaw(options);
+	await writeResults(
+		catalog,
+		new Set(outcomes.flatMap((outcome) => (outcome.result === null ? [] : [outcome.key]))),
+		options
+	);
 
 	return {
 		outcomes,
