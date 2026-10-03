@@ -26,6 +26,7 @@ import {
 import { type Scale, SCALES, setScale, useScale } from '@/hooks/use-scale';
 
 import { shareUrl } from '@/features/library/share';
+import { useRace } from '@/data/race-context';
 import { accountStore } from '@/features/library/library-data';
 import { WelcomeBanner } from '@/features/library/welcome';
 
@@ -131,8 +132,8 @@ export function useCreateDashboard(): (from?: Dashboard) => void {
 	};
 }
 
-async function copyShareLink(dashboard: Dashboard): Promise<void> {
-	const url = shareUrl(dashboard);
+async function copyShareLink(dashboard: Dashboard, sessionKey: string): Promise<void> {
+	const url = shareUrl(dashboard, sessionKey);
 
 	try {
 		await navigator.clipboard.writeText(url);
@@ -157,6 +158,7 @@ function DashboardBar({
 }) {
 	const navigate = useNavigate();
 	const search = useCarriedSearch();
+	const { sessionKey } = useRace();
 	const scale = useScale();
 	const create = useCreateDashboard();
 	const add = useAddDashboard();
@@ -277,7 +279,7 @@ function DashboardBar({
 						onChange={setScale}
 					/>
 				</span>
-				<Key aria-label="Copy share link" onClick={() => void copyShareLink(dashboard)}>
+				<Key aria-label="Copy share link" onClick={() => void copyShareLink(dashboard, sessionKey)}>
 					<Share2Icon />
 					<span className="hidden sm:inline">Share</span>
 				</Key>

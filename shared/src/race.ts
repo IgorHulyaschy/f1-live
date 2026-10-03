@@ -155,6 +155,12 @@ export interface Standing {
 	disqualified: boolean;
 }
 
+export interface SessionStatusChange {
+	/** ISO 8601, UTC. */
+	at: string;
+	status: SessionStatus;
+}
+
 export interface TrackStatusChange {
 	/** ISO 8601, UTC. */
 	at: string;
@@ -235,6 +241,8 @@ export interface RaceSnapshot {
 	startedAt?: string;
 	/** The running order now, by position. */
 	standings?: readonly Standing[];
+	/** Every change of status, in order; each part of a qualifying session starts with `started`. */
+	statusLog?: readonly SessionStatusChange[];
 	trackStatusLog?: readonly TrackStatusChange[];
 	penalties?: readonly Penalty[];
 	personalBests?: readonly PersonalBest[];

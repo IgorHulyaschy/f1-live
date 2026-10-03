@@ -322,6 +322,21 @@ describe('applyEvent', () => {
 		assert.equal(snapshot.trackStatus, 'green');
 	});
 
+	it('logs every session status, so the parts of a qualifying session can be told apart', () => {
+		const snapshot = replay([
+			...started(),
+			{ kind: 'session_status', at: at(1080), status: 'finished' },
+			{ kind: 'session_status', at: at(1500), status: 'inactive' },
+			{ kind: 'session_status', at: at(1860), status: 'started' }
+		]);
+
+		assert.deepEqual(
+			snapshot.statusLog?.map((change) => change.status),
+			['started', 'finished', 'inactive', 'started']
+		);
+		assert.equal(snapshot.startedAt, at(0));
+	});
+
 	it('keeps the latest weather sample of each lap', () => {
 		const snapshot = replay([
 			...started(),
