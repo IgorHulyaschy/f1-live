@@ -156,8 +156,7 @@ export function MapCanvas({
 	focus,
 	look,
 	extra,
-	marks = true,
-	still = false
+	marks = true
 }: {
 	track: TrackReady;
 	places: PlacesSampler;
@@ -170,8 +169,6 @@ export function MapCanvas({
 	look?: CarLook;
 	extra?: ExtraDraw;
 	marks?: boolean;
-	/** Nothing on the map moves with the clock, so it is drawn only when something changes. */
-	still?: boolean;
 }) {
 	const { race, snapshot, followedDriver, setFollowedDriver } = useRace();
 
@@ -183,6 +180,7 @@ export function MapCanvas({
 	const middle = React.useMemo(() => outlineMiddle(track.outline), [track.outline]);
 	const eased = React.useRef<CameraState | null>(null);
 	const layer = React.useRef<CircuitLayer | null>(null);
+	const fitted = React.useRef<{ key: string; view: View } | null>(null);
 	const drawn = React.useRef<{ view: View; cars: readonly CarPlace[] } | null>(null);
 	const tint = snapshot.trackStatus;
 
@@ -191,7 +189,16 @@ export function MapCanvas({
 			const { ctx, perf, width, height, rem, theme, reducedMotion, elapsed } = frameInput;
 			const frame = places.sample(perf);
 			// Labels sit outside the track, so the circuit keeps room for them round its edge.
-			const base = fitView(track.outline, width, height, 44 * (rem / 16));
+			const fitKey = `${track.outline.circuitKey}/${width}/${height}/${rem}`;
+
+			if (fitted.current?.key !== fitKey) {
+				fitted.current = {
+					key: fitKey,
+					view: fitView(track.outline, width, height, 44 * (rem / 16))
+				};
+			}
+
+			const base = fitted.current.view;
 			let view = base;
 
 			let settling = false;
@@ -343,7 +350,7 @@ export function MapCanvas({
 	return (
 		<TrackCanvas
 			draw={draw}
-			moving={places.moving && !still}
+			moving={places.moving}
 			subscribe={places.subscribe}
 			label={label}
 			onPick={pick}

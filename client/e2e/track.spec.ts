@@ -30,7 +30,7 @@ test('the Track preset estimates places from timing on a replay without position
 
 	await expect(page.getByTestId('battle-ahead')).toBeVisible();
 	await expect(page.getByTestId('rejoin-reading')).toContainText(/P\d+/);
-	await expect(page.getByTestId('dominance-note')).toContainText('Whole sectors only');
+	await expect(page.getByTestId('dominance-note')).toContainText('no mini-sector times');
 	await expect(page.getByTestId('speed-map-empty')).toContainText('no car data');
 });
 

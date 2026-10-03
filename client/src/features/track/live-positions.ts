@@ -55,6 +55,11 @@ export class LivePositionBuffer {
 	sample(time: number, into: Map<string, CarSample>): boolean {
 		into.clear();
 
+		// Before the first frame nothing is known; estimates stand in rather than frozen cars.
+		if ((this.frames[0]?.at ?? Infinity) > time) {
+			return false;
+		}
+
 		const after = this.frames.findIndex((frame) => frame.at >= time);
 		const next = this.frames[after === -1 ? this.frames.length - 1 : after];
 		const previous = after > 0 ? this.frames[after - 1] : next;

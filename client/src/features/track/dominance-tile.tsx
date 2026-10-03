@@ -30,7 +30,7 @@ import { type TrackReady, usePlaces, useTrackData } from './use-track';
 export type DominanceSpan = 'lap' | 'best';
 
 const SPAN_OPTIONS = [
-	{ value: 'lap', label: 'Best lap' },
+	{ value: 'lap', label: 'One lap' },
 	{ value: 'best', label: 'Best minis' }
 ] as const;
 
@@ -221,10 +221,20 @@ function useTimes(
 	return timesFromLoops(snapshot, drivers, span) ?? timesFromSectors(snapshot, drivers, span);
 }
 
-const SOURCE_NOTE: Record<TimesSource, string> = {
-	positions: 'Timed from car positions on each lap.',
-	loops: 'Timed between the timing loops, a tenth or so either way; purple holders are exact.',
-	sectors: 'Whole sectors only: this session has no mini-sector times.'
+/** What is compared, per source and span: the timing loops keep only the lap before. */
+const SOURCE_NOTE: Record<TimesSource, Record<DominanceSpan, string>> = {
+	positions: {
+		lap: "Each driver's fastest lap, timed from car positions.",
+		best: "The best of each mini sector over each driver's fastest laps, timed from car positions."
+	},
+	loops: {
+		lap: "Each driver's last full lap, timed between the timing loops, a tenth or so either way.",
+		best: 'The best of each mini sector this session, timed between the timing loops; purple holders are exact.'
+	},
+	sectors: {
+		lap: "Each driver's fastest lap in whole sectors: this session has no mini-sector times.",
+		best: 'The best of each sector: this session has no mini-sector times.'
+	}
 };
 
 /** The compared drivers, at most three, the followed driver first when compared. */
@@ -386,7 +396,7 @@ function DominanceBody({ track, span }: { track: TrackReady; span: DominanceSpan
 			</div>
 			<p className="text-muted-foreground border-t px-4 py-2 text-xs" data-testid="dominance-note">
 				{times
-					? `${SOURCE_NOTE[times.source]} Each driver's figure is the time lost to the quickest, summed.`
+					? `${SOURCE_NOTE[times.source][span]} Each driver's figure is the time lost to the quickest, summed.`
 					: 'Reading the laps…'}
 			</p>
 		</>

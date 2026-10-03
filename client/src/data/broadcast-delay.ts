@@ -19,8 +19,24 @@ export function recordArrival(history: readonly Arrival[], arrival: Arrival): Ar
 	return [...history.slice(Math.max(firstKept, 0)), arrival];
 }
 
-/** The newest moment a snapshot knows about, by the feed's own clock. */
+const feedTimes = new WeakMap<RaceSnapshot, number | null>();
+
+/** The newest moment a snapshot knows about, by the feed's own clock; worked out once per snapshot. */
 export function feedTimeOf(snapshot: RaceSnapshot): number | null {
+	const known = feedTimes.get(snapshot);
+
+	if (known !== undefined) {
+		return known;
+	}
+
+	const time = newestTime(snapshot);
+
+	feedTimes.set(snapshot, time);
+
+	return time;
+}
+
+function newestTime(snapshot: RaceSnapshot): number | null {
 	const times = [
 		...snapshot.laps.map((lap) => lap.completedAt),
 		...(snapshot.trackStatusLog ?? []).map((change) => change.at),

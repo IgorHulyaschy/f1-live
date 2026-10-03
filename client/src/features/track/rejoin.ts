@@ -1,7 +1,7 @@
-import type { Lap, RaceSnapshot, TrackOutline } from '@f1-live/shared';
+import type { RaceSnapshot, TrackOutline } from '@f1-live/shared';
 
-import { isCleanLap } from '../../insights/clean-laps.ts';
-import { type LaneGeometry, PIT_SPEED_MS } from './pit-lane.ts';
+import { measuredPitLoss, PIT_LOSS_MS } from '../../insights/pit-window.ts';
+import { type LaneGeometry, PIT_SPEED_MPS } from './pit-lane.ts';
 
 /**
  * What a stop costs at this circuit: time lost against staying out, at green-flag pace and under
@@ -16,57 +16,10 @@ export type PitLoss = {
 	stops: number;
 };
 
-/** Laps either side of a stop that set the pace it is measured against. */
-const REFERENCE_LAPS = 4;
-
-/** A measured loss outside this range is a slow stop, a problem or a flag: not the circuit's. */
-const PLAUSIBLE_MS = [8_000, 45_000] as const;
-
-/**
- * A stop under a Safety Car or VSC costs about this share of a green-flag one: the field is slow
- * while the car is in the lane. From the 2025 Las Vegas race, 13.0 s against 22.9 s.
- */
-const NEUTRALISED_SHARE = 0.57;
-
 /** Time stationary in the box, and lost slowing for the lane and joining again. */
 const STATIONARY_MS = 2_500;
 
 const IN_AND_OUT_MS = 3_000;
-
-function median(values: readonly number[]): number | null {
-	const sorted = values.toSorted((a, b) => a - b);
-
-	return sorted.length === 0 ? null : (sorted[sorted.length >> 1] ?? null);
-}
-
-/** One stop's cost: in-lap and out-lap against the driver's clean laps around them. */
-function stopLoss(laps: ReadonlyMap<number, Lap>, inLap: number): number | null {
-	const into = laps.get(inLap);
-	const out = laps.get(inLap + 1);
-
-	if (!into || !out || into.trackStatus !== 'green' || out.trackStatus !== 'green') {
-		return null;
-	}
-
-	const reference = median(
-		[...laps.values()].flatMap((lap) =>
-			isCleanLap(lap) &&
-			Math.abs(lap.lap - inLap) <= REFERENCE_LAPS + 1 &&
-			lap.lap !== inLap &&
-			lap.lap !== inLap + 1
-				? [lap.lapTimeMs]
-				: []
-		)
-	);
-
-	if (reference === null || into.lapTimeMs <= 0 || out.lapTimeMs <= 0) {
-		return null;
-	}
-
-	const loss = into.lapTimeMs + out.lapTimeMs - 2 * reference;
-
-	return loss >= PLAUSIBLE_MS[0] && loss <= PLAUSIBLE_MS[1] ? loss : null;
-}
 
 /**
  * The circuit's pit loss from the data: the median of this session's green-flag stops, measured
@@ -79,38 +32,23 @@ export function pitLoss(
 	lane: LaneGeometry | null,
 	typicalLapMs: number
 ): PitLoss {
-	const byDriver = new Map<string, Map<number, Lap>>();
+	const measured = measuredPitLoss(race);
 
-	for (const lap of race.laps) {
-		const own = byDriver.get(lap.driverNumber) ?? new Map<number, Lap>();
-
-		own.set(lap.lap, lap);
-		byDriver.set(lap.driverNumber, own);
+	if (measured) {
+		return { ...measured, source: 'stops' };
 	}
 
-	const losses = race.pitStops.flatMap((stop) => {
-		const loss = stopLoss(byDriver.get(stop.driverNumber) ?? new Map(), stop.lap);
-
-		return loss === null ? [] : [loss];
-	});
-
-	const measured = median(losses);
-
-	if (measured !== null) {
-		return {
-			greenMs: measured,
-			neutralisedMs: measured * NEUTRALISED_SHARE,
-			source: 'stops',
-			stops: losses.length
-		};
-	}
-
-	const laneMs = lane ? (lane.lengthM / PIT_SPEED_MS) * 1000 : 16_000;
+	const laneMs = lane ? (lane.lengthM / PIT_SPEED_MPS) * 1000 : 16_000;
 	const bypassM = lane ? outline.lengthM - lane.lane.entryM + lane.lane.exitM : 300;
 	const bypassMs = (bypassM / outline.lengthM) * typicalLapMs;
 	const greenMs = laneMs + STATIONARY_MS + IN_AND_OUT_MS - bypassMs;
 
-	return { greenMs, neutralisedMs: greenMs * NEUTRALISED_SHARE, source: 'lane', stops: 0 };
+	return {
+		greenMs,
+		neutralisedMs: greenMs * (PIT_LOSS_MS.neutralised / PIT_LOSS_MS.green),
+		source: 'lane',
+		stops: 0
+	};
 }
 
 export type RoadCar = { driverNumber: string; progress: number };

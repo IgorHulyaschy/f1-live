@@ -101,5 +101,8 @@ describe('ReplayClock', () => {
 		assert.equal(clock.now(5500), 6000);
 		assert.equal(clock.running, true);
 		assert.equal(heard, 2);
+		// Stepped once a second of real time from when it was set, never before that.
+		assert.equal(clock.stepped(6900, 1000), 11_000);
+		assert.equal(clock.stepped(5400, 1000), 1000);
 	});
 });

@@ -105,7 +105,7 @@ describe('replay positions', () => {
 });
 
 describe('live positions', () => {
-	it('glides between frames and keeps cars a frame left out in their last place', () => {
+	it('glides between frames, keeps cars a frame left out in their last place, and knows nothing before', () => {
 		const buffer = new LivePositionBuffer(10_000);
 		const places = new Map<string, CarSample>();
 
@@ -116,5 +116,6 @@ describe('live positions', () => {
 		assert.deepEqual(places.get('1'), { x: 10, y: 0, offTrack: false });
 		assert.deepEqual(places.get('44'), { x: 50, y: 50, offTrack: true });
 		assert.equal(buffer.feedTime(500), 1500);
+		assert.equal(buffer.sample(900, places), false, 'nothing is known before the first frame');
 	});
 });

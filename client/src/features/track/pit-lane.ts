@@ -68,4 +68,4 @@ export function pointInLane(geometry: LaneGeometry, share: number): Point {
 }
 
 /** Pit lane speed limit, m/s (80 km/h). */
-export const PIT_SPEED_MS = 80 / 3.6;
+export const PIT_SPEED_MPS = 80 / 3.6;

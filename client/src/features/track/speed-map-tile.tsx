@@ -16,7 +16,7 @@ import { type CarLook, type ExtraDraw, MapCanvas } from './map-canvas';
 import { MapPending, useMapBodyClass } from './map-parts';
 import { type Channel, channelAlong, channelRange, speedMarks } from './speed';
 import { type MapTheme, type Overlay, toScreen } from './track-draw';
-import { type TrackReady, usePlaces, useTrackData } from './use-track';
+import { NO_PLACES, type TrackReady, useTrackData } from './use-track';
 
 const CHANNEL_OPTIONS = [
 	{ value: 'speed', label: 'Speed' },
@@ -208,7 +208,6 @@ export function SpeedMapTile({
 
 function SpeedMapBody({ track, channel }: { track: TrackReady; channel: Channel }) {
 	const { race, followedDriver, snapshot } = useRace();
-	const places = usePlaces(track);
 	const bodyClass = useMapBodyClass();
 	const [choice, setChoice] = React.useState<number | null>(null);
 	const { laps, entry, lap, status } = useLap(track, choice);
@@ -331,13 +330,12 @@ function SpeedMapBody({ track, channel }: { track: TrackReady; channel: Channel 
 				) : (
 					<MapCanvas
 						track={track}
-						places={places}
+						places={NO_PLACES}
 						label={`${driver?.code ?? 'Driver'}'s lap ${entry?.lap ?? ''} painted by ${channel} on ${track.outline.name}`}
 						camera="full"
 						overlays={overlays}
 						look={NO_CARS}
 						extra={extra}
-						still
 					/>
 				)}
 			</div>

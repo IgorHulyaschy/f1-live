@@ -1,12 +1,13 @@
-import type { TrackOutline } from '@f1-live/shared';
+import type { RaceSnapshot, TrackOutline } from '@f1-live/shared';
 import { useReducedMotion } from 'motion/react';
 import * as React from 'react';
 
+import { MAX_DELAY_SECONDS } from '@/data/broadcast-delay';
 import { useRace } from '@/data/race-context';
 import { stepTime } from '@/data/session-time';
 import type { SessionTelemetry, TelemetrySource } from '@/data/telemetry-source';
 
-import { estimateModel } from './estimate';
+import { type EstimateModel, estimateModel } from './estimate';
 import { LIVE_LAG_MS, LivePositionBuffer } from './live-positions';
 import { laneGeometry, type LaneGeometry } from './pit-lane';
 import { type CarSample, ReplayPositions } from './replay-positions';
@@ -62,8 +63,9 @@ function loadTrack(
 				return null;
 			}
 
+			// Without its replay the map still estimates, so a failed manifest is not an error.
 			const manifest = telemetry?.replay
-				? await source.loadReplayManifest(sessionKey, telemetry.replay)
+				? await source.loadReplayManifest(sessionKey, telemetry.replay).catch(() => null)
 				: null;
 
 			return {
@@ -129,8 +131,25 @@ export function useTrackData(): TrackData {
 	return state?.key === key ? state.data : (settledTrack(telemetry, key) ?? { status: 'loading' });
 }
 
+const models = new WeakMap<RaceSnapshot, Map<string, EstimateModel>>();
+
+/** One estimate model per snapshot, circuit and mode, shared by every map on the page. */
+function sharedModel(race: RaceSnapshot, outline: TrackOutline, live: boolean): EstimateModel {
+	const byKey = models.get(race) ?? new Map<string, EstimateModel>();
+	const key = `${outline.circuitKey}/${live}`;
+	let model = byKey.get(key);
+
+	if (!model) {
+		model = estimateModel(race, outline, live);
+		byKey.set(key, model);
+		models.set(race, byKey);
+	}
+
+	return model;
+}
+
 /** How long the live feed's positions are kept: the longest broadcast delay and some. */
-const LIVE_KEEP_MS = 330_000;
+const LIVE_KEEP_MS = (MAX_DELAY_SECONDS + 30) * 1000;
 
 /** The places on screen, read each frame. */
 export type Places = {
@@ -225,7 +244,7 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 	const replay = followingLive ? null : track.replay;
 
 	const model = React.useMemo(
-		() => estimateModel(race, track.outline, followingLive),
+		() => sharedModel(race, track.outline, followingLive),
 		[race, track.outline, followingLive]
 	);
 
@@ -274,7 +293,7 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 						? liveBuffer.buffer.feedTime(perf) - delayMs - LIVE_LAG_MS
 						: feedTime();
 			} else {
-				time = replayClock.now(still ? Math.floor(perf / STILL_STEP_MS) * STILL_STEP_MS : perf);
+				time = still ? replayClock.stepped(perf, STILL_STEP_MS) : replayClock.now(perf);
 			}
 
 			// Live runs at real time, so a second of the feed is a second on screen.
@@ -306,7 +325,7 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 						(a, b) => b.progress - a.progress
 					),
 					source: 'estimated',
-					waiting: source === 'positions' && !replay?.failed
+					waiting: source === 'positions' && replay !== null && !replay.missing(time)
 				};
 			}
 
@@ -407,3 +426,14 @@ export function usePlaces(track: TrackReady): PlacesSampler {
 		placeAt
 	};
 }
+
+/** For a map that draws no cars: nothing moves, nothing loads. */
+export const NO_PLACES: PlacesSampler = {
+	sample: () => ({ time: 0, cars: [], source: 'positions', waiting: false }),
+	source: 'positions',
+	live: false,
+	positionsLive: null,
+	moving: false,
+	subscribe: () => () => undefined,
+	placeAt: () => null
+};

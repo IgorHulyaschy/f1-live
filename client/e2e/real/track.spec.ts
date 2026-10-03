@@ -64,7 +64,7 @@ test('every Track tile reads the race', async ({ page }) => {
 	await expect(page.getByTestId('battle-behind')).toContainText('SAI');
 	await expect(page.getByTestId('rejoin-reading')).toContainText(/Box now\s*P\d+/);
 	await expect(page.getByTestId('pit-loss')).toContainText(/measured from \d+ stops/);
-	await expect(page.getByTestId('dominance-note')).toContainText('Timed from car positions', {
+	await expect(page.getByTestId('dominance-note')).toContainText(/timed from car positions/, {
 		timeout: 15_000
 	});
 	await expect(page.getByTestId('dominance-legend')).toContainText(/\d+\/22 minis/);
@@ -83,7 +83,7 @@ test('every Track tile reads a 2026 qualifying session', async ({ page }) => {
 	await expect(page.getByTestId('track-map').getByText('Replay', { exact: true })).toBeVisible();
 	await expect(page.getByTestId('battle-map').locator('canvas')).toBeVisible();
 	await expect(page.getByTestId('pit-rejoin').getByTestId('race-only')).toBeVisible();
-	await expect(page.getByTestId('dominance-note')).toContainText('Timed from car positions', {
+	await expect(page.getByTestId('dominance-note')).toContainText(/timed from car positions/, {
 		timeout: 15_000
 	});
 	await expect(page.getByTestId('speed-map-legend')).toContainText('Top speed', {

@@ -68,3 +68,47 @@ export function lapsUntilInRange(
 
 	return Math.ceil((intervalS - rangeS) / closingS);
 }
+
+type Nearest = { driverNumber: string; byM: number };
+
+/** The racing numbers of the nearest cars ahead and behind; null where there is none. */
+export type Neighbours = { ahead: string | null; behind: string | null };
+
+/** A car somewhere round the lap, or in the pit lane (null). */
+export type LapPlace = { driverNumber: string; distanceM: number | null };
+
+/**
+ * The nearest cars ahead and behind on the road, measured round the circuit from `driverNumber`
+ * whatever lap each is on: in practice and qualifying these are the traffic, not rivals.
+ */
+export function roadNeighbours(
+	cars: readonly LapPlace[],
+	driverNumber: string,
+	lengthM: number
+): Neighbours {
+	const subject = cars.find((car) => car.driverNumber === driverNumber)?.distanceM;
+	let ahead: Nearest | null = null;
+	let behind: Nearest | null = null;
+
+	if (subject === null || subject === undefined) {
+		return { ahead: null, behind: null };
+	}
+
+	for (const car of cars) {
+		if (car.driverNumber === driverNumber || car.distanceM === null) {
+			continue;
+		}
+
+		const forward = (((car.distanceM - subject) % lengthM) + lengthM) % lengthM;
+
+		if (forward <= lengthM / 2) {
+			if (!ahead || forward < ahead.byM) {
+				ahead = { driverNumber: car.driverNumber, byM: forward };
+			}
+		} else if (!behind || lengthM - forward < behind.byM) {
+			behind = { driverNumber: car.driverNumber, byM: lengthM - forward };
+		}
+	}
+
+	return { ahead: ahead?.driverNumber ?? null, behind: behind?.driverNumber ?? null };
+}

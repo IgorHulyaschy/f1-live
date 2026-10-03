@@ -4,6 +4,7 @@ import * as React from 'react';
 import { TeamStripe } from '@/components/driver-tag';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRace } from '@/data/race-context';
+import { isTimedSession } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
@@ -130,7 +131,14 @@ export function usePlacesNow(places: PlacesSampler, everyMs: number): Places | n
  */
 export function CarOrder({ places }: { places: PlacesSampler }) {
 	const { race, followedDriver, setFollowedDriver, standings } = useRace();
-	const cars = usePlacesNow(places, LIST_EVERY_MS)?.cars ?? NO_CARS;
+	const timed = isTimedSession(race.session.type);
+	const sampled = usePlacesNow(places, LIST_EVERY_MS)?.cars ?? NO_CARS;
+
+	// Off a race the cars run different numbers of laps: the order is round the lap, from the line.
+	const cars = timed
+		? sampled.toSorted((a, b) => (b.distanceM ?? -1) - (a.distanceM ?? -1))
+		: sampled;
+
 	const drivers = new Map<string, Driver>(race.drivers.map((driver) => [driver.number, driver]));
 	const placed = new Set(cars.map((car) => car.driverNumber));
 	const out = new Set(standings.flatMap((row) => (row.state === 'out' ? [row.driver.number] : [])));
@@ -142,7 +150,7 @@ export function CarOrder({ places }: { places: PlacesSampler }) {
 
 	return (
 		<ol
-			aria-label="Cars in order on the road"
+			aria-label={timed ? 'Cars round the lap, furthest first' : 'Cars in order on the road'}
 			className="sr-only @4xl:not-sr-only @4xl:flex @4xl:w-36 @4xl:shrink-0 @4xl:flex-col @4xl:overflow-y-auto @4xl:border-l @4xl:py-1"
 			data-testid="map-car-list"
 		>

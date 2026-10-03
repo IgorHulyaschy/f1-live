@@ -179,13 +179,16 @@ function folder(sessionKey: string): string {
 
 /**
  * Telemetry from the server (or a CDN in front of `<DATA_DIR>/out`). Files never change once
- * written, so each is fetched once per page; a failed fetch is forgotten so it can be retried.
+ * written, so each is fetched once per page, replay chunks aside; a failed fetch is forgotten so
+ * it can be retried.
  */
 export function apiTelemetry(apiUrl: string): TelemetrySource {
 	const cache = new Map<string, Promise<unknown>>();
 
+	const urlOf = (path: string) => `${apiUrl}/telemetry/${safePath(path)}`;
+
 	function load<T>(path: string, schema: z.ZodType<T>): Promise<T> {
-		const url = `${apiUrl}/telemetry/${safePath(path)}`;
+		const url = urlOf(path);
 		const cached = cache.get(url);
 
 		if (cached) {
@@ -217,8 +220,9 @@ export function apiTelemetry(apiUrl: string): TelemetrySource {
 		loadOutline: (circuitKey) =>
 			orNull(load(`circuits/${encodeURIComponent(circuitKey)}.json`, outlineSchema)),
 		loadReplayManifest: (sessionKey, path) => load(`${folder(sessionKey)}/${path}`, manifestSchema),
+		// The replay keeps the chunks it has expanded; holding the parsed ones too would double them.
 		loadReplayChunk: (sessionKey, file) =>
-			load(`${folder(sessionKey)}/replay/${file}`, chunkSchema),
+			fetchParsed(urlOf(`${folder(sessionKey)}/replay/${file}`), chunkSchema),
 		loadLapIndex: (sessionKey, path) => load(`${folder(sessionKey)}/${path}`, lapIndexSchema),
 		loadLap: (sessionKey, file) => load(`${folder(sessionKey)}/${file}`, lapSchema)
 	};

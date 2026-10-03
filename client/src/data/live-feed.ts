@@ -2,7 +2,7 @@ import { applyEvent, type LivePositions, type RaceEvent, type RaceSnapshot } fro
 import { z } from 'zod';
 
 import { isSessionOver } from '../insights/qualifying.ts';
-import { type Arrival, recordArrival } from './broadcast-delay.ts';
+import { type Arrival, MAX_DELAY_SECONDS, recordArrival } from './broadcast-delay.ts';
 
 /** docs/product/live-protocol.md; a change of shape bumps it on both sides. */
 const PROTOCOL_VERSION = 1;
@@ -187,9 +187,12 @@ export type LiveFeedOptions = {
 
 const BACKOFF_MS = { initial: 1000, max: 30_000 };
 
+/** Positions kept for watchers that join late: the longest broadcast delay and a little more. */
+const POSITION_HISTORY_MS = (MAX_DELAY_SECONDS + 30) * 1000;
+
 /** Live car positions, for a track map: frames as they come, and whether the feed has any. */
 export type LivePositionsFeed = {
-	/** Subscribes the channel while anyone watches; a new watcher gets the last frame at once. */
+	/** Subscribes the channel while anyone watches; a new watcher gets the recent frames at once. */
 	watchPositions: (listener: (frame: LivePositions) => void) => () => void;
 	/** Whether the feed sends positions: null until the server says, false without F1 TV. */
 	getPositionsLive: () => boolean | null;
@@ -220,7 +223,8 @@ export class LiveFeed implements LivePositionsFeed {
 	private lastNotifiedAt = 0;
 	private readonly positionListeners = new Set<(frame: LivePositions) => void>();
 	private readonly positionsLiveListeners = new Set<() => void>();
-	private lastPositions: LivePositions | null = null;
+	/** Recent frames, so a map opened behind a broadcast delay has positions at once. */
+	private positionHistory: LivePositions[] = [];
 	private positionsLive: boolean | null = null;
 	/** The socket the positions channel was asked for on; a new connection asks again. */
 	private positionsAskedOn: SocketLike | null = null;
@@ -245,8 +249,8 @@ export class LiveFeed implements LivePositionsFeed {
 		this.positionListeners.add(listener);
 		this.askForPositions();
 
-		if (this.lastPositions) {
-			listener(this.lastPositions);
+		for (const frame of this.positionHistory) {
+			listener(frame);
 		}
 
 		return () => {
@@ -284,7 +288,12 @@ export class LiveFeed implements LivePositionsFeed {
 
 	private onTelemetry(message: TelemetryMessage): void {
 		if (message.type === 'positions') {
-			this.lastPositions = message.frame;
+			const oldest = message.frame.at - POSITION_HISTORY_MS;
+
+			this.positionHistory = [
+				...this.positionHistory.filter((frame) => frame.at >= oldest),
+				message.frame
+			];
 
 			for (const listener of this.positionListeners) {
 				listener(message.frame);

@@ -52,6 +52,9 @@ function spline(p0: number, p1: number, p2: number, p3: number, share: number): 
 /** A stretch of session time, ms since the Unix epoch. */
 export type Span = { from: number; to: number };
 
+/** A chunk that failed is asked for again after this long. */
+const RETRY_MS = 30_000;
+
 /** Chunks kept in memory: about two hours of a session. */
 const KEPT_CHUNKS = 120;
 
@@ -69,8 +72,8 @@ export class ReplayPositions {
 	private readonly manifest: ReplayManifest;
 	private readonly load: (ref: ReplayChunkRef) => Promise<ReplayChunk>;
 	private readonly listeners = new Set<() => void>();
-	/** A chunk failed to load; the replay has holes. */
-	failed = false;
+	/** When each chunk that failed to load failed, so it is not asked for again at once. */
+	private readonly failures = new Map<number, number>();
 
 	constructor(manifest: ReplayManifest, load: (ref: ReplayChunkRef) => Promise<ReplayChunk>) {
 		this.manifest = manifest;
@@ -121,7 +124,14 @@ export class ReplayPositions {
 		for (let index = first - 1; index <= first + ahead; index++) {
 			const ref = this.refs.get(index);
 
-			if (!ref || this.chunks.has(index) || this.loading.has(index)) {
+			const failedAt = this.failures.get(index);
+
+			if (
+				!ref ||
+				this.chunks.has(index) ||
+				this.loading.has(index) ||
+				(failedAt !== undefined && Date.now() - failedAt < RETRY_MS)
+			) {
 				continue;
 			}
 
@@ -133,8 +143,9 @@ export class ReplayPositions {
 	private async fetch(index: number, ref: ReplayChunkRef): Promise<void> {
 		try {
 			this.keep(index, expandChunk(await this.load(ref)));
+			this.failures.delete(index);
 		} catch {
-			this.failed = true;
+			this.failures.set(index, Date.now());
 		} finally {
 			this.loading.delete(index);
 			this.loaded();
@@ -151,6 +162,13 @@ export class ReplayPositions {
 
 			this.chunks.delete(kept);
 		}
+	}
+
+	/** The moment's chunk is not in the replay, or failed and waits to be asked for again. */
+	missing(time: number): boolean {
+		const index = this.chunkOf(time);
+
+		return !this.refs.has(index) || this.failures.has(index);
 	}
 
 	/** Whether the chunk for `time` is in, so `sample` can answer. */

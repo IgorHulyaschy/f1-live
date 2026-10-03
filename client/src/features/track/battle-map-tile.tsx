@@ -13,7 +13,7 @@ import { formatDeltaSeconds } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
-import { lapsUntilInRange, roadGapMs } from './battle';
+import { lapsUntilInRange, roadGapMs, roadNeighbours } from './battle';
 import { type CarLook, type ExtraDraw, MapCanvas } from './map-canvas';
 import { MapNote, MapPending, useMapBodyClass, usePlacesNow } from './map-parts';
 import { toScreen } from './track-draw';
@@ -29,19 +29,17 @@ type Rival = { driver: Driver; side: 'ahead' | 'behind' };
  * The cars either side of the followed driver: in a race the places ahead and behind in the
  * running order; in practice and qualifying, the nearest cars on the road, which are traffic.
  */
-function useRivals(cars: readonly CarPlace[] | null): Rival[] {
+function useRivals(cars: readonly CarPlace[] | null, lengthM: number): Rival[] {
 	const { race, standings, followedDriver } = useRace();
 	const timed = isTimedSession(race.session.type);
 	const drivers = new Map(race.drivers.map((driver) => [driver.number, driver]));
 
 	if (timed) {
-		const index = cars?.findIndex((car) => car.driverNumber === followedDriver) ?? -1;
-		const ahead = index > 0 ? cars?.[index - 1] : undefined;
-		const behind = index >= 0 ? cars?.[index + 1] : undefined;
+		const near = roadNeighbours(cars ?? [], followedDriver, lengthM);
 
 		return [
-			...(ahead ? [{ number: ahead.driverNumber, side: 'ahead' as const }] : []),
-			...(behind ? [{ number: behind.driverNumber, side: 'behind' as const }] : [])
+			...(near.ahead === null ? [] : [{ number: near.ahead, side: 'ahead' as const }]),
+			...(near.behind === null ? [] : [{ number: near.behind, side: 'behind' as const }])
 		].flatMap(({ number, side }) => {
 			const driver = drivers.get(number);
 
@@ -67,6 +65,7 @@ function useRoadGaps(
 	time: number | null
 ): Map<string, number> {
 	const { followedDriver } = useRace();
+	const { placeAt } = places;
 
 	return React.useMemo(() => {
 		const gaps = new Map<string, number>();
@@ -76,13 +75,24 @@ function useRoadGaps(
 		}
 
 		const progressAt = (driverNumber: string, at: number) =>
-			places.placeAt(driverNumber, at)?.progress ?? null;
+			placeAt(driverNumber, at)?.progress ?? null;
 
 		for (const rival of rivals) {
-			const gap =
+			const [ahead, behind] =
 				rival.side === 'ahead'
-					? roadGapMs(progressAt, rival.driver.number, followedDriver, time)
-					: roadGapMs(progressAt, followedDriver, rival.driver.number, time);
+					? [rival.driver.number, followedDriver]
+					: [followedDriver, rival.driver.number];
+
+			// Off a race, the car ahead on the road can be laps up: compare within the lap.
+			const lapsUp = Math.floor((progressAt(ahead, time) ?? 0) - (progressAt(behind, time) ?? 0));
+
+			const withinLap = (driverNumber: string, at: number) => {
+				const progress = progressAt(driverNumber, at);
+
+				return progress !== null && driverNumber === ahead ? progress - lapsUp : progress;
+			};
+
+			const gap = roadGapMs(withinLap, ahead, behind, time);
 
 			if (gap !== null) {
 				gaps.set(rival.driver.number, gap);
@@ -90,7 +100,7 @@ function useRoadGaps(
 		}
 
 		return gaps;
-	}, [places, rivals, time, followedDriver]);
+	}, [placeAt, rivals, time, followedDriver]);
 }
 
 /**
@@ -200,7 +210,7 @@ function BattleMapBody({ track }: { track: TrackReady }) {
 	const places = usePlaces(track);
 	const bodyClass = useMapBodyClass();
 	const now = usePlacesNow(places, GAP_EVERY_MS);
-	const rivals = useRivals(now?.cars ?? null);
+	const rivals = useRivals(now?.cars ?? null, track.outline.lengthM);
 	const gaps = useRoadGaps(places, rivals, now?.time ?? null);
 	const timed = isTimedSession(race.session.type);
 	const followed = race.drivers.find((driver) => driver.number === followedDriver);

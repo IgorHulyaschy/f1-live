@@ -4,7 +4,7 @@ import { crossingTimes, sessionStartMs } from '../../data/session-time.ts';
 import { isCleanLap } from '../../insights/clean-laps.ts';
 import { isTimedSession } from '../../insights/qualifying.ts';
 
-import { laneGeometry, type LaneGeometry, PIT_SPEED_MS } from './pit-lane.ts';
+import { laneGeometry, type LaneGeometry, PIT_SPEED_MPS } from './pit-lane.ts';
 
 /**
  * Where a car is: along the racing line, or a share of the way down the pit lane. A car in the
@@ -42,7 +42,7 @@ export type EstimateModel = {
 };
 
 /** Average speed of a lap when a session has no clean lap yet, m/s. */
-const TYPICAL_SPEED_MS = 60;
+const TYPICAL_SPEED_MPS = 60;
 
 /** A start slot is this long, and pole sits this far behind the line. */
 const GRID_SLOT_M = 8;
@@ -80,6 +80,14 @@ function median(values: readonly number[]): number | null {
 		: ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
 }
 
+/** A lap at the session's usual pace: the median clean lap, or a guess before there is one. */
+export function typicalLap(race: RaceSnapshot, outline: TrackOutline): number {
+	return (
+		median(race.laps.flatMap((lap) => (lap.lap > 1 && isCleanLap(lap) ? [lap.lapTimeMs] : []))) ??
+		(outline.lengthM / TYPICAL_SPEED_MPS) * 1000
+	);
+}
+
 /**
  * `live` reads what the feed says about now (the mini sectors and who is in the pits); a replay
  * of a moment in the past must not, since the snapshot holds those only as they ended.
@@ -110,12 +118,7 @@ export function estimateModel(
 	const crossings = crossingTimes(race);
 	const startMs = sessionStartMs(race);
 
-	const typicalLapMs =
-		median(
-			race.laps
-				.filter((lap) => lap.lap > 1 && lap.lapTimeMs > 0 && isCleanLap(lap))
-				.map((lap) => lap.lapTimeMs)
-		) ?? (outline.lengthM / TYPICAL_SPEED_MS) * 1000;
+	const typicalLapMs = typicalLap(race, outline);
 
 	const retiredAt = new Map(
 		race.retirements.map((retirement) => {
@@ -152,7 +155,7 @@ export function estimateModel(
 						.map((standing) => standing.driverNumber)
 				: []
 		),
-		laneMs: lane ? (lane.lengthM / PIT_SPEED_MS) * 1000 : 20_000
+		laneMs: lane ? (lane.lengthM / PIT_SPEED_MPS) * 1000 : 20_000
 	};
 }
 

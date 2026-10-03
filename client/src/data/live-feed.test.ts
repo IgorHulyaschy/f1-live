@@ -172,6 +172,13 @@ describe('LiveFeed', () => {
 		);
 		assert.deepEqual(frames, [1_763_870_480_250]);
 
+		// A map opened later gets the recent frames too, for a screen behind a broadcast delay.
+		const late: number[] = [];
+		const stopLate = feed.watchPositions((frame) => late.push(frame.at));
+
+		assert.deepEqual(late, [1_763_870_480_250]);
+		stopLate();
+
 		server.sockets[0]?.handlers.closed();
 		mock.timers.tick(1000);
 		server.send(server.sockets[1], state(10));

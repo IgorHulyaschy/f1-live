@@ -12,7 +12,7 @@ import { isTimedSession } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
-import { estimateModel } from './estimate';
+import { typicalLap } from './estimate';
 import { type CarLook, type ExtraDraw, MapCanvas } from './map-canvas';
 import { MapNote, MapPending, useMapBodyClass, usePlacesNow } from './map-parts';
 import { pitLoss, type Rejoin, rejoinAmong } from './rejoin';
@@ -40,50 +40,45 @@ type Prediction = Rejoin & {
 function usePrediction(
 	places: PlacesSampler,
 	track: TrackReady,
-	lossMs: number
+	lossMs: number,
+	lapMs: number
 ): Prediction | null {
-	const { followedDriver, race } = useRace();
+	const { followedDriver } = useRace();
 	const now = usePlacesNow(places, READ_EVERY_MS);
 	const subject = now?.cars.find((car) => car.driverNumber === followedDriver);
 
 	const miniSector =
 		subject?.distanceM === null || !subject ? null : miniSectorAt(track.outline, subject.distanceM);
 
-	const typicalLapMs = React.useMemo(
-		() => estimateModel(race, track.outline, false).typicalLapMs,
-		[race, track.outline]
-	);
-
-	const time = now?.time ?? null;
-	const cars = now?.cars;
-
-	const [prediction, setPrediction] = React.useState<{
-		key: string;
-		value: Prediction | null;
-	} | null>(null);
-
 	const key = `${followedDriver}/${miniSector ?? 'pit'}/${lossMs}/${subject ? Math.floor(subject.progress) : ''}`;
+	const [prediction, setPrediction] = React.useState<Prediction | null>(null);
+	const readFor = React.useRef<string | null>(null);
+	const { placeAt } = places;
 
-	// The ghost moves smoothly on the map; the words beside it change once a mini sector.
-	if (prediction?.key !== key && time !== null && cars) {
-		const ghost = places.placeAt(followedDriver, time - lossMs);
-		const from = cars.findIndex((car) => car.driverNumber === followedDriver) + 1;
+	// The ghost moves smoothly on the map; the words beside it are read once a mini sector, and
+	// again while the moment the ghost needs is still loading.
+	React.useEffect(() => {
+		if (!now || (readFor.current === key && prediction !== null)) {
+			return;
+		}
 
-		setPrediction({
-			key,
-			value:
-				ghost && from > 0
-					? {
-							...rejoinAmong(cars, followedDriver, ghost.progress),
-							from,
-							ghostProgress: ghost.progress,
-							lapMs: typicalLapMs
-						}
-					: null
-		});
-	}
+		const ghost = placeAt(followedDriver, now.time - lossMs);
+		const from = now.cars.findIndex((car) => car.driverNumber === followedDriver) + 1;
 
-	return prediction?.value ?? null;
+		readFor.current = key;
+		setPrediction(
+			ghost && from > 0
+				? {
+						...rejoinAmong(now.cars, followedDriver, ghost.progress),
+						from,
+						ghostProgress: ghost.progress,
+						lapMs
+					}
+				: null
+		);
+	}, [now, key, prediction, placeAt, followedDriver, lossMs, lapMs]);
+
+	return prediction;
 }
 
 /** Seconds between two places on the road, from how far apart they are and the pace of a lap. */
@@ -130,20 +125,17 @@ function PitRejoinBody({ track }: { track: TrackReady }) {
 	const places = usePlaces(track);
 	const bodyClass = useMapBodyClass();
 
+	// The stops made by the moment on screen: a replay must not learn from stops still to come.
+	const lapMs = React.useMemo(() => typicalLap(snapshot, track.outline), [snapshot, track.outline]);
+
 	const loss = React.useMemo(
-		() =>
-			pitLoss(
-				race,
-				track.outline,
-				track.lane,
-				estimateModel(race, track.outline, false).typicalLapMs
-			),
-		[race, track]
+		() => pitLoss(snapshot, track.outline, track.lane, lapMs),
+		[snapshot, track.outline, track.lane, lapMs]
 	);
 
 	const neutralised = snapshot.trackStatus === 'vsc' || snapshot.trackStatus === 'safety_car';
 	const lossMs = neutralised ? loss.neutralisedMs : loss.greenMs;
-	const prediction = usePrediction(places, track, lossMs);
+	const prediction = usePrediction(places, track, lossMs, lapMs);
 	const drivers = new Map(race.drivers.map((driver) => [driver.number, driver]));
 	const followed = drivers.get(followedDriver);
 	// The neighbours change once a mini sector; their numbers say when.

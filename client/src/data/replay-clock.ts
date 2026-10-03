@@ -32,6 +32,13 @@ export class ReplayClock {
 	/** The session time at `at` (a `performance.now()` reading), ms since the Unix epoch. */
 	now = (at: number = performance.now()): number => this.time + (at - this.since) * this.rate;
 
+	/**
+	 * The session time at `at`, moved on only in whole steps of `stepMs` of real time since the
+	 * clock was last set: for a picture that changes once a second.
+	 */
+	stepped = (at: number, stepMs: number): number =>
+		this.now(this.since + Math.floor((at - this.since) / stepMs) * stepMs);
+
 	get running(): boolean {
 		return this.rate !== 0;
 	}

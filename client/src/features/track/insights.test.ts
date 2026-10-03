@@ -3,7 +3,8 @@ import { describe, it } from 'node:test';
 
 import type { LapTelemetry, RaceControlMessage } from '@f1-live/shared';
 
-import { lapsUntilInRange, roadGapMs } from './battle.ts';
+import { PIT_LOSS_MS } from '../../insights/pit-window.ts';
+import { lapsUntilInRange, roadGapMs, roadNeighbours } from './battle.ts';
 import { bestOf, dominance, miniSectorTimes } from './dominance.ts';
 import { drsZones, openStretches } from './drs-zones.ts';
 import { marshalSectorCount, marshalSpan, sectorFlags } from './flags.ts';
@@ -42,6 +43,20 @@ describe('battle on the road', () => {
 		assert.equal(roadGapMs(progressAt, '44', '1', 200_000), null);
 	});
 
+	it('finds the traffic round the circuit, whatever lap each car is on', () => {
+		const cars = [
+			{ driverNumber: '1', distanceM: 5900 },
+			{ driverNumber: '4', distanceM: 300 },
+			{ driverNumber: '16', distanceM: 6000 },
+			{ driverNumber: '44', distanceM: 3000 },
+			{ driverNumber: '63', distanceM: null }
+		];
+
+		// 4 is 445 m ahead across the line; 1 is 100 m behind.
+		assert.deepEqual(roadNeighbours(cars, '16', 6145), { ahead: '4', behind: '1' });
+		assert.deepEqual(roadNeighbours(cars, '63', 6145), { ahead: null, behind: null });
+	});
+
 	it('counts laps until the chaser is within a second', () => {
 		assert.equal(lapsUntilInRange(0.8, 0.1, 1), 0);
 		assert.equal(lapsUntilInRange(2.05, 0.3, 1), 4);
@@ -74,7 +89,7 @@ describe('pit rejoin', () => {
 		);
 
 		assert.deepEqual([loss.source, loss.stops, loss.greenMs], ['stops', 1, 26_000]);
-		assert.equal(loss.neutralisedMs, 26_000 * 0.57);
+		assert.equal(loss.neutralisedMs, (26_000 * PIT_LOSS_MS.neutralised) / PIT_LOSS_MS.green);
 	});
 
 	it('works the loss out from the pit lane before anyone has stopped', () => {
