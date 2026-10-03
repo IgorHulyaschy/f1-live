@@ -139,19 +139,21 @@ function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[]
 		(snapshot.personalBests ?? []).map((best) => [best.driverNumber, best.topSpeedsKph.speedTrap])
 	);
 
-	// A car's first lap in a part leaves the garage, as does a lap out of the pits.
+	// A car's first lap in a part leaves the garage, timed or not, as does a lap out of the pits.
 	const seen = new Set<string>();
+	const outLaps = new Set<Lap>();
 
-	const candidates = new Set(
-		timedLaps.filter((lap) => {
-			const runKey = `${lap.driverNumber}-${partOfLap(lap, starts)}`;
-			const first = !seen.has(runKey);
+	for (const lap of snapshot.laps) {
+		const runKey = `${lap.driverNumber}-${partOfLap(lap, starts)}`;
 
-			seen.add(runKey);
+		if (!seen.has(runKey) || lap.pitOut) {
+			outLaps.add(lap);
+		}
 
-			return !first && !lap.pitOut;
-		})
-	);
+		seen.add(runKey);
+	}
+
+	const candidates = new Set(timedLaps.filter((lap) => !outLaps.has(lap)));
 
 	const fastestOfPart = Array.from({ length: Math.max(1, starts.length) }, (_, index) =>
 		minimum(
@@ -317,7 +319,7 @@ function feedOrder(
  * Practice and qualifying: fastest first. In qualifying the cars knocked out in a part keep
  * their place under those that went through, ranked by their time in that part.
  */
-function timedOrder(rows: RowFacts[], starts: readonly string[]): RowFacts[] {
+function timedOrder(rows: RowFacts[], starts: readonly string[], laps: readonly Lap[]): RowFacts[] {
 	const byTime = (a: RowFacts, b: RowFacts) =>
 		(a.bestLapMs ?? Infinity) - (b.bestLapMs ?? Infinity) ||
 		Number(a.driver.number) - Number(b.driver.number);
@@ -327,6 +329,23 @@ function timedOrder(rows: RowFacts[], starts: readonly string[]): RowFacts[] {
 	}
 
 	const partBest = (row: RowFacts, part: number) => row.partBestsMs[part - 1] ?? Infinity;
+
+	// By the time in a part; cars without one there follow, by their time in the part before.
+	const rankIn = (part: number) => (a: RowFacts, b: RowFacts) => {
+		for (let earlier = part; earlier >= 1; earlier--) {
+			const difference = partBest(a, earlier) - partBest(b, earlier);
+
+			if (difference !== 0 && Number.isFinite(difference)) {
+				return difference;
+			}
+
+			if (partBest(a, earlier) !== partBest(b, earlier)) {
+				return partBest(a, earlier) === Infinity ? 1 : -1;
+			}
+		}
+
+		return Number(a.driver.number) - Number(b.driver.number);
+	};
 
 	let field = rows;
 	const knockedOut: RowFacts[][] = [];
@@ -339,13 +358,23 @@ function timedOrder(rows: RowFacts[], starts: readonly string[]): RowFacts[] {
 			break;
 		}
 
-		const ranked = field.toSorted((a, b) => partBest(a, part) - partBest(b, part));
+		// Only cars that went through run in the next part; a deleted lap, which the data does
+		// not mark, cannot then move a car across the line.
+		const ranNext = new Set(
+			laps.flatMap((lap) => (partOfLap(lap, starts) === part + 1 ? [lap.driverNumber] : []))
+		);
+
+		const ranked = field.toSorted(
+			(a, b) =>
+				Number(ranNext.has(b.driver.number)) - Number(ranNext.has(a.driver.number)) ||
+				rankIn(part)(a, b)
+		);
 
 		knockedOut.unshift(ranked.slice(cars));
 		field = ranked.slice(0, cars);
 	}
 
-	return [...field.toSorted(byTime), ...knockedOut.flat()];
+	return [...field.toSorted(rankIn(Math.min(starts.length, 3))), ...knockedOut.flat()];
 }
 
 /** The part a row's best lap is from, counted from 0: the last one the driver set a time in. */
@@ -401,6 +430,8 @@ export function standingsAt(snapshot: RaceSnapshot): StandingRow[] {
 	}
 
 	return withTimedGaps(
-		placed(hasFeedOrder ? feedOrder(snapshot, rows, standings) : timedOrder(rows, starts))
+		placed(
+			hasFeedOrder ? feedOrder(snapshot, rows, standings) : timedOrder(rows, starts, snapshot.laps)
+		)
 	);
 }

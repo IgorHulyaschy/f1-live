@@ -133,6 +133,20 @@ describe('qualifying', () => {
 });
 
 describe('qualifying parts', () => {
+	it('starts a part only after the chequered flag of the one before', () => {
+		const snapshot = qualifying([
+			[0, 'started'],
+			[18, 'finished'],
+			[18.1, 'aborted'],
+			[20, 'inactive'],
+			[22, 'started'],
+			[22.3, 'inactive'],
+			[23, 'started']
+		]);
+
+		assert.deepEqual(qualifyingProgress(snapshot), { part: 2, running: true, finished: false });
+	});
+
 	it('keeps a part going over a red flag, even through a spell of inactive', () => {
 		const snapshot = qualifying([
 			[0, 'started'],

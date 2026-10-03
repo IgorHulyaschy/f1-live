@@ -33,17 +33,19 @@ export function secondPartCars(cars: number): number {
 /** When each part of a session started, from its status log: 1 part outside qualifying. */
 export function partStarts(snapshot: RaceSnapshot): string[] {
 	const starts: string[] = [];
-	let running = false;
-	let halted = false;
+	let finishedSinceStart = true;
 
+	// A part ends only with its chequered flag: a red flag, or a spell of inactive before the
+	// restart, continues it.
 	for (const change of snapshot.statusLog ?? []) {
-		// A red flag aborts a part, and the restart continues it even after a spell of inactive.
-		if (change.status === 'started' && !running && !halted) {
+		if (change.status === 'started' && finishedSinceStart) {
 			starts.push(change.at);
+			finishedSinceStart = false;
 		}
 
-		running = change.status === 'started';
-		halted = change.status === 'aborted' || (halted && change.status === 'inactive');
+		if (change.status === 'finished') {
+			finishedSinceStart = true;
+		}
 	}
 
 	return starts;
