@@ -5,6 +5,7 @@ import { after, describe, it } from 'node:test';
 
 import type { RaceControlEvent } from '@f1-live/shared';
 import { WebSocket } from 'ws';
+import { z } from 'zod';
 
 import { RAW_DATA_DIR } from '../sources/f1/archive.js';
 import { parseServerMessage } from './replica.js';
@@ -14,6 +15,7 @@ import {
 	decodeDirectly,
 	reduceDirectly,
 	startPlayback,
+	tempDir,
 	untilQuiet,
 	waitUntil
 } from './test-harness.js';
@@ -78,6 +80,41 @@ describe('the live path replays a saved session', () => {
 
 		assert.deepEqual(playback.server.session.current, expected);
 		assert.equal(playback.upstream.connections, 3);
+	});
+});
+
+describe('a restart in the middle of a session', () => {
+	it('rebuilds the state from the recording and ends as an uninterrupted run would', async () => {
+		const expected = await reduceDirectly(FIXTURE_DIR);
+		const frames = await loadReplayFrames(FIXTURE_DIR);
+		const info = frames.find((frame) => frame.topic === 'SessionInfo');
+		const rawDir = tempDir();
+		const cut = Math.floor(frames.length / 2);
+
+		assert.ok(info);
+
+		const first = await startPlayback(frames.slice(0, cut), { server: { rawDir } });
+
+		await first.upstream.done;
+		await untilQuiet(first.server);
+		await first.stop();
+
+		// The feed's subscribe result always names the session, whatever frames follow.
+		const second = await startPlayback(frames.slice(cut), {
+			snapshot: { SessionInfo: z.json().parse(info.data) },
+			server: { rawDir }
+		});
+
+		running.push(second);
+
+		await second.upstream.done;
+		await untilQuiet(second.server);
+		await waitUntil(
+			() => second.server.session.current.laps.length === expected.laps.length,
+			'the state before the restart'
+		);
+
+		assert.deepEqual(second.server.session.current, expected);
 	});
 });
 

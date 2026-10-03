@@ -12,6 +12,7 @@ import type {
 	JsonValue,
 	LiveFeedOptions
 } from '../sources/f1/live.js';
+import { readArchive } from '../sources/f1/archive.js';
 import { RawWriter } from '../sources/f1/raw-writer.js';
 import type { Recording } from './importer.js';
 import type { LiveSession } from './session.js';
@@ -23,7 +24,11 @@ const FAILURE_LOG_EVERY = 1000;
 const sessionKeySchema = z.object({ Key: z.number() });
 
 /** What the recorder logs when it opens a session's files. */
-const recordedSessionSchema = z.object({ key: z.number(), path: z.string() });
+const recordedSessionSchema = z.object({
+	key: z.number(),
+	path: z.string(),
+	resumed: z.boolean().optional()
+});
 
 export type FeedOptions = Omit<LiveFeedOptions, 'topics' | 'log'>;
 
@@ -53,6 +58,11 @@ export class LivePipeline {
 	private decoder = new F1Decoder();
 	private sessionKey: number | null = null;
 	private recording: Recording | null = null;
+	/** A recording of this session from before a restart, to rebuild the state from. */
+	private resumeDir: string | null = null;
+	private restoring: Promise<void> | null = null;
+	/** What the feed sent while the state was being rebuilt, in order. */
+	private waiting: (() => void)[] = [];
 	private failures = 0;
 
 	constructor(options: PipelineOptions) {
@@ -71,6 +81,7 @@ export class LivePipeline {
 						dir: path.resolve(rawDir, opened.data.path),
 						root: path.resolve(rawDir)
 					};
+					this.resumeDir = opened.data.resumed === true ? this.recording.dir : null;
 				}
 
 				log(event, fields);
@@ -96,7 +107,19 @@ export class LivePipeline {
 	}
 
 	private onSnapshot(snapshot: FeedSnapshot) {
+		if (this.restoring) {
+			this.waiting.push(() => this.onSnapshot(snapshot));
+
+			return;
+		}
+
 		this.writer.writeSnapshot(snapshot);
+
+		if (this.resumeDir !== null) {
+			this.restore(this.resumeDir);
+
+			return;
+		}
 
 		const at = this.now();
 
@@ -109,7 +132,43 @@ export class LivePipeline {
 		}
 	}
 
+	/**
+	 * After a restart the recording holds everything the session did before it: read it back
+	 * through the decoder, so the state is whole, then go on with what the feed sent meanwhile.
+	 * The recording already holds the subscribe result that started this.
+	 */
+	private restore(dir: string) {
+		this.resumeDir = null;
+		this.restoring = this.replayRecording(dir);
+	}
+
+	private async replayRecording(dir: string): Promise<void> {
+		try {
+			for (const frame of await readArchive(dir)) {
+				this.decode(frame, false);
+			}
+		} catch (cause) {
+			this.options.log('restore-failed', { error: describeError(cause) });
+		}
+
+		this.restoring = null;
+
+		const waiting = this.waiting;
+
+		this.waiting = [];
+
+		for (const resume of waiting) {
+			resume();
+		}
+	}
+
 	private onFrame(frame: FeedFrame) {
+		if (this.restoring) {
+			this.waiting.push(() => this.onFrame(frame));
+
+			return;
+		}
+
 		this.writer.writeFrame(frame);
 		this.options.onTelemetry?.(frame.topic, frame.payload);
 
