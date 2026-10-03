@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { Key, KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
+import { TrackStatusBadge } from '@/components/track-status-badge';
 import { useRace } from '@/data/race-context';
 import { hasDrs } from '@/insights/rules';
 import type { SectorMark } from '@/insights/standings';
@@ -176,7 +177,7 @@ function TrackMapBody({
 	settings: TrackMapSettings;
 	onSettingsChange?: (settings: TrackMapSettings) => void;
 }) {
-	const { race, followedDriver } = useRace();
+	const { race, snapshot, followedDriver } = useRace();
 	const places = usePlaces(track);
 	const bodyClass = useMapBodyClass();
 	const [local, setLocal] = React.useState(settings);
@@ -203,6 +204,9 @@ function TrackMapBody({
 	return (
 		<>
 			<PanelHeader title="Track map" meta={placesLabel(places)}>
+				{snapshot.trackStatus === 'green' ? null : (
+					<TrackStatusBadge status={snapshot.trackStatus} />
+				)}
 				<KeyGroup
 					label="Camera"
 					options={CAMERA_OPTIONS}

@@ -129,10 +129,16 @@ export function usePlacesNow(places: PlacesSampler, everyMs: number): Places | n
  * seconds rather than every frame. Wide tiles show it as a legend whose rows follow a driver.
  */
 export function CarOrder({ places }: { places: PlacesSampler }) {
-	const { race, followedDriver, setFollowedDriver } = useRace();
+	const { race, followedDriver, setFollowedDriver, standings } = useRace();
 	const cars = usePlacesNow(places, LIST_EVERY_MS)?.cars ?? NO_CARS;
-
 	const drivers = new Map<string, Driver>(race.drivers.map((driver) => [driver.number, driver]));
+	const placed = new Set(cars.map((car) => car.driverNumber));
+	const out = new Set(standings.flatMap((row) => (row.state === 'out' ? [row.driver.number] : [])));
+
+	// Cars not on the circuit close the list: out of the session, or in the garage.
+	const absent = race.drivers.flatMap((driver) =>
+		placed.has(driver.number) ? [] : [{ driver, label: out.has(driver.number) ? 'Out' : 'Garage' }]
+	);
 
 	return (
 		<ol
@@ -174,6 +180,19 @@ export function CarOrder({ places }: { places: PlacesSampler }) {
 					</li>
 				);
 			})}
+			{absent.map(({ driver, label }) => (
+				<li
+					key={driver.number}
+					className="text-muted-foreground grid grid-cols-[1.5rem_auto_1fr] items-center gap-2 px-3 py-0.5"
+				>
+					<span className="font-mono text-xs">-</span>
+					<TeamStripe driver={driver} />
+					<span className="flex items-baseline gap-2">
+						<span className="type-wide text-xs font-bold">{driver.code}</span>
+						<span className="type-label">{label}</span>
+					</span>
+				</li>
+			))}
 		</ol>
 	);
 }

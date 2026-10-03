@@ -1,4 +1,4 @@
-import type { Driver, Point } from '@f1-live/shared';
+import type { Driver, Point, TrackOutline } from '@f1-live/shared';
 import * as React from 'react';
 
 import { useRace } from '@/data/race-context';
@@ -6,6 +6,7 @@ import { useRace } from '@/data/race-context';
 import type { MapCamera } from './settings';
 import { type DrawFrame, TrackCanvas } from './track-canvas';
 import {
+	type Box,
 	drawCars,
 	drawCircuit,
 	fitView,
@@ -13,6 +14,7 @@ import {
 	outlineMiddle,
 	type Overlay,
 	toScreen,
+	type TrackStyle,
 	type View,
 	zoomedView
 } from './track-draw';
@@ -28,6 +30,92 @@ const CAMERA_EASE_MS = 180;
 
 /** Where a camera looks, in the feed's metres, and how close. */
 type CameraAim = { centre: Point; zoom: number };
+
+/** The circuit drawn once for a camera that stands still, and what it was drawn for. */
+type CircuitLayer = { canvas: HTMLCanvasElement; key: string; style: TrackStyle; reserved: Box[] };
+
+/**
+ * Copies the circuit from `layer`, drawing it there first when the size, theme or anything
+ * painted on it changed since.
+ */
+function paintCircuit(
+	layer: React.RefObject<CircuitLayer | null>,
+	ctx: CanvasRenderingContext2D,
+	frame: DrawFrame,
+	view: View,
+	outline: TrackOutline,
+	style: TrackStyle
+): Box[] {
+	const ratio = window.devicePixelRatio || 1;
+
+	const key = [
+		frame.width,
+		frame.height,
+		ratio,
+		frame.rem,
+		view.scale,
+		...view.centre,
+		...Object.values(frame.theme)
+	].join('/');
+
+	const kept = layer.current;
+
+	const same =
+		kept?.key === key &&
+		kept.style.tint === style.tint &&
+		kept.style.marks === style.marks &&
+		sameOverlays(kept.style.overlays, style.overlays) &&
+		sameOverlays(kept.style.zones, style.zones);
+
+	if (!same) {
+		const canvas = kept?.canvas ?? document.createElement('canvas');
+		const layerCtx = canvas.getContext('2d');
+
+		canvas.width = Math.round(frame.width * ratio);
+		canvas.height = Math.round(frame.height * ratio);
+
+		if (!layerCtx) {
+			return drawCircuit(ctx, view, outline, frame.theme, style);
+		}
+
+		layerCtx.setTransform(ratio, 0, 0, ratio, 0, 0);
+		layer.current = {
+			canvas,
+			key,
+			style,
+			reserved: drawCircuit(layerCtx, view, outline, frame.theme, style)
+		};
+	}
+
+	const drawn = layer.current;
+
+	if (!drawn) {
+		return [];
+	}
+
+	ctx.drawImage(drawn.canvas, 0, 0, frame.width, frame.height);
+
+	return drawn.reserved;
+}
+
+function sameOverlays(a: readonly Overlay[], b: readonly Overlay[]): boolean {
+	return (
+		a.length === b.length &&
+		a.every((overlay, index) => {
+			const other = b[index];
+
+			return (
+				other !== undefined &&
+				overlay.fromM === other.fromM &&
+				overlay.toM === other.toM &&
+				overlay.colour === other.colour &&
+				overlay.dashed === other.dashed &&
+				overlay.width === other.width &&
+				overlay.alpha === other.alpha
+			);
+		})
+	);
+}
 
 /** A tap within this of a car picks it. */
 const PICK_RADIUS_PX = 16;
@@ -59,7 +147,8 @@ export function MapCanvas({
 	focus,
 	look,
 	extra,
-	marks = true
+	marks = true,
+	still = false
 }: {
 	track: TrackReady;
 	places: PlacesSampler;
@@ -72,6 +161,8 @@ export function MapCanvas({
 	look?: CarLook;
 	extra?: ExtraDraw;
 	marks?: boolean;
+	/** Nothing on the map moves with the clock, so it is drawn only when something changes. */
+	still?: boolean;
 }) {
 	const { race, snapshot, followedDriver, setFollowedDriver } = useRace();
 
@@ -82,6 +173,7 @@ export function MapCanvas({
 
 	const middle = React.useMemo(() => outlineMiddle(track.outline), [track.outline]);
 	const eased = React.useRef<CameraAim | null>(null);
+	const layer = React.useRef<CircuitLayer | null>(null);
 	const drawn = React.useRef<{ view: View; cars: readonly CarPlace[] } | null>(null);
 	const tint = snapshot.trackStatus;
 
@@ -135,16 +227,23 @@ export function MapCanvas({
 				}
 			}
 
-			const neutralised = tint === 'vsc' || tint === 'safety_car' || tint === 'yellow';
+			const neutralised = tint === 'vsc' || tint === 'safety_car';
 
-			const reserved = drawCircuit(ctx, view, track.outline, theme, {
+			const style = {
 				rem,
 				weight: camera === 'full' ? 1 : 1.6,
 				overlays: overlays?.(theme) ?? [],
 				zones: (zones ?? []).map((zone) => ({ ...zone, colour: theme.foreground })),
 				marks,
-				tint: tint === 'red' ? theme.danger : neutralised && tint !== 'yellow' ? theme.flag : null
-			});
+				tint: tint === 'red' ? theme.danger : neutralised ? theme.flag : null
+			};
+
+			// A camera that stands still sees the same circuit every frame: it is drawn once and
+			// copied, so a frame costs only the cars.
+			const reserved =
+				camera === 'full'
+					? paintCircuit(layer, ctx, frameInput, view, track.outline, style)
+					: drawCircuit(ctx, view, track.outline, theme, style);
 
 			const styled = frame.cars.flatMap((place) => {
 				const driver = drivers.get(place.driverNumber);
@@ -220,7 +319,7 @@ export function MapCanvas({
 	return (
 		<TrackCanvas
 			draw={draw}
-			moving={places.moving}
+			moving={places.moving && !still}
 			subscribe={places.subscribe}
 			label={label}
 			onPick={pick}

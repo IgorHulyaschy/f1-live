@@ -18,7 +18,11 @@ test('the Track preset estimates places from timing on a replay without position
 
 	await expect(map.getByText('Estimated', { exact: true })).toBeVisible();
 	await expect(map.getByTestId('map-note')).toContainText('this session has no car positions');
-	await expect(map.getByTestId('map-car-list').getByRole('listitem')).toHaveCount(18);
+	const cars = map.getByTestId('map-car-list').getByRole('listitem');
+
+	// 18 cars on the circuit, then the two out of the race.
+	await expect(cars).toHaveCount(20);
+	await expect(cars.last()).toContainText('Out');
 
 	for (const id of ['battle-map', 'pit-rejoin', 'dominance', 'flag-map', 'speed-map']) {
 		await expect(page.getByTestId(id)).toBeVisible();

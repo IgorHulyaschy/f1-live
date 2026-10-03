@@ -333,6 +333,7 @@ function SpeedMapBody({ track, channel }: { track: TrackReady; channel: Channel 
 						overlays={overlays}
 						look={NO_CARS}
 						extra={extra}
+						still
 					/>
 				)}
 			</div>

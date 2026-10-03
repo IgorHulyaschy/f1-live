@@ -20,7 +20,11 @@ const PAGES = [
 	{ name: 'qualifying', path: '/?session=11373' },
 	{ name: 'qualifying-q2', path: '/?session=9854&lap=40' },
 	{ name: 'analysis-qualifying', path: '/analysis?session=9854' },
-	{ name: 'battle-qualifying', path: '/d/battle?session=11373' }
+	{ name: 'battle-qualifying', path: '/d/battle?session=11373' },
+	{ name: 'track-race', path: '/d/track?session=9858&lap=30&plan=pro' },
+	{ name: 'track-start', path: '/d/track?session=9858&lap=1&plan=pro' },
+	{ name: 'track-qualifying', path: '/d/track?session=11373&plan=pro' },
+	{ name: 'wall-race', path: '/d/wall?session=9858&lap=30' }
 ] as const;
 
 const THEMES = ['dark', 'light'] as const;
@@ -39,6 +43,8 @@ for (const viewport of VIEWPORTS) {
 					}, theme);
 					await page.goto(screen.path);
 					await expect(page.getByTestId('lap-counter')).toBeAttached();
+					// Maps fetch their circuit, replay chunks and laps after the session.
+					await page.waitForLoadState('networkidle');
 					await page.evaluate(() => document.fonts.ready);
 					await page.waitForTimeout(800);
 
