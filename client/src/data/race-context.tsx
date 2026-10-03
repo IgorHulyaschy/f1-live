@@ -1,6 +1,6 @@
 import { EMPTY_SNAPSHOT, type RaceSnapshot } from '@f1-live/shared';
 import * as React from 'react';
-import { useSearchParams } from 'react-router';
+import { useLocation, useSearchParams } from 'react-router';
 import { z } from 'zod';
 
 import { useStableValue } from '../hooks/use-stable-value.ts';
@@ -543,6 +543,10 @@ export function RaceProvider({
 	const [playing, setLocalPlaying] = React.useState(false);
 	const [mirroring, setMirroring] = React.useState(false);
 
+	// Replacing the address keeps the entry's state: an open driver or lap view counts its depth
+	// there, so closing it can step back past every level it opened.
+	const { state: locationState } = useLocation();
+
 	const updateParams = React.useCallback(
 		(change: (params: URLSearchParams) => void) => {
 			setSearchParams(
@@ -551,10 +555,10 @@ export function RaceProvider({
 
 					return params;
 				},
-				{ replace: true }
+				{ replace: true, state: locationState }
 			);
 		},
-		[setSearchParams]
+		[setSearchParams, locationState]
 	);
 
 	const updateParam = React.useCallback(

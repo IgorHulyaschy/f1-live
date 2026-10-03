@@ -89,3 +89,25 @@ export function stepAt(timeline: ReplayTimeline, time: number): number {
 
 	return Math.max(1, low);
 }
+
+/**
+ * The step that first shows a moment: a race's lap as given, or in a session on the clock the
+ * minute by whose end it had happened. Null when a timed moment has no time.
+ */
+export function stepShowing(
+	timeline: ReplayTimeline,
+	moment: { lap: number; at?: string }
+): number | null {
+	if (timeline.unit === 'lap') {
+		return Math.min(Math.max(moment.lap, 1), Math.max(timeline.times.length - 1, 1));
+	}
+
+	if (moment.at === undefined) {
+		return null;
+	}
+
+	const time = Date.parse(moment.at);
+	const step = timeline.times.findIndex((end) => end >= time);
+
+	return step === -1 ? Math.max(timeline.times.length - 1, 1) : Math.max(step, 1);
+}

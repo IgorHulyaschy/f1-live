@@ -212,3 +212,39 @@ test('with nothing live, the strip counts down to the next session in local time
 	await expect(page.getByTestId('dashboard-practice')).toBeVisible();
 	await expect(page.getByTestId('long-runs')).toBeVisible();
 });
+
+test('a qualifying driver view shows their runs and laps, and a lap its telemetry', async ({
+	page
+}) => {
+	await openRace(page, '/?session=11373&lap=62');
+
+	await page.getByTestId('timing-row-RUS').click();
+
+	const sheet = page.getByTestId('drill-sheet');
+	await expect(page).toHaveURL(/car=63/);
+	await expect(sheet.getByTestId('drill-runs')).toContainText('Q3 run 1');
+	await expect(sheet.getByTestId('drill-headline')).toContainText('1:42.526');
+
+	await sheet.getByTestId('drill-lap-26').click();
+	await expect(sheet.getByTestId('lap-facts')).toContainText('1:42.526');
+	await expect(sheet.getByTestId('telemetry-charts')).toBeVisible();
+
+	await sheet.getByRole('combobox', { name: 'Compare with driver' }).click();
+	await page.getByRole('option', { name: 'LEC' }).click();
+	await expect(page).toHaveURL(/vs=16/);
+	await expect(sheet.getByTestId('telemetry-readout')).toContainText('LEC');
+});
+
+test('with results hidden, a driver view shows only what has happened so far', async ({ page }) => {
+	await openRace(page, '/?session=11373&car=63', { spoilerProtection: true });
+
+	const sheet = page.getByTestId('drill-sheet');
+	await expect(sheet.getByTestId('driver-view')).toBeVisible();
+	await expect(sheet).not.toContainText('Q3');
+	await expect(sheet).not.toContainText('1:42.526');
+
+	// Back from a view that came with the link lands on the session, still in the app.
+	await page.goBack();
+	await expect(sheet).toHaveCount(0);
+	await expect(page).toHaveURL(/session=11373$/);
+});

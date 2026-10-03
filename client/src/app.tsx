@@ -16,6 +16,7 @@ import { AccountFooterKey, AccountSession } from '@/features/account/account-men
 import { useAccountPlan } from '@/features/account/account-store';
 import { CompareProvider } from '@/features/analysis/compare-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
+import { DrillSheet } from '@/features/drill/drill-sheet';
 import type { RaceSource } from '@/data/race-source';
 import { useRaceAlerts } from '@/hooks/use-race-alerts';
 import { usePageTitle } from '@/hooks/use-page-title';
@@ -158,6 +159,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 						</footer>
 						<PitBoard />
 						<AccountSession />
+						<DrillSheet />
 					</div>
 				</CompareProvider>
 				<CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
