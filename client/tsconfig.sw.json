@@ -3,7 +3,12 @@
 	"compilerOptions": {
 		"lib": ["es2023", "webworker"],
 		"types": [],
-		"noEmit": true
+		"noEmit": true,
+		"allowImportingTsExtensions": true
 	},
-	"include": ["src/platform/service-worker.ts"]
+	"include": [
+		"src/platform/service-worker.ts",
+		"src/platform/push-worker.ts",
+		"src/platform/push-notice.ts"
+	]
 }

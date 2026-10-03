@@ -138,6 +138,26 @@ Event in any driver or lap view.
 
 ![Before: the session picker](../screenshots/flows/before-session-picker.png)
 
+## F. Alerts for the driver you follow
+
+**Entry.** Alerts in the More menu, ⌘K or the account menu (`/alerts`).
+
+**Steps.**
+
+1. Pick the driver in the Focus tile or ⌘K; alerts are always about them.
+2. Choose, per kind (pit stop, flag, penalty, retirement, session start), whether it shows as a
+   toast while the app is open and whether it is pushed. A sample key shows each.
+3. For pushes: sign in, then Turn on pushes for this device (installed app or the production
+   build; a development page has no service worker). Send a test to see one.
+4. Optionally set quiet hours for pushes, and a wait so a push does not beat a delayed broadcast;
+   Match my broadcast delay copies it.
+
+**Exits.** Back to the session. Settings follow the account to every device; each device turns
+pushes on for itself.
+
+**No spoilers.** While a session runs everything is live. Once it is final, a retirement or penalty
+is not pushed to someone with spoiler protection on who has not revealed that session.
+
 ## E. First visit from a shared link or search
 
 **Entry.** A link someone shared (`/?session=11373&lap=…` or `…&car=63`), or a search result.

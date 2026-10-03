@@ -1,11 +1,24 @@
+import type { AlertSettings } from '@f1-live/shared/alerts';
 import type { Dashboard } from '@f1-live/shared/dashboard';
 import type { ViewerSettings } from '@f1-live/shared/viewer';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
 
 import { type PaymentProvider, PaymentProviderError } from '../payments/provider.js';
 import type { AccountsDatabase } from './db/database.js';
-import { account, dashboard, deletedAccount, session, user, verification } from './db/schema.js';
+import {
+	account,
+	dashboard,
+	deletedAccount,
+	libraryAdd,
+	libraryEntry,
+	libraryReport,
+	session,
+	user,
+	verification
+} from './db/schema.js';
 import { isLive, subscriptionsOf } from './entitlements.js';
+import { listDevices, readAlertSettings, type Device } from './alerts/store.js';
+import { handleOf } from './library/entries.js';
 import { readViewerSettings } from './viewer-settings.js';
 
 /** Everything the account server holds about a person, minus secrets such as session tokens. */
@@ -29,6 +42,15 @@ export type AccountExport = {
 	dashboards: { id: string; version: number; updatedAt: string; dashboard: Dashboard }[];
 	/** Spoiler protection and the sessions revealed; null before the first sync. */
 	viewer: ViewerSettings | null;
+	/** Alert settings, and the browsers registered for Web Push. */
+	alerts: { settings: AlertSettings | null; devices: Device[] };
+	/** The handle chosen for the fan library, and what was published, added and reported there. */
+	library: {
+		handle: string | null;
+		published: { id: string; name: string; description: string; tags: string[]; adds: number }[];
+		added: string[];
+		reported: { entryId: string; reason: string }[];
+	};
 };
 
 export async function exportAccount(
@@ -42,7 +64,19 @@ export async function exportAccount(
 		return null;
 	}
 
-	const [links, sessions, subscriptions, dashboards, viewer] = await Promise.all([
+	const [
+		links,
+		sessions,
+		subscriptions,
+		dashboards,
+		viewer,
+		handle,
+		published,
+		added,
+		reported,
+		alertSettings,
+		devices
+	] = await Promise.all([
 		db.select().from(account).where(eq(account.userId, userId)),
 		db.select().from(session).where(eq(session.userId, userId)),
 		subscriptionsOf(db, userId),
@@ -50,7 +84,13 @@ export async function exportAccount(
 			.select()
 			.from(dashboard)
 			.where(and(eq(dashboard.userId, userId), isNotNull(dashboard.document))),
-		readViewerSettings(db, userId)
+		readViewerSettings(db, userId),
+		handleOf(db, userId),
+		db.select().from(libraryEntry).where(eq(libraryEntry.userId, userId)),
+		db.select().from(libraryAdd).where(eq(libraryAdd.userId, userId)),
+		db.select().from(libraryReport).where(eq(libraryReport.userId, userId)),
+		readAlertSettings(db, userId),
+		listDevices(db, userId)
 	]);
 
 	return {
@@ -91,13 +131,27 @@ export async function exportAccount(
 					]
 				: []
 		),
-		viewer
+		viewer,
+		alerts: { settings: alertSettings, devices },
+		library: {
+			handle,
+			published: published.map((row) => ({
+				id: row.id,
+				name: row.name,
+				description: row.description,
+				tags: row.tags,
+				adds: row.adds
+			})),
+			added: added.map((row) => row.entryId),
+			reported: reported.map((row) => ({ entryId: row.entryId, reason: row.reason }))
+		}
 	};
 }
 
 /**
  * Deletes an account and everything under it (sessions, sign-in methods, dashboards,
- * subscriptions cascade with the user row; unused sign-in links name the email, so they go
+ * subscriptions, the library handle and what was published, alert settings and push devices
+ * cascade with the user row; unused sign-in links name the email, so they go
  * too). Every subscription not yet ended, live or still settling, is ended with the provider
  * first; if the provider refuses, nothing is deleted, so nobody is billed for a gone account.
  */

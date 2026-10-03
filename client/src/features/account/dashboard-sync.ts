@@ -8,16 +8,29 @@ import {
 } from '@/data/viewer-settings';
 import { readSavedDashboards, replaceSavedDashboards } from '@/features/dashboard/dashboard-store';
 import { refreshAccount, useAccount } from './account-store';
-import { AccountsError, listDocuments, pushDocument, pushViewerSettings } from './api';
+import {
+	ACCOUNTS_BASE,
+	AccountsError,
+	DEVICE_ID,
+	listDocuments,
+	pushDocument,
+	pushViewerSettings
+} from './api';
 import { useGoPro } from './go-pro';
-import { onLocalEdit, readSyncMeta, useSyncMeta, writeSyncMeta } from './sync-meta';
+import { onLocalEdit, readSyncMeta, writeSyncMeta } from './sync-meta';
 import { bindAccount, reconcile, settle, type SyncNotice, type SyncState } from './sync-rules';
+import { eventsUrl, openSyncSocket } from './sync-socket';
 
 /** Edits are sent this long after the last change, so a drag is one request, not fifty. */
 const EDIT_DELAY_MS = 1000;
 
-/** Other devices' changes arrive at the latest this long after they happen, while visible. */
+/**
+ * A backstop for the device channel: other devices' changes arrive at the latest this long
+ * after they happen, while visible. With the channel down it is the only way, so it is quick.
+ */
 const PULL_INTERVAL_MS = 30_000;
+
+const PULL_INTERVAL_CHANNEL_UP_MS = 300_000;
 
 /** Two tabs of the same browser never sync at once. */
 const LOCK = 'pitwall-dashboard-sync';
@@ -100,8 +113,9 @@ function requestSync(accountId: string, report: (notices: SyncNotice[]) => void)
 
 /**
  * Keeps this browser's dashboards and spoiler settings and the signed-in account in step: right
- * after sign-in, a moment after each edit or reveal, when the window comes back, and every half
- * minute while it is open.
+ * after sign-in, a moment after each edit or reveal, when the window comes back, when the server
+ * says another device changed something, and as a backstop every half minute (every five while
+ * the channel is up) while it is open.
  */
 export function useDashboardSync(): void {
 	const account = useAccount();
@@ -155,7 +169,25 @@ export function useDashboardSync(): void {
 			}
 		};
 
-		const pull = window.setInterval(onVisible, PULL_INTERVAL_MS);
+		let channelUp = false;
+		let sinceLastPull = 0;
+
+		const pull = window.setInterval(() => {
+			sinceLastPull += PULL_INTERVAL_MS;
+
+			if (!channelUp || sinceLastPull >= PULL_INTERVAL_CHANNEL_UP_MS) {
+				sinceLastPull = 0;
+				onVisible();
+			}
+		}, PULL_INTERVAL_MS);
+
+		const closeChannel = openSyncSocket({
+			url: eventsUrl(ACCOUNTS_BASE, window.location, DEVICE_ID),
+			onChange: sync,
+			onOpen: (open) => {
+				channelUp = open;
+			}
+		});
 
 		sync();
 		window.addEventListener('online', sync);
@@ -164,6 +196,7 @@ export function useDashboardSync(): void {
 		return () => {
 			syncRef.current = null;
 			offEdit();
+			closeChannel();
 			window.clearTimeout(editTimer);
 			window.clearInterval(pull);
 			window.removeEventListener('online', sync);
@@ -183,23 +216,4 @@ export function useDashboardSync(): void {
 
 		return () => window.clearTimeout(timer);
 	}, [spoilerSettings]);
-}
-
-export type SyncStatus = 'local' | 'pending' | 'blocked' | 'synced';
-
-/** Where one dashboard is kept, for the line next to its name while editing. */
-export function useSyncStatus(id: string): SyncStatus {
-	const account = useAccount();
-	const meta = useSyncMeta();
-	const entry = meta.docs[id];
-
-	if (account.status !== 'signed-in' || meta.accountId !== account.me.user.id) {
-		return 'local';
-	}
-
-	if (entry?.blocked) {
-		return 'blocked';
-	}
-
-	return entry?.pending ? 'pending' : 'synced';
 }

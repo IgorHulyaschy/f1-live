@@ -13,7 +13,10 @@ const viewerReply = z.object({ revealed: z.array(z.string()) });
 
 async function addFromLibrary(page: Page, name: string): Promise<void> {
 	await page.goto('/library');
-	await page.getByRole('button', { name: `Add ${name}` }).click();
+	await page
+		.getByRole('button', { name: `Add ${name}` })
+		.first()
+		.click();
 	await expect(page).toHaveURL(/\/d\/board-/);
 }
 
@@ -130,6 +133,36 @@ test('an account syncs dashboards, holds the Free limit, goes Pro and can be del
 	await page.reload();
 	await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
 	expect(await (await page.request.get('/api/me')).json()).toBeNull();
+
+	await otherContext.close();
+});
+
+test('a dashboard edit appears on another signed-in device without a reload', async ({
+	page,
+	browser
+}) => {
+	const email = testEmail('push');
+	const otherContext = await browser.newContext();
+	const other = await otherContext.newPage();
+
+	await openRace(page, '/library');
+	await signInWithLink(page, email);
+	await openRace(other, '/library');
+	await signInWithLink(other, email);
+	await other.goto('/library');
+	await expect(yours(other)).toHaveCount(0);
+
+	// Well inside the 30 s pull: only the server's nudge can bring it this fast.
+	const quickly = { timeout: 8000 };
+
+	await addFromLibrary(page, 'Second screen');
+	await expect(yours(other).filter({ hasText: 'Second screen' })).toHaveCount(1, quickly);
+
+	await page.getByRole('button', { name: 'Edit' }).click();
+	await page.getByLabel('Dashboard name').fill('Pushed rename');
+	await page.getByLabel('Dashboard name').blur();
+	await expect(yours(other).filter({ hasText: 'Pushed rename' })).toHaveCount(1, quickly);
+	await expect(other.getByText('Second screen changed on another device')).toHaveCount(0);
 
 	await otherContext.close();
 });

@@ -15,6 +15,10 @@ import { type Accounts, WEBHOOK_PATH } from './accounts.js';
 import { applyWebhook } from './billing.js';
 import { listDocuments, type WriteOutcome, writeDocument } from './dashboards.js';
 import { customerOf, isLive, planFor, subscriptionsOf } from './entitlements.js';
+import { HttpError } from './http-error.js';
+import { registerAlerts } from './alerts/routes.js';
+import { handleOf } from './library/entries.js';
+import { registerLibrary } from './library/routes.js';
 import { writeViewerSettings } from './viewer-settings.js';
 
 /** A dashboard document is a few kilobytes; this leaves room and stops abuse. */
@@ -28,6 +32,20 @@ const LOOPBACK_IPS = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const OWN_ORIGIN_CHECK = ['/api/auth/', WEBHOOK_PATH];
 
 const dashboardParams = z.object({ id: z.string().min(1).max(64) });
+
+/** A device names itself so the account does not tell it about its own change. */
+const DEVICE_HEADER = 'x-pitwall-device';
+
+const eventsQuery = z.object({ device: z.string().optional() });
+
+const deviceId = z
+	.string()
+	.regex(/^[\w-]{8,64}$/)
+	.nullable();
+
+function deviceOf(request: FastifyRequest): string | null {
+	return deviceId.catch(null).parse(request.headers[DEVICE_HEADER] ?? null);
+}
 
 const versioned = { baseVersion: z.int().min(0), updatedAt: z.iso.datetime() };
 
@@ -44,24 +62,16 @@ const mailboxQuery = z.object({ to: z.email() });
 /** Raw request bodies, for Better Auth and for webhook signatures. */
 const rawBody = z.string().optional();
 
-class HttpError extends Error {
-	readonly status: number;
-	readonly code: string;
-
-	constructor(status: number, code: string, message: string) {
-		super(message);
-		this.status = status;
-		this.code = code;
-	}
-}
-
 /**
  * The accounts API under `/api`: Better Auth at `/api/auth/*`, the signed-in viewer at
  * `/api/me`, their dashboards, billing and the payment webhook. Cookies carry the session, so
  * state-changing requests from a browser must come from a trusted origin.
  */
 export async function registerAccounts(app: FastifyInstance, accounts: Accounts): Promise<void> {
-	const { config, db, auth, payments, log, now } = accounts;
+	const { config, db, auth, payments, log, now, events } = accounts;
+
+	const tellDevices = (userId: string, topic: 'dashboards' | 'viewer', request: FastifyRequest) =>
+		events.notify(userId, { type: 'changed', topic }, deviceOf(request));
 
 	const signedIn = async (request: FastifyRequest) => {
 		const found = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
@@ -73,10 +83,16 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 		return found.user;
 	};
 
+	// The viewer if there is one: public pages show a little more to the signed-in.
+	const viewerOf = async (request: FastifyRequest) =>
+		(await auth.api.getSession({ headers: fromNodeHeaders(request.headers) }))?.user ?? null;
+
 	await app.register(async (scope) => {
 		scope.setErrorHandler((error: FastifyError, _request, reply) => {
 			if (error instanceof HttpError) {
-				return reply.code(error.status).send({ error: error.code, message: error.message });
+				return reply
+					.code(error.status)
+					.send({ ...error.extra, error: error.code, message: error.message });
 			}
 
 			if (error instanceof z.ZodError) {
@@ -148,7 +164,8 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 				brand: config.brand,
 				providers: { google: config.social.google !== null, apple: config.social.apple !== null },
 				devMailbox: accounts.devMailbox !== null,
-				payments: { provider: payments.name, prices: await payments.prices() }
+				payments: { provider: payments.name, prices: await payments.prices() },
+				push: accounts.push ? { publicKey: accounts.push.publicKey } : null
 			})
 		);
 
@@ -181,6 +198,7 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 					name: user.name,
 					createdAt: user.createdAt.toISOString()
 				},
+				handle: await handleOf(db, user.id),
 				plan,
 				entitlements,
 				subscription: subscription && {
@@ -192,6 +210,9 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 				billing: { portal: customerOf(records, payments.name) !== null }
 			});
 		});
+
+		registerLibrary(scope, accounts, signedIn, viewerOf);
+		registerAlerts(scope, accounts, signedIn);
 
 		scope.get('/api/me/dashboards', async (request, reply) => {
 			const user = await signedIn(request);
@@ -226,7 +247,7 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 					now()
 				);
 
-				return sendOutcome(reply, outcome);
+				return sendOutcome(reply, outcome, () => tellDevices(user.id, 'dashboards', request));
 			}
 		);
 
@@ -244,7 +265,7 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 				now()
 			);
 
-			return sendOutcome(reply, outcome);
+			return sendOutcome(reply, outcome, () => tellDevices(user.id, 'dashboards', request));
 		});
 
 		// Spoiler settings: the device sends its own, the answer is the account's after merging.
@@ -252,7 +273,33 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 			const user = await signedIn(request);
 			const incoming = viewerSettingsSchema.parse(request.body);
 
-			return reply.send(await writeViewerSettings(db, user.id, incoming));
+			const merged = await writeViewerSettings(db, user.id, incoming);
+
+			if (merged.changed) {
+				tellDevices(user.id, 'viewer', request);
+				// A push for the next alert must follow the protection they have now.
+				accounts.alerts?.changed();
+			}
+
+			return reply.send(merged.settings);
+		});
+
+		// The signed-in viewer's own channel. The cookie rides on the upgrade, and the socket's
+		// Origin was checked against CORS_ORIGINS before it opened.
+		scope.get('/api/me/events', { websocket: true }, async (socket, request) => {
+			const found = await auth.api.getSession({ headers: fromNodeHeaders(request.headers) });
+
+			if (!found) {
+				socket.close(4401, 'sign in first');
+
+				return;
+			}
+
+			events.attach(
+				found.user.id,
+				socket,
+				deviceId.catch(null).parse(eventsQuery.parse(request.query).device ?? null)
+			);
 		});
 
 		scope.get('/api/me/export', async (request, reply) => {
@@ -276,6 +323,7 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 			}
 
 			await deleteAccount(db, payments, user.id, now());
+			events.closeAccount(user.id);
 			log('account-deleted', { user: user.id });
 
 			// The session went with the account; this only clears the cookie.
@@ -347,9 +395,11 @@ export async function registerAccounts(app: FastifyInstance, accounts: Accounts)
 	});
 }
 
-function sendOutcome(reply: FastifyReply, outcome: WriteOutcome) {
+function sendOutcome(reply: FastifyReply, outcome: WriteOutcome, onSaved: () => void) {
 	switch (outcome.kind) {
 		case 'saved':
+			onSaved();
+
 			return reply.send({ document: outcome.document });
 		case 'stale':
 			return reply.code(409).send({

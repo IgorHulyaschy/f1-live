@@ -66,6 +66,15 @@ export async function seriousViolations(page: Page): Promise<string[]> {
 		);
 }
 
+/** Buys Pro through the fake provider's checkout, as the account page offers it. */
+export async function goPro(page: Page): Promise<void> {
+	await page.goto('/account');
+	await page.getByTestId('go-pro').click();
+	await expect(page.getByRole('heading', { name: 'Checkout' })).toBeVisible();
+	await page.getByRole('button', { name: 'Pay' }).click();
+	await expect(page.getByText('Pro is on')).toBeVisible();
+}
+
 /** The sizes every page must fit: a phone, a laptop, a desktop and an ultrawide. */
 export const FIT_SIZES = [
 	{ width: 360, height: 800 },

@@ -38,3 +38,23 @@ export function mergeViewerSettings(
 		revealed: mergeRevealed(incoming.revealed, stored.revealed)
 	};
 }
+
+/** What the spoiler rule reads: protection on or off, and the sessions whose results were seen. */
+export type SpoilerSettings = { protect: boolean; revealed: readonly string[] };
+
+/** The viewer may see this session's result: protection is off, or they revealed it. */
+export function isRevealed(settings: SpoilerSettings, sessionKey: string): boolean {
+	return !settings.protect || settings.revealed.includes(sessionKey);
+}
+
+/**
+ * The result of a session is hidden: it is not being watched live and the viewer has not
+ * revealed it. A live session is never hidden, since its latest state is what is happening now.
+ */
+export function resultsHidden(
+	settings: SpoilerSettings,
+	sessionKey: string,
+	watchedLive: boolean
+): boolean {
+	return !watchedLive && !isRevealed(settings, sessionKey);
+}

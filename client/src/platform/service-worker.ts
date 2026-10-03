@@ -5,6 +5,8 @@
  * than a visible "unavailable".
  */
 
+import { installPush } from './push-worker.ts';
+
 declare const self: ServiceWorkerGlobalScope;
 
 /** Written in by the build (vite.config.ts): the paths to keep. */
@@ -19,6 +21,8 @@ const PRECACHE = new Set(BUILD_SHELL_FILES);
 
 /** A page request waits this long for the network before the kept shell answers instead. */
 const NAVIGATION_TIMEOUT_MS = 3000;
+
+installPush(self);
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(

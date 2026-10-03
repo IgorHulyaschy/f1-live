@@ -32,6 +32,36 @@ describe('accounts settings', () => {
 		});
 	});
 
+	it('keep the library’s moderation policy in the environment, with defaults', () => {
+		assert.deepEqual(loadConfig({ ACCOUNTS_DB: 'memory' }).accounts?.moderation, {
+			reservedHandles: [],
+			blockedWords: [],
+			reportsToHide: 3,
+			maxPublished: 25
+		});
+
+		assert.deepEqual(
+			loadConfig({
+				ACCOUNTS_DB: 'memory',
+				LIBRARY_RESERVED_HANDLES: ' Ferrari, mclaren ,',
+				LIBRARY_BLOCKED_WORDS: 'Tifosi',
+				LIBRARY_REPORTS_TO_HIDE: '5',
+				LIBRARY_MAX_PUBLISHED: '10'
+			}).accounts?.moderation,
+			{
+				reservedHandles: ['ferrari', 'mclaren'],
+				blockedWords: ['tifosi'],
+				reportsToHide: 5,
+				maxPublished: 10
+			}
+		);
+
+		assert.throws(
+			() => loadConfig({ ACCOUNTS_DB: 'memory', LIBRARY_REPORTS_TO_HIDE: '0' }),
+			/LIBRARY_REPORTS_TO_HIDE/
+		);
+	});
+
 	it('turn a sign-in provider on only with both of its keys', () => {
 		assert.throws(
 			() => loadConfig({ ACCOUNTS_DB: 'memory', GOOGLE_CLIENT_ID: 'id-only' }),

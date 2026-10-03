@@ -9,7 +9,6 @@ import { LoadingState } from './components/site-frame';
 import { createRaceSource, raceSourceKindFromEnv } from './data/race-source';
 import { HomeRoute } from './features/home/home-page';
 import { WelcomePage } from './features/library/welcome';
-import { AccountPage } from './features/account/account-page';
 import { restoreScale } from './hooks/use-scale';
 import { restoreTheme } from './hooks/use-theme';
 import type { LegalSlug } from './legal/content';
@@ -90,7 +89,13 @@ const router = createBrowserRouter([
 					library('/library/:entryId', ROUTE_META.libraryEntry, 'LibraryEntryPage'),
 					library('/shared', ROUTE_META.shared, 'SharedPage'),
 					{ path: '/welcome', element: <WelcomePage />, handle: handle(ROUTE_META.welcome) },
-					{ path: '/account', element: <AccountPage />, handle: handle(ROUTE_META.account) },
+					{
+						path: '/account',
+						handle: handle(ROUTE_META.account),
+						lazy: async () => ({
+							Component: (await import('./features/account/account-page')).AccountPage
+						})
+					},
 					{
 						path: '/calendar',
 						handle: handle(ROUTE_META.calendar),
@@ -117,6 +122,13 @@ const router = createBrowserRouter([
 						handle: handle(ROUTE_META.driver),
 						lazy: async () => ({
 							Component: (await import('./features/history/driver-page')).DriverPage
+						})
+					},
+					{
+						path: '/alerts',
+						handle: handle(ROUTE_META.alerts),
+						lazy: async () => ({
+							Component: (await import('./features/alerts/alerts-page')).AlertsPage
 						})
 					}
 				]

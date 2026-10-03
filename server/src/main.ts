@@ -8,6 +8,7 @@ import type { FastifyInstance } from 'fastify';
 
 import { createAccounts, injectWebhook } from './accounts/accounts.js';
 import type { Accounts } from './accounts/accounts.js';
+import type { PushSender } from './accounts/alerts/sender.js';
 import { registerAccounts } from './accounts/routes.js';
 import { isInsecureRelayUrl } from './config.js';
 import type { Config } from './config.js';
@@ -51,6 +52,8 @@ export interface ServerOptions {
 	channelProbeMs?: number;
 	/** How long a telemetry channel may stay silent before it is no longer live; tests shorten it. */
 	channelSilentMs?: number;
+	/** Replaces the Web Push client, so a test sees what would be sent. */
+	pushSender?: PushSender;
 	/** Replaces the importer that runs when a session ends; null turns it off. */
 	importer?: SessionImporter | null;
 }
@@ -101,10 +104,27 @@ export async function createServer(
 		credentials: accountsConfig !== null
 	});
 
+	if (serves) {
+		await app.register(websocket, {
+			options: {
+				maxPayload: MAX_VIEWER_MESSAGE_BYTES,
+				// Browsers state where the page came from; scripts and tools send nothing.
+				verifyClient: ({ origin }, accept) =>
+					accept(!origin || config.corsOrigins.includes(origin), 403, 'origin not allowed')
+			}
+		});
+	}
+
 	let accounts: Accounts | undefined;
 
 	if (accountsConfig) {
-		accounts = await createAccounts(accountsConfig, { log, deliverWebhook: injectWebhook(app) });
+		accounts = await createAccounts(accountsConfig, {
+			log,
+			deliverWebhook: injectWebhook(app),
+			pingMs: config.ws.pingMs,
+			session,
+			pushSender: options.pushSender
+		});
 		await registerAccounts(app, accounts);
 	}
 
@@ -117,14 +137,6 @@ export async function createServer(
 	let telemetry: LiveTelemetry | undefined;
 
 	if (serves) {
-		await app.register(websocket, {
-			options: {
-				maxPayload: MAX_VIEWER_MESSAGE_BYTES,
-				// Browsers state where the page came from; scripts and tools send nothing.
-				verifyClient: ({ origin }, accept) =>
-					accept(!origin || config.corsOrigins.includes(origin), 403, 'origin not allowed')
-			}
-		});
 		hub = new LiveHub(session, {
 			maxBufferBytes: config.ws.maxBufferBytes,
 			pingMs: config.ws.pingMs,

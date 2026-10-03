@@ -6,8 +6,8 @@ lap strip, timing and charts. The top bar keeps only navigation, the plan and th
 it, the live strip says which session is on screen and how it stands, on every page.
 
 Everything here runs in the browser, and keeps working with no account. Signed in, the
-dashboards also sync to the account. The fan library is still a mock, with the shape listed under
-[Backend contract](#backend-contract).
+dashboards also sync to the account, and the fan library and alerts live in the accounts database
+([Backend contract](#backend-contract)).
 
 ## The live strip
 
@@ -284,16 +284,18 @@ data a fan expects anywhere stays free, models that turn it into a strategy call
    - Text size goes from S to TV, and Fit stretches the dashboard to the window height.
 3. **Start fresh or copy**: + in the bar starts an empty dashboard. Duplicate copies one.
 4. **Library** (`/library`):
-   - your dashboards;
+   - your dashboards, with Publish, Update and Unpublish;
    - the ready-made ones;
-   - fan dashboards to preview live and add a copy of.
+   - fan dashboards to search (name, tag or @handle), filter by tag, order by most added or newest,
+     preview live, add a copy of and report. Its starting entries are examples, marked as such.
 5. **Share**: the Share key copies a link that carries the whole dashboard (`/shared?d=…`).
    - The receiver previews it live and adds a copy. No account and no server are needed.
    - Export and Import do the same with a JSON file.
 6. **Account** (`/account`, and the account key in the bar; the footer on phones):
    - sign in with an emailed link, or Google and Apple when the server has them;
    - dashboards made here before signing in join the account; from then on every edit syncs, and
-     other devices pick it up when they come back to the tab or within half a minute;
+     the account's other open devices pick it up at once (a WebSocket nudge, then a pull); a device
+     that missed it catches up when the tab comes back, or within half a minute without the socket;
    - two devices editing one dashboard: the newer edit wins, and the other device says so;
    - the plan, Go Pro (monthly or yearly), Manage billing, Export my data and Delete account.
 
@@ -363,13 +365,52 @@ made the edit, and the server keeps whichever edit is newer.
 | `POST /api/billing/portal`      | The provider's billing page `{ url }`                              |
 | `POST /api/billing/webhook`     | Signed provider events                                             |
 
-The library is still mocked in `client/src/features/library/`, and its types are the payloads.
+A signed-in device also opens `WS /api/me/events?device=<id>`: the cookie rides on the upgrade, and
+the socket's Origin must be in `CORS_ORIGINS`. After any accepted dashboard or spoiler-settings
+write the server sends `{ type: "changed", topic: "dashboards" | "viewer" }` to the account's other
+devices (the one that wrote names itself with the `x-pitwall-device` header and is skipped). The
+message carries no data: the device pulls over REST, which stays the source of truth.
 
-| Endpoint              | Body / response                    | Mocked by                    |
-| --------------------- | ---------------------------------- | ---------------------------- |
-| `GET /library`        | `LibraryEntry[]`, most added first | `COMMUNITY` + `usePublished` |
-| `POST /library`       | `Dashboard` → `LibraryEntry`       | `publishDashboard`           |
-| `DELETE /library/:id` |                                    | `unpublishDashboard`         |
+### Library, alerts and push
+
+| Endpoint                       | Body / response                                                                 |
+| ------------------------------ | ------------------------------------------------------------------------------- |
+| `GET /api/library`             | `?q&tag&sort=popular\|new&page` → `{ entries, hasMore, tags }`, public          |
+| `GET /api/library/:id`         | `{ entry }`; a held-back entry shows to its author only                         |
+| `GET /api/me/library`          | What the viewer published, held-back entries included                           |
+| `POST /api/library`            | `{ dashboard, description, tags }` → 201 or 200 (republish); Pro, a handle      |
+| `DELETE /api/library/:id`      | Unpublish; 404 for anyone but the author                                        |
+| `POST /api/library/:id/add`    | Counts the viewer's add once; never the author's own                            |
+| `POST /api/library/:id/report` | `{ reason }`; enough different reporters hold the entry back                    |
+| `GET /api/me/handle`, `PUT`    | The handle; chosen once (`handle_taken`, `handle_reserved`, `handle_profanity`) |
+| `GET /api/me/handle/check`     | `?handle` → `available`, `taken`, `format`, `reserved` or `profanity`           |
+| `GET`, `PUT /api/me/alerts`    | Alert settings (`shared/src/alerts.ts`) and the registered devices              |
+| `POST`, `DELETE /api/me/push`  | Registers or removes a browser's Web Push subscription (ten at most)            |
+| `POST /api/me/push/test`       | Sends a test notice to the account's devices                                    |
+
+The library keeps a copy of the dashboard as published; the author's later edits change nothing
+until they publish again. The starting entries (`example-*`) have no author. Entries and handles
+go with the account; the export lists them. Moderation is configuration, the owner's policy with
+these defaults: `LIBRARY_RESERVED_HANDLES` and `LIBRARY_BLOCKED_WORDS` extend the built-in lists,
+`LIBRARY_REPORTS_TO_HIDE` (3) and `LIBRARY_MAX_PUBLISHED` (25).
+
+Alerts are one set of rules, `diffAlerts` in `shared/src/alerts.ts`, which compares the session
+before and after some events. The app toasts from the snapshot it shows; the server
+(`server/src/accounts/alerts/dispatcher.ts`) runs it on the live session after every batch and
+sends Web Push to the devices of accounts that want the alert, about the driver they follow (flags
+and session starts go to everyone). It holds back a push that is off, about someone else, inside
+quiet hours (counted after the account's delay), or that would give a finished session's result
+away (a retirement or penalty once the session is final, while protection is on and the session
+unrevealed: `spoilsResult`, which asks the same `resultsHidden` as the screens). Subscriptions
+live in `accounts.push_subscription`; a 404 or 410 from the push service removes one. The
+service worker side is `client/src/platform/push-worker.ts`, called from the shell worker.
+
+`VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` sign the pushes (`npm run vapid -w server`); development
+makes a pair of its own beside the database, production leaves push off until they are set.
+`VAPID_SUBJECT` (a `mailto:` address or https URL) is the sender identity the push services see:
+the owner's to choose. A subscription's endpoint must be a browser vendor's push service
+(`isPushEndpointAllowed`; `PUSH_ENDPOINT_HOSTS` adds a host), so no account can point the server at
+an address of its own choosing.
 
 Server and client read dashboards with the same rules, `dashboardSchema` in
 `shared/src/dashboard.ts`:

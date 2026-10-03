@@ -1,30 +1,13 @@
 /**
  * The spoiler rule, in one place. Every screen that shows a session or its result asks these:
  * the replay, the session picker, ⌘K, the live strip and the page title, and the calendar,
- * standings and library that list sessions (docs/product/flows.md#spoilers).
+ * standings and library that list sessions (docs/product/flows.md#spoilers). `isRevealed` and
+ * `resultsHidden` live in shared/src/viewer.ts, so the server's push alerts ask the same question.
  */
 
-import { MAX_REVEALED } from '@f1-live/shared/viewer';
+import { isRevealed, MAX_REVEALED, type SpoilerSettings } from '@f1-live/shared/viewer';
 
-/** What the viewer chose: protection on or off, and the sessions whose results they have seen. */
-export type SpoilerSettings = { protect: boolean; revealed: readonly string[] };
-
-/** The viewer may see this session's result: protection is off, or they revealed it. */
-export function isRevealed(settings: SpoilerSettings, sessionKey: string): boolean {
-	return !settings.protect || settings.revealed.includes(sessionKey);
-}
-
-/**
- * The result of a session is hidden: it is not being watched live and the viewer has not
- * revealed it. A live session is never hidden, since its latest state is what is happening now.
- */
-export function resultsHidden(
-	settings: SpoilerSettings,
-	sessionKey: string,
-	watchedLive: boolean
-): boolean {
-	return !watchedLive && !isRevealed(settings, sessionKey);
-}
+export { isRevealed, resultsHidden, type SpoilerSettings } from '@f1-live/shared/viewer';
 
 /**
  * Where a session opens, as a replay step: the one a link asks for, else the start while its

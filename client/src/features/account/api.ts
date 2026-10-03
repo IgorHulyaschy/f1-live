@@ -9,7 +9,15 @@ import type { PushOp, PushOutcome, RemoteDoc } from './sync-rules';
  * The accounts API (server/src/accounts/routes.ts). Same origin by default: Vite proxies `/api`
  * in development, and a deployment serves it under the app's origin or a same-site one.
  */
-const BASE = import.meta.env.VITE_ACCOUNTS_URL ?? '';
+export const ACCOUNTS_BASE: string = import.meta.env.VITE_ACCOUNTS_URL ?? '';
+
+const BASE = ACCOUNTS_BASE;
+
+/**
+ * Names this tab to the server, which does not tell a device about its own changes. It is a
+ * label, not a secret.
+ */
+export const DEVICE_ID = crypto.randomUUID();
 
 const entitlementsSchema = z.object({
 	ownDashboards: z.int().nullable(),
@@ -25,6 +33,8 @@ export const meSchema = z.object({
 		name: z.string(),
 		createdAt: z.iso.datetime()
 	}),
+	/** The library handle, once chosen. */
+	handle: z.string().nullable(),
 	plan: z.enum(PLAN_IDS),
 	entitlements: entitlementsSchema,
 	subscription: z
@@ -44,6 +54,8 @@ const configSchema = z.object({
 	brand: z.string(),
 	providers: z.object({ google: z.boolean(), apple: z.boolean() }),
 	devMailbox: z.boolean(),
+	/** The key a browser subscribes to Web Push with; null when this server cannot send pushes. */
+	push: z.object({ publicKey: z.string() }).nullable(),
 	payments: z.object({
 		provider: z.string(),
 		prices: z.array(
@@ -67,7 +79,7 @@ const remoteDocSchema = z.object({
 
 const documentReply = z.object({ document: remoteDocSchema });
 
-const errorReply = z.object({ error: z.string(), message: z.string() });
+export const errorReply = z.object({ error: z.string(), message: z.string() });
 
 const limitReply = z.object({ error: z.literal('dashboard_limit'), limit: z.int() });
 
@@ -90,14 +102,17 @@ export class AccountsError extends Error {
 }
 
 /** `body` is the request, already serialised. */
-async function send(method: string, path: string, body?: string): Promise<Response> {
+export async function send(method: string, path: string, body?: string): Promise<Response> {
 	let response: Response;
 
 	try {
 		response = await fetch(`${BASE}${path}`, {
 			method,
 			credentials: 'include',
-			headers: body ? { 'content-type': 'application/json' } : undefined,
+			headers: {
+				...(body ? { 'content-type': 'application/json' } : undefined),
+				...(method === 'GET' ? undefined : { 'x-pitwall-device': DEVICE_ID })
+			},
 			body
 		});
 	} catch {
@@ -121,7 +136,7 @@ async function send(method: string, path: string, body?: string): Promise<Respon
 	return response;
 }
 
-async function json<Value>(response: Response, schema: z.ZodType<Value>): Promise<Value> {
+export async function json<Value>(response: Response, schema: z.ZodType<Value>): Promise<Value> {
 	const body = await response.json().catch(() => null);
 
 	if (!response.ok) {

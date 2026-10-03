@@ -4,7 +4,6 @@ import { describe, it } from 'node:test';
 import { BRAND } from '../brand.ts';
 import { type Dashboard, PRESETS } from '../features/dashboard/dashboards.ts';
 import { dashboardPath } from '../features/dashboard/paths.ts';
-import { COMMUNITY } from '../features/library/community.ts';
 import { encodeShare } from '../features/library/share.ts';
 import { LEGAL_DOCUMENTS } from '../legal/content.ts';
 import {
@@ -108,14 +107,11 @@ describe('route meta', () => {
 		);
 	});
 
-	it('credits a library entry to its author', () => {
-		const entry = COMMUNITY[0];
+	it('keeps a library entry out of search results: it is read from the server after load', () => {
+		const meta = ROUTE_META.libraryEntry();
 
-		assert.ok(entry);
-		assert.equal(
-			ROUTE_META.libraryEntry({ ...input, params: { entryId: entry.id } }).title,
-			`${entry.dashboard.name} by @${entry.author}`
-		);
+		assert.equal(meta.title, 'Library');
+		assert.equal(meta.indexed, false);
 	});
 });
 

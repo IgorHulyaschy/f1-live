@@ -17,7 +17,8 @@ import {
 	swapTiles,
 	TILE_INFO
 } from './dashboards.ts';
-import { COMMUNITY } from '../library/community.ts';
+// The examples the library ships with live on the server; the client must be able to draw them.
+import { SEED_EXAMPLES } from '../../../../server/src/accounts/library/seed-examples.ts';
 import { decodeShare, encodeShare } from '../library/share.ts';
 
 function overlaps(
@@ -36,7 +37,7 @@ describe('presets and library dashboards', () => {
 	});
 
 	it('fit the grid, respect tile minimums and do not overlap', () => {
-		for (const dashboard of [...PRESETS, ...COMMUNITY.map((entry) => entry.dashboard)]) {
+		for (const dashboard of [...PRESETS, ...SEED_EXAMPLES.map((entry) => entry.dashboard)]) {
 			for (const place of dashboard.layout) {
 				const kind = dashboard.tiles.find((tile) => tile.id === place.i)?.kind;
 

@@ -28,9 +28,10 @@ const PAGES = [
 	{ name: 'story', path: '/d/story' },
 	{ name: 'editing', path: '/d/battle?edit=1' },
 	{ name: 'library', path: '/library' },
-	{ name: 'preview', path: '/library/tv-wall' },
+	{ name: 'preview', path: '/library/example-tv-wall' },
 	{ name: 'welcome', path: '/welcome' },
-	{ name: 'account', path: '/account' }
+	{ name: 'account', path: '/account' },
+	{ name: 'alerts', path: '/alerts' }
 ] as const;
 
 const PLANS = ['free', 'pro'] as const;
@@ -104,6 +105,69 @@ for (const viewport of VIEWPORTS) {
 						await shoot(page, `shots/output/${viewport.name}/${screen.name}-${plan}-${theme}.png`);
 					});
 				}
+			}
+		}
+
+		// The screens that need an account: publishing to the library, and alerts with pushes on offer.
+		if (viewport.name === 'mobile' || viewport.name === 'laptop') {
+			for (const theme of THEMES) {
+				test(`library publishing and alerts signed in pro ${theme}`, async ({ page }) => {
+					const output = `shots/output/${viewport.name}`;
+
+					await page.route('https://media.formula1.com/**', (route) => route.abort());
+					await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
+					await page.goto('/account?lap=30');
+					await signInWithLink(page, testEmail('shots-publish'));
+					await goPro(page, `${output}/checkout-publish-${theme}.png`, theme);
+
+					// The accounts server outlives a shot: a handle is unique and an entry stays listed.
+					const handle = `pitlane_${Date.now().toString(36)}`;
+
+					await page.goto('/library?lap=30');
+					await page
+						.getByTestId('library-row')
+						.filter({ hasText: 'Example' })
+						.filter({ hasText: 'Second screen' })
+						.getByRole('button', { name: 'Add Second screen' })
+						.click();
+					await expect(page).toHaveURL(/\/d\/board-/);
+					await page.goto('/library?lap=30');
+
+					if (theme === 'light') {
+						await switchToLightTheme(page);
+					}
+
+					await page
+						.getByRole('region', { name: 'Yours' })
+						.getByRole('button', { name: 'Publish' })
+						.click();
+
+					const dialog = page.getByTestId('publish-dialog');
+
+					await dialog.getByTestId('handle-input').fill(handle);
+					await expect(dialog.getByText(`@${handle} is free`)).toBeVisible();
+					await shoot(page, `${output}/library-handle-${theme}.png`);
+					await dialog.getByRole('button', { name: 'Use this handle' }).click();
+					await dialog.getByTestId('publish-description').fill('Laptop next to the TV');
+					await dialog.getByTestId('publish-tags').fill('Laptop, Race day');
+					await shoot(page, `${output}/library-publish-${theme}.png`);
+					await dialog.getByRole('button', { name: 'Publish' }).click();
+					await expect(page.getByRole('region', { name: 'Yours' })).toContainText('Published');
+					await expect(dialog).toBeHidden();
+					await shoot(page, `${output}/library-published-${theme}.png`);
+
+					await page.getByTestId('library-search').fill(`@${handle}`);
+					await expect(
+						page.getByRole('region', { name: 'From fans' }).getByTestId('library-row')
+					).toHaveCount(1);
+					await shoot(page, `${output}/library-search-${theme}.png`);
+					await page.getByRole('button', { name: /^Unpublish / }).click();
+
+					await page.goto('/alerts?lap=30');
+					await page.getByTestId('quiet-toggle').click();
+					await page.getByRole('radio', { name: '10 s' }).click();
+					await shoot(page, `${output}/alerts-signed-in-${theme}.png`);
+				});
 			}
 		}
 

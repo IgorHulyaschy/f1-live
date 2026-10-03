@@ -186,6 +186,11 @@ const followedDriverStore = createLocalStore<string | null>(
 	null
 );
 
+/** The driver this viewer chose to follow: what alerts are about, whatever a link's `driver` says. */
+export function useChosenDriver(): string {
+	return followedDriverStore.useValue() ?? DEFAULT_FOLLOWED_DRIVER;
+}
+
 /** Race state shared by every open Pitwall window, so tiles on other monitors stay in step. */
 const SYNC_CHANNEL = 'pitwall-race';
 

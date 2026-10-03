@@ -12,7 +12,8 @@ import { fillIndexHtml, robotsTxt, sitemapXml, webManifest } from './src/platfor
 /** The server with accounts on; `/api` goes there, so sign-in cookies stay first-party. */
 const accountsServer = process.env.ACCOUNTS_SERVER_URL ?? 'http://127.0.0.1:3000';
 
-const proxy = { '/api': accountsServer };
+// `ws` carries the signed-in device channel (`/api/me/events`) along with the REST calls.
+const proxy = { '/api': { target: accountsServer, ws: true } };
 
 const SERVICE_WORKER = fileURLToPath(new URL('./src/platform/service-worker.ts', import.meta.url));
 
@@ -122,6 +123,13 @@ function site(indexable: boolean): Plugin[] {
 
 				if (worker?.type !== 'chunk' || html?.type !== 'asset') {
 					throw new Error('The service worker needs sw.js and index.html in the bundle');
+				}
+
+				// The worker is a classic script: a module it shares with the app would become an import.
+				if (worker.imports.length > 0) {
+					throw new Error(
+						`sw.js imports ${worker.imports.join(', ')}; keep the service worker's modules to itself`
+					);
 				}
 
 				const files = Object.keys(bundle).filter((name) => name !== 'sw.js' && isPrecached(name));

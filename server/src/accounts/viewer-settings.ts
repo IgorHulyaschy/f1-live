@@ -12,7 +12,7 @@ export async function writeViewerSettings(
 	db: AccountsDatabase,
 	userId: string,
 	incoming: ViewerSettings
-): Promise<ViewerSettings> {
+): Promise<{ settings: ViewerSettings; changed: boolean }> {
 	return db.transaction(async (tx) => {
 		await tx.select({ id: user.id }).from(user).where(eq(user.id, userId)).for('update');
 
@@ -25,7 +25,7 @@ export async function writeViewerSettings(
 
 		// Every sync round sends the settings; most change nothing.
 		if (stored && JSON.stringify(stored.settings) === JSON.stringify(settings)) {
-			return settings;
+			return { settings, changed: false };
 		}
 
 		await tx
@@ -33,7 +33,7 @@ export async function writeViewerSettings(
 			.values({ userId, settings })
 			.onConflictDoUpdate({ target: viewerSettings.userId, set: { settings } });
 
-		return settings;
+		return { settings, changed: true };
 	});
 }
 

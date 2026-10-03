@@ -9,6 +9,24 @@ test.describe('a live race', () => {
 	// starts about 23 s after the replay does, and the session ends 32 s later.
 	replaying('2025-las-vegas-race', 150);
 
+	test('toasts the race’s flags, its start and the followed driver’s stop as they happen', async ({
+		page
+	}) => {
+		test.setTimeout(60_000);
+
+		// At this speed a burst of events lands in one update, and a burst shows its latest few.
+		await openRace(page, '/session?driver=22');
+		await expect(
+			page
+				.locator('[data-sonner-toast]')
+				.filter({
+					hasText:
+						/Race has started|Yellow flag|Track clear|Virtual safety car|Green flag|is in the pits/
+				})
+				.first()
+		).toBeVisible({ timeout: 45_000 });
+	});
+
 	test('without car positions estimates the map from timing, and says why', async ({ page }) => {
 		await openRace(page, '/d/track');
 

@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, LockIcon, PlusIcon, UploadIcon } from 'lucide-react';
+import { ArrowLeftIcon, EyeOffIcon, FlagIcon, PlusIcon, UploadIcon } from 'lucide-react';
 import * as React from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { toast } from 'sonner';
@@ -6,140 +6,21 @@ import { toast } from 'sonner';
 import { Key } from '@/components/console/keys';
 import { DashboardGrid } from '@/features/dashboard/dashboard-grid';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
-import {
-	type Dashboard,
-	GRID_COLUMNS,
-	isPreset,
-	PRESETS,
-	TILE_INFO
-} from '@/features/dashboard/dashboards';
-import { dashboardPath } from '@/features/dashboard/paths';
+import { type Dashboard, isPreset, PRESETS } from '@/features/dashboard/dashboards';
+import { dashboardPath, safeDecode } from '@/features/dashboard/paths';
 import { useAccount, useEntitlements } from '@/features/account/account-store';
 import { useGoPro } from '@/features/account/go-pro';
 import { SignInDialog } from '@/features/account/sign-in';
 import { useAddDashboard } from '@/features/dashboard/use-add-dashboard';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
-import { cn } from '@/lib/utils';
 
-import { COMMUNITY, type LibraryEntry } from './community';
-import { libraryAuthor, publishDashboard, unpublishDashboard, usePublished } from './library-data';
+import { FansSection } from './fans-section';
+import { countLibraryAdd, unpublishFromLibrary } from './library-api';
+import { LibraryRow, LINK_KEY, Section } from './library-parts';
+import { PublishDialog } from './publish-dialog';
+import { ReportDialog } from './report-dialog';
 import { decodeShare } from './share';
-
-/** A dashboard's layout drawn to scale: how it sits on a wide screen, before opening it. */
-function LayoutThumb({ dashboard, className }: { dashboard: Dashboard; className?: string }) {
-	const rows = Math.max(1, ...dashboard.layout.map((place) => place.y + place.h));
-	const kinds = new Map(dashboard.tiles.map((tile) => [tile.id, tile.kind]));
-
-	return (
-		<svg
-			aria-hidden
-			viewBox={`0 0 ${GRID_COLUMNS} ${rows}`}
-			preserveAspectRatio="none"
-			className={cn('bg-muted/40 aspect-video w-24 shrink-0 border sm:w-36', className)}
-		>
-			{dashboard.layout.map((place) => {
-				const kind = kinds.get(place.i);
-				const pro = kind ? TILE_INFO[kind].pro : false;
-
-				return (
-					<rect
-						key={place.i}
-						x={place.x + 0.3}
-						y={place.y + 0.3}
-						width={Math.max(place.w - 0.6, 0.2)}
-						height={Math.max(place.h - 0.6, 0.2)}
-						vectorEffect="non-scaling-stroke"
-						strokeDasharray={pro ? '3 2' : undefined}
-						className={cn(
-							'stroke-foreground/50 stroke-1',
-							kind && TILE_INFO[kind].group === 'Race' ? 'fill-foreground/5' : 'fill-foreground/20',
-							pro && 'fill-transparent'
-						)}
-					/>
-				);
-			})}
-		</svg>
-	);
-}
-
-const NO_TAGS: readonly string[] = [];
-
-function LibraryRow({
-	dashboard,
-	by,
-	description,
-	tags = NO_TAGS,
-	adds,
-	children
-}: {
-	dashboard: Dashboard;
-	by?: string;
-	description?: string;
-	tags?: readonly string[];
-	adds?: number;
-	children: React.ReactNode;
-}) {
-	const pro = dashboard.tiles.some((tile) => TILE_INFO[tile.kind].pro);
-
-	return (
-		<li
-			className="flex max-w-3xl flex-wrap items-center gap-x-4 gap-y-3 border-b py-3"
-			data-testid="library-row"
-		>
-			<LayoutThumb dashboard={dashboard} />
-			<div className="flex min-w-48 flex-1 flex-col gap-1">
-				<span className="flex min-w-0 flex-wrap items-baseline gap-x-3">
-					<span className="type-wide max-w-full truncate text-sm font-bold">{dashboard.name}</span>
-					{by ? <span className="type-label">by @{by}</span> : null}
-				</span>
-				{description ? (
-					<span className="text-muted-foreground max-w-xl text-sm">{description}</span>
-				) : null}
-				<span className="flex flex-wrap gap-x-3 gap-y-1">
-					<span className="type-label">{dashboard.tiles.length} tiles</span>
-					{tags.map((tag) => (
-						<span key={tag} className="type-label">
-							{tag}
-						</span>
-					))}
-					{pro ? (
-						<span className="type-label flex items-center gap-1">
-							<LockIcon aria-hidden className="size-2.5" />
-							Uses Pro tiles
-						</span>
-					) : null}
-				</span>
-			</div>
-			{adds === undefined ? null : (
-				<span className="flex flex-col font-mono sm:w-20 sm:items-end">
-					<span className="text-sm font-bold">{adds.toLocaleString()}</span>
-					<span className="type-label">adds</span>
-				</span>
-			)}
-			<span className="flex shrink-0 gap-2">{children}</span>
-		</li>
-	);
-}
-
-function Section({
-	title,
-	meta,
-	children
-}: {
-	title: string;
-	meta?: React.ReactNode;
-	children: React.ReactNode;
-}) {
-	return (
-		<section aria-label={title} className="flex flex-col">
-			<header className="border-rule-strong flex flex-wrap items-baseline gap-x-4 border-b-2 pb-1.5">
-				<h2 className="type-wide text-xs font-bold">{title}</h2>
-				{meta ? <span className="type-label">{meta}</span> : null}
-			</header>
-			<ul className="grid 2xl:grid-cols-2 2xl:gap-x-10">{children}</ul>
-		</section>
-	);
-}
+import { useLibraryEntry, useMyLibrary } from './use-library';
 
 /**
  * Every dashboard there is to open or add: the viewer's own, the ready-made ones, and ones other
@@ -151,11 +32,36 @@ export function LibraryPage() {
 	const entitlements = useEntitlements();
 	const goPro = useGoPro();
 	const { dashboards } = useDashboards();
-	const published = usePublished();
-	const add = useAddDashboard();
-	const [signingIn, setSigningIn] = React.useState(false);
+	const { mine, refresh } = useMyLibrary();
+	const [signInReason, setSignInReason] = React.useState<string | null>(null);
+	const [publishing, setPublishing] = React.useState<Dashboard | null>(null);
 	const own = dashboards.filter((dashboard) => !isPreset(dashboard.id));
-	const fans = [...published, ...COMMUNITY];
+	const publishingEntry = mine.find((entry) => entry.dashboard.id === publishing?.id) ?? null;
+
+	const choosePublish = (dashboard: Dashboard) => {
+		if (account.status !== 'signed-in') {
+			setSignInReason(
+				'Publishing puts your name on a dashboard, so it needs an account. No password: we email you a link.'
+			);
+		} else if (!entitlements.publish) {
+			toast('Publishing is part of Pro', {
+				description: 'Share links work on Free; the library lists Pro dashboards.',
+				action: { label: 'Go Pro', onClick: goPro }
+			});
+		} else {
+			setPublishing(dashboard);
+		}
+	};
+
+	const unpublish = async (id: string, name: string) => {
+		try {
+			await unpublishFromLibrary(id);
+			await refresh();
+			toast(`${name} is no longer in the library`);
+		} catch {
+			toast(`${name} could not be taken out. Try again in a moment.`);
+		}
+	};
 
 	return (
 		<div className="flex flex-col gap-8" data-testid="library">
@@ -180,44 +86,34 @@ export function LibraryPage() {
 					</li>
 				) : null}
 				{own.map((dashboard) => {
-					const entry = published.find((item) => item.dashboard.id === dashboard.id);
+					const entry = mine.find((item) => item.dashboard.id === dashboard.id);
 
 					return (
-						<LibraryRow key={dashboard.id} dashboard={dashboard}>
+						<LibraryRow
+							key={dashboard.id}
+							dashboard={dashboard}
+							badge={entry ? (entry.hidden ? 'Held back' : 'Published') : undefined}
+						>
+							{entry ? (
+								<Key
+									aria-label={`Unpublish ${dashboard.name}`}
+									onClick={() => void unpublish(entry.id, dashboard.name)}
+								>
+									<EyeOffIcon />
+									Unpublish
+								</Key>
+							) : null}
 							<Key
-								onClick={() => {
-									if (account.status !== 'signed-in') {
-										setSigningIn(true);
-
-										return;
-									}
-
-									if (!entry && !entitlements.publish) {
-										toast('Publishing is part of Pro', {
-											description: 'Share links work on Free; the library lists Pro dashboards.',
-											action: { label: 'Go Pro', onClick: goPro }
-										});
-
-										return;
-									}
-
-									if (entry) {
-										unpublishDashboard(entry.id);
-										toast(`${dashboard.name} is no longer in the library`);
-									} else {
-										publishDashboard(dashboard, libraryAuthor(account.me.user));
-										toast(`${dashboard.name} is in the library`, {
-											description: 'Fans can preview it and add a copy.'
-										});
-									}
-								}}
+								aria-label={`${entry ? 'Update' : 'Publish'} ${dashboard.name}`}
+								onClick={() => choosePublish(dashboard)}
 							>
 								<UploadIcon />
-								{entry ? 'Unpublish' : 'Publish'}
+								{entry ? 'Update' : 'Publish'}
 							</Key>
 							<Link
 								to={{ pathname: dashboardPath(dashboard.id), search }}
-								className="type-label hover:text-foreground inline-flex h-9 items-center border border-b-2 px-2.5 sm:h-7"
+								aria-label={`Open ${dashboard.name}`}
+								className={LINK_KEY}
 							>
 								Open
 							</Link>
@@ -228,63 +124,65 @@ export function LibraryPage() {
 			<Section title="Ready-made" meta="Edit any of them; Reset brings it back">
 				{PRESETS.map((preset) => (
 					<LibraryRow key={preset.id} dashboard={preset}>
-						<Link
-							to={{ pathname: dashboardPath(preset.id), search }}
-							className="type-label hover:text-foreground inline-flex h-9 items-center border border-b-2 px-2.5 sm:h-7"
-						>
+						<Link to={{ pathname: dashboardPath(preset.id), search }} className={LINK_KEY}>
 							Open
 						</Link>
 					</LibraryRow>
 				))}
 			</Section>
-			<Section title="From fans" meta="Sample entries until the library has a server">
-				{fans.map((entry) => (
-					<LibraryRow
-						key={entry.id}
-						dashboard={entry.dashboard}
-						by={entry.author}
-						description={entry.description}
-						tags={entry.tags}
-						adds={entry.adds}
-					>
-						<Link
-							to={{ pathname: `/library/${encodeURIComponent(entry.id)}`, search }}
-							className="type-label hover:text-foreground inline-flex h-9 items-center border border-b-2 px-2.5 sm:h-7"
-						>
-							Preview
-						</Link>
-						<Key
-							aria-label={`Add ${entry.dashboard.name}`}
-							onClick={() => {
-								if (add(entry.dashboard)) {
-									toast(`Added ${entry.dashboard.name} to your dashboards`);
-								}
-							}}
-						>
-							<PlusIcon />
-							Add
-						</Key>
-					</LibraryRow>
-				))}
-			</Section>
+			<FansSection onNeedSignIn={setSignInReason} />
+			<PublishDialog
+				dashboard={publishing}
+				existing={publishingEntry}
+				onOpenChange={(open) => (open ? undefined : setPublishing(null))}
+				onPublished={() => void refresh()}
+			/>
 			<SignInDialog
-				open={signingIn}
-				onOpenChange={setSigningIn}
-				reason="Publishing puts your name on a dashboard, so it needs an account. No password: we email you a link."
+				open={signInReason !== null}
+				onOpenChange={(open) => (open ? undefined : setSignInReason(null))}
+				reason={signInReason ?? undefined}
 			/>
 		</div>
 	);
 }
 
 /** A dashboard someone else made, live but read-only, with one key to add a copy. */
-function DashboardPreview({ entry }: { entry: Omit<LibraryEntry, 'id'> | null }) {
+type Previewed = {
+	dashboard: Dashboard;
+	/** Its library id when it came from the library: adds are counted and it can be reported. */
+	id?: string;
+	/** `null` for a library example; a handle for a fan; absent for a shared link. */
+	author?: string | null;
+};
+
+function previewLabel({ author, id }: Previewed): string {
+	if (author) {
+		return `Preview, by @${author}`;
+	}
+
+	return id ? 'Preview of an example dashboard' : 'Preview, shared with you';
+}
+
+function DashboardPreview({
+	entry,
+	unavailable = false
+}: {
+	entry: Previewed | null;
+	/** The library could not be reached, which is not the same as a link that holds nothing. */
+	unavailable?: boolean;
+}) {
 	const search = useCarriedSearch();
 	const add = useAddDashboard();
+	const account = useAccount();
+	const [reporting, setReporting] = React.useState(false);
+	const [signingIn, setSigningIn] = React.useState(false);
 
 	if (!entry) {
 		return (
 			<div className="text-muted-foreground border border-dashed p-8 text-sm" role="alert">
-				This link does not hold a dashboard. Ask for a fresh one, or{' '}
+				{unavailable
+					? 'The library is not reachable right now. '
+					: 'This link does not hold a dashboard. Ask for a fresh one, or '}
 				<Link to={{ pathname: '/library', search }} className="underline">
 					browse the library
 				</Link>
@@ -292,6 +190,8 @@ function DashboardPreview({ entry }: { entry: Omit<LibraryEntry, 'id'> | null })
 			</div>
 		);
 	}
+
+	const { dashboard, id } = entry;
 
 	return (
 		<div data-testid="dashboard-preview">
@@ -303,34 +203,65 @@ function DashboardPreview({ entry }: { entry: Omit<LibraryEntry, 'id'> | null })
 				>
 					<ArrowLeftIcon aria-hidden className="size-3.5" />
 				</Link>
-				<h1 className="type-wide min-w-0 truncate text-sm font-bold">{entry.dashboard.name}</h1>
-				<span className="type-label">
-					{entry.author ? `Preview, by @${entry.author}` : 'Preview, shared with you'}
+				<h1 className="type-wide min-w-0 truncate text-sm font-bold">{dashboard.name}</h1>
+				<span className="type-label">{previewLabel(entry)}</span>
+				<span className="ml-auto flex gap-2">
+					{id ? (
+						<Key
+							aria-label={`Report ${dashboard.name}`}
+							onClick={() =>
+								account.status === 'signed-in' ? setReporting(true) : setSigningIn(true)
+							}
+						>
+							<FlagIcon />
+							Report
+						</Key>
+					) : null}
+					<Key
+						pressed
+						onClick={() => {
+							if (add(dashboard)) {
+								toast(`Added ${dashboard.name} to your dashboards`);
+
+								if (id && account.status === 'signed-in') {
+									void countLibraryAdd(id).catch(() => undefined);
+								}
+							}
+						}}
+					>
+						<PlusIcon />
+						Add to my dashboards
+					</Key>
 				</span>
-				<Key
-					pressed
-					className="ml-auto"
-					onClick={() => {
-						if (add(entry.dashboard)) {
-							toast(`Added ${entry.dashboard.name} to your dashboards`);
-						}
-					}}
-				>
-					<PlusIcon />
-					Add to my dashboards
-				</Key>
 			</section>
-			<DashboardGrid dashboard={entry.dashboard} editing={false} onChange={() => undefined} />
+			<DashboardGrid dashboard={dashboard} editing={false} onChange={() => undefined} />
+			<ReportDialog
+				entry={reporting && id ? { id, name: dashboard.name } : null}
+				onOpenChange={(open) => (open ? undefined : setReporting(false))}
+			/>
+			<SignInDialog
+				open={signingIn}
+				onOpenChange={setSigningIn}
+				reason="Reports need an account, so one person cannot hide a dashboard alone."
+			/>
 		</div>
 	);
 }
 
 export function LibraryEntryPage() {
 	const { entryId } = useParams();
-	const published = usePublished();
-	const entry = [...published, ...COMMUNITY].find((item) => item.id === entryId) ?? null;
+	const { status, entry } = useLibraryEntry(entryId ? safeDecode(entryId) : null);
 
-	return <DashboardPreview entry={entry} />;
+	if (status === 'loading') {
+		return <output className="text-muted-foreground block p-8 text-sm">Loading</output>;
+	}
+
+	return (
+		<DashboardPreview
+			entry={entry ? { dashboard: entry.dashboard, id: entry.id, author: entry.author } : null}
+			unavailable={status === 'unavailable'}
+		/>
+	);
 }
 
 /** /shared?d=…: a dashboard carried whole in its link. */
@@ -339,9 +270,5 @@ export function SharedPage() {
 	const code = searchParams.get('d');
 	const dashboard = code ? decodeShare(code) : null;
 
-	return (
-		<DashboardPreview
-			entry={dashboard ? { author: '', description: '', tags: [], adds: 0, dashboard } : null}
-		/>
-	);
+	return <DashboardPreview entry={dashboard ? { dashboard } : null} />;
 }

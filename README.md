@@ -64,7 +64,9 @@ replay keys and lap strip move and resize like timing or a chart.
 - **Windows.** Pop out a tile or a dashboard; lap, driver, plan, compared drivers and play/pause
   stay in sync.
 - **Library and sharing.** `/library` has your dashboards, the ready-made ones and fan
-  dashboards to preview and add. **Share** copies a link that carries the whole dashboard; no
+  dashboards to search, preview, add and report. Pro publishes under a handle chosen once
+  (reserved names and profanity refused). The library starts with example dashboards, marked as
+  such. **Share** copies a link that carries the whole dashboard; no
   server needed. Export/Import does the same with a file.
 - **First run.** `/welcome` picks the driver you follow and a starting dashboard.
 - **Free and Pro.** Free keeps 3 dashboards of your own; Pro keeps any number, unlocks Pro tiles

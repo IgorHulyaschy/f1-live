@@ -1,6 +1,5 @@
 import { BRAND } from '../brand.ts';
 import { type Dashboard, isPreset, tileTitle } from '../features/dashboard/dashboards.ts';
-import { COMMUNITY } from '../features/library/community.ts';
 import { decodeShare } from '../features/library/share.ts';
 
 /** What a page tells the browser tab, search engines and share cards. */
@@ -65,17 +64,12 @@ export const ROUTE_META = {
 		'Library',
 		'Ready-made dashboards and ones other fans built. Preview any of them live and add a copy to make it yours.'
 	),
-	libraryEntry: ({ params }) => {
-		const entry = COMMUNITY.find((item) => item.id === params.entryId);
-
-		return entry
-			? {
-					title: `${entry.dashboard.name} by @${entry.author}`,
-					description: entry.description,
-					indexed: true
-				}
-			: { title: 'Library', description: 'A dashboard from the library.', indexed: false };
-	},
+	// Entries come from the server after the page has loaded, so the tab keeps the library's name.
+	libraryEntry: () => ({
+		title: 'Library',
+		description: 'A dashboard from the library.',
+		indexed: false
+	}),
 	shared: ({ search }) => {
 		const code = search.get('d');
 		const dashboard = code ? decodeShare(code) : null;
@@ -105,6 +99,11 @@ export const ROUTE_META = {
 	}),
 	welcome: page('Set up', 'Pick the driver you follow and the dashboard you start on.', false),
 	account: page('Account', 'Your sign-in, plan and dashboards.', false),
+	alerts: page(
+		'Alerts',
+		'Pit stops, flags, penalties and retirements for the driver you follow, on screen or on your phone.',
+		false
+	),
 	tile: ({ params, dashboards }) => {
 		const tile = dashboards
 			.find((dashboard) => dashboard.id === params.dashboardId)

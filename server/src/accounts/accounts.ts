@@ -11,7 +11,12 @@ import type { EventLog } from '../sources/f1/live.js';
 import { type Auth, createAuth } from './auth.js';
 import type { AccountsConfig } from './config.js';
 import { type AccountsDatabase, openDatabase } from './db/database.js';
+import { AlertDispatcher } from './alerts/dispatcher.js';
+import { type PushSender, resolveVapidKeys, WebPushSender } from './alerts/sender.js';
+import { ensureExamples } from './library/entries.js';
 import { ConsoleMailer, type Mailer, SmtpMailer } from './mailer.js';
+import { UserEvents } from './user-events.js';
+import type { LiveSession } from '../live/session.js';
 
 export const WEBHOOK_PATH = '/api/billing/webhook';
 
@@ -26,6 +31,12 @@ export interface Accounts {
 	payments: PaymentProvider;
 	/** The fake provider's own pages are served only when it is the provider. */
 	fakePayments: FakeProvider | null;
+	/** Tells a signed-in viewer's other open devices that something changed. */
+	events: UserEvents;
+	/** Web Push for alerts; null when the server has no VAPID keys. */
+	push: PushSender | null;
+	/** Sends alerts as the live session produces them; null without push. */
+	alerts: AlertDispatcher | null;
 	log: EventLog;
 	now: () => Date;
 	close: () => Promise<void>;
@@ -35,6 +46,12 @@ export interface AccountsOptions {
 	log: EventLog;
 	/** How the fake provider's signed events reach the webhook route. */
 	deliverWebhook: WebhookDelivery;
+	/** How often an idle device channel is pinged. */
+	pingMs: number;
+	/** The live session whose events become alerts. */
+	session: LiveSession;
+	/** Replaces the push service client; tests use one that records instead of calling out. */
+	pushSender?: PushSender;
 	now?: () => Date;
 }
 
@@ -43,10 +60,23 @@ export async function createAccounts(
 	options: AccountsOptions
 ): Promise<Accounts> {
 	const { db, close } = await openDatabase(config.database);
+
+	await ensureExamples(db);
+
 	const now = options.now ?? (() => new Date());
 	const { mailer, devMailbox } = createMail(config, options.log);
 
 	const { payments, fakePayments } = createPayments(config, options.deliverWebhook, now);
+
+	const events = new UserEvents(options.pingMs);
+	const keys = options.pushSender ? null : await resolveVapidKeys(config.push);
+	const push = options.pushSender ?? (keys ? new WebPushSender(keys, config.push.subject) : null);
+
+	const alerts = push
+		? new AlertDispatcher({ db, sender: push, session: options.session, log: options.log, now })
+		: null;
+
+	alerts?.start();
 
 	return {
 		config,
@@ -56,9 +86,16 @@ export async function createAccounts(
 		devMailbox,
 		payments,
 		fakePayments,
+		events,
+		push,
+		alerts,
 		log: options.log,
 		now,
-		close
+		close: async () => {
+			alerts?.close();
+			events.close();
+			await close();
+		}
 	};
 }
 

@@ -13,7 +13,7 @@ const RACE_ROUTES = [
 	'/d/wall',
 	'/d/battle?edit=1',
 	'/library',
-	'/library/tv-wall',
+	'/library/example-tv-wall',
 	'/welcome',
 	// The driver, lap and compare views, open beside the dashboard.
 	'/session?lap=30&car=4',

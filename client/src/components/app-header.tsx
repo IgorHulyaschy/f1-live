@@ -1,4 +1,5 @@
 import {
+	BellIcon,
 	CalendarIcon,
 	ChevronDownIcon,
 	LayoutDashboardIcon,
@@ -168,6 +169,10 @@ function MainNav() {
 						<DropdownMenuItem onSelect={() => void navigate({ pathname: '/library', search })}>
 							<LibraryIcon />
 							Library: fan dashboards
+						</DropdownMenuItem>
+						<DropdownMenuItem onSelect={() => void navigate({ pathname: '/alerts', search })}>
+							<BellIcon />
+							Alerts: pushes and toasts
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

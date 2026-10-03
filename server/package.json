@@ -17,6 +17,7 @@
 		"fetch:f1": "tsx ./src/cli/fetch-f1.ts",
 		"replay-live": "tsx --env-file-if-exists=.env ./src/cli/replay-live.ts",
 		"load-smoke": "tsx ./src/cli/load-smoke.ts",
+		"vapid": "tsx ./src/cli/vapid.ts",
 		"accounts:generate": "drizzle-kit generate --config drizzle.accounts.config.ts",
 		"index-gaps": "tsx ./src/cli/index-gaps.ts"
 	},
@@ -31,11 +32,13 @@
 		"nodemailer": "10.0.13",
 		"pg": "8.23.1",
 		"stripe": "23.0.0",
+		"web-push": "3.6.7",
 		"ws": "8.22.0",
 		"zod": "4.6.5"
 	},
 	"devDependencies": {
 		"@types/pg": "8.23.1",
+		"@types/web-push": "3.6.4",
 		"@types/ws": "8.18.2",
 		"drizzle-kit": "0.31.11",
 		"tsx": "4.23.15"

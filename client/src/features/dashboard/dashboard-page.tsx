@@ -28,7 +28,7 @@ import { type Scale, SCALES, setScale, useScale } from '@/hooks/use-scale';
 
 import { shareUrl } from '@/features/library/share';
 import { useRace, useRaceView } from '@/data/race-context';
-import { type SyncStatus, useSyncStatus } from '@/features/account/dashboard-sync';
+import { type SyncStatus, useSyncStatus } from '@/features/account/sync-status';
 import { SpoilerStart } from '@/features/session/spoiler-start';
 import { entryState } from '@/lib/history-entry';
 

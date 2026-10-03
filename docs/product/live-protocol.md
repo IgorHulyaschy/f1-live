@@ -152,6 +152,17 @@ restart is a drop like any other.
   It reconnects as above and catches up.
 - Messages from the client larger than 1 KiB close the connection.
 
+## The signed-in device channel
+
+`WS /api/me/events?device=<id>` is not part of the session protocol above: it is one more socket on
+the same server, open only for a signed-in viewer, so `WS /live` stays anonymous and cacheable.
+The session cookie authenticates the upgrade (a connection without one closes with code 4401, and
+so does one whose account is deleted); the Origin check is the one for `/live`. The server sends
+`{ "type": "changed", "topic": "dashboards" | "viewer" }` after another device's accepted write,
+and pings every `WS_PING_SECONDS`, cutting a device that does not answer. The client
+(`client/src/features/account/sync-socket.ts`) pulls on every message and on every reconnect,
+backing off from 1 s to 30 s with jitter.
+
 ## Behind the server
 
 ```

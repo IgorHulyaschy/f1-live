@@ -1,5 +1,6 @@
 import { createResolver, questionText, suggest } from '@f1-live/shared/ask';
 import {
+	BellIcon,
 	CalendarIcon,
 	CalendarRangeIcon,
 	CarIcon,
@@ -471,6 +472,15 @@ export function CommandMenu({
 							run: () => setPlan(plan === 'pro' ? 'free' : 'pro')
 						} satisfies PaletteItem
 					]),
+			{
+				id: 'alerts',
+				group: 'Settings',
+				label: 'Alerts',
+				hint: null,
+				names: ['alerts', 'notifications', 'push'],
+				icon: <BellIcon />,
+				run: () => void navigate({ pathname: '/alerts', search })
+			},
 			{
 				id: 'theme',
 				group: 'Settings',

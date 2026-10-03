@@ -9,7 +9,10 @@
 	},
 	"exports": {
 		".": "./src/index.ts",
+		"./alert-settings": "./src/alert-settings.ts",
+		"./alerts": "./src/alerts.ts",
 		"./dashboard": "./src/dashboard.ts",
+		"./library": "./src/library.ts",
 		"./plans": "./src/plans.ts",
 		"./viewer": "./src/viewer.ts",
 		"./results": "./src/results.ts",

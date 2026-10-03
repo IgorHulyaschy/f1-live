@@ -1,4 +1,6 @@
 import type { Dashboard } from '@f1-live/shared/dashboard';
+import type { AlertSettings } from '@f1-live/shared/alerts';
+import type { ReportReason } from '@f1-live/shared/library';
 import type { ViewerSettings } from '@f1-live/shared/viewer';
 import {
 	boolean,
@@ -8,7 +10,8 @@ import {
 	pgSchema,
 	primaryKey,
 	text,
-	timestamp
+	timestamp,
+	uniqueIndex
 } from 'drizzle-orm/pg-core';
 
 import type { BillingInterval, SubscriptionStatus } from '../../payments/provider.js';
@@ -149,4 +152,99 @@ export const subscription = accountsSchema.table(
 		primaryKey({ columns: [table.provider, table.id] }),
 		index('subscription_user_id_idx').on(table.userId)
 	]
+);
+
+/** How a fan signs what they publish. Chosen once, unique, and gone with the account. */
+export const libraryHandle = accountsSchema.table('library_handle', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	handle: text('handle').notNull().unique(),
+	createdAt: createdAt()
+});
+
+/**
+ * A dashboard in the fan library: a copy of the author's dashboard as published, so editing the
+ * original changes nothing until they publish again. Examples the library ships with have no
+ * author (`userId` null). `hidden` is set when enough fans reported it, until someone looks.
+ */
+export const libraryEntry = accountsSchema.table(
+	'library_entry',
+	{
+		id: text('id').primaryKey(),
+		userId: text('user_id').references(() => user.id, { onDelete: 'cascade' }),
+		/** The author's own id for the dashboard; publishing it again replaces this entry. */
+		dashboardId: text('dashboard_id').notNull(),
+		name: text('name').notNull(),
+		description: text('description').notNull(),
+		tags: jsonb('tags').$type<string[]>().notNull(),
+		document: jsonb('document').$type<Dashboard>().notNull(),
+		adds: integer('adds').default(0).notNull(),
+		hidden: boolean('hidden').default(false).notNull(),
+		publishedAt: createdAt(),
+		updatedAt: updatedAt()
+	},
+	(table) => [
+		uniqueIndex('library_entry_author_dashboard_idx').on(table.userId, table.dashboardId),
+		index('library_entry_listing_idx').on(table.hidden, table.adds)
+	]
+);
+
+/** Who added a library dashboard: one count per signed-in viewer, however often they add it. */
+export const libraryAdd = accountsSchema.table(
+	'library_add',
+	{
+		entryId: text('entry_id')
+			.notNull()
+			.references(() => libraryEntry.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		createdAt: createdAt()
+	},
+	(table) => [primaryKey({ columns: [table.entryId, table.userId] })]
+);
+
+/** One report per viewer per entry; enough distinct reporters hide it. */
+export const libraryReport = accountsSchema.table(
+	'library_report',
+	{
+		entryId: text('entry_id')
+			.notNull()
+			.references(() => libraryEntry.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		reason: text('reason').$type<ReportReason>().notNull(),
+		createdAt: createdAt()
+	},
+	(table) => [primaryKey({ columns: [table.entryId, table.userId] })]
+);
+
+/** Which alerts an account wants and when, one row per account, shared by all its devices. */
+export const alertSettings = accountsSchema.table('alert_settings', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	settings: jsonb('settings').$type<AlertSettings>().notNull(),
+	updatedAt: updatedAt()
+});
+
+/**
+ * A browser the account asked Web Push for. The endpoint is the push service's address for that
+ * browser, so it is unique; subscribing again from the same browser replaces the row.
+ */
+export const pushSubscription = accountsSchema.table(
+	'push_subscription',
+	{
+		endpoint: text('endpoint').primaryKey(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => user.id, { onDelete: 'cascade' }),
+		p256dh: text('p256dh').notNull(),
+		auth: text('auth').notNull(),
+		userAgent: text('user_agent'),
+		createdAt: createdAt()
+	},
+	(table) => [index('push_subscription_user_id_idx').on(table.userId)]
 );

@@ -88,6 +88,7 @@ documented in `server/.env.example` and `client/.env.example`; these are the one
 | `SMTP_URL`, `MAIL_FROM` (secret)                                                                    | your email service                                    |
 | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_PRICE_PRO_YEARLY` | from Stripe                                           |
 | `GOOGLE_CLIENT_ID/SECRET`, `APPLE_CLIENT_ID/SECRET`                                                 | optional; a provider is on only with both values      |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` (secret), `VAPID_SUBJECT`                                   | `npm run vapid -w server`; push is off without keys   |
 
 In production the server refuses to start with a missing or development value and lists every
 problem at once.
@@ -118,7 +119,9 @@ origin, so neither is needed.
    above, upload the data.
 4. **Stripe**: create the Pro prices and a webhook to `https://api.<domain>/api/billing/webhook`;
    copy the keys and price ids into the relay's secrets. **Email**: an SMTP account and a verified
-   sender for `MAIL_FROM`.
+   sender for `MAIL_FROM`. **Web Push** (alerts): `npm run vapid -w server` makes the key pair for
+   `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`; `VAPID_SUBJECT` is a `mailto:` address or https URL
+   the push services can reach you on. No account anywhere is needed.
 5. **Ingest at home**: a machine that stays on and has an ordinary home or office connection.
    `docker compose -f deploy/home-ingest/docker-compose.yml --env-file deploy/home-ingest/.env up -d --build`.
    Check `http://127.0.0.1:3000/health` there, and the relay's `/health`: `seq` rises during a
@@ -128,7 +131,9 @@ origin, so neither is needed.
 
 Organizational items still open: the brand name (`BRAND_NAME`, emails and payment pages use it),
 the domain, hosting/Stripe/email/Google/Apple accounts, the F1 data-rights agreement and the
-picture licence.
+picture licence, the push sender identity (`VAPID_SUBJECT`) and the fan library's moderation policy
+(`LIBRARY_*` in `server/.env.example`; the defaults are in
+[dashboards.md](product/dashboards.md#library-alerts-and-push)).
 
 ### Relay + API on Fly.io
 

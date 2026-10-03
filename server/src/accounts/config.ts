@@ -37,6 +37,30 @@ export interface AccountsConfig {
 		google: { clientId: string; clientSecret: string } | null;
 		apple: { clientId: string; clientSecret: string; appBundleIdentifier?: string } | null;
 	};
+	/**
+	 * Web Push for alerts. The sender identity (`subject`) is the owner's: the push services use
+	 * it to reach whoever runs the server if it misbehaves. With no keys, development makes a
+	 * pair of its own (kept beside the database); production leaves push off until keys are set.
+	 */
+	push: {
+		subject: string;
+		keys: { publicKey: string; privateKey: string } | null;
+		/** Where a development pair is kept; null keeps it in memory. Absent in production. */
+		generateInto: { file: string | null } | null;
+		/** Push service hosts accepted beyond the browsers' own, for a vendor not built in. */
+		extraEndpointHosts: readonly string[];
+	};
+	/** The fan library's house rules; the owner's moderation policy, with these defaults. */
+	moderation: {
+		/** Handles nobody may take, on top of the built-in list. */
+		reservedHandles: readonly string[];
+		/** Words refused in handles, names, descriptions and tags, on top of the built-in list. */
+		blockedWords: readonly string[];
+		/** This many different viewers reporting a dashboard hides it until someone looks. */
+		reportsToHide: number;
+		/** Dashboards one account may keep published. */
+		maxPublished: number;
+	};
 	payments:
 		| { kind: 'fake'; webhookSecret: string; statePath: string | null }
 		| {
@@ -68,6 +92,11 @@ const optional = z
 	.optional()
 	.transform((value) => value?.trim() || undefined);
 
+const positiveInt = z
+	.string()
+	.regex(/^[1-9]\d*$/, 'must be a whole number, 1 or more')
+	.transform(Number);
+
 const httpUrl = z.url({ protocol: /^https?$/ });
 
 const envSchema = z.object({
@@ -92,6 +121,14 @@ const envSchema = z.object({
 	APPLE_CLIENT_ID: optional,
 	APPLE_CLIENT_SECRET: optional,
 	APPLE_APP_BUNDLE_IDENTIFIER: optional,
+	VAPID_PUBLIC_KEY: optional,
+	VAPID_PRIVATE_KEY: optional,
+	VAPID_SUBJECT: optional,
+	PUSH_ENDPOINT_HOSTS: optional,
+	LIBRARY_RESERVED_HANDLES: optional,
+	LIBRARY_BLOCKED_WORDS: optional,
+	LIBRARY_REPORTS_TO_HIDE: optional.pipe(positiveInt.optional()),
+	LIBRARY_MAX_PUBLISHED: optional.pipe(positiveInt.optional()),
 	PAYMENTS_PROVIDER: optional.pipe(z.enum(['fake', 'stripe']).optional()),
 	FAKE_WEBHOOK_SECRET: optional,
 	STRIPE_SECRET_KEY: optional,
@@ -99,6 +136,14 @@ const envSchema = z.object({
 	STRIPE_PRICE_PRO_MONTHLY: optional,
 	STRIPE_PRICE_PRO_YEARLY: optional
 });
+
+/** A comma-separated list from the environment, trimmed and lower-cased. */
+function wordList(value: string | undefined): string[] {
+	return (value ?? '')
+		.split(',')
+		.map((word) => word.trim().toLowerCase())
+		.filter(Boolean);
+}
 
 /** Reads the accounts settings; null when no database is chosen and accounts stay off. */
 export function loadAccountsConfig(
@@ -204,6 +249,18 @@ export function loadAccountsConfig(
 					statePath: accountsDir ? path.join(accountsDir, 'fake-billing.json') : null
 				};
 
+	if (Boolean(values.VAPID_PUBLIC_KEY) !== Boolean(values.VAPID_PRIVATE_KEY)) {
+		problems.push(
+			'VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY: set both, or neither (npm run vapid -w server)'
+		);
+	}
+
+	const pushSubject = values.VAPID_SUBJECT ?? `mailto:push@${new URL(appUrl).hostname}`;
+
+	if (!/^(mailto:[^@\s]+@[^@\s]+|https:\/\/\S+)$/.test(pushSubject)) {
+		problems.push('VAPID_SUBJECT: must be a mailto: address or an https URL');
+	}
+
 	if (problems.length > 0) {
 		throw new Error(`Invalid environment:\n${problems.join('\n')}`);
 	}
@@ -226,6 +283,23 @@ export function loadAccountsConfig(
 			devMailboxAnyIp: values.DEV_MAILBOX_ANY_IP ?? false
 		},
 		social: { google, apple },
+		push: {
+			subject: pushSubject,
+			keys:
+				values.VAPID_PUBLIC_KEY && values.VAPID_PRIVATE_KEY
+					? { publicKey: values.VAPID_PUBLIC_KEY, privateKey: values.VAPID_PRIVATE_KEY }
+					: null,
+			generateInto: production
+				? null
+				: { file: accountsDir ? path.join(accountsDir, 'vapid.json') : null },
+			extraEndpointHosts: wordList(values.PUSH_ENDPOINT_HOSTS)
+		},
+		moderation: {
+			reservedHandles: wordList(values.LIBRARY_RESERVED_HANDLES),
+			blockedWords: wordList(values.LIBRARY_BLOCKED_WORDS),
+			reportsToHide: values.LIBRARY_REPORTS_TO_HIDE ?? 3,
+			maxPublished: values.LIBRARY_MAX_PUBLISHED ?? 25
+		},
 		payments
 	};
 }
