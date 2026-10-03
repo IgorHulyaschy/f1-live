@@ -3,6 +3,10 @@ import { describe, it } from 'node:test';
 
 import { paysFastestLap, pointsFor, pointsTable } from './points.ts';
 
+function at(leaderLaps: number) {
+	return { leaderLaps, scheduledLaps: 60 };
+}
+
 describe('pointsTable', () => {
 	it('pays 25 to 1 in a race and nothing outside races and sprints', () => {
 		assert.deepEqual(pointsTable('race', 2018), [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]);
@@ -25,8 +29,6 @@ describe('pointsTable', () => {
 	});
 
 	it('scales a shortened race by its share of the distance from 2022', () => {
-		const at = (leaderLaps: number) => ({ leaderLaps, scheduledLaps: 60 });
-
 		assert.equal(pointsFor('race', 2023, 1, at(10)), 6);
 		assert.equal(pointsFor('race', 2023, 6, at(10)), 0);
 		assert.equal(pointsFor('race', 2023, 1, at(20)), 13);
