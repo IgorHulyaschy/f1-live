@@ -1,0 +1,52 @@
+# The relay and accounts API on Render, with its Postgres. Connect the repository in Render's
+# dashboard (New > Blueprint) and point it at this file. Values marked `sync: false` are asked for
+# once, in the dashboard: docs/deploy.md lists them. The relay keeps the live session in memory, so
+# it must stay at one instance.
+
+services:
+  - type: web
+    name: pitwall-relay
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: .
+    plan: starter
+    numInstances: 1
+    healthCheckPath: /ready
+    envVars:
+      - key: MODE
+        value: relay
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pitwall-db
+          property: connectionString
+      # Public values; replace example.com with the real domain.
+      - key: APP_URL
+        value: https://app.example.com
+      - key: CORS_ORIGINS
+        value: https://app.example.com
+      - key: ACCOUNTS_PUBLIC_URL
+        value: https://api.example.com
+      - key: COOKIE_DOMAIN
+        value: example.com
+      - key: RELAY_SECRET
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: SMTP_URL
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_PRO_MONTHLY
+        sync: false
+      - key: STRIPE_PRICE_PRO_YEARLY
+        sync: false
+
+databases:
+  - name: pitwall-db
+    plan: basic-256mb

@@ -1,0 +1,26 @@
+# The ingest process, for a machine on a home or office network (livetiming.formula1.com refuses
+# cloud hosts). It reads the live feed, records it, pushes events to the relay, and imports the
+# session when it ends. Run from the repository root:
+#   cp deploy/home-ingest/env.example deploy/home-ingest/.env   # then fill it in
+#   docker compose -f deploy/home-ingest/docker-compose.yml --env-file deploy/home-ingest/.env up -d --build
+name: pitwall-ingest
+
+services:
+  ingest:
+    image: pitwall-server
+    build:
+      context: ../..
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    stop_grace_period: 15s
+    environment:
+      MODE: ingest
+      RELAY_URL: ${RELAY_URL:?set RELAY_URL}
+      RELAY_SECRET: ${RELAY_SECRET:?set RELAY_SECRET}
+      F1TV_TOKEN: ${F1TV_TOKEN:-}
+      LOG_LEVEL: info
+    ports:
+      - 127.0.0.1:3000:3000
+    volumes:
+      # raw/ holds every recording forever; out/ is what deploy/scripts/upload-data.sh uploads.
+      - ${DATA_DIR:-./data}:/data
