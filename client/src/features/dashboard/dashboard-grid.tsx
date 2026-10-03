@@ -20,10 +20,12 @@ import {
 	swapTiles,
 	type Tile,
 	TILE_INFO,
+	type TileKind,
 	tileTitle
 } from './dashboards';
 import { tilePath } from './paths';
 import { type ArrangeKey, arrangeTile } from './arrange';
+import { NearViewport } from './near-viewport';
 import { TileFillContext, TileRowsContext } from './tile-fill';
 import { TileContent } from './tiles';
 import { useCarriedSearch } from './use-carried-search';
@@ -231,6 +233,9 @@ function useScrollStop(body: React.RefObject<HTMLDivElement | null>, fill: boole
 	return fill && stop;
 }
 
+/** Tiles whose first render is heavy (a chart library, long traces): they wait until near. */
+const DEFERRED_TILES: ReadonlySet<TileKind> = new Set(['chart', 'telemetry', 'story']);
+
 function TileBody({
 	dashboard,
 	tile,
@@ -244,6 +249,20 @@ function TileBody({
 }) {
 	const body = React.useRef<HTMLDivElement>(null);
 	const scrollStop = useScrollStop(body, fill);
+
+	const content = (
+		<TileContent
+			tile={tile}
+			onSettingsChange={(settings) =>
+				onChange({
+					...dashboard,
+					tiles: dashboard.tiles.map((entry) =>
+						entry.id === tile.id ? { ...entry, settings } : entry
+					)
+				})
+			}
+		/>
+	);
 
 	return (
 		<div
@@ -259,17 +278,13 @@ function TileBody({
 		>
 			<TileFillContext value={fill}>
 				<TileRowsContext value={dashboard.layout.find((place) => place.i === tile.id)?.h ?? null}>
-					<TileContent
-						tile={tile}
-						onSettingsChange={(settings) =>
-							onChange({
-								...dashboard,
-								tiles: dashboard.tiles.map((entry) =>
-									entry.id === tile.id ? { ...entry, settings } : entry
-								)
-							})
-						}
-					/>
+					{DEFERRED_TILES.has(tile.kind) ? (
+						<NearViewport title={tileTitle(tile)} fill={fill}>
+							{content}
+						</NearViewport>
+					) : (
+						content
+					)}
 				</TileRowsContext>
 			</TileFillContext>
 		</div>

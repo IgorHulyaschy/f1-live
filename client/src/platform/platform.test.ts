@@ -15,15 +15,8 @@ import {
 } from './analytics.ts';
 import { isStaleChunk } from './errors.ts';
 import { ROUTE_META } from './route-meta.ts';
-import {
-	documentTitle,
-	fillIndexHtml,
-	siteUrl,
-	robotsTxt,
-	sitemapXml,
-	THEME_COLOURS,
-	webManifest
-} from './site.ts';
+import { fillIndexHtml, robotsTxt, sitemapXml, webManifest } from './site-files.ts';
+import { documentTitle, siteUrl, THEME_COLOURS } from './site.ts';
 
 describe('site files', () => {
 	it('list every ready-made dashboard and legal page in the sitemap', () => {

@@ -7,7 +7,7 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig, loadEnv, type Plugin } from 'vite';
 
-import { fillIndexHtml, robotsTxt, sitemapXml, webManifest } from './src/platform/site.ts';
+import { fillIndexHtml, robotsTxt, sitemapXml, webManifest } from './src/platform/site-files.ts';
 
 /** The server with accounts on; `/api` goes there, so sign-in cookies stay first-party. */
 const accountsServer = process.env.ACCOUNTS_SERVER_URL ?? 'http://127.0.0.1:3000';
