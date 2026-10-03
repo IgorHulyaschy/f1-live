@@ -15,31 +15,49 @@ Working name only; the product must not use "F1" or "Formula 1" in its brand.
 
 More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](docs/screenshots.md). The whole dashboard flow, step by step: [docs/flow.md](docs/flow.md).
 
+## History
+
+Seasons from 2018 on: a calendar with `.ics` export, standings after any round, driver pages and a
+head to head for any two drivers or teams. See [docs/product/history.md](docs/product/history.md).
+
 ## Dashboards
 
 The whole screen is tiles on a 24-column grid, from a phone to a wall monitor: the race title,
 replay keys and lap strip move and resize like timing or a chart.
 
-- **Session-aware.** `/` opens the layout for the session on screen: Race, Quali or Practice,
+- **A home.** `/` asks a question, shows what is live or next, the championship and the latest
+  weekend; a returning viewer's start page is kept.
+- **Session-aware.** `/session` opens the layout for the session on screen: Race, Quali or Practice,
   named in the first tab. A live strip under the top bar says on every page whether a session is
   live, which part, the time left, the flag and who is in the drop zone, or what starts next.
 - **One timeline.** The Replay tile plays at 1×, 10× and 60× real time, jumps between events
   (flags, stops, your driver's moments) with Shift and the arrows, and scrubs along the race
   barcode. Track maps move smoothly between laps.
+- **No spoilers.** A finished session you have not seen opens at its start, paused, with Play
+  and a separate Jump to the finish; nothing else on screen gives the result away. Watching to
+  the end reveals it, on every device you are signed in on. Live stays live.
+- **Drill down.** Click a driver anywhere (timing, the map, charts, knockout, race control) for
+  their session in a side sheet: every lap with its sectors, tyres, gaps and rulings, qualifying
+  runs, stints, best sectors and telemetry. Click a lap for its traces against anyone's lap, or
+  compare two drivers. Each view has its own address; Back and Escape close it.
 - **Ready-made.** The three session layouts, Analysis and Strategy (at `/analysis`,
   `/strategy`), Battle, Track, Drivers, Race story and Pit wall; the ones a session does not need
   wait under More. Edit any of them and Reset brings it back; **+** starts your own.
-- **34 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
-  Drivers (focus, driver, grid), Timing (with knockout and best sectors), Track (track map,
-  battle map, pit rejoin, mini-sector dominance, flag map, speed map), Analysis (charts,
-  telemetry traces, long runs, championship, conditions) and Strategy (stints, tyre wear, stops,
-  undercut ledger, stop cost, pit crews). Tiles for another kind of session shrink to one line.
+- **38 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
+  Drivers (focus, driver, grid, driver view), Timing (with knockout and best sectors), Track (track map,
+  battle map, pit rejoin, mini-sector dominance, flag map, speed map, gap distance, ghost lap),
+  Analysis (charts, telemetry traces, long runs, championship, conditions) and Strategy (stints,
+  tyre wear, stops, undercut ledger, stop cost, pit crews). Tiles for another kind of session
+  shrink to one line.
   Drag by the bar, resize from the edges, or use the keyboard: focus a grip, arrows move, Shift
   and arrows resize. Edit mode bars sit in
   the gaps, so a dashboard looks the same while you build it.
 - **Maps.** Every car on the circuit, smooth at the display's refresh rate: from the replay's
   car positions, the live feed's positions channel, or estimated from timing when there are
   none.
+- **Gaps as distance.** Qualifying or the race on one straight, each car behind by the metres
+  its gap is worth; the best laps run together as a ghost lap; and a picture of it at social
+  sizes to share.
 - **Any monitor.** Panels lay out by their tile's width (container queries). **Fit** stretches
   rows to the window height; text size runs from S to TV; narrow screens stack tiles.
 - **Windows.** Pop out a tile or a dashboard; lap, driver, plan, compared drivers and play/pause
@@ -103,8 +121,8 @@ modelled and calibrated to the real gaps.
 With `VITE_DATA_SOURCE=api` the client reads `catalog.json` and saved sessions from
 `VITE_API_URL` and follows `WS /live` at `VITE_WS_URL`. The Session tile and ⌘K pick any
 season, meeting and session (`?session=<key>` links to one); opening the app during a live
-session goes to it. Live sessions can run behind the feed by a broadcast delay, and spoiler-free
-mode opens sessions at the start with results hidden.
+session goes to it. Live sessions can run behind the feed by a broadcast delay. How people move
+through all of it, live, catching up and digging in: [docs/product/flows.md](docs/product/flows.md).
 
 ## Run the production build locally
 

@@ -12,17 +12,21 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { RaceProvider, useRace } from '@/data/race-context';
+import { ResultsProvider } from '@/data/results-context';
 import { TelemetryProvider } from '@/data/telemetry-context';
 import { AccountFooterKey, AccountSession } from '@/features/account/account-menu';
 import { useAccountPlan } from '@/features/account/account-store';
 import { CompareProvider } from '@/features/analysis/compare-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
+import { DrillSheet } from '@/features/drill/drill-sheet';
 import type { RaceSource } from '@/data/race-source';
 import { useRaceAlerts } from '@/hooks/use-race-alerts';
 import { useRaceHotkeys } from '@/hooks/use-race-hotkeys';
+import { useViewTitle } from '@/hooks/use-view-title';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 import { ConsentBanner, usePageViews } from '@/platform/consent';
 import { InstallBanner, InstallKey } from '@/platform/install';
+import type { ConsoleOutlet } from '@/features/home/console-outlet';
 import { usePageMeta } from '@/platform/page-meta';
 import { keepAwakeStore, useScreenWakeLock, wakeLockSupported } from '@/platform/wake-lock';
 
@@ -99,6 +103,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 
 	useRaceHotkeys(openCommand);
 	useRaceAlerts();
+	useViewTitle();
 	useScreenWakeLock(keepAwake && (playing || live.isLive));
 
 	if (bare) {
@@ -132,7 +137,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 						>
 							<AppHeader onOpenCommand={openCommand} />
 							<main className="px-4 pb-6 md:px-6">
-								<Outlet />
+								<Outlet context={{ openCommand } satisfies ConsoleOutlet} />
 							</main>
 							<SiteFooter
 								className="pb-24 md:pb-8"
@@ -189,6 +194,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 							</SiteFooter>
 							<PitBoard />
 							<AccountSession />
+							<DrillSheet />
 						</div>
 					</CompareProvider>
 					<CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
@@ -210,7 +216,9 @@ export function AppLayout({ source, bare = false }: { source: RaceSource; bare?:
 			ErrorFallback={ErrorState}
 		>
 			<TelemetryProvider source={source.telemetry}>
-				<Console sourceKind={source.kind} bare={bare} />
+				<ResultsProvider load={source.loadResults}>
+					<Console sourceKind={source.kind} bare={bare} />
+				</ResultsProvider>
 			</TelemetryProvider>
 		</RaceProvider>
 	);

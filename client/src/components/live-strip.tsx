@@ -1,5 +1,5 @@
 import type { Driver } from '@f1-live/shared';
-import { ChevronsUpDownIcon, EyeIcon } from 'lucide-react';
+import { ChevronsUpDownIcon, EyeIcon, SkipBackIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Key } from '@/components/console/keys';
@@ -11,12 +11,12 @@ import {
 	formatLocalStart,
 	formatUntil,
 	nextSession,
-	SESSION_TYPE_LABEL,
-	type SessionEntry
+	SESSION_TYPE_LABEL
 } from '@/data/catalog';
 import type { LiveConnection } from '@/data/live-feed';
 import { useRace } from '@/data/race-context';
 import { sessionKind } from '@/features/dashboard/dashboards';
+import { sessionTitle } from '@/features/home/latest-weekend';
 import { SessionPickerDialog } from '@/features/session/session-picker';
 import { useShownDashboard } from '@/features/library/shown-dashboard';
 import { useFeedLabel } from '@/features/session/session-tiles';
@@ -178,10 +178,6 @@ function StripClock() {
 	);
 }
 
-function sessionTitle(entry: SessionEntry): string {
-	return `${entry.meeting.name.replace(/ Grand Prix$/, '')} ${entry.session.name}`;
-}
-
 /** Where to go when this session is not the one that matters now: the live one, or the next. */
 function Elsewhere() {
 	const { catalog, live, sessionKey, setSession } = useRace();
@@ -223,7 +219,9 @@ function Elsewhere() {
  * the session on screen is not live, it points to the one that is, or to the next.
  */
 export function LiveStrip() {
-	const { race, snapshot, standings, followedDriver, spoilers, lap, sessionError } = useRace();
+	const { race, snapshot, standings, followedDriver, spoilers, live, lap, setLap, sessionError } =
+		useRace();
+
 	const [picking, setPicking] = React.useState(false);
 	const time = useScreenTime();
 	const now = useNow();
@@ -322,9 +320,19 @@ export function LiveStrip() {
 				<Elsewhere />
 				<StripClock />
 				{spoilers.hidden ? (
-					<Key onClick={spoilers.reveal} title="Spoiler-free: results are hidden">
+					<Key
+						onClick={spoilers.reveal}
+						aria-label="Jump to the finish (shows results)"
+						title="Results are hidden; this shows them"
+					>
 						<EyeIcon aria-hidden />
-						<span className="max-sm:hidden">Show results</span>
+						<span className="max-sm:hidden">Jump to the finish</span>
+					</Key>
+				) : null}
+				{live.isLive && lap > 1 ? (
+					<Key onClick={() => setLap(1)} title="Watch this session from its start">
+						<SkipBackIcon aria-hidden />
+						<span className="max-sm:hidden">From the start</span>
 					</Key>
 				) : null}
 				<Key onClick={() => setPicking(true)} aria-haspopup="dialog" aria-label="Sessions">

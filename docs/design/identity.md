@@ -78,11 +78,16 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
 - Road gaps are dashed connectors between cars; the pit-rejoin ghost is a dashed ring, like the
   ghost row in the tower.
 - Maps move only while the clock runs; with reduced motion they update once a second.
+- On the gap straight cars are our own drawing from above, a silhouette in the team colour with
+  its nose to the line, two abreast like a grid. Labels carry the cut position chip, the code,
+  the gap and its metres; the line is a chequered strip. No team logos or photos: those are
+  licensed media. Share cards use the same straight under the panel rule and title, with the
+  brand and the site at the foot.
 
 ## Dashboards
 
-- Every page is a dashboard: tiles on a 24-column grid. `/` is the session's own layout (Race,
-  Quali or Practice); Analysis and Strategy are presets at their old addresses; Battle and Pit
+- Every page is a dashboard: tiles on a 24-column grid. `/session` is the session's own layout
+  (Race, Quali or Practice); Analysis and Strategy are presets at their old addresses; Battle and Pit
   wall are presets for focused and wide screens.
 - One primary reading per screen: on the session layouts it is the time left (or the lap) on the
   live strip and the tower under it. The Replay tile prints the minute only on the clock, so a

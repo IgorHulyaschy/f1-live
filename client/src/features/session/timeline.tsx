@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Key, KeyGroup } from '@/components/console/keys';
 import { LapStrip } from '@/components/lap-strip';
 import { DelayControl, LapCounter, Transport } from '@/components/race-clock';
-import { useRaceView } from '@/data/race-context';
+import { useRaceView, useVisibleRace } from '@/data/race-context';
 import { nextSpeed } from '@/data/replay-clock';
 import { eventFilterStore } from '@/data/viewer-settings';
 import { sessionMinutes } from '@/insights/qualifying';
@@ -39,21 +39,11 @@ const LANE_ORDER: readonly TimelineEvent['lane'][] = [
 ];
 
 /**
- * The session the events come from: spoiler-free, only what has been shown; otherwise the whole
- * of a saved session, so a replay can jump ahead.
- */
-function useEventSource() {
-	const { race, snapshot, spoilers } = useRaceView();
-
-	return spoilers.hidden ? snapshot : race;
-}
-
-/**
  * Moves the replay to the previous or next event that passes the viewer's filter. The events are
  * worked out on the key press, not on every update of a live session.
  */
 export function useEventJump(): (direction: 1 | -1) => void {
-	const source = useEventSource();
+	const source = useVisibleRace();
 	const { lap, setLap, followedDriver } = useRaceView();
 	const filter = eventFilterStore.useValue();
 
@@ -267,7 +257,7 @@ function Track({ events, compact }: { events: readonly TimelineEvent[]; compact:
 export function Timeline() {
 	const rows = useTileRows();
 	const compact = rows !== null && rows <= COMPACT_ROWS;
-	const source = useEventSource();
+	const source = useVisibleRace();
 	const events = React.useMemo(() => timelineEvents(source), [source]);
 
 	return (

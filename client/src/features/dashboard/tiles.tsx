@@ -97,6 +97,22 @@ const SpeedMapTile = React.lazy(async () => ({
 	default: (await import('@/features/track/speed-map-tile')).SpeedMapTile
 }));
 
+const SeasonStandingsTile = React.lazy(async () => ({
+	default: (await import('@/features/history/standings-tile')).SeasonStandingsTile
+}));
+
+const GapsTile = React.lazy(async () => ({
+	default: (await import('@/features/gaps/gaps-tile')).GapsTile
+}));
+
+const GhostLapTile = React.lazy(async () => ({
+	default: (await import('@/features/gaps/ghost-lap-tile')).GhostLapTile
+}));
+
+const DrillTile = React.lazy(async () => ({
+	default: (await import('@/features/drill/drill-tile')).DrillTile
+}));
+
 const TrackMapTile = React.lazy(async () => ({
 	default: (await import('@/features/track/track-map-tile')).TrackMapTile
 }));
@@ -353,6 +369,48 @@ export function TileContent({
 					<SpeedMapTile
 						channel={tile.settings?.channel}
 						onChannelChange={(channel) => onSettingsChange?.({ ...tile.settings, channel })}
+					/>
+				</LazyTile>
+			);
+		}
+
+		case 'gap-distance': {
+			return (
+				<LazyTile tile={tile}>
+					<GapsTile
+						settings={tile.settings}
+						onSettingsChange={(settings) => onSettingsChange?.({ ...tile.settings, ...settings })}
+					/>
+				</LazyTile>
+			);
+		}
+
+		case 'season-standings': {
+			return (
+				<LazyTile tile={tile}>
+					<SeasonStandingsTile />
+				</LazyTile>
+			);
+		}
+
+		case 'ghost-lap': {
+			return (
+				<LazyTile tile={tile}>
+					<GhostLapTile />
+				</LazyTile>
+			);
+		}
+
+		case 'drill': {
+			return (
+				<LazyTile tile={tile}>
+					<DrillTile
+						settings={tile.settings}
+						onSettingsChange={
+							onSettingsChange
+								? (settings) => onSettingsChange({ ...tile.settings, ...settings })
+								: undefined
+						}
 					/>
 				</LazyTile>
 			);

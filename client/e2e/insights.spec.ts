@@ -6,7 +6,7 @@ import { openRace } from './fixtures.ts';
 // penalties, the championship before the race and a few of the real race's laps of telemetry.
 
 test('the timeline jumps to the next pit stop and to the safety car period', async ({ page }) => {
-	await openRace(page, '/?lap=10');
+	await openRace(page, '/session?lap=10');
 
 	const replay = page.getByRole('region', { name: 'Replay' });
 	const note = page.getByTestId('timeline-note');

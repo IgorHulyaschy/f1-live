@@ -53,6 +53,15 @@ describe('parseImportArguments', () => {
 		assert.equal(parseImportArguments(['2025', '--no-telemetry'], {}).telemetry, false);
 	});
 
+	it('keeps results-level streams before 2025 and 15 GB free unless told otherwise', () => {
+		const defaults = parseImportArguments(['2018'], {});
+		const told = parseImportArguments(['2018', '--all-topics', '--min-free-gb', '20'], {});
+
+		assert.deepEqual([defaults.allTopics, defaults.minFreeBytes], [false, 15e9]);
+		assert.deepEqual([told.allTopics, told.minFreeBytes], [true, 20e9]);
+		assert.throws(() => parseImportArguments(['2018', '--min-free-gb', 'lots'], {}), /gigabytes/);
+	});
+
 	it('throws the usage when nothing says what to import, or a value is malformed', () => {
 		assert.throws(() => parseImportArguments([], {}), /Usage/);
 		assert.throws(() => parseImportArguments(['Las Vegas'], {}), /Usage/);

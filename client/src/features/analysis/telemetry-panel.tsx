@@ -474,59 +474,25 @@ function SlotPicker({
 	);
 }
 
-function TelemetryBody({
+/**
+ * The traces of laps already chosen: speed, the delta to the first, throttle, brake, gear and
+ * revs against distance with a shared readout, or with `table` the time through each mini
+ * sector. The driver and lap views draw these too.
+ */
+export function LapTraces({
+	chosen,
 	session,
-	mode,
 	table
 }: {
+	chosen: readonly LapChoice[];
 	session: SessionTelemetry;
-	mode: TraceMode;
 	table: boolean;
 }) {
-	const { snapshot, followedDriver, sessionKey, sourceKind } = useRaceView();
-	const { compared } = useComparedDrivers();
+	const { snapshot, sourceKind } = useRaceView();
 	const fill = useTileFill();
 	const syncId = React.useId();
 	const [hover] = React.useState(createHoverStore);
 	const { index, circuit } = session;
-
-	// Picks belong to the session and mode they were made in.
-	const [picked, setPicked] = React.useState<{
-		key: string;
-		mode: TraceMode;
-		slots: TraceSlot[];
-	} | null>(null);
-
-	const choices = React.useMemo(() => {
-		const byDriver = new Map<string, LapChoice[]>();
-
-		for (const driver of snapshot.drivers) {
-			byDriver.set(driver.number, lapChoices(snapshot, index.laps, driver.number, circuit.lengthM));
-		}
-
-		return byDriver;
-	}, [snapshot, index, circuit]);
-
-	const choicesOf = React.useCallback(
-		(driverNumber: string) => choices.get(driverNumber) ?? [],
-		[choices]
-	);
-
-	const available = (slot: TraceSlot) =>
-		choicesOf(slot.driverNumber).some((choice) => choice.lap.lap === slot.lap);
-
-	const ownPicks =
-		picked?.key === sessionKey && picked.mode === mode ? picked.slots.filter(available) : [];
-
-	const slots =
-		ownPicks.length > 0 ? ownPicks : defaultSlots(mode, compared, followedDriver, choicesOf);
-
-	const drivers = snapshot.drivers.filter((driver) => choicesOf(driver.number).length > 0);
-
-	const chosen = slots.flatMap(
-		(slot) => choicesOf(slot.driverNumber).find((choice) => choice.lap.lap === slot.lap) ?? []
-	);
-
 	const entries = chosen.map((choice) => choice.entry);
 
 	const loaded = useLapTelemetry(entries);
@@ -577,87 +543,13 @@ function TelemetryBody({
 		[lapTelemetry, snapshot.drivers, sourceKind, officialTimes]
 	);
 
-	const setSlots = (next: TraceSlot[]) => setPicked({ key: sessionKey, mode, slots: next });
-
-	const addSlot = () => {
-		const driverNumber = mode === 'laps' ? slots[0]?.driverNumber : undefined;
-		const used = new Set(slots.map((slot) => `${slot.driverNumber}/${slot.lap}`));
-
-		const candidates =
-			driverNumber === undefined
-				? drivers.filter((driver) => !slots.some((slot) => slot.driverNumber === driver.number))
-				: drivers.filter((driver) => driver.number === driverNumber);
-
-		for (const driver of candidates) {
-			const choice = choicesOf(driver.number)
-				.toSorted((a, b) => a.lap.lapTimeMs - b.lap.lapTimeMs)
-				.find((entry) => !used.has(`${driver.number}/${entry.lap.lap}`));
-
-			if (choice) {
-				setSlots([...slots, { driverNumber: driver.number, lap: choice.lap.lap }]);
-
-				return;
-			}
-		}
-	};
-
-	if (slots.length === 0) {
-		return (
-			<EmptyNote className="px-0">
-				No lap has run line to line with telemetry by this point of the session.
-			</EmptyNote>
-		);
-	}
-
-	const specs = index.hasCarData
-		? CHANNEL_SPECS
-		: CHANNEL_SPECS.filter((spec) => spec.channel === 'delta');
+	// The delta needs a second lap to measure against the first.
+	const specs = (
+		index.hasCarData ? CHANNEL_SPECS : CHANNEL_SPECS.filter((spec) => spec.channel === 'delta')
+	).filter((spec) => spec.channel !== 'delta' || chosen.length > 1);
 
 	return (
 		<>
-			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-				{mode === 'laps' && slots[0] ? (
-					<Select
-						value={slots[0].driverNumber}
-						onValueChange={(driverNumber) =>
-							setSlots(defaultSlots('laps', [], driverNumber, choicesOf))
-						}
-					>
-						<SelectTrigger size="sm" aria-label="Driver">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{drivers.map((entry) => (
-								<SelectItem key={entry.number} value={entry.number}>
-									{entry.code}
-								</SelectItem>
-							))}
-						</SelectContent>
-					</Select>
-				) : null}
-				{slots.map((slot, slotIndex) => (
-					<SlotPicker
-						key={SLOT_LETTER[slotIndex]}
-						slot={slot}
-						index={slotIndex}
-						mode={mode}
-						drivers={drivers}
-						choicesOf={choicesOf}
-						onChange={(next) => setSlots(slots.with(slotIndex, next))}
-						onRemove={
-							slotIndex === 0
-								? undefined
-								: () => setSlots(slots.filter((_, at) => at !== slotIndex))
-						}
-					/>
-				))}
-				{slots.length < MAX_SLOTS ? (
-					<Key onClick={addSlot}>
-						<PlusIcon aria-hidden />
-						Add lap
-					</Key>
-				) : null}
-			</div>
 			{failed instanceof Error ? (
 				<p role="alert" className="text-danger text-sm">
 					A lap’s telemetry could not be loaded: {failed.message}
@@ -739,6 +631,138 @@ function TelemetryBody({
 				sector ends. Numbers under the speed trace are each corner’s slowest point on lap A. The
 				delta is time behind lap A at the same distance.
 			</p>
+		</>
+	);
+}
+
+function TelemetryBody({
+	session,
+	mode,
+	table
+}: {
+	session: SessionTelemetry;
+	mode: TraceMode;
+	table: boolean;
+}) {
+	const { snapshot, followedDriver, sessionKey } = useRaceView();
+	const { compared } = useComparedDrivers();
+	const { index, circuit } = session;
+
+	// Picks belong to the session and mode they were made in.
+	const [picked, setPicked] = React.useState<{
+		key: string;
+		mode: TraceMode;
+		slots: TraceSlot[];
+	} | null>(null);
+
+	const choices = React.useMemo(() => {
+		const byDriver = new Map<string, LapChoice[]>();
+
+		for (const driver of snapshot.drivers) {
+			byDriver.set(driver.number, lapChoices(snapshot, index.laps, driver.number, circuit.lengthM));
+		}
+
+		return byDriver;
+	}, [snapshot, index, circuit]);
+
+	const choicesOf = React.useCallback(
+		(driverNumber: string) => choices.get(driverNumber) ?? [],
+		[choices]
+	);
+
+	const available = (slot: TraceSlot) =>
+		choicesOf(slot.driverNumber).some((choice) => choice.lap.lap === slot.lap);
+
+	const ownPicks =
+		picked?.key === sessionKey && picked.mode === mode ? picked.slots.filter(available) : [];
+
+	const slots =
+		ownPicks.length > 0 ? ownPicks : defaultSlots(mode, compared, followedDriver, choicesOf);
+
+	const drivers = snapshot.drivers.filter((driver) => choicesOf(driver.number).length > 0);
+
+	const chosen = slots.flatMap(
+		(slot) => choicesOf(slot.driverNumber).find((choice) => choice.lap.lap === slot.lap) ?? []
+	);
+
+	const setSlots = (next: TraceSlot[]) => setPicked({ key: sessionKey, mode, slots: next });
+
+	const addSlot = () => {
+		const driverNumber = mode === 'laps' ? slots[0]?.driverNumber : undefined;
+		const used = new Set(slots.map((slot) => `${slot.driverNumber}/${slot.lap}`));
+
+		const candidates =
+			driverNumber === undefined
+				? drivers.filter((driver) => !slots.some((slot) => slot.driverNumber === driver.number))
+				: drivers.filter((driver) => driver.number === driverNumber);
+
+		for (const driver of candidates) {
+			const choice = choicesOf(driver.number)
+				.toSorted((a, b) => a.lap.lapTimeMs - b.lap.lapTimeMs)
+				.find((entry) => !used.has(`${driver.number}/${entry.lap.lap}`));
+
+			if (choice) {
+				setSlots([...slots, { driverNumber: driver.number, lap: choice.lap.lap }]);
+
+				return;
+			}
+		}
+	};
+
+	if (slots.length === 0) {
+		return (
+			<EmptyNote className="px-0">
+				No lap has run line to line with telemetry by this point of the session.
+			</EmptyNote>
+		);
+	}
+
+	return (
+		<>
+			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+				{mode === 'laps' && slots[0] ? (
+					<Select
+						value={slots[0].driverNumber}
+						onValueChange={(driverNumber) =>
+							setSlots(defaultSlots('laps', [], driverNumber, choicesOf))
+						}
+					>
+						<SelectTrigger size="sm" aria-label="Driver">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{drivers.map((entry) => (
+								<SelectItem key={entry.number} value={entry.number}>
+									{entry.code}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				) : null}
+				{slots.map((slot, slotIndex) => (
+					<SlotPicker
+						key={SLOT_LETTER[slotIndex]}
+						slot={slot}
+						index={slotIndex}
+						mode={mode}
+						drivers={drivers}
+						choicesOf={choicesOf}
+						onChange={(next) => setSlots(slots.with(slotIndex, next))}
+						onRemove={
+							slotIndex === 0
+								? undefined
+								: () => setSlots(slots.filter((_, at) => at !== slotIndex))
+						}
+					/>
+				))}
+				{slots.length < MAX_SLOTS ? (
+					<Key onClick={addSlot}>
+						<PlusIcon aria-hidden />
+						Add lap
+					</Key>
+				) : null}
+			</div>
+			<LapTraces chosen={chosen} session={session} table={table} />
 		</>
 	);
 }

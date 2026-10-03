@@ -29,7 +29,8 @@ import { type Scale, SCALES, setScale, useScale } from '@/hooks/use-scale';
 import { shareUrl } from '@/features/library/share';
 import { useRace, useRaceView } from '@/data/race-context';
 import { type SyncStatus, useSyncStatus } from '@/features/account/dashboard-sync';
-import { WelcomeBanner } from '@/features/library/welcome';
+import { SpoilerStart } from '@/features/session/spoiler-start';
+import { entryState } from '@/lib/history-entry';
 
 import { forgetDashboard, newId, saveDashboard, useDashboards } from './dashboard-store';
 import { DashboardGrid } from './dashboard-grid';
@@ -42,9 +43,10 @@ import {
 	TILE_INFO,
 	TILE_KINDS
 } from './dashboards';
+import { SESSION_PATH } from './paths';
 import { SessionOffer } from './session-offer';
 import { sessionLayoutId } from './session-layouts';
-import { useAddDashboard } from './use-add-dashboard';
+import { useAddDashboard, useCreateDashboard } from './use-add-dashboard';
 import { useCarriedSearch } from './use-carried-search';
 
 const SYNC_LABEL: Record<SyncStatus, string> = {
@@ -128,20 +130,6 @@ function download(dashboard: Dashboard): void {
 	URL.revokeObjectURL(url);
 }
 
-/** Starts a new dashboard, empty or copied from another, and opens it in edit mode. */
-export function useCreateDashboard(): (from?: Dashboard) => void {
-	const add = useAddDashboard();
-
-	return (from) => {
-		add(
-			from
-				? { ...from, name: `${from.name} copy`.slice(0, 40) }
-				: { id: 'new', name: 'My dashboard', tiles: [], layout: [] },
-			{ edit: true }
-		);
-	};
-}
-
 async function copyShareLink(dashboard: Dashboard, sessionKey: string): Promise<void> {
 	const url = shareUrl(dashboard, sessionKey);
 
@@ -202,6 +190,8 @@ function DashboardBar({
 			{editing ? (
 				<input
 					aria-label="Dashboard name"
+					name="dashboard-name"
+					autoComplete="off"
 					value={dashboard.name}
 					maxLength={40}
 					onChange={(event) => onChange({ ...dashboard, name: event.target.value })}
@@ -212,10 +202,10 @@ function DashboardBar({
 							onChange({ ...dashboard, name: name || 'Untitled' });
 						}
 					}}
-					className="type-wide border-rule-strong focus-visible:border-foreground h-9 w-56 border-b-2 bg-transparent text-sm font-bold outline-none sm:h-7"
+					className="type-wide border-rule-strong focus-visible:border-foreground h-9 w-56 max-w-full min-w-0 border-b-2 bg-transparent text-sm font-bold outline-none sm:h-7"
 				/>
 			) : (
-				<h1 className="type-wide text-sm font-bold">{dashboard.name}</h1>
+				<h1 className="type-wide min-w-0 truncate text-sm font-bold">{dashboard.name}</h1>
 			)}
 			{editing ? (
 				<span className="type-label" data-testid="save-status">
@@ -249,7 +239,7 @@ function DashboardBar({
 						<Key
 							onClick={() => {
 								forgetDashboard(dashboard.id);
-								void navigate({ pathname: '/', search });
+								void navigate({ pathname: SESSION_PATH, search });
 							}}
 						>
 							<Trash2Icon />
@@ -351,7 +341,7 @@ export function DashboardPage({ id: fixedId }: { id?: string }) {
 
 				return current;
 			},
-			{ replace: true }
+			{ replace: true, state: entryState() }
 		);
 
 	if (!dashboard) {
@@ -365,7 +355,7 @@ export function DashboardPage({ id: fixedId }: { id?: string }) {
 
 	return (
 		<div data-testid={`dashboard-${dashboard.id}`}>
-			{isPreset(dashboard.id) ? <WelcomeBanner /> : null}
+			<SpoilerStart />
 			<SessionOffer dashboard={dashboard} />
 			<DashboardBar
 				dashboard={dashboard}

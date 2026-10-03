@@ -54,6 +54,34 @@ export function applyPageMeta(meta: PageMeta, pathname: string): void {
 	setHeadAttribute('meta[name="twitter:description"]', 'content', meta.description);
 }
 
+let viewTitle: string | null = null;
+
+const viewTitleListeners = new Set<() => void>();
+
+/**
+ * Names a view open over the page, such as a driver's session, in place of the route's title.
+ * The app shell sets it from the race it has loaded; the route alone cannot name a driver.
+ */
+export function setViewTitle(title: string | null): void {
+	if (title !== viewTitle) {
+		viewTitle = title;
+
+		for (const listener of viewTitleListeners) {
+			listener();
+		}
+	}
+}
+
+function subscribeViewTitle(listener: () => void): () => void {
+	viewTitleListeners.add(listener);
+
+	return () => viewTitleListeners.delete(listener);
+}
+
+function readViewTitle(): string | null {
+	return viewTitle;
+}
+
 /** Keeps the document title, description, canonical link and share card in step with the route. */
 export function usePageMeta(): void {
 	// SAFETY: every route in main.tsx and every lazy route module sets `handle` to a RouteHandle or
@@ -64,9 +92,12 @@ export function usePageMeta(): void {
 	const { dashboards } = useDashboards();
 	const match = matches.findLast((entry) => entry.handle);
 
-	const { title, description, indexed } = match?.handle
+	const routeMeta = match?.handle
 		? match.handle.meta({ params: match.params, search, dashboards })
 		: SITE_META;
+
+	const { description, indexed } = routeMeta;
+	const title = React.useSyncExternalStore(subscribeViewTitle, readViewTitle) ?? routeMeta.title;
 
 	React.useEffect(() => {
 		applyPageMeta({ title, description, indexed }, pathname);

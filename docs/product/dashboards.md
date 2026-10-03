@@ -25,8 +25,9 @@ One line under the top bar, always in view:
   ended now.
 - **Elsewhere.** On another session while one is live: "Live now" with a one-click Watch live.
   With nothing live: the next session, its start in the viewer's time and a countdown. The
-  Sessions key and, spoiler-free, Show results sit at the end; so do the replay keys when the
-  dashboard on screen has no Replay tile.
+  Sessions key and, while results are hidden, Jump to the finish sit at the end; so do the replay
+  keys when the dashboard on screen has no Replay tile. On a live session joined late, From the
+  start goes back to the beginning.
 
 On a phone the strip keeps the state, the part, the clock and the flag on one line, and the drop
 zone on a second.
@@ -49,20 +50,68 @@ The Replay tile is the session's timeline, at the top of every ready-made dashbo
   footer prints them on desktop.
 
 A short tile (three rows or fewer) keeps the keys and the barcode and leaves out the speed, the
-filter and the line under it. Spoiler-free, only the events already shown are marked.
+filter and the line under it. While results are hidden, only the events already shown are
+marked.
+
+## Spoiler protection
+
+On by default. A finished session the viewer has not revealed opens at its start (qualifying at
+the start of Q1, a race at lap 1), paused, with a line offering Play and, apart from it, Jump to
+the finish. Nothing outside the replay position gives the result away: the picker and ⌘K say
+"Results hidden", the tab title names no result, and the driver views show only what has
+happened so far. Watching to the end or Jump to the finish reveals the session; the picker has a
+Show key per session. A link with a position (`lap`) opens there. The rule and its helpers, and
+how lists of sessions must use them, are in [flows.md](flows.md#spoilers).
+
+## Driver, lap and compare views
+
+A driver anywhere on screen (a timing row, a car on the map or in its list, the grid wall, a
+knockout or best-sector row, the focus and battle tiles, a chart legend, a stint bar, race
+control) opens their session in a side sheet beside the dashboard, a full page on phones. The
+sheet is not modal: the replay keys still work and another driver's row opens theirs.
+
+| View    | Address             | Shows                                                                                                                                                                                                                                                                                                |
+| ------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Driver  | `?car=63`           | Position, gap, best lap, tyre, stops; every lap with its sectors, tyre, place, gap and interval, pit, flag, penalty and deleted time; runs and push laps in qualifying; stints; position; best sectors, ideal lap and traps; best-lap telemetry against pole or the teammate; race control and radio |
+| Lap     | `?car=63&carLap=26` | The lap's time, sectors, tyre, place and flag; speed, throttle, brake, gear and revs, or the mini-sector table, against any driver's lap (`vs`, `vsLap`)                                                                                                                                             |
+| Compare | `?car=63&vs=16`     | Both drivers' standing, best sectors against each other, lap against lap, and their best laps traced                                                                                                                                                                                                 |
+
+Breadcrumbs lead back up: Season and Event open the session picker, Session closes the sheet,
+the driver goes back from a lap. Back steps out one level and Close all of them, and either keeps
+the replay where it is; a view that came with a link closes onto its session. Clicking a lap
+opens it; race-control messages, race chart points and stint rows move the replay there.
+
+Each part of the driver view (laps, runs, stints, position, best sectors, best-lap telemetry,
+race control and radio) and the compare view is also a **Driver view** tile. The tile is bound
+to a driver, or to whoever the viewer follows, and its header picks either. In the sheet, each
+part has **Add to dashboard**, and **Make a dashboard of this view** saves every part as a new
+dashboard.
+
+Every tile header reads the same way: the title on the left, its modes on the right, and an
+options menu at the end (open the tile in a new window, edit the dashboard). Playback lives in
+one place: the Replay tile, or the live strip's clock when the dashboard has no Replay tile.
+
+## Home
+
+`/` is the home page: an ask box, what is live or starts next with Watch live or Catch up, the
+season's standings after its latest round the viewer may see, and the latest weekend. Recent
+rounds held back as unseen are counted in a note with one key that shows them. Without the
+season's results, the open session's own table stands in. A first visit lands there. A viewer
+can make any page their start page (the default is home), and `/` then opens it; a link with a
+session or position always opens the session.
 
 ## Session layouts
 
-`/` opens the layout for the session on screen, and the first tab is named for it: Race (races
+`/session` opens the layout for the session on screen, and the first tab is named for it: Race (races
 and sprints), Quali (qualifying and sprint qualifying) or Practice. Opening the app while a
 session runs lands on it; when a session goes live with nothing in the address, the screen moves
 to it and its layout.
 
-| Layout   | For                        | Tiles                                                                              |
-| -------- | -------------------------- | ---------------------------------------------------------------------------------- |
-| Race     | The order and the strategy | Replay, Timing, Focus, Race control, Track map, Stints                             |
-| Quali    | Who is through, who is out | Timing with the cut lines, Replay, Knockout, Race control, Track map, Best sectors |
-| Practice | Pace, race runs and tyres  | Timing, Replay, Long runs, Race control, Track map, Stints                         |
+| Layout   | For                        | Tiles                                                                                            |
+| -------- | -------------------------- | ------------------------------------------------------------------------------------------------ |
+| Race     | The order and the strategy | Replay, Timing, Track map, Focus, Race control, Stints                                           |
+| Quali    | Who is through, who is out | Timing with the cut lines, Replay, Knockout, Race control, Track map, Best sectors, Gap distance |
+| Practice | Pace, race runs and tyres  | Timing, Replay, Long runs, Race control, Track map, Stints                                       |
 
 - **Tiles for another kind of session** are left out of the session layouts. On the viewer's
   own dashboards and the other ready-made ones they shrink to one line saying what they are
@@ -75,27 +124,32 @@ to it and its layout.
   (it holds tiles that mean nothing in this one), a line offers "Switch to the Quali layout", Not
   now, or Don't ask again. The answer is saved on that dashboard (`sessionOffer: false`), so it
   syncs with the account like the rest of it.
-- **The track map** sits under the timing in all three layouts, beside Stints or Best sectors.
+- **The track map** sits beside the timing in Race, where it shows without scrolling on a laptop
+  (1600 × 1000), and under the timing in Quali and Practice, beside Best sectors or Stints.
+  Quali ends with Gap distance: the grid as metres behind pole.
+
+The **Season standings** tile (Analysis, add it from the library) lists the top ten of the open
+session's season after the latest round the viewer has seen; it links to `/standings`.
 
 ## What ships by default
 
 | Ready-made | For                      | Tiles                                                                           |
 | ---------- | ------------------------ | ------------------------------------------------------------------------------- |
-| Race       | Race day on one screen   | Replay, Timing, Focus, Race control, Track map, Stints                          |
-| Quali      | Qualifying on one screen | Timing, Replay, Knockout, Race control, Track map, Best sectors                 |
+| Race       | Race day on one screen   | Replay, Timing, Track map, Focus, Race control, Stints                          |
+| Quali      | Qualifying on one screen | Timing, Replay, Knockout, Race control, Track map, Best sectors, Gap distance   |
 | Practice   | Practice on one screen   | Timing, Replay, Long runs, Race control, Track map, Stints                      |
 | Analysis   | Lap charts               | Replay, Compare, Chart, Telemetry, True pace, Fastest laps                      |
 | Strategy   | Tyres and stops          | Replay, Stints, Tyre wear, Pit stops, Undercut ledger, Stop cost, Pit crews     |
 | Battle     | Your driver's fight      | Replay, Timing, Battle chart, Gaps, Box now                                     |
-| Track      | The race on the circuit  | Replay, the six Track tiles                                                     |
+| Track      | The race on the circuit  | Replay, the eight Track tiles                                                   |
 | Drivers    | Faces and cars           | Session, Replay, Grid, Driver, Positions chart                                  |
 | Pit wall   | A TV or a second monitor | Timing, Track map, Gap chart, Focus, Race control; fit to screen                |
 | Race story | What happened, and why   | Session, Replay, Story, Positions chart, Championship, Race control, Conditions |
 
 Viewers can edit any of them; Reset puts it back as shipped. Race keeps the id the Live preset
-had (`live`), so an edited Live opens as an edited Race. There are 34 tiles in 6 groups (Race,
-Drivers, Timing, Track, Analysis, Strategy). Eight of them are Pro: Box now, True pace, Tyre wear,
-Undercut ledger, Conditions, Pit rejoin, Dominance and Speed map.
+had (`live`), so an edited Live opens as an edited Race. There are 38 tiles in 6 groups (Race,
+Drivers, Timing, Track, Analysis, Strategy). Nine of them are Pro: Box now, True pace, Tyre wear,
+Undercut ledger, Conditions, Pit rejoin, Dominance, Speed map and Ghost lap.
 
 The three tiles the session layouts added:
 
@@ -115,14 +169,16 @@ last minute.
 
 Maps of the circuit, from the session's telemetry (`docs/product/telemetry.md`):
 
-| Tile       | Shows                                                                                                  | Plan |
-| ---------- | ------------------------------------------------------------------------------------------------------ | ---- |
-| Track map  | Every car, the followed one emphasised; whole circuit or follow camera; sector colours; 2025 DRS zones | Free |
-| Battle map | The followed driver and the cars either side: road gaps, pace difference, laps until in range          | Free |
-| Flag map   | Yellow and double-yellow marshal sectors with the messages that raised them                            | Free |
-| Pit rejoin | Races: a ghost where the followed car would rejoin if it boxed now, from the measured pit loss         | Pro  |
-| Dominance  | The circuit painted by the quickest of two or three drivers in each mini sector                        | Pro  |
-| Speed map  | One lap painted by speed, gear, throttle or braking, with top speed and slow corners                   | Pro  |
+| Tile         | Shows                                                                                                  | Plan |
+| ------------ | ------------------------------------------------------------------------------------------------------ | ---- |
+| Track map    | Every car, the followed one emphasised; whole circuit or follow camera; sector colours; 2025 DRS zones | Free |
+| Battle map   | The followed driver and the cars either side: road gaps, pace difference, laps until in range          | Free |
+| Flag map     | Yellow and double-yellow marshal sectors with the messages that raised them                            | Free |
+| Pit rejoin   | Races: a ghost where the followed car would rejoin if it boxed now, from the measured pit loss         | Pro  |
+| Dominance    | The circuit painted by the quickest of two or three drivers in each mini sector                        | Pro  |
+| Speed map    | One lap painted by speed, gear, throttle or braking, with top speed and slow corners                   | Pro  |
+| Gap distance | Every car on one straight, behind the fastest by the metres its gap is worth; Share is Pro             | Free |
+| Ghost lap    | The ten best laps run together from the same line, so the gaps grow and shrink corner by corner        | Pro  |
 
 Where the cars come from, in order: the replay's position chunks; live, the feed's positions
 channel; otherwise an estimate from lap and sector times and the timing loops' mini sectors,
@@ -137,6 +193,39 @@ What is approximate, and says so on screen:
 - Mini-sector times measured between the timing loops' messages are a tenth or so either way;
   dominance uses car positions where the session has them, and the loops' own purple holders.
 - 2026 cars have no DRS; their straight-mode zones are not in the data, so the map shows none.
+
+### Gap distance and ghost lap
+
+Gap distance answers "how far back is that?" for a lap time: each car stands on a straight
+behind pole by the distance it still had to run when pole crossed the line. Its keys:
+
+- **Field**: Q1, Q2, Q3 or the session's best laps in qualifying; Race or Best in a race. Race
+  turns each car's gap to the leader, at the lap on screen, into distance at the leader's speed
+  over its last lap, and moves with the replay and live timing.
+- **Cars**: the top ten or the whole field. **Split**: the lap, or who loses where: three
+  straights, one a sector, each car behind the quickest through it by the time it lost there.
+- **Share** saves the straight as a picture for a feed post (1080 × 1350) or a story (1080 × 1920),
+  with the title, the session, the brand and the site, drawn in the browser (Pro).
+
+How a gap becomes metres (`client/src/insights/gap-distance.ts`): the official gap, scaled onto
+the car's own telemetry clock, is run backwards from the line on its speed channel. In 2026
+Bahrain qualifying Hamilton's 0.298 s behind a 1:35.130 pole comes to 22.1 m: he crossed at 269
+km/h, about 75 m a second. Positions jump by several metres between samples, so the speed is
+integrated rather than the distance read. A lap without telemetry runs its gap at the car's
+speed over the line, or its average speed round the lap, and its label starts with "~".
+
+Ghost lap (Pro) runs the ten best laps of a part, or of the session, from the same line on the
+circuit, each from its own telemetry: play, pause, scrub, and the metres between the cars beside
+the map. At pole's lap time the picture is the Gap distance straight. Both are components a
+driver view can embed (`GapStraight`, `GhostLap` in `client/src/features/gaps/`).
+
+### Qualifying charts
+
+In qualifying the Trace chart reads as qualifying does. Lap times shows push laps only (no out,
+in or cool-down laps) on the session clock, with Q1, Q2 and Q3 marked and a line per driver that
+steps down at each improvement within a part. Gap gives each driver's best lap in each part
+behind that part's fastest, and Positions the order within each part; Battle and Versus stay
+race charts.
 
 ## Insights
 
@@ -230,6 +319,12 @@ reads are Pro: pit rejoin (it extends Box now, already Pro), mini-sector dominan
 map (the analysis fans compare paid products on). Each is one `pro` flag in `TILE_INFO`
 (`client/src/features/dashboard/dashboards.ts`) to move.
 
+**Proposal for the owner, gap visuals.** Gap distance is free: the straight is the picture fans
+share about a qualifying session, and every shared picture brings people to the app. Ghost lap
+and Share are Pro: the ghost lap is the deep read (laps run corner by corner from telemetry), and
+a polished card at social sizes is a creator's tool. To make Share free, drop the plan check in
+`ExportKey` (`client/src/features/gaps/gaps-tile.tsx`); Ghost lap is one `pro` flag.
+
 ## Pictures
 
 Driver photos, team logos and cars load straight from formula1.com in the viewer's browser.
@@ -254,18 +349,19 @@ The account API is real (`server/src/accounts/routes.ts`, on when the server has
 dashboard is one JSON document with a version; a device sends the version it last saw and when it
 made the edit, and the server keeps whichever edit is newer.
 
-| Endpoint                        | Body / response                                                  |
-| ------------------------------- | ---------------------------------------------------------------- |
-| `/api/auth/*`                   | Better Auth: magic link, Google, Apple, sign-out                 |
-| `GET /api/me`                   | The account, its plan and entitlements, or `null`                |
-| `GET /api/me/dashboards`        | `{ documents }`; a deleted dashboard has `dashboard: null`       |
-| `PUT /api/me/dashboards/:id`    | `{ dashboard, baseVersion, updatedAt }` → 200, 409 newer, 403    |
-| `DELETE /api/me/dashboards/:id` | `{ baseVersion, updatedAt }` → 200 or 409 newer                  |
-| `GET /api/me/export`            | Everything the account holds, as a JSON download                 |
-| `DELETE /api/me`                | `{ confirm: email }`; ends the subscription, then deletes it all |
-| `POST /api/billing/checkout`    | `{ interval }` → the provider's checkout `{ url }`               |
-| `POST /api/billing/portal`      | The provider's billing page `{ url }`                            |
-| `POST /api/billing/webhook`     | Signed provider events                                           |
+| Endpoint                        | Body / response                                                    |
+| ------------------------------- | ------------------------------------------------------------------ |
+| `/api/auth/*`                   | Better Auth: magic link, Google, Apple, sign-out                   |
+| `GET /api/me`                   | The account, its plan and entitlements, or `null`                  |
+| `GET /api/me/dashboards`        | `{ documents }`; a deleted dashboard has `dashboard: null`         |
+| `PUT /api/me/dashboards/:id`    | `{ dashboard, baseVersion, updatedAt }` → 200, 409 newer, 403      |
+| `DELETE /api/me/dashboards/:id` | `{ baseVersion, updatedAt }` → 200 or 409 newer                    |
+| `PUT /api/me/viewer`            | Spoiler settings `{ protect, protectUpdatedAt, revealed }`, merged |
+| `GET /api/me/export`            | Everything the account holds, as a JSON download                   |
+| `DELETE /api/me`                | `{ confirm: email }`; ends the subscription, then deletes it all   |
+| `POST /api/billing/checkout`    | `{ interval }` → the provider's checkout `{ url }`                 |
+| `POST /api/billing/portal`      | The provider's billing page `{ url }`                              |
+| `POST /api/billing/webhook`     | Signed provider events                                             |
 
 The library is still mocked in `client/src/features/library/`, and its types are the payloads.
 

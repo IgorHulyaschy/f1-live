@@ -5,6 +5,7 @@ import { isRouteErrorResponse, Link, useLocation, useNavigate, useRouteError } f
 import { BRAND } from '@/brand';
 import { Key } from '@/components/console/keys';
 import { SiteFrame } from '@/components/site-frame';
+import { SESSION_PATH } from '@/features/dashboard/paths';
 
 import { isStaleChunk } from './errors';
 import { applyPageMeta } from './page-meta';
@@ -63,7 +64,7 @@ export function ErrorScreen() {
 					title={title}
 					actions={
 						<>
-							<Link to="/" className={LINK_KEY_CLASS}>
+							<Link to={SESSION_PATH} className={LINK_KEY_CLASS}>
 								Live timing
 							</Link>
 							<Link to="/library" className={LINK_KEY_CLASS}>
@@ -110,7 +111,7 @@ export function ErrorScreen() {
 							Try again
 						</Key>
 						{reload}
-						<Link to="/" className={LINK_KEY_CLASS}>
+						<Link to={SESSION_PATH} className={LINK_KEY_CLASS}>
 							Live timing
 						</Link>
 					</>

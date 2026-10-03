@@ -37,7 +37,7 @@ test('the dashboards a race does not need wait under More', async ({ page }) => 
 });
 
 test('keeps lap, driver and plan when switching pages', async ({ page }) => {
-	await openRace(page, '/?lap=12&driver=1&plan=pro');
+	await openRace(page, '/session?lap=12&driver=1&plan=pro');
 
 	await page
 		.getByRole('navigation', { name: 'Main' })
@@ -66,7 +66,7 @@ test('has no console errors on any page', async ({ page }) => {
 		}
 	});
 
-	await openRace(page, '/');
+	await openRace(page, '/session');
 	await openRace(page, '/analysis');
 	await openRace(page, '/strategy');
 	await openRace(page, '/d/story');

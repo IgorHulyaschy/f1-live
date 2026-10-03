@@ -1,4 +1,5 @@
 import type { Dashboard } from '@f1-live/shared/dashboard';
+import type { ViewerSettings } from '@f1-live/shared/viewer';
 import {
 	boolean,
 	index,
@@ -108,6 +109,15 @@ export const dashboard = accountsSchema.table(
 	},
 	(table) => [primaryKey({ columns: [table.userId, table.id] })]
 );
+
+/** The viewer's spoiler settings, one row per account, merged on every write. */
+export const viewerSettings = accountsSchema.table('viewer_settings', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	settings: jsonb('settings').$type<ViewerSettings>().notNull(),
+	updatedAt: updatedAt()
+});
 
 /**
  * Accounts deleted here, by id only: a payment that lands for one of them afterwards is

@@ -7,17 +7,26 @@ import { BRAND } from '@/brand';
 import { DriverPortrait } from '@/components/driver-media';
 import { Key } from '@/components/console/keys';
 import { useRace } from '@/data/race-context';
-import { dashboardPath } from '@/features/dashboard/paths';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
+import { HOME, SESSION_START, startPageStore, startRedirect } from '@/features/home/start-page';
 import { createLocalStore } from '@/lib/local-store';
 import { cn } from '@/lib/utils';
 
 /** Whether this browser has been through first run, or waved it away. */
 export const welcomedStore = createLocalStore('pitwall-welcomed', z.boolean(), false);
 
-/** Where each kind of viewer starts. Each is a ready-made dashboard they can change later. */
+/** Where each kind of viewer starts: the home, or a ready-made dashboard they can change later. */
 const STARTS = [
-	{ id: 'live', title: 'Race day', detail: 'The order, your driver and the flags, on one screen.' },
+	{
+		id: HOME,
+		title: 'The home',
+		detail: 'What is on now, the championship and the latest weekend.'
+	},
+	{
+		id: SESSION_START,
+		title: 'Race day',
+		detail: 'The order, your driver and the flags, on one screen.'
+	},
 	{
 		id: 'drivers',
 		title: 'Faces and cars',
@@ -43,7 +52,7 @@ export function WelcomePage() {
 	const { race, followedDriver, setFollowedDriver } = useRace();
 	const navigate = useNavigate();
 	const search = useCarriedSearch();
-	const [start, setStart] = React.useState<StartId>('live');
+	const [start, setStart] = React.useState<StartId>(HOME);
 	const drivers = race.drivers.toSorted((a, b) => a.team.localeCompare(b.team));
 
 	return (
@@ -53,8 +62,8 @@ export function WelcomePage() {
 					Set up {BRAND.name}
 				</h1>
 				<p className="text-muted-foreground max-w-2xl text-sm">
-					Two choices, both easy to change later. Your driver is tinted through every screen; your
-					starting dashboard is one you can move, resize and add to.
+					Two choices, both optional and easy to change later. Your driver is tinted through every
+					screen; the start page is where {BRAND.name} opens next time.
 				</p>
 			</header>
 			<section aria-labelledby="welcome-driver" className="flex flex-col gap-3">
@@ -98,7 +107,7 @@ export function WelcomePage() {
 			<section aria-labelledby="welcome-start" className="flex flex-col gap-3">
 				<h2 id="welcome-start" className="flex items-baseline gap-3">
 					<span className="text-muted-foreground font-mono text-sm">02</span>
-					<span className="type-wide text-sm font-bold">How do you watch?</span>
+					<span className="type-wide text-sm font-bold">Where should it open?</span>
 				</h2>
 				<div className="grid border-t border-l sm:grid-cols-2 lg:grid-cols-3">
 					{STARTS.map((option) => (
@@ -126,7 +135,11 @@ export function WelcomePage() {
 					pressed
 					onClick={() => {
 						welcomedStore.set(true);
-						void navigate({ pathname: dashboardPath(start), search });
+						startPageStore.set(start);
+						void navigate({
+							pathname: start === HOME ? '/' : (startRedirect(start, [start]) ?? '/'),
+							search
+						});
 					}}
 				>
 					Start watching
@@ -142,7 +155,7 @@ export function WelcomePage() {
 	);
 }
 
-/** One line over the first dashboard a new viewer sees, until they set up or wave it away. */
+/** One line on the home for a new viewer, until they set up or wave it away. */
 export function WelcomeBanner() {
 	const welcomed = welcomedStore.useValue();
 	const search = useCarriedSearch();
@@ -156,7 +169,9 @@ export function WelcomeBanner() {
 			aria-label="Get started"
 			className="border-focus mb-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-l-4 py-1 pl-3"
 		>
-			<p className="text-sm">New here? Pick your driver and a dashboard that fits how you watch.</p>
+			<p className="text-sm">
+				New here? Pick a driver to follow, if you like, and where the app opens.
+			</p>
 			<Link
 				to={{ pathname: '/welcome', search }}
 				className="type-label text-foreground inline-flex h-9 items-center border border-b-2 px-2.5 sm:h-7"

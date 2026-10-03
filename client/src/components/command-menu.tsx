@@ -9,7 +9,9 @@ import {
 	SkipBackIcon,
 	SkipForwardIcon,
 	SparklesIcon,
-	SunMediumIcon
+	SunMediumIcon,
+	SwordsIcon,
+	TrophyIcon
 } from 'lucide-react';
 import * as React from 'react';
 import { useNavigate } from 'react-router';
@@ -27,9 +29,10 @@ import {
 } from '@/components/ui/command';
 import { availability, formatLocalStart, type SessionEntry, sessionEntries } from '@/data/catalog';
 import { useRace } from '@/data/race-context';
+import { useIsRevealed } from '@/data/viewer-settings';
 import { useNow } from '@/hooks/use-now';
 import { useAccountPlan } from '@/features/account/account-store';
-import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
+import { useCreateDashboard } from '@/features/dashboard/use-add-dashboard';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
 import { LiveBadge, SessionPickerDialog } from '@/features/session/session-picker';
@@ -93,6 +96,7 @@ export function CommandMenu({
 	const keepAwake = keepAwakeStore.useValue();
 	const rows = standings;
 	const now = useNow();
+	const isRevealed = useIsRevealed();
 
 	const sessions = suggestedSessions(
 		catalog ? sessionEntries(catalog) : [],
@@ -120,13 +124,13 @@ export function CommandMenu({
 		}
 	};
 
-	// Neutralised laps are a race's; spoiler-free, only those already shown are offered.
+	// Neutralised laps are a race's; while what lies ahead is hidden, only those shown are offered.
 	const neutralisedLaps = byLap
 		? [
 				...new Set(
 					race.laps
 						.filter(
-							(entry) => entry.trackStatus !== 'green' && (!spoilers.hidden || entry.lap <= lap)
+							(entry) => entry.trackStatus !== 'green' && (!spoilers.hidesAhead || entry.lap <= lap)
 						)
 						.map((entry) => entry.lap)
 				)
@@ -189,6 +193,30 @@ export function CommandMenu({
 						</CommandItem>
 					</CommandGroup>
 					<CommandSeparator />
+					<CommandGroup heading="Season">
+						<CommandItem
+							value="calendar schedule countdown ics"
+							onSelect={() => run(() => void navigate('/calendar'))}
+						>
+							<CalendarIcon />
+							Calendar
+						</CommandItem>
+						<CommandItem
+							value="standings championship table points"
+							onSelect={() => run(() => void navigate('/standings'))}
+						>
+							<TrophyIcon />
+							Standings
+						</CommandItem>
+						<CommandItem
+							value="head to head h2h compare teammates history"
+							onSelect={() => run(() => void navigate('/h2h'))}
+						>
+							<SwordsIcon />
+							Head to head
+						</CommandItem>
+					</CommandGroup>
+					<CommandSeparator />
 					<CommandGroup heading="Sessions">
 						{sessions.map((entry) => {
 							const state = availability(entry, live.liveKey, now);
@@ -209,7 +237,9 @@ export function CommandMenu({
 											<LiveBadge />
 										) : state === 'upcoming' ? (
 											formatLocalStart(entry.session.startsAt)
-										) : null}
+										) : isRevealed(entry.key) ? null : (
+											'Results hidden'
+										)}
 									</CommandShortcut>
 								</CommandItem>
 							);
@@ -230,7 +260,11 @@ export function CommandMenu({
 						</CommandItem>
 						<CommandItem onSelect={() => run(showLatest)}>
 							<SkipForwardIcon />
-							{byLap ? 'Latest lap' : 'Latest minute'}
+							{spoilers.hidden
+								? 'Jump to the finish (shows results)'
+								: byLap
+									? 'Latest lap'
+									: 'Latest minute'}
 						</CommandItem>
 						{neutralisedLaps.map((neutralised) => (
 							<CommandItem
@@ -256,11 +290,11 @@ export function CommandMenu({
 							Toggle theme
 						</CommandItem>
 						<CommandItem
-							value="spoiler free hide results"
-							onSelect={() => run(() => spoilers.setFree(!spoilers.free))}
+							value="spoiler protection hide results"
+							onSelect={() => run(() => spoilers.setProtect(!spoilers.protect))}
 						>
 							<EyeOffIcon />
-							{spoilers.free ? 'Show results again' : 'Hide results (no spoilers)'}
+							{spoilers.protect ? 'Turn spoiler protection off' : 'Turn spoiler protection on'}
 						</CommandItem>
 						{wakeLockSupported() ? (
 							<CommandItem

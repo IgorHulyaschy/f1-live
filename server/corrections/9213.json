@@ -1,0 +1,19 @@
+{
+	"key": 9213,
+	"corrections": [
+		{
+			"driverNumber": "44",
+			"kind": "disqualified",
+			"reason": "Skid block wear beyond the permitted limit",
+			"at": "2023-10-22T23:00:00Z",
+			"source": "https://www.formula1.com/en/results/2023/races/1222/united-states/race-result"
+		},
+		{
+			"driverNumber": "16",
+			"kind": "disqualified",
+			"reason": "Skid block wear beyond the permitted limit",
+			"at": "2023-10-22T23:00:00Z",
+			"source": "https://www.formula1.com/en/results/2023/races/1222/united-states/race-result"
+		}
+	]
+}

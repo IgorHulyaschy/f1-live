@@ -77,7 +77,7 @@ function isTimed(lap: Lap, timedSession: boolean): boolean {
 }
 
 /** Laps whose time the stewards deleted and have not given back, as far as the messages go. */
-function deletedLaps(snapshot: RaceSnapshot): Set<Lap> {
+export function deletedLaps(snapshot: RaceSnapshot): Set<Lap> {
 	const deleted = new Set<Lap>();
 
 	for (const { driverNumber, lapTimeRuling } of snapshot.raceControl) {
@@ -118,9 +118,65 @@ function bestOf(laps: readonly Lap[]): Lap | null {
 
 type RowFacts = Omit<StandingRow, 'position' | 'positionsGained'>;
 
+/**
+ * Which laps count: timed and not deleted by the stewards. In a session on the clock the flying
+ * ones are the counted laps that did not leave the garage or the pits and came within 12% of
+ * their part's fastest, so in-laps and cool-down laps are left out.
+ */
+function lapKinds(snapshot: RaceSnapshot, starts: readonly string[]) {
+	const timedSession = isTimedSession(snapshot.session.type);
+	const deleted = deletedLaps(snapshot);
+	const isCounted = (lap: Lap) => isTimed(lap, timedSession) && !deleted.has(lap);
+	const timedLaps = snapshot.laps.filter(isCounted);
+
+	// A car's first lap in a part leaves the garage, timed or not, as does a lap out of the pits.
+	const seen = new Set<string>();
+	const outLaps = new Set<Lap>();
+
+	for (const lap of snapshot.laps) {
+		const runKey = `${lap.driverNumber}-${partOfLap(lap, starts)}`;
+
+		if (!seen.has(runKey) || lap.pitOut) {
+			outLaps.add(lap);
+		}
+
+		seen.add(runKey);
+	}
+
+	const candidates = new Set(timedLaps.filter((lap) => !outLaps.has(lap)));
+
+	const fastestOfPart = Array.from({ length: Math.max(1, starts.length) }, (_, index) =>
+		minimum(
+			[...candidates].flatMap((lap) =>
+				partOfLap(lap, starts) === index + 1 ? [lap.lapTimeMs] : []
+			)
+		)
+	);
+
+	const isFlying = (lap: Lap) => {
+		const reference = fastestOfPart[partOfLap(lap, starts) - 1] ?? null;
+
+		return (
+			candidates.has(lap) && reference !== null && lap.lapTimeMs <= reference * FLYING_LAP_LIMIT
+		);
+	};
+
+	return { timedSession, isCounted, isFlying, timedLaps };
+}
+
+/**
+ * The laps that count for the order: in qualifying its flying laps (no out, in or cool-down
+ * laps); otherwise every timed lap the stewards left standing.
+ */
+export function countedLaps(snapshot: RaceSnapshot): Lap[] {
+	const starts = isKnockout(snapshot.session.type) ? partStarts(snapshot) : [];
+	const { isCounted, isFlying } = lapKinds(snapshot, starts);
+
+	return snapshot.laps.filter((lap) => isCounted(lap) && (starts.length === 0 || isFlying(lap)));
+}
+
 /** Everything about each driver that does not depend on where they are placed. */
 function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[] {
-	const timedSession = isTimedSession(snapshot.session.type);
 	const lapsByDriver = new Map<string, Lap[]>();
 
 	for (const lap of snapshot.laps) {
@@ -130,9 +186,7 @@ function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[]
 		lapsByDriver.set(lap.driverNumber, driverLaps);
 	}
 
-	const deleted = deletedLaps(snapshot);
-	const isCounted = (lap: Lap) => isTimed(lap, timedSession) && !deleted.has(lap);
-	const timedLaps = snapshot.laps.filter(isCounted);
+	const { timedSession, isCounted, isFlying, timedLaps } = lapKinds(snapshot, starts);
 	const fastestLapMs = minimum(timedLaps.map((lap) => lap.lapTimeMs));
 
 	const fastestSectors = SECTOR_INDEXES.map((index) =>
@@ -168,38 +222,6 @@ function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[]
 	const speedTraps = new Map(
 		(snapshot.personalBests ?? []).map((best) => [best.driverNumber, best.topSpeedsKph.speedTrap])
 	);
-
-	// A car's first lap in a part leaves the garage, timed or not, as does a lap out of the pits.
-	const seen = new Set<string>();
-	const outLaps = new Set<Lap>();
-
-	for (const lap of snapshot.laps) {
-		const runKey = `${lap.driverNumber}-${partOfLap(lap, starts)}`;
-
-		if (!seen.has(runKey) || lap.pitOut) {
-			outLaps.add(lap);
-		}
-
-		seen.add(runKey);
-	}
-
-	const candidates = new Set(timedLaps.filter((lap) => !outLaps.has(lap)));
-
-	const fastestOfPart = Array.from({ length: Math.max(1, starts.length) }, (_, index) =>
-		minimum(
-			[...candidates].flatMap((lap) =>
-				partOfLap(lap, starts) === index + 1 ? [lap.lapTimeMs] : []
-			)
-		)
-	);
-
-	const isFlying = (lap: Lap) => {
-		const reference = fastestOfPart[partOfLap(lap, starts) - 1] ?? null;
-
-		return (
-			candidates.has(lap) && reference !== null && lap.lapTimeMs <= reference * FLYING_LAP_LIMIT
-		);
-	};
 
 	return snapshot.drivers.map((driver): RowFacts => {
 		const driverLaps = lapsByDriver.get(driver.number) ?? [];

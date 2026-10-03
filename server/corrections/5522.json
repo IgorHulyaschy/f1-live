@@ -1,0 +1,19 @@
+{
+	"key": 5522,
+	"corrections": [
+		{
+			"driverNumber": "3",
+			"kind": "disqualified",
+			"reason": "Pre-set brake bias adjustment system broke the driver-aid rules (decided after a protest)",
+			"at": "2019-10-23T12:00:00Z",
+			"source": "https://www.formula1.com/en/results/2019/races/1016/japan/race-result"
+		},
+		{
+			"driverNumber": "27",
+			"kind": "disqualified",
+			"reason": "Pre-set brake bias adjustment system broke the driver-aid rules (decided after a protest)",
+			"at": "2019-10-23T12:00:00Z",
+			"source": "https://www.formula1.com/en/results/2019/races/1016/japan/race-result"
+		}
+	]
+}

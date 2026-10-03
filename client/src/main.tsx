@@ -2,14 +2,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, isRouteErrorResponse, RouterProvider } from 'react-router';
 
-import 'react-grid-layout/css/styles.css';
 import './index.css';
 
 import { AppLayout, Root, SiteLayout } from './app';
 import { LoadingState } from './components/site-frame';
 import { createRaceSource, raceSourceKindFromEnv } from './data/race-source';
-import { DashboardPage } from './features/dashboard/dashboard-page';
-import { LibraryEntryPage, LibraryPage, SharedPage } from './features/library/library-page';
+import { HomeRoute } from './features/home/home-page';
 import { WelcomePage } from './features/library/welcome';
 import { AccountPage } from './features/account/account-page';
 import { restoreScale } from './hooks/use-scale';
@@ -41,6 +39,32 @@ function handle(meta: RouteMeta): RouteHandle {
 	return { meta };
 }
 
+/** Dashboards carry the grid and every tile; the home and the library open without them. */
+function dashboard(path: string, meta: RouteMeta, id?: string) {
+	return {
+		path,
+		handle: handle(meta),
+		lazy: async () => {
+			const { DashboardPage } = await import('./features/dashboard/dashboard-page');
+
+			return { element: <DashboardPage id={id} /> };
+		}
+	};
+}
+
+/** The library previews dashboards, so it loads with them. */
+function library(
+	path: string,
+	meta: RouteMeta,
+	page: 'LibraryPage' | 'LibraryEntryPage' | 'SharedPage'
+) {
+	return {
+		path,
+		handle: handle(meta),
+		lazy: async () => ({ Component: (await import('./features/library/library-page'))[page] })
+	};
+}
+
 function legal(slug: LegalSlug) {
 	return {
 		path: `/legal/${slug}`,
@@ -57,27 +81,44 @@ const router = createBrowserRouter([
 			{
 				element: <AppLayout source={source} />,
 				children: [
-					{ path: '/', element: <DashboardPage />, handle: handle(ROUTE_META.live) },
-					{
-						path: '/analysis',
-						element: <DashboardPage id="analysis" />,
-						handle: handle(ROUTE_META.analysis)
-					},
-					{
-						path: '/strategy',
-						element: <DashboardPage id="strategy" />,
-						handle: handle(ROUTE_META.strategy)
-					},
-					{ path: '/d/:id', element: <DashboardPage />, handle: handle(ROUTE_META.dashboard) },
-					{ path: '/library', element: <LibraryPage />, handle: handle(ROUTE_META.library) },
-					{
-						path: '/library/:entryId',
-						element: <LibraryEntryPage />,
-						handle: handle(ROUTE_META.libraryEntry)
-					},
-					{ path: '/shared', element: <SharedPage />, handle: handle(ROUTE_META.shared) },
+					{ path: '/', element: <HomeRoute />, handle: handle(ROUTE_META.home) },
+					dashboard('/session', ROUTE_META.session),
+					dashboard('/analysis', ROUTE_META.analysis, 'analysis'),
+					dashboard('/strategy', ROUTE_META.strategy, 'strategy'),
+					dashboard('/d/:id', ROUTE_META.dashboard),
+					library('/library', ROUTE_META.library, 'LibraryPage'),
+					library('/library/:entryId', ROUTE_META.libraryEntry, 'LibraryEntryPage'),
+					library('/shared', ROUTE_META.shared, 'SharedPage'),
 					{ path: '/welcome', element: <WelcomePage />, handle: handle(ROUTE_META.welcome) },
-					{ path: '/account', element: <AccountPage />, handle: handle(ROUTE_META.account) }
+					{ path: '/account', element: <AccountPage />, handle: handle(ROUTE_META.account) },
+					{
+						path: '/calendar',
+						handle: handle(ROUTE_META.calendar),
+						lazy: async () => ({
+							Component: (await import('./features/history/calendar-page')).CalendarPage
+						})
+					},
+					{
+						path: '/standings',
+						handle: handle(ROUTE_META.standings),
+						lazy: async () => ({
+							Component: (await import('./features/history/standings-page')).StandingsPage
+						})
+					},
+					{
+						path: '/h2h',
+						handle: handle(ROUTE_META.headToHead),
+						lazy: async () => ({
+							Component: (await import('./features/history/h2h-page')).HeadToHeadPage
+						})
+					},
+					{
+						path: '/drivers/:id',
+						handle: handle(ROUTE_META.driver),
+						lazy: async () => ({
+							Component: (await import('./features/history/driver-page')).DriverPage
+						})
+					}
 				]
 			},
 			{

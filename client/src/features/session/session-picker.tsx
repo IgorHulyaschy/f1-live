@@ -1,6 +1,8 @@
+import { EyeOffIcon } from 'lucide-react';
 import * as React from 'react';
 
-import { Key, KeyGroup } from '@/components/console/keys';
+import { Key } from '@/components/console/keys';
+import { SeasonSwitch } from '@/components/season-switch';
 import {
 	Dialog,
 	DialogContent,
@@ -17,6 +19,7 @@ import {
 	sessionEntries
 } from '@/data/catalog';
 import { useRace } from '@/data/race-context';
+import { revealSession, useIsRevealed } from '@/data/viewer-settings';
 import { useNow } from '@/hooks/use-now';
 import { cn } from '@/lib/utils';
 
@@ -34,7 +37,15 @@ export function LiveBadge({ className }: { className?: string }) {
 	);
 }
 
-function AvailabilityNote({ entry, state }: { entry: SessionEntry; state: SessionAvailability }) {
+function AvailabilityNote({
+	entry,
+	state,
+	hidden
+}: {
+	entry: SessionEntry;
+	state: SessionAvailability;
+	hidden: boolean;
+}) {
 	if (state === 'live') {
 		return <LiveBadge />;
 	}
@@ -43,7 +54,16 @@ function AvailabilityNote({ entry, state }: { entry: SessionEntry; state: Sessio
 		return <span className="type-label">{formatLocalStart(entry.session.startsAt)}</span>;
 	}
 
-	return state === 'missing' ? <span className="type-label">No data</span> : null;
+	if (state === 'missing') {
+		return <span className="type-label">No data</span>;
+	}
+
+	return hidden ? (
+		<span className="type-label inline-flex items-center gap-1">
+			<EyeOffIcon aria-hidden className="size-3" />
+			Results hidden
+		</span>
+	) : null;
 }
 
 function dateRange(meeting: CatalogMeeting): string {
@@ -73,6 +93,7 @@ export function SessionPicker({ onPicked }: { onPicked?: () => void }) {
 	const [meetingKey, setMeetingKey] = React.useState(current?.meeting.key ?? null);
 	const meeting = meetings.find((entry) => entry.key === meetingKey) ?? meetings.at(-1);
 	const now = useNow();
+	const isRevealed = useIsRevealed();
 
 	// The list opens scrolled to the meeting on screen, which is usually near the season's end.
 	const scrollToSelected = React.useCallback((element: HTMLButtonElement | null) => {
@@ -87,16 +108,26 @@ export function SessionPicker({ onPicked }: { onPicked?: () => void }) {
 		onPicked?.();
 	};
 
+	// Revealed first, so the session opens at its finish.
+	const showResults = (key: string) => {
+		if (key === sessionKey) {
+			spoilers.reveal();
+		} else {
+			revealSession(key);
+		}
+
+		pick(key);
+	};
+
 	return (
 		<div className="flex min-h-0 flex-col gap-3" data-testid="session-picker">
 			<div className="flex flex-wrap items-center justify-between gap-2">
 				{years.length > 1 ? (
-					<KeyGroup
-						label="Season"
-						options={years.map((value) => ({ value: String(value), label: value }))}
-						value={String(year)}
+					<SeasonSwitch
+						years={years}
+						value={year}
 						onChange={(value) => {
-							setYear(Number(value));
+							setYear(value);
 							setMeetingKey(null);
 						}}
 					/>
@@ -105,12 +136,12 @@ export function SessionPicker({ onPicked }: { onPicked?: () => void }) {
 				)}
 				<Key
 					role="switch"
-					aria-checked={spoilers.free}
-					pressed={spoilers.free}
-					onClick={() => spoilers.setFree(!spoilers.free)}
-					title="Open sessions at the start and keep results hidden until you ask"
+					aria-checked={spoilers.protect}
+					pressed={spoilers.protect}
+					onClick={() => spoilers.setProtect(!spoilers.protect)}
+					title="Open finished sessions at the start and keep results hidden until you ask"
 				>
-					No spoilers
+					Spoiler protection
 				</Key>
 			</div>
 			<div className="grid min-h-0 gap-x-4 gap-y-3 sm:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
@@ -160,9 +191,10 @@ export function SessionPicker({ onPicked }: { onPicked?: () => void }) {
 							.map((entry) => {
 								const state = availability(entry, live.liveKey, now);
 								const selected = entry.key === sessionKey;
+								const hidden = state === 'saved' && !isRevealed(entry.key);
 
 								return (
-									<li key={entry.key} className="border-b">
+									<li key={entry.key} className="flex items-center gap-1 border-b">
 										<button
 											type="button"
 											disabled={state === 'missing'}
@@ -170,7 +202,7 @@ export function SessionPicker({ onPicked }: { onPicked?: () => void }) {
 											onClick={() => pick(entry.key)}
 											data-testid={`session-${entry.key}`}
 											className={cn(
-												'hover:bg-accent focus-visible:bg-accent relative flex w-full items-center gap-3 px-2 py-2.5 text-left transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40',
+												'hover:bg-accent focus-visible:bg-accent relative flex min-w-0 flex-1 items-center gap-3 px-2 py-2.5 text-left transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-40',
 												selected && 'bg-accent'
 											)}
 										>
@@ -183,9 +215,18 @@ export function SessionPicker({ onPicked }: { onPicked?: () => void }) {
 											{switchingTo === entry.key ? (
 												<span className="type-label">Loading</span>
 											) : (
-												<AvailabilityNote entry={entry} state={state} />
+												<AvailabilityNote entry={entry} state={state} hidden={hidden} />
 											)}
 										</button>
+										{hidden ? (
+											<Key
+												onClick={() => showResults(entry.key)}
+												aria-label={`Show results of ${entry.session.name}`}
+												data-testid={`show-results-${entry.key}`}
+											>
+												Show
+											</Key>
+										) : null}
 									</li>
 								);
 							})}

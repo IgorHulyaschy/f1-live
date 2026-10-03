@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 import { openRace } from './fixtures.ts';
 
 test('arrow keys step laps and number keys switch pages', async ({ page }) => {
-	await openRace(page, '/?lap=20');
+	await openRace(page, '/session?lap=20');
 
 	await page.keyboard.press('ArrowRight');
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 21/50');
@@ -48,7 +48,7 @@ test('the analysis chart switches metric', async ({ page }) => {
 	await expect(page.getByTestId('chart-battle')).toBeVisible();
 });
 
-for (const path of ['/', '/analysis', '/strategy', '/d/story']) {
+for (const path of ['/session', '/analysis', '/strategy', '/d/story']) {
 	test(`phones never scroll sideways on ${path}`, async ({ page }) => {
 		await page.setViewportSize({ width: 360, height: 800 });
 		await openRace(page, path);
@@ -69,7 +69,7 @@ for (const path of ['/', '/analysis', '/strategy', '/d/story']) {
 }
 
 test('race control filters to the followed driver', async ({ page }) => {
-	await openRace(page, '/?driver=23&lap=30');
+	await openRace(page, '/session?driver=23&lap=30');
 
 	const feed = page.getByRole('region', { name: 'Race control' });
 

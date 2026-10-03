@@ -59,18 +59,23 @@ test('first run picks a driver and a starting dashboard', async ({ page }) => {
 	await page.goto('/');
 	await page.getByRole('link', { name: 'Set up' }).click();
 
-	await page.getByRole('button', { name: /Norris/ }).click();
-	await page.getByRole('button', { name: /Strategy calls/ }).click();
-	await page.getByRole('button', { name: 'Start watching' }).click();
+	// The dashboard stays on screen until the setup page commits, and its driver names open views.
+	const setup = page.getByTestId('welcome');
+	const norris = setup.getByRole('button', { name: /Norris/ });
+
+	await norris.click();
+	await expect(norris).toHaveAttribute('aria-pressed', 'true');
+	await setup.getByRole('button', { name: /Strategy calls/ }).click();
+	await setup.getByRole('button', { name: 'Start watching' }).click();
 
 	await expect(page).toHaveURL(/\/strategy\?.*driver=4/);
-	await page.goto('/');
+	await page.goto('/session');
 	await expect(page.getByRole('link', { name: 'Set up' })).toHaveCount(0);
 	await expect(page.getByRole('combobox', { name: 'Followed driver' })).toHaveText(/NOR/);
 });
 
 test('without a Replay tile the transport moves to the session strip', async ({ page }) => {
-	await openRace(page, '/?edit=1');
+	await openRace(page, '/session?edit=1');
 
 	await expect(page.getByTestId('header-clock')).toHaveCount(0);
 	await page.getByRole('button', { name: 'Remove Replay' }).click();

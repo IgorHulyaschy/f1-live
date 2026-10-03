@@ -12,7 +12,7 @@ test('presets open as tabs and render their tiles in a grid', async ({ page }) =
 });
 
 test('a new dashboard keeps its tiles after a reload', async ({ page }) => {
-	await openRace(page, '/?lap=25');
+	await openRace(page, '/session?lap=25');
 
 	await page.getByRole('button', { name: 'New dashboard' }).click();
 	await expect(page).toHaveURL(/\/d\/board-.*edit=1/);
@@ -32,7 +32,7 @@ test('a new dashboard keeps its tiles after a reload', async ({ page }) => {
 });
 
 test('removing a tile from a preset can be reset', async ({ page }) => {
-	await openRace(page, '/?edit=1');
+	await openRace(page, '/session?edit=1');
 
 	await page.getByRole('button', { name: 'Remove Race control' }).click();
 	await expect(page.getByTestId('tile-race-control')).toHaveCount(0);
@@ -93,7 +93,7 @@ test('a popped-out tile follows the lap of the window that opened it', async ({ 
 });
 
 test('tiles can be arranged from the keyboard', async ({ page }) => {
-	await openRace(page, '/?edit=1');
+	await openRace(page, '/session?edit=1');
 
 	await page.getByRole('button', { name: 'Arrange Race control' }).focus();
 	await page.keyboard.press('ArrowUp');
@@ -119,11 +119,11 @@ test('tiles can be arranged from the keyboard', async ({ page }) => {
 test('opening another window does not move the windows already open', async ({ context }) => {
 	const main = await context.newPage();
 
-	await openRace(main, '/?lap=30');
+	await openRace(main, '/session?lap=30');
 
 	const stale = await context.newPage();
 
-	await openRace(stale, '/?lap=5');
+	await openRace(stale, '/session?lap=5');
 	await main.waitForTimeout(300);
 	await expect(main.getByTestId('lap-counter')).toHaveText('Lap 30/50');
 });
@@ -131,11 +131,11 @@ test('opening another window does not move the windows already open', async ({ c
 test('play in one window is mirrored, and pause from the other stops it', async ({ context }) => {
 	const main = await context.newPage();
 
-	await openRace(main, '/?lap=10');
+	await openRace(main, '/session?lap=10');
 
 	const other = await context.newPage();
 
-	await openRace(other, '/?lap=10');
+	await openRace(other, '/session?lap=10');
 
 	await main.getByRole('button', { name: 'Play replay' }).click();
 	await expect(other.getByRole('button', { name: 'Pause replay' })).toBeVisible();
@@ -149,4 +149,25 @@ test('play in one window is mirrored, and pause from the other stops it', async 
 	await main.waitForTimeout(2000);
 	await expect(main.getByTestId('lap-counter')).toHaveText(stopped ?? '');
 	await expect(other.getByTestId('lap-counter')).toHaveText(stopped ?? '');
+});
+
+test('a tile’s header ends in its options, the same on every tile', async ({ context }) => {
+	const page = await context.newPage();
+
+	await openRace(page, '/d/wall?lap=20');
+
+	const timing = page.getByTestId('tile-timing');
+
+	await timing.getByTestId('tile-options').click();
+
+	const popup = context.waitForEvent('page');
+
+	await page.getByRole('menuitem', { name: 'Open in a new window' }).click();
+	await expect(await popup).toHaveURL(/\/tile\/wall\/[^/?]+\?.*lap=20/);
+
+	await timing.getByTestId('tile-options').click();
+	await page.getByRole('menuitem', { name: 'Edit the dashboard' }).click();
+
+	await expect(page).toHaveURL(/edit=1/);
+	await expect(page.getByTestId('tile-options')).toHaveCount(0);
 });

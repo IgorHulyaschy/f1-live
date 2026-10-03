@@ -9,6 +9,10 @@ export interface ImportArguments {
 	offline: boolean;
 	/** False with `--no-telemetry`: leave the position and car data files alone. */
 	telemetry: boolean;
+	/** `--all-topics`: every stream of seasons before 2025 too, positions and car data included. */
+	allTopics: boolean;
+	/** `--min-free-gb`: downloads stop below this much free disk. */
+	minFreeBytes: number;
 	/** Overrides the clock, for sessions' status in the catalog. */
 	now: Date;
 }
@@ -16,7 +20,11 @@ export interface ImportArguments {
 const USAGE = `Usage: npm run import -w server -- <year[,year]> [meeting name]
        npm run import -w server -- --key <session key>
        npm run import -w server -- --from-dir <raw root> [--key <session key>]
-Options: --data-dir <dir> (default data/, or DATA_DIR), --offline, --no-telemetry, --now <ISO time>`;
+Options: --data-dir <dir> (default data/, or DATA_DIR), --offline, --no-telemetry, --now <ISO time>,
+         --all-topics (seasons before 2025 keep only results-level streams without it),
+         --min-free-gb <n> (stop downloading below this much free disk, default 15)`;
+
+const DEFAULT_MIN_FREE_GB = 15;
 
 /** Reads the import command line; throws the usage text when it does not make sense. */
 export function parseImportArguments(
@@ -33,6 +41,8 @@ export function parseImportArguments(
 			'data-dir': { type: 'string' },
 			offline: { type: 'boolean', default: false },
 			telemetry: { type: 'boolean', default: true },
+			'all-topics': { type: 'boolean', default: false },
+			'min-free-gb': { type: 'string' },
 			now: { type: 'string' }
 		}
 	});
@@ -49,11 +59,21 @@ export function parseImportArguments(
 		throw new Error(`--now must be an ISO time, got ${values.now}\n${USAGE}`);
 	}
 
+	const minFreeGb = Number(values['min-free-gb'] ?? DEFAULT_MIN_FREE_GB);
+
+	if (!Number.isFinite(minFreeGb) || minFreeGb < 0) {
+		throw new Error(
+			`--min-free-gb must be a number of gigabytes, got ${values['min-free-gb']}\n${USAGE}`
+		);
+	}
+
 	return {
 		selection: selectionOf(values['from-dir'], key, positionals),
 		dataDir: values['data-dir'] ?? env.DATA_DIR ?? DEFAULT_DATA_DIR,
 		offline: values.offline,
 		telemetry: values.telemetry,
+		allTopics: values['all-topics'],
+		minFreeBytes: minFreeGb * 1e9,
 		now
 	};
 }

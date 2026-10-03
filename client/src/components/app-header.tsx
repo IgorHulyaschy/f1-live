@@ -1,14 +1,17 @@
 import {
+	CalendarIcon,
 	ChevronDownIcon,
 	LayoutDashboardIcon,
 	LibraryIcon,
 	MoonIcon,
 	PlusIcon,
-	SunIcon
+	SunIcon,
+	SwordsIcon,
+	TrophyIcon
 } from 'lucide-react';
 import { AnimatePresence, m } from 'motion/react';
 import * as React from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router';
+import { NavLink, useLocation, useMatch, useNavigate } from 'react-router';
 
 import { BRAND } from '@/brand';
 import { Key, KeyGroup } from '@/components/console/keys';
@@ -25,7 +28,7 @@ import {
 	DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { useRace } from '@/data/race-context';
-import { useCreateDashboard } from '@/features/dashboard/dashboard-page';
+import { useCreateDashboard } from '@/features/dashboard/use-add-dashboard';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
 import { AccountKey } from '@/features/account/account-menu';
@@ -37,6 +40,50 @@ const PLAN_OPTIONS = [
 	{ value: 'free', label: 'Free' },
 	{ value: 'pro', label: 'Pro' }
 ] as const;
+
+/** The season pages: calendar, standings and head-to-head, beside the dashboards. */
+const SEASON_PAGES = [
+	{ path: '/calendar', label: 'Calendar', icon: CalendarIcon },
+	{ path: '/standings', label: 'Standings', icon: TrophyIcon },
+	{ path: '/h2h', label: 'Head to head', icon: SwordsIcon }
+] as const;
+
+function SeasonMenu() {
+	const navigate = useNavigate();
+	const { pathname } = useLocation();
+
+	const active =
+		SEASON_PAGES.some((page) => page.path === pathname) || pathname.startsWith('/drivers/');
+
+	return (
+		<DropdownMenu>
+			<DropdownMenuTrigger asChild>
+				<button
+					type="button"
+					aria-label="Season: calendar, standings, head to head"
+					className={cn(
+						'type-label inline-flex h-7 items-center gap-1.5 border border-b-2 px-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-(--color-ring) 2xl:px-2.5 [&_svg]:size-3.5',
+						active
+							? 'border-foreground bg-foreground text-background'
+							: 'hover:text-foreground hover:border-rule-strong'
+					)}
+					data-testid="season-menu"
+				>
+					<TrophyIcon aria-hidden />
+					<span className="hidden 2xl:inline">Season</span>
+				</button>
+			</DropdownMenuTrigger>
+			<DropdownMenuContent align="start" className="w-48">
+				{SEASON_PAGES.map((page) => (
+					<DropdownMenuItem key={page.path} onSelect={() => void navigate(page.path)}>
+						<page.icon />
+						{page.label}
+					</DropdownMenuItem>
+				))}
+			</DropdownMenuContent>
+		</DropdownMenu>
+	);
+}
 
 /**
  * Dashboards as tabs: the session's own layout first, the ready-made ones that suit the session,
@@ -143,6 +190,7 @@ function MainNav() {
 					<LibraryIcon aria-hidden />
 					<span className="hidden 2xl:inline">Library</span>
 				</NavLink>
+				<SeasonMenu />
 			</span>
 		</nav>
 	);
@@ -190,6 +238,8 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 	const { plan, setPlan } = useRace();
 	const accountPlan = useAccountPlan();
 	const dark = useDarkTheme();
+	// The home has its own panel for the session on now; the strip is about the one on screen.
+	const home = useMatch('/') !== null;
 
 	return (
 		<header className="bg-background/90 sticky top-0 z-40 mb-4 border-b backdrop-blur-sm">
@@ -241,8 +291,12 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 					</Key>
 				</div>
 			</div>
-			<LiveStrip />
-			<FlagBanner />
+			{home ? null : (
+				<>
+					<LiveStrip />
+					<FlagBanner />
+				</>
+			)}
 		</header>
 	);
 }

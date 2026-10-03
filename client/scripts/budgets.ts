@@ -26,10 +26,11 @@ import { serveDist } from './serve-dist.ts';
 
 /**
  * Gzip kilobytes the first route may fetch before it can render; about 5% above the build of
- * October 2026 with accounts (295 kB of scripts, 12 kB of styles). Raise it on purpose, never by
+ * October 2026 with accounts (295 kB of scripts, 12 kB of styles). Styles went to 16 kB with the
+ * history pages, because Tailwind emits one sheet for every route. Raise it on purpose, never by
  * drift.
  */
-const BUDGET = { scripts: 310, styles: 14 };
+const BUDGET = { scripts: 310, styles: 16 };
 
 const CLIENT_DIR = fileURLToPath(new URL('..', import.meta.url));
 

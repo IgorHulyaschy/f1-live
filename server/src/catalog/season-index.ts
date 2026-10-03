@@ -17,9 +17,9 @@ const seasonIndexSchema = z.object({
 				z.object({
 					Key: z.number(),
 					Type: z.string(),
-					Name: z.string(),
+					Name: z.string().optional(),
 					StartDate: z.string(),
-					EndDate: z.string(),
+					EndDate: z.string().optional(),
 					GmtOffset: z.string(),
 					Path: z.string().optional()
 				})
@@ -55,27 +55,48 @@ export interface IndexedSeason {
 	meetings: IndexedMeeting[];
 }
 
-/** Parses a season's `Index.json`; the file starts with a BOM, which `JSON.parse` rejects. */
+type IndexSession = z.output<typeof seasonIndexSchema>['Meetings'][number]['Sessions'][number];
+
+/**
+ * Sessions the archive lists by mistake: placeholders with key -1 and no name (2023 Qatar) and a
+ * test day filed under the test server (`../uat/`, 2021).
+ */
+function isListedSession(session: IndexSession): session is IndexSession & { Name: string } {
+	return session.Key > 0 && session.Name !== undefined && !session.Path?.startsWith('../');
+}
+
+/**
+ * Parses a season's `Index.json`; the file starts with a BOM, which `JSON.parse` rejects. Meetings
+ * left with no session are dropped.
+ */
 export function parseSeasonIndex(text: string): IndexedSeason {
 	const index = seasonIndexSchema.parse(JSON.parse(text.replace(/^﻿/, '')));
 
 	return {
 		year: index.Year,
-		meetings: index.Meetings.map((meeting) => ({
-			key: meeting.Key,
-			name: meeting.Name,
-			officialName: meeting.OfficialName,
-			location: meeting.Location,
-			circuit: meeting.Circuit.ShortName,
-			country: { code: meeting.Country.Code, name: meeting.Country.Name },
-			sessions: meeting.Sessions.map((session) => ({
+		meetings: index.Meetings.flatMap((meeting) => {
+			const sessions = meeting.Sessions.filter(isListedSession).map((session) => ({
 				key: session.Key,
 				type: sessionTypeOf(session.Type, session.Name),
 				name: session.Name,
 				startsAt: utcStart(session.StartDate, session.GmtOffset),
-				endsAt: utcStart(session.EndDate, session.GmtOffset),
+				endsAt: utcStart(session.EndDate ?? session.StartDate, session.GmtOffset),
 				path: session.Path ?? null
-			}))
-		}))
+			}));
+
+			return sessions.length === 0
+				? []
+				: [
+						{
+							key: meeting.Key,
+							name: meeting.Name,
+							officialName: meeting.OfficialName,
+							location: meeting.Location,
+							circuit: meeting.Circuit.ShortName,
+							country: { code: meeting.Country.Code, name: meeting.Country.Name },
+							sessions
+						}
+					];
+		})
 	};
 }

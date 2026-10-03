@@ -34,7 +34,11 @@ const page =
 	() => ({ title, description, indexed });
 
 export const ROUTE_META = {
-	live: page(null, BRAND.description),
+	home: page(null, BRAND.description),
+	session: page(
+		'Session',
+		'The session on now, or the latest, in its own layout: timing, the track, the flags and the gaps.'
+	),
 	analysis: page(
 		'Analysis',
 		'Lap time charts for any drivers you pick, true pace with fuel and tyres taken out, and the fastest laps.'
@@ -82,6 +86,23 @@ export const ROUTE_META = {
 			indexed: false
 		};
 	},
+	calendar: page(
+		'Calendar',
+		'Every weekend of the season in your own time, with countdowns and an .ics file for your calendar.'
+	),
+	standings: page(
+		'Standings',
+		'The drivers’ and constructors’ championships for any season since 2018, after any round.'
+	),
+	headToHead: page(
+		'Head to head',
+		'Any two drivers or teams since 2018: qualifying and race battles, gaps, points and the facts behind them.'
+	),
+	driver: ({ params }) => ({
+		title: 'Driver',
+		description: `Every weekend, season and teammate of ${params.id ?? 'a driver'} since 2018.`,
+		indexed: true
+	}),
 	welcome: page('Set up', 'Pick the driver you follow and the dashboard you start on.', false),
 	account: page('Account', 'Your sign-in, plan and dashboards.', false),
 	tile: ({ params, dashboards }) => {

@@ -7,7 +7,14 @@
  *
  * Reads only; the outputs are small enough to commit.
  */
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+	copyFileSync,
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	writeFileSync
+} from 'node:fs';
 import path from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 
@@ -23,13 +30,16 @@ import {
 import { type Catalog, catalogSchema } from '../../src/data/catalog.ts';
 import { comparableLaps, fastestComparableLap } from '../../src/insights/telemetry-traces.ts';
 
-/** 2025 Las Vegas (a race with two disqualifications, qualifying with 20 cars) and 2026 Baku (22). */
+/**
+ * 2025 Las Vegas (a race with two disqualifications, qualifying with 20 cars), 2026 Baku (22) and
+ * 2026 Bahrain, whose qualifying the gap visuals open on.
+ */
 const MEETINGS = new Map([
-	[2025, 1274],
-	[2026, 1295]
+	[2025, [1274]],
+	[2026, [1295, 1308]]
 ]);
 
-const SESSIONS = ['9852', '9854', '9858', '11373'];
+const SESSIONS = ['9852', '9854', '9858', '11373', '11730'];
 
 /**
  * Drivers whose laps the telemetry charts open on, per session: the first three at the end and
@@ -126,10 +136,25 @@ const catalog = catalogSchema.parse(
 	JSON.parse(readFileSync(path.join(out, 'catalog.json'), 'utf8'))
 );
 
+// The history pages list the seasons the catalogue has, so every season with a results index
+// stays, its meetings cut to the ones the tests open. 2026 keeps its whole calendar, with this
+// weekend's race (11731) still to come.
+const resultYears = new Set(
+	existsSync(path.join(out, 'results'))
+		? readdirSync(path.join(out, 'results')).map((name) => Number.parseInt(name, 10))
+		: []
+);
+
 const trimmed: Catalog = {
 	seasons: catalog.seasons.flatMap((season) => {
-		const meetingKey = MEETINGS.get(season.year);
-		const meetings = season.meetings.filter((meeting) => meeting.key === meetingKey);
+		const meetingKeys = MEETINGS.get(season.year) ?? [];
+
+		const meetings = season.meetings.filter(
+			(meeting) =>
+				meetingKeys.includes(meeting.key) ||
+				season.year === 2026 ||
+				(resultYears.has(season.year) && meeting.key === season.meetings.at(-1)?.key)
+		);
 
 		return meetings.length === 0
 			? []
@@ -153,3 +178,14 @@ const trimmed: Catalog = {
 };
 
 writeFileSync(path.join(target, 'catalog.json'), `${JSON.stringify(trimmed, null, '\t')}\n`);
+
+// The results index per season, for the history pages (calendar, standings, head to head).
+const resultsDir = path.join(out, 'results');
+
+if (existsSync(resultsDir)) {
+	mkdirSync(path.join(target, 'results'), { recursive: true });
+
+	for (const file of readdirSync(resultsDir).filter((name) => name.endsWith('.json.gz'))) {
+		copyFileSync(path.join(resultsDir, file), path.join(target, 'results', file));
+	}
+}

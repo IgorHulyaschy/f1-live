@@ -29,7 +29,7 @@ test.describe('a live race', () => {
 	}) => {
 		test.setTimeout(90_000);
 
-		await openRace(page, '/');
+		await openRace(page, '/session');
 
 		// Opening the app during a live session goes to it.
 		await expect(page.getByTestId('live-key')).toHaveText('Live');
@@ -38,7 +38,7 @@ test.describe('a live race', () => {
 		const delayedContext = await browser.newContext();
 		const delayed = await delayedContext.newPage();
 
-		await openRace(delayed, '/');
+		await openRace(delayed, '/session');
 
 		for (let second = 0; second < 5; second++) {
 			await delayed.getByRole('button', { name: 'One second more delay' }).click();
@@ -104,7 +104,7 @@ test.describe('a live qualifying session', () => {
 	}) => {
 		test.setTimeout(60_000);
 
-		await openRace(page, '/');
+		await openRace(page, '/session');
 
 		const nav = page.getByRole('navigation', { name: 'Main' });
 		const strip = page.getByTestId('live-strip');
@@ -156,7 +156,7 @@ test.describe('a live qualifying session', () => {
 		await expect(page.getByTestId('tile-away').first()).toContainText('Races only');
 
 		await offer.getByRole('button', { name: 'Switch to the Quali layout' }).click();
-		await expect(page).toHaveURL(/\/\?|\/$/);
+		await expect(page).toHaveURL(/\/session(\?|$)/);
 		await expect(page.getByTestId('dashboard-quali')).toBeVisible();
 
 		await page.goBack();
@@ -177,7 +177,7 @@ test.describe('a live qualifying session', () => {
 	});
 
 	test('points a viewer on another session to the live one', async ({ page }) => {
-		await openRace(page, '/?session=9858');
+		await openRace(page, '/session?session=9858');
 
 		const elsewhere = page.getByTestId('strip-live-elsewhere');
 

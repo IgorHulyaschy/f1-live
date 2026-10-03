@@ -1,0 +1,13 @@
+{
+	"key": 5138,
+	"corrections": [
+		{
+			"driverNumber": "10",
+			"kind": "time_penalty",
+			"seconds": 5,
+			"reason": "Causing a collision with car 11 (Perez); decided after the race",
+			"at": "2018-07-08T18:00:00Z",
+			"source": "https://www.formula1.com/en/results/2018/races/988/great-britain/race-result"
+		}
+	]
+}

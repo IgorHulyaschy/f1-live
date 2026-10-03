@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { z } from 'zod';
 
+import { readSupplement, withSupplement } from '../catalog/index-supplement.js';
 import type { IndexedSeason } from '../catalog/season-index.js';
 import { parseSeasonIndex } from '../catalog/season-index.js';
 
@@ -47,8 +48,14 @@ export async function findSessionDirs(root: string, relative = ''): Promise<stri
 	return nested.flat().toSorted();
 }
 
-/** The season indexes saved at `<root>/<year>/Index.json`, oldest first. */
-export async function readSeasonIndexes(root: string): Promise<IndexedSeason[]> {
+/**
+ * The season indexes saved at `<root>/<year>/Index.json`, oldest first, each with the sessions the
+ * committed supplement adds (`server/index-supplement`).
+ */
+export async function readSeasonIndexes(
+	root: string,
+	supplementDir?: string
+): Promise<IndexedSeason[]> {
 	const names = await readdir(root).catch(() => []);
 
 	const seasons = await Promise.all(
@@ -57,7 +64,14 @@ export async function readSeasonIndexes(root: string): Promise<IndexedSeason[]> 
 			.map(async (name) => {
 				const text = await readFile(path.join(root, name, 'Index.json'), 'utf8').catch(() => null);
 
-				return text === null ? [] : [parseSeasonIndex(text)];
+				if (text === null) {
+					return [];
+				}
+
+				const season = parseSeasonIndex(text);
+				const extra = await readSupplement(season.year, supplementDir);
+
+				return [extra === null ? season : withSupplement(season, extra)];
 			})
 	);
 

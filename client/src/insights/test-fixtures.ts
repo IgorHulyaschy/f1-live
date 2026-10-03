@@ -6,8 +6,8 @@ import type { RaceSnapshot, TrackOutline } from '@f1-live/shared';
 
 /**
  * The real-data e2e fixture for unit tests: the 2025 Las Vegas race (9858), qualifying (9854) and
- * second practice (9852), and 2026 Baku qualifying (11373), derived from the official timing data
- * by e2e/real/derive-fixtures.ts.
+ * second practice (9852), and 2026 Baku (11373) and Bahrain (11730) qualifying, derived from the
+ * official timing data by e2e/real/derive-fixtures.ts.
  */
 const FIXTURE = path.join(import.meta.dirname, '../../e2e/real/data/out');
 
@@ -19,7 +19,7 @@ export function fixtureJson<T>(file: string): T {
 	return JSON.parse(text) as T;
 }
 
-export function fixtureSession(key: '9852' | '9854' | '9858' | '11373'): RaceSnapshot {
+export function fixtureSession(key: '9852' | '9854' | '9858' | '11373' | '11730'): RaceSnapshot {
 	return fixtureJson<RaceSnapshot>(`snapshots/${key}.json.gz`);
 }
 

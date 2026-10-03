@@ -110,7 +110,7 @@ export function CarSide({ driver, className }: { driver: Driver; className?: str
 			className={cn('relative block aspect-4/1', className)}
 			style={{ '--team': `#${driver.teamColour}` }}
 		>
-			<svg viewBox="0 0 400 100" className="absolute inset-0 size-full">
+			<svg aria-hidden viewBox="0 0 400 100" className="absolute inset-0 size-full">
 				<path
 					className="fill-team"
 					d="M4 80h56l6-6 70-10 18-12h26l8-10 18-6h22l6 6v12l78 6 10-20h50l2 6-6 2-4 32h-30l-6 4H86l-8 4H4z"

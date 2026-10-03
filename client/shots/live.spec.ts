@@ -17,10 +17,10 @@ const VIEWPORTS = [
 
 /** Each page with what shows once it is ready: the drop zone at the end of the replay. */
 const PAGES = [
-	{ name: 'quali-live', path: '/', ready: 'strip-drop-zone', text: 'STR' },
+	{ name: 'quali-live', path: '/session', ready: 'strip-drop-zone', text: 'STR' },
 	{
 		name: 'race-while-live',
-		path: '/?session=9858',
+		path: '/session?session=9858',
 		ready: 'strip-live-elsewhere',
 		text: 'Watch live'
 	}

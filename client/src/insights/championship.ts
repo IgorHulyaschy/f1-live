@@ -1,31 +1,10 @@
+import { paysFastestLap, pointsFor, pointsTable } from '@f1-live/shared';
 import type { RaceSnapshot, SessionType } from '@f1-live/shared';
 
 import { isCleanLap } from './clean-laps.ts';
 import { standingsAt } from './standings.ts';
 
-/** Points by finishing place, from first. */
-const RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1] as const;
-
-const SPRINT_POINTS = [8, 7, 6, 5, 4, 3, 2, 1] as const;
-
-/** The first sprints, in 2021, paid the top three only. */
-const SPRINT_POINTS_2021 = [3, 2, 1] as const;
-
-/** From 2019 to 2024 the fastest lap earned a point when its driver finished in the top ten. */
-const FASTEST_LAP_POINT_YEARS = { from: 2019, to: 2024 } as const;
-
-export function pointsTable(type: SessionType, year: number): readonly number[] {
-	if (type === 'sprint') {
-		return year === 2021 ? SPRINT_POINTS_2021 : SPRINT_POINTS;
-	}
-
-	return type === 'race' ? RACE_POINTS : [];
-}
-
-/** Points for finishing `position` (from 1); none outside the paying places. */
-export function pointsFor(type: SessionType, year: number, position: number): number {
-	return pointsTable(type, year)[position - 1] ?? 0;
-}
+export { pointsFor, pointsTable } from '@f1-live/shared';
 
 /** The most points a driver can still score after this session: every race and sprint left won. */
 export function pointsStillOnOffer(upcoming: readonly SessionType[], year: number): number {
@@ -108,13 +87,7 @@ export function sessionPoints(snapshot: RaceSnapshot, lap: number): Map<string, 
 
 	const fastest = fastestLapHolder(snapshot, lap);
 
-	if (
-		type === 'race' &&
-		fastest !== null &&
-		season >= FASTEST_LAP_POINT_YEARS.from &&
-		season <= FASTEST_LAP_POINT_YEARS.to &&
-		(order.get(fastest) ?? Infinity) <= RACE_POINTS.length
-	) {
+	if (fastest !== null && paysFastestLap(type, season, order.get(fastest) ?? Infinity)) {
 		points.set(fastest, (points.get(fastest) ?? 0) + 1);
 	}
 

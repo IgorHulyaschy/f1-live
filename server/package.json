@@ -17,7 +17,8 @@
 		"fetch:f1": "tsx ./src/cli/fetch-f1.ts",
 		"replay-live": "tsx --env-file-if-exists=.env ./src/cli/replay-live.ts",
 		"load-smoke": "tsx ./src/cli/load-smoke.ts",
-		"accounts:generate": "drizzle-kit generate --config drizzle.accounts.config.ts"
+		"accounts:generate": "drizzle-kit generate --config drizzle.accounts.config.ts",
+		"index-gaps": "tsx ./src/cli/index-gaps.ts"
 	},
 	"dependencies": {
 		"@electric-sql/pglite": "0.5.8",

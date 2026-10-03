@@ -285,12 +285,14 @@ function DeleteAccountDialog({
 					</DialogDescription>
 				</DialogHeader>
 				<label className="flex flex-col gap-1">
-					<span className="type-label">Type {me.user.email} to confirm</span>
+					<span className="type-label break-all">Type {me.user.email} to confirm</span>
 					<input
 						type="email"
 						value={typed}
 						onChange={(event) => setTyped(event.target.value)}
 						autoComplete="off"
+						name="confirm-email"
+						spellCheck={false}
 						aria-label="Email to confirm"
 						className="border-rule-strong focus-visible:border-foreground h-9 w-full border-b-2 bg-transparent text-sm outline-none"
 					/>
@@ -328,7 +330,9 @@ function SignedIn({ me, focusPlan }: { me: Me; focusPlan: boolean }) {
 		<>
 			<Section title="Signed in">
 				<div className="flex flex-wrap items-end gap-x-10 gap-y-3">
-					<Field label="Email">{me.user.email}</Field>
+					<Field label="Email">
+						<span className="break-all">{me.user.email}</span>
+					</Field>
 					<Field label="Since">{formatDate(me.user.createdAt)}</Field>
 					<Key className="ml-auto" onClick={() => void signOutWithNotice()}>
 						Sign out
