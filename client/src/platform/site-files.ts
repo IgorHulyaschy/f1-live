@@ -14,8 +14,11 @@ import { documentTitle, OG_IMAGE, siteUrl, THEME_COLOURS } from './site.ts';
  * Everything else is one viewer's: dashboards saved in their browser, shared links, pop-outs.
  */
 export function indexedPaths(): string[] {
+	const presets = PRESETS.map((preset) => dashboardPath(preset.id));
+
 	return [
-		...PRESETS.map((preset) => dashboardPath(preset.id)),
+		// The home page shows the layout of the session on now, under its own address.
+		...new Set(['/', ...presets]),
 		'/library',
 		...LEGAL_DOCUMENTS.map((document) => `/legal/${document.slug}`)
 	];
