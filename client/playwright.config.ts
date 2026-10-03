@@ -23,8 +23,9 @@ export default defineConfig({
 		{
 			name: 'e2e',
 			testDir: './e2e',
-			// Real-data and live specs run from playwright.real.config.ts.
-			testIgnore: ['real/**', 'live/**'],
+			// Real-data and live specs run from playwright.real.config.ts, the stack's from
+			// playwright.stack.config.ts.
+			testIgnore: ['real/**', 'live/**', 'stack/**'],
 			use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }
 		},
 		{
