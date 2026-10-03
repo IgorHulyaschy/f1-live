@@ -1,0 +1,13 @@
+{
+	"key": 11326,
+	"corrections": [
+		{
+			"driverNumber": "55",
+			"kind": "lap_penalty",
+			"reason": "Overtaking the Safety Car",
+			"at": "2026-07-05T19:35:00Z",
+			"source": "https://www.fia.com/system/files/decision-document/2026_british_grand_prix_-_final_race_classification.pdf",
+			"note": "Stewards' document no. 83, listed in the final classification (document 84, 5 July 2026, 20:35 local): 1 Penalty Lap, classified on 51 laps."
+		}
+	]
+}

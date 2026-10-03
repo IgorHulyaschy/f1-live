@@ -303,6 +303,31 @@ function raceOrder(snapshot: RaceSnapshot, rows: RowFacts[]): RowFacts[] {
 }
 
 /**
+ * Gaps of the cars still running on the leader's lap, measured from the first of them to the car
+ * ahead: a lap's own gaps count a car that was disqualified since as the leader or as the car in
+ * front.
+ */
+function relinkedGaps(rows: RowFacts[]): RowFacts[] {
+	let leaderGapMs: number | null = null;
+	let aheadGapMs: number | null = null;
+
+	return rows.map((row) => {
+		if (row.state === 'out' || row.gapToLeaderMs === null) {
+			return row;
+		}
+
+		leaderGapMs ??= row.gapToLeaderMs;
+
+		const gapToLeaderMs = row.gapToLeaderMs - leaderGapMs;
+		const intervalMs = aheadGapMs === null ? 0 : gapToLeaderMs - aheadGapMs;
+
+		aheadGapMs = gapToLeaderMs;
+
+		return { ...row, gapToLeaderMs, intervalMs };
+	});
+}
+
+/**
  * The feed's own running order, refreshed between lap crossings and corrected after the race. In
  * a race its gaps are newer than those of the last crossing.
  */
@@ -446,7 +471,9 @@ export function standingsAt(snapshot: RaceSnapshot): StandingRow[] {
 	const hasFeedOrder = standings.length > 0 && snapshot.laps.length > 0;
 
 	if (!timedSession) {
-		return placed(hasFeedOrder ? feedOrder(snapshot, rows, standings) : raceOrder(snapshot, rows));
+		return placed(
+			hasFeedOrder ? feedOrder(snapshot, rows, standings) : relinkedGaps(raceOrder(snapshot, rows))
+		);
 	}
 
 	return withTimedGaps(

@@ -203,11 +203,14 @@ export interface Penalty {
 	servedLap?: number;
 }
 
-export const CORRECTION_KINDS = ['disqualified', 'time_penalty'] as const;
+export const CORRECTION_KINDS = ['disqualified', 'time_penalty', 'lap_penalty'] as const;
 
 export type CorrectionKind = (typeof CORRECTION_KINDS)[number];
 
-/** A change to the classification decided after the timing feed ends, such as a disqualification. */
+/**
+ * A change to the classification decided after the timing feed ends, such as a disqualification.
+ * A `lap_penalty` takes a lap off the car's classified distance.
+ */
 export interface ClassificationCorrection {
 	driverNumber: string;
 	kind: CorrectionKind;
