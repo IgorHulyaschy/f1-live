@@ -110,5 +110,6 @@ should interpolate; before a car's first sample and after its last it is held in
 ## Live
 
 `LiveTelemetry` (`server/src/telemetry/live.ts`) turns `Position.z` and `CarData.z` frames into
-the throttled `positions` and `car_data` messages. Without a token neither arrives, and a viewer
+the throttled `positions` and `car_data` messages. An `ingest` server sends them on to the relay
+(`POST /ingest/channels`), which gives them to the viewers that subscribed. Without a token neither arrives, and a viewer
 sees `live: false` in the `channels` answer.
