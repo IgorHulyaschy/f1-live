@@ -1,5 +1,5 @@
 import { mkdtempSync, readFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { cpus, loadavg, tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { EMPTY_SNAPSHOT, applyEvent } from '@f1-live/shared';
@@ -13,6 +13,7 @@ import type { LiveServer, ServerOptions } from '../main.js';
 import { parseJsonStream } from '../sources/f1/archive.js';
 import { F1Decoder } from '../sources/f1/decode.js';
 import type { TopicFrame } from '../sources/f1/decode.js';
+import type { JsonObject } from '../sources/f1/live.js';
 import { CAR_DATA_TOPIC, POSITION_TOPIC } from '../sources/f1/telemetry.js';
 import { FakeUpstream } from './fake-upstream.js';
 import { LiveReplica, parseServerMessage } from './replica.js';
@@ -41,7 +42,8 @@ export function telemetryFrames(): TopicFrame[] {
 		.toSorted((a, b) => a.timestamp - b.timestamp);
 }
 
-const WAIT_MS = 20_000;
+/** Longer when the machine is busy, as when several worktrees run their tests at once. */
+const WAIT_MS = 20_000 * Math.max(1, (loadavg()[0] ?? 0) / cpus().length);
 
 /** Reconnects and retries in milliseconds, not seconds. */
 export const FAST_BACKOFF = { initialMs: 20, maxMs: 40 };
@@ -118,6 +120,8 @@ export interface PlaybackOptions {
 	env?: Record<string, string>;
 	server?: ServerOptions;
 	dropAfter?: readonly number[];
+	/** Topics the fake hub already holds when the server subscribes. */
+	snapshot?: JsonObject;
 }
 
 /** A server in mode `all` fed from a fake upstream playing `frames`, unpaced unless told. */
@@ -127,7 +131,8 @@ export async function startPlayback(
 ): Promise<Playback> {
 	const upstream = await FakeUpstream.start(frames, {
 		speed: options.speed ?? Number.POSITIVE_INFINITY,
-		dropAfter: options.dropAfter
+		dropAfter: options.dropAfter,
+		snapshot: options.snapshot
 	});
 
 	const base = testConfig(options.env);

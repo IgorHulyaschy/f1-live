@@ -4,6 +4,7 @@ import { Key } from '@/components/console/keys';
 import type { LiveConnection } from '@/data/live-feed';
 import { useRaceView } from '@/data/race-context';
 import { stepDelay } from '@/data/viewer-settings';
+import { sessionMinutes } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
 /** Previous lap, play or pause, next lap. On a live session, stepping back pauses live. */
@@ -140,7 +141,9 @@ export function DelayControl({ className }: { className?: string }) {
 export function LapCounter({ size = 'lg' }: { size?: 'sm' | 'lg' }) {
 	const { race, lap, stepUnit, steps } = useRaceView();
 	const label = stepUnit === 'lap' ? 'Lap' : 'Min';
-	const total = stepUnit === 'lap' ? race.session.totalLaps : steps;
+
+	const total =
+		stepUnit === 'lap' ? race.session.totalLaps : sessionMinutes(race.session.type, steps);
 
 	return (
 		<div className="flex items-baseline gap-1.5 leading-none">

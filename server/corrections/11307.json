@@ -1,0 +1,14 @@
+{
+	"key": 11307,
+	"corrections": [
+		{
+			"driverNumber": "43",
+			"kind": "time_penalty",
+			"seconds": 10,
+			"reason": "Failing to slow for yellow flags",
+			"at": "2026-06-14T17:45:00Z",
+			"source": "https://www.fia.com/system/files/decision-document/2026_barcelona-catalunya_grand_prix_-_final_race_classification.pdf",
+			"note": "Stewards' document no. 62, listed in the final classification (document 68, 14 June 2026, 19:45 local). A lapped car has no race time in OpenF1's result, so the importer cannot derive this one."
+		}
+	]
+}

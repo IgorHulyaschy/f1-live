@@ -197,7 +197,7 @@ describe('ingestSession', () => {
 			assert.equal(existsSync(index), true);
 		});
 
-		it('writes the events and the snapshot when the telemetry cannot be built, and removes what an earlier build left', async () => {
+		it('writes the events and the snapshot when the positions cannot draw the circuit, and removes what an earlier build left', async () => {
 			const dataDir = newRoot();
 			const rawDir = path.join(newRoot(), 'session');
 			const index = leaveTelemetry(dataDir);
@@ -207,7 +207,7 @@ describe('ingestSession', () => {
 
 			const result = await ingestSession({ rawDir, key: 9858, dataDir, corrections: [] });
 
-			assert.equal(result.telemetry.status, 'failed');
+			assert.equal(result.telemetry.status, 'skipped');
 			assert.ok(result.events > 0);
 			assert.equal(readSnapshot(dataDir).session.id, '9858');
 			assert.equal(existsSync(index), false);

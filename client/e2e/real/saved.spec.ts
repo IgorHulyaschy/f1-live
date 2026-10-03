@@ -18,10 +18,15 @@ test('the race opens at the flag with the McLaren disqualifications', async ({ p
 	for (const code of ['NOR', 'PIA']) {
 		const row = page.getByTestId(`timing-row-${code}`);
 
+		// oxlint-disable-next-line no-await-in-loop -- two rows, checked in order.
 		await expect(row.getByText('DSQ').first()).toBeVisible();
+		// oxlint-disable-next-line no-await-in-loop -- see above.
 		await expect(row.getByText('DSQ').first()).toHaveAttribute('title', /plank/);
 	}
 
+	// Behind the disqualified McLarens, each car is measured to the car now ahead of it.
+	await expect(page.getByTestId('timing-row-RUS')).toContainText('23.546');
+	await expect(page.getByTestId('timing-row-ANT')).toContainText('6.942');
 	await expect(rows.nth(18)).toHaveAttribute('data-testid', 'timing-row-NOR');
 	await expect(rows.nth(19)).toHaveAttribute('data-testid', 'timing-row-PIA');
 	await expect(page.getByTestId('timing-row-STR').getByText('DNF').first()).toBeVisible();

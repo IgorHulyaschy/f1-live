@@ -128,6 +128,23 @@ describe('runImport', () => {
 		);
 	});
 
+	it('keeps the sessions the catalogue lists when the raw folder holds no season index', async () => {
+		const options = dataDirWithRace();
+
+		await runImport({ kind: 'meeting', years: [2025] }, options);
+
+		const before: Catalog = JSON.parse(readFileSync(catalogPathOf(options.dataDir), 'utf8'));
+
+		// An ingest host records only the live weekend: its raw folder never held an index.
+		rmSync(path.join(rawDirOf(options.dataDir), '2025/Index.json'));
+		await runImport({ kind: 'local' }, options);
+
+		const kept: Catalog = JSON.parse(readFileSync(catalogPathOf(options.dataDir), 'utf8'));
+
+		assert.deepEqual(kept, before);
+		assert.equal(kept.seasons[0]?.meetings[0]?.sessions[0]?.outputs.snapshot, true);
+	});
+
 	it('reports a session whose raw files are missing and still imports the others', async () => {
 		const options = dataDirWithRace();
 		const broken = path.join(rawDirOf(options.dataDir), '2025/2025-11-23_Broken');

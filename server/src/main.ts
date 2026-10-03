@@ -9,6 +9,7 @@ import type { FastifyInstance } from 'fastify';
 import { createAccounts, injectWebhook } from './accounts/accounts.js';
 import type { Accounts } from './accounts/accounts.js';
 import { registerAccounts } from './accounts/routes.js';
+import { isInsecureRelayUrl } from './config.js';
 import type { Config } from './config.js';
 import { registerHealth } from './http/health.js';
 import { registerIngest } from './http/ingest.js';
@@ -46,6 +47,10 @@ export interface ServerOptions {
 	/** Waits between reconnects to the live feed and pushes to the relay; tests shorten them. */
 	feedBackoff?: Backoff;
 	relayBackoff?: Backoff;
+	/** How often an ingest asks the relay which telemetry channels are wanted; tests shorten it. */
+	channelProbeMs?: number;
+	/** How long a telemetry channel may stay silent before it is no longer live; tests shorten it. */
+	channelSilentMs?: number;
 	/** Replaces the importer that runs when a session ends; null turns it off. */
 	importer?: SessionImporter | null;
 }
@@ -73,6 +78,14 @@ export async function createServer(
 	});
 
 	const log: EventLog = (event, fields) => app.log.info({ event, ...fields }, event);
+
+	if (config.mode === 'ingest' && config.relay.url && isInsecureRelayUrl(config.relay.url)) {
+		app.log.warn(
+			{ event: 'relay-url-insecure', host: new URL(config.relay.url).host },
+			'RELAY_URL is plain http to another host: the relay secret travels unencrypted; use https'
+		);
+	}
+
 	const session = new LiveSession(config.live.logEvents);
 	const serves = config.mode !== 'ingest';
 
@@ -115,6 +128,7 @@ export async function createServer(
 		hub = new LiveHub(session, {
 			maxBufferBytes: config.ws.maxBufferBytes,
 			pingMs: config.ws.pingMs,
+			channelSilentMs: options.channelSilentMs,
 			log: (event, fields) => app.log.info({ event, ...fields }, event)
 		});
 		registerLiveSocket(app, hub);
@@ -155,7 +169,13 @@ export async function createServer(
 	if (config.mode === 'ingest' && config.relay.url && config.relay.secret) {
 		telemetry = new LiveTelemetry(
 			new RelayChannelPusher(
-				{ url: config.relay.url, secret: config.relay.secret, log, fetchImpl: options.fetchImpl },
+				{
+					url: config.relay.url,
+					secret: config.relay.secret,
+					log,
+					fetchImpl: options.fetchImpl,
+					probeMs: options.channelProbeMs
+				},
 				stop.signal
 			),
 			telemetryOptions

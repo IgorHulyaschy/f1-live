@@ -19,6 +19,9 @@ const CLOSE_WINDOW_MS = 3000;
 /** Fewer samples than this is not a lap. */
 const MIN_LOOP_POINTS = 40;
 
+/** A lap's average speed below this, 25 m/s or 90 km/h, is a car that stood still, not one that raced. */
+const MIN_AVERAGE_SPEED_MS = 25;
+
 export interface Loop {
 	points: Point[];
 	lengthM: number;
@@ -186,6 +189,11 @@ export function loopFromLap(track: PositionTrack, startAt: number, endAt: number
 	const spaced = evenLoop(closedSpline(raw), STEP_M);
 
 	return evenLoop(smoothLoop(spaced.points, SMOOTHING_RADIUS), STEP_M);
+}
+
+/** A loop that is as long as a car at racing speed covers in `lapTimeMs`, not a frozen position. */
+export function isRacingLoop(loop: Loop, lapTimeMs: number): boolean {
+	return loop.lengthM / (lapTimeMs / 1000) >= MIN_AVERAGE_SPEED_MS;
 }
 
 /** Degrees that turn the line so its long side lies along the x axis, in (-90, 90]. */

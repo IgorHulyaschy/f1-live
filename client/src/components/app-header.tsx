@@ -44,7 +44,7 @@ function MainNav() {
 	return (
 		<nav
 			aria-label="Main"
-			className="flex h-full min-w-0 items-stretch overflow-x-auto mask-r-from-85% [scrollbar-width:none] sm:mask-none"
+			className="order-last flex w-full flex-wrap items-stretch pb-1 sm:order-none sm:h-full sm:w-auto sm:min-w-0 sm:flex-nowrap sm:overflow-x-auto sm:pb-0 sm:[scrollbar-width:none]"
 		>
 			{dashboards.map((dashboard) => (
 				<NavLink
@@ -53,7 +53,7 @@ function MainNav() {
 					end
 					className={({ isActive }) =>
 						cn(
-							'type-wide relative flex shrink-0 items-center px-1.5 text-xs font-bold whitespace-nowrap transition-colors sm:px-3.5',
+							'type-wide relative flex h-8 shrink-0 items-center px-1.5 text-xs font-bold whitespace-nowrap transition-colors sm:h-auto sm:px-3.5',
 							isActive ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
 						)
 					}
@@ -72,7 +72,7 @@ function MainNav() {
 					)}
 				</NavLink>
 			))}
-			<span className="flex shrink-0 items-center gap-1 px-1.5">
+			<span className="flex h-8 shrink-0 items-center gap-1 px-1.5 sm:h-auto">
 				<Key aria-label="New dashboard" onClick={() => create()} className="h-7 px-1.5 sm:h-7">
 					<PlusIcon />
 				</Key>
@@ -140,12 +140,16 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 
 	return (
 		<header className="bg-background/90 sticky top-0 z-40 mb-4 border-b backdrop-blur-sm">
-			<div className="flex h-12 items-stretch gap-1 px-3 sm:gap-2 sm:px-4 md:gap-6 md:px-6">
-				<NavLink to={{ pathname: '/' }} className="flex items-center" aria-label="Pitwall home">
+			<div className="flex flex-wrap items-stretch gap-1 px-3 sm:h-12 sm:flex-nowrap sm:gap-2 sm:px-4 md:gap-6 md:px-6">
+				<NavLink
+					to={{ pathname: '/' }}
+					className="flex h-10 items-center sm:h-auto"
+					aria-label="Pitwall home"
+				>
 					<Wordmark />
 				</NavLink>
 				<MainNav />
-				<div className="ml-auto flex items-center gap-1 sm:gap-2">
+				<div className="ml-auto flex h-10 items-center gap-1 sm:h-auto sm:gap-2">
 					{needsClock ? (
 						<div className="hidden items-center gap-3 sm:flex" data-testid="header-clock">
 							<Transport className="hidden 2xl:flex" />
