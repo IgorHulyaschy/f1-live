@@ -244,6 +244,8 @@ export function LiveStrip() {
 			<StateMark />
 			<Reading
 				label={race.session.meetingName.replace(/ Grand Prix$/, ' GP')}
+				// A phone shows only the part here; the first tab already names the session.
+				className={state?.part ? undefined : 'max-sm:hidden'}
 				testId="strip-session"
 			>
 				<span className="type-wide text-xs font-bold max-sm:hidden">{name}</span>
