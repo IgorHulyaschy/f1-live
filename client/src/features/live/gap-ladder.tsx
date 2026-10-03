@@ -2,13 +2,16 @@ import { Digits } from '@/components/console/digits';
 import { TeamStripe } from '@/components/driver-tag';
 import { useRace } from '@/data/race-context';
 import { battleAhead } from '@/insights/battle';
+import { isTimedSession } from '@/insights/qualifying';
+import { hasDrs } from '@/insights/rules';
 import type { StandingRow } from '@/insights/standings';
 import { cn } from '@/lib/utils';
 
 /** Cars listed either side of the followed driver. */
 const RUNGS = 2;
 
-const DRS_SECONDS = 1;
+/** Within a second of the car ahead: DRS until 2025, overtake mode from 2026. */
+const ONE_SECOND = 1;
 
 /** Race time between two running cars on the lead lap, from their gaps to the leader. */
 function gapSeconds(from: StandingRow, to: StandingRow): number | null {
@@ -34,10 +37,13 @@ function Trend({ closing }: { closing: number | null }) {
 
 /**
  * The fight around the followed driver as a ladder: two cars ahead, two behind, each with the
- * race-time gap to you and whether it is closing.
+ * race-time gap to you and whether it is closing. In practice and qualifying the gaps are
+ * between best laps, and nothing closes.
  */
 export function GapLadder() {
 	const { snapshot, followedDriver, standings } = useRace();
+	const timed = isTimedSession(snapshot.session.type);
+	const oneSecond = hasDrs(snapshot.session) ? 'DRS' : 'OVT';
 	const rows = standings.filter((row) => row.state !== 'out' && row.lapsDown === 0);
 	const index = rows.findIndex((row) => row.driver.number === followedDriver);
 	const subject = rows[index];
@@ -61,11 +67,12 @@ export function GapLadder() {
 				const adjacent = Math.abs(row.position - subject.position) === 1;
 
 				// Closing rate between the adjacent pair, seen from the chasing car.
-				const battle = adjacent
-					? ahead
-						? battleAhead(snapshot, subject.driver.number)
-						: battleAhead(snapshot, row.driver.number)
-					: null;
+				const battle =
+					adjacent && !timed
+						? ahead
+							? battleAhead(snapshot, subject.driver.number)
+							: battleAhead(snapshot, row.driver.number)
+						: null;
 
 				return (
 					<li
@@ -87,8 +94,8 @@ export function GapLadder() {
 							<span className="text-muted-foreground font-mono text-sm">-</span>
 						) : (
 							<span className="flex items-center gap-2">
-								{adjacent && ahead && Math.abs(gap) < DRS_SECONDS ? (
-									<span className="type-label text-foreground border px-1">DRS</span>
+								{adjacent && ahead && !timed && Math.abs(gap) < ONE_SECOND ? (
+									<span className="type-label text-foreground border px-1">{oneSecond}</span>
 								) : null}
 								<Digits
 									value={`${gap < 0 ? '−' : '+'}${Math.abs(gap).toFixed(3)}`}

@@ -44,6 +44,12 @@ export interface StandingRow {
 
 const SECTOR_INDEXES = [0, 1, 2] as const;
 
+/**
+ * Out-laps and cool-down laps carry a time made of their sectors, but nobody qualifies on one:
+ * a lap this much slower than the fastest of the session is not counted as a part's best.
+ */
+const FLYING_LAP_LIMIT = 1.12;
+
 function minimum(values: Iterable<number>): number | null {
 	let lowest: number | null = null;
 
@@ -123,12 +129,17 @@ function rowFacts(snapshot: RaceSnapshot): RowFacts[] {
 		const driverLaps = lapsByDriver.get(driver.number) ?? [];
 		const lastLap = driverLaps.at(-1) ?? null;
 		const ownTimedLaps = driverLaps.filter((lap) => isTimed(lap, timedSession));
-		const lastPart = Math.max(1, ...ownTimedLaps.map((lap) => partOfLap(lap, starts)));
-		const bestLap = bestOf(ownTimedLaps.filter((lap) => partOfLap(lap, starts) === lastPart));
+
+		const flyingLaps = ownTimedLaps.filter(
+			(lap) => fastestLapMs === null || lap.lapTimeMs <= fastestLapMs * FLYING_LAP_LIMIT
+		);
+
+		const lastPart = Math.max(1, ...flyingLaps.map((lap) => partOfLap(lap, starts)));
+		const bestLap = bestOf(flyingLaps.filter((lap) => partOfLap(lap, starts) === lastPart));
 
 		const partBestsMs = Array.from({ length: Math.max(1, starts.length) }, (_, index) =>
 			minimum(
-				ownTimedLaps.flatMap((lap) => (partOfLap(lap, starts) === index + 1 ? [lap.lapTimeMs] : []))
+				flyingLaps.flatMap((lap) => (partOfLap(lap, starts) === index + 1 ? [lap.lapTimeMs] : []))
 			)
 		);
 

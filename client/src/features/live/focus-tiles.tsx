@@ -1,5 +1,6 @@
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { ProGate } from '@/components/pro-gate';
+import { RaceOnly } from '@/components/race-only';
 import { useRace } from '@/data/race-context';
 
 import { BoxNow } from './box-now';
@@ -32,12 +33,14 @@ export function BoxNowPanel() {
 		<Panel aria-label="Pit stop prediction">
 			<PanelHeader title="Box now" meta={code} />
 			<div className="p-4">
-				<ProGate
-					feature="Pit stop prediction"
-					teaser={`Where ${code} comes out if they box this lap, and whether it is into traffic.`}
-				>
-					<BoxNow driverNumber={number} />
-				</ProGate>
+				<RaceOnly what="Pit stop prediction">
+					<ProGate
+						feature="Pit stop prediction"
+						teaser={`Where ${code} comes out if they box this lap, and whether it is into traffic.`}
+					>
+						<BoxNow driverNumber={number} />
+					</ProGate>
+				</RaceOnly>
 			</div>
 		</Panel>
 	);

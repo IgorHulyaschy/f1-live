@@ -9,6 +9,11 @@ export function isKnockout(type: SessionType): boolean {
 	return type === 'qualifying' || type === 'sprint_qualifying';
 }
 
+/** How long a timed session runs when nothing stops it, breaks between parts included. */
+export function plannedMinutes(type: SessionType): number {
+	return type === 'sprint_qualifying' ? 44 : 60;
+}
+
 /** The last part always runs with ten cars. */
 const FINAL_PART_CARS = 10;
 

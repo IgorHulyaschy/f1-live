@@ -5,6 +5,7 @@ import * as React from 'react';
 import { KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { useRace } from '@/data/race-context';
+import { isTimedSession } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
 const VISIBLE_MESSAGES = 7;
@@ -85,9 +86,23 @@ function Conditions() {
 	);
 }
 
+/** Where a message fell: its lap in a race, its minute of the session on the clock. */
+function stamp(message: RaceControlMessage, startMs: number | null): string {
+	if (startMs === null || message.at === undefined) {
+		return `L${message.lap}`;
+	}
+
+	return `${Math.max(0, Math.ceil((Date.parse(message.at) - startMs) / 60_000))}m`;
+}
+
 export function RaceControlFeed() {
 	const { snapshot, followedDriver } = useRace();
 	const [filter, setFilter] = React.useState<Filter>('all');
+
+	const startMs =
+		isTimedSession(snapshot.session.type) && snapshot.startedAt
+			? Date.parse(snapshot.startedAt)
+			: null;
 
 	const messages = snapshot.raceControl
 		.filter((message) => matches(message, filter, followedDriver))
@@ -126,7 +141,7 @@ export function RaceControlFeed() {
 									className="grid grid-cols-[2.5rem_3.5rem_minmax(0,1fr)] gap-2 border-b px-4 py-2.5 last:border-b-0"
 								>
 									<span className="text-muted-foreground font-mono text-xs leading-5">
-										L{message.lap}
+										{stamp(message, startMs)}
 									</span>
 									<span className={cn('type-label leading-5 font-bold', category.tone)}>
 										{category.code}

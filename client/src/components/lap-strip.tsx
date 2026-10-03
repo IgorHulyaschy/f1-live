@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useRace } from '@/data/race-context';
 import { minuteTime, sessionClock } from '@/data/snapshot-at-time';
 import { isCleanLap } from '@/insights/clean-laps';
+import { plannedMinutes } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
 const STATUS_LABEL: Record<TrackStatus, string> = {
@@ -126,13 +127,14 @@ const HEIGHT = ['h-px', 'h-2', 'h-3.5', 'h-5'] as const;
 export function LapStrip() {
 	const { race, lap, setLap, stepUnit, steps } = useRace();
 	const timed = stepUnit === 'minute';
-	const total = timed ? steps : race.session.totalLaps;
+	// A live session's strip spans its planned length from the start, and fills as it runs.
+	const total = timed ? Math.max(steps, plannedMinutes(race.session.type)) : race.session.totalLaps;
 	const done = timed ? steps : race.currentLap;
 	const unit = timed ? 'minute' : 'lap';
 
 	const slots = React.useMemo(
-		() => (timed ? minuteSlots(race, steps) : lapSlots(race)),
-		[race, timed, steps]
+		() => (timed ? minuteSlots(race, total) : lapSlots(race)),
+		[race, timed, total]
 	);
 
 	if (total === 0) {
