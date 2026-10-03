@@ -7,7 +7,8 @@ a saved session run the same code.
 
 - Endpoint: `ws://<host>/live` (`wss://` behind TLS), same port as the HTTP routes.
 - Version: every message has `"v": 1`. A change to a message's shape bumps `v`.
-- Messages are JSON text. The client sends nothing except `{"type":"resync"}`.
+- Messages are JSON text. The client sends `{"type":"resync"}`, and may opt in to the telemetry
+  channels below.
 - The server checks `Origin` against `CORS_ORIGINS`; a page from another origin gets 403.
   Clients that send no `Origin` (scripts, tools) are let in.
 
@@ -46,6 +47,58 @@ server and the network added.
 **`heartbeat`**: `{ "v": 1, "type": "heartbeat", "epoch": "…", "seq": 1350, "at": 1763870020456 }`
 every `WS_PING_SECONDS` (20 by default). It tells a quiet feed (a red flag, the gap before a
 session) from a dead connection: if nothing at all has come for 2 intervals, reconnect.
+
+## Telemetry channels (opt-in)
+
+Car positions and car data are not race events. They are 3 to 4 samples a second for every car,
+and the live feed sends them only with an F1 TV token (`F1TV_TOKEN`). A viewer that has no track
+map never receives them, and the server decodes nothing while no viewer wants a channel.
+Messages of the other types above are unchanged, and a client that never subscribes sees the
+protocol exactly as before. There is no new version: `"v"` stays 1.
+
+The client sends `{"type":"subscribe","channel":"positions"}` or `"car_data"`, and
+`{"type":"unsubscribe","channel":"…"}` to stop. An unknown channel is ignored. Every subscribe
+and unsubscribe is answered with:
+
+```json
+{
+	"v": 1,
+	"type": "channels",
+	"subscribed": ["positions"],
+	"live": { "positions": true, "car_data": false }
+}
+```
+
+`live` says whether the feed has sent that channel yet. When it stays `false` (no token), use the
+saved session's replay file instead (`docs/product/telemetry.md`). A new subscriber is then sent
+the last message of the channel, so it need not wait for the next one.
+
+**`positions`**: at most 4 a second, whole metres, in the same frame as the circuit outline.
+
+```json
+{
+	"v": 1,
+	"type": "positions",
+	"at": 1763870480250,
+	"cars": { "1": [332, 198, 1], "44": [-120, 410, 0] }
+}
+```
+
+`cars` maps a racing number to `[x, y, onTrack]`, with `onTrack` 1 or 0. `at` is the time of
+the newest sample, ms since the Unix epoch. A car keeps its last place until it is sent again.
+
+**`car_data`**: at most 4 a second.
+
+```json
+{ "v": 1, "type": "car_data", "at": 1763870480312, "cars": { "1": [121, 3, 57, 0, 9349, 0] } }
+```
+
+`cars` maps a racing number to `[speed km/h, gear, throttle %, brake, rpm, drs]`: gear 0 is
+neutral, `brake` and `drs` are 1 or 0, and `drs` is always 0 in seasons without DRS.
+
+Both are throttled on the server, so a burst of frames is one message, and both count against
+`WS_MAX_BUFFER_BYTES` like every other message. Only the mode that reads the feed (`all`) sends
+them: `ingest` does not forward them to a `relay` yet.
 
 ## Epoch and sequence numbers
 
@@ -102,6 +155,7 @@ restart is a drop like any other.
 live feed -> LiveFeed -> RawWriter (data/raw, archive format)
                       -> F1Decoder -> RaceEvent[] -> LiveSession (applyEvent, seq, event log)
                                                       -> LiveHub -> viewers
+                      -> LiveTelemetry (Position.z, CarData.z; throttled) -> LiveHub -> subscribers
 ```
 
 When the session reports `Finished`, `Finalised` or `Ends`, the server waits

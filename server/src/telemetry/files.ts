@@ -60,11 +60,16 @@ export async function readOutline(
 	}
 }
 
+/** A tenth of a metre is the feed's own resolution, and saves a third of the file. */
+function roundPoint([x, y]: Point): Point {
+	return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
+}
+
 export async function writeOutline(dataDir: string, outline: TrackOutline): Promise<void> {
 	const file = circuitFile(dataDir, outline.circuitKey);
 
 	await mkdir(path.dirname(file), { recursive: true });
-	await writeFile(file, JSON.stringify(outline));
+	await writeFile(file, JSON.stringify({ ...outline, points: outline.points.map(roundPoint) }));
 }
 
 /** What a session's telemetry folder holds besides the plain-JSON manifests. */
