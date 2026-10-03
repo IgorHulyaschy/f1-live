@@ -156,7 +156,7 @@ test.describe('a live qualifying session', () => {
 		await expect(page.getByTestId('tile-away').first()).toContainText('Races only');
 
 		await offer.getByRole('button', { name: 'Switch to the Quali layout' }).click();
-		await expect(page).toHaveURL(/\/\?|\/$/);
+		await expect(page).toHaveURL(/\/session(\?|$)/);
 		await expect(page.getByTestId('dashboard-quali')).toBeVisible();
 
 		await page.goBack();
