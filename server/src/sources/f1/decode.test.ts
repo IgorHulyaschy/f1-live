@@ -448,6 +448,35 @@ describe('F1Decoder', () => {
 		]);
 	});
 
+	it('reads deleted and reinstated lap times from race control messages', () => {
+		const messages = [
+			'CAR 55 (SAI) TIME 1:37.155 DELETED - TRACK LIMITS AT TURN 5 LAP 7 15:14:08',
+			'CAR 81 (PIA) LAP DELETED - TRACK LIMITS AT TURN 15 LAP 7 16:31:06 (PIT)',
+			'CAR 55 (SAI) TIME 1:37.155 WILL BE REINSTATED',
+			'CAR 14 (ALO) LAP DELETED - DOUBLE YELLOW AT TURN 5',
+			'CAR 14 (ALO) LAP 5 WILL BE REINSTATED'
+		];
+
+		const events = decodeAll(
+			messages.map((Message, index) =>
+				frame('RaceControlMessages', `00:00:0${index}`, {
+					Messages: { [index]: { Utc: '2025-11-23T03:20:00', Lap: 7, Category: 'Other', Message } }
+				})
+			)
+		);
+
+		assert.deepEqual(
+			ofKind(events, 'race_control').map(({ message }) => message.lapTimeRuling ?? null),
+			[
+				{ lapTimeMs: 97_155, lap: 7, reinstated: false },
+				{ lap: 7, reinstated: false },
+				{ lapTimeMs: 97_155, reinstated: true },
+				null,
+				{ lap: 5, reinstated: true }
+			]
+		);
+	});
+
 	it('categorises race control and reads penalties from it (RaceControlMessages)', async () => {
 		const events = decodeAll(await fixture('RaceControlMessages'));
 

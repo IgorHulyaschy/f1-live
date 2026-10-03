@@ -114,11 +114,20 @@ export const RACE_CONTROL_CATEGORIES = [
 
 export type RaceControlCategory = (typeof RACE_CONTROL_CATEGORIES)[number];
 
+/** A steward ruling on one lap time: deleted, or given back. The lap is named by its time or its number. */
+export interface LapTimeRuling {
+	lapTimeMs?: number;
+	lap?: number;
+	reinstated: boolean;
+}
+
 export interface RaceControlMessage {
 	lap: number;
 	category: RaceControlCategory;
 	message: string;
 	driverNumber?: string;
+	/** For "TIME 1:31.693 DELETED" and "WILL BE REINSTATED"; absent on every other message. */
+	lapTimeRuling?: LapTimeRuling;
 	/** When it was published, ISO 8601 UTC. Absent on the modelled replay. */
 	at?: string;
 }

@@ -1,11 +1,13 @@
 import { TYRE_COMPOUNDS } from '@f1-live/shared';
 import type {
 	Driver,
+	LapTimeRuling,
 	Penalty,
 	PenaltyKind,
 	PenaltyStatus,
 	PersonalBest,
 	RaceControlCategory,
+	RaceControlMessage,
 	RaceEvent,
 	Session,
 	SessionStatus,
@@ -300,6 +302,50 @@ function raceControlCategory(category: string, message: string): RaceControlCate
 	}
 
 	return message.includes('INCIDENT') ? 'incident' : 'other';
+}
+
+const DELETED_TIME = /\bTIME (\d+):(\d{2}\.\d{3}) DELETED/;
+
+const DELETED_LAP = /\bLAP DELETED\b.* LAP (\d+) \d{2}:\d{2}:\d{2}/;
+
+const REINSTATED = /\b(?:TIME (\d+):(\d{2}\.\d{3})|LAP (\d+)) WILL BE REINSTATED/;
+
+function minutesToMs(minutes: string, seconds: string): number {
+	return Math.round((Number(minutes) * 60 + Number(seconds)) * 1000);
+}
+
+/**
+ * A deleted or reinstated lap time in a race control message. A deletion that names neither the
+ * time nor the lap, as for a lap deleted for double yellows, cannot be matched to a lap.
+ */
+function parseLapTimeRuling(message: string): LapTimeRuling | null {
+	const time = DELETED_TIME.exec(message);
+
+	if (time?.[1] !== undefined && time[2] !== undefined) {
+		const lap = /LAP (\d+) \d{2}:\d{2}:\d{2}/.exec(message)?.[1];
+
+		const ruling: LapTimeRuling = { lapTimeMs: minutesToMs(time[1], time[2]), reinstated: false };
+
+		if (lap !== undefined) {
+			ruling.lap = Number(lap);
+		}
+
+		return ruling;
+	}
+
+	const lap = DELETED_LAP.exec(message)?.[1];
+
+	if (lap !== undefined) {
+		return { lap: Number(lap), reinstated: false };
+	}
+
+	const [, minutes, seconds, reinstatedLap] = REINSTATED.exec(message) ?? [];
+
+	if (minutes !== undefined && seconds !== undefined) {
+		return { lapTimeMs: minutesToMs(minutes, seconds), reinstated: true };
+	}
+
+	return reinstatedLap === undefined ? null : { lap: Number(reinstatedLap), reinstated: true };
 }
 
 const PENALTY_PATTERNS: readonly (readonly [PenaltyKind, RegExp])[] = [
@@ -967,16 +1013,18 @@ export class F1Decoder {
 			const driverNumber = message.RacingNumber ?? RACE_CONTROL_CAR.exec(text)?.[1];
 			const category = raceControlCategory(message.Category ?? '', text);
 
-			const events: RaceEvent[] = [
-				{
-					kind: 'race_control',
-					at,
-					message:
-						driverNumber === undefined
-							? { lap, category, message: text }
-							: { lap, category, message: text, driverNumber }
-				}
-			];
+			const control: Omit<RaceControlMessage, 'at'> = { lap, category, message: text };
+			const lapTimeRuling = parseLapTimeRuling(text);
+
+			if (driverNumber !== undefined) {
+				control.driverNumber = driverNumber;
+			}
+
+			if (lapTimeRuling !== null) {
+				control.lapTimeRuling = lapTimeRuling;
+			}
+
+			const events: RaceEvent[] = [{ kind: 'race_control', at, message: control }];
 
 			const penalty = category === 'penalty' ? parsePenalty(text, lap) : null;
 

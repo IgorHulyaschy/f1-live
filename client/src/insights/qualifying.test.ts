@@ -196,6 +196,22 @@ describe('flying laps', () => {
 	});
 });
 
+function ruling(reinstated: boolean): RaceSnapshot['raceControl'][number] {
+	return {
+		lap: 1,
+		category: 'other' as const,
+		message: reinstated
+			? 'CAR 12 TIME 1:25.000 WILL BE REINSTATED'
+			: 'CAR 12 TIME 1:25.000 DELETED',
+		driverNumber: '12',
+		lapTimeRuling: { lapTimeMs: 85_000, reinstated }
+	};
+}
+
+function placeOf(rows: ReturnType<typeof standingsAt>, driver: string): number {
+	return rows.findIndex((row) => row.driver.number === driver);
+}
+
 describe('ranking a replayed qualifying session', () => {
 	const statuses: readonly [number, SessionStatus][] = [
 		[0, 'started'],
@@ -219,15 +235,33 @@ describe('ranking a replayed qualifying session', () => {
 		assert.deepEqual(rows.find((row) => row.driver.number === '1')?.partBestsMs, [90_000, 89_000]);
 	});
 
-	it('takes the cars that ran in the next part as the ones that went through', () => {
+	describe('with a lap time the stewards deleted', () => {
 		const snapshot = qualifying(statuses);
+		const quick = lap('12', 3, 6, 85_000);
 
-		// Car 12's Q1 time would have been quickest, but it was deleted: it never ran in Q2.
-		const laps = [...snapshot.laps.filter((entry) => entry.lap <= 4), lap('12', 3, 6, 85_000)];
+		const rowsWith = (raceControl: RaceSnapshot['raceControl']) =>
+			standingsAt({
+				...snapshot,
+				laps: [...snapshot.laps.filter((entry) => entry.lap <= 4), quick],
+				raceControl
+			});
 
-		const rows = standingsAt({ ...snapshot, laps });
+		it('puts the car through to the second part while the time stands', () => {
+			assert.ok(placeOf(rowsWith([]), '12') < placeOf(rowsWith([]), '11'));
+		});
 
-		assert.equal(rows.at(-1)?.driver.number, '12');
+		it('ranks the car on its next best time, and knocks it out of the part it was through in', () => {
+			const rows = rowsWith([ruling(false)]);
+
+			assert.equal(rows.at(-1)?.driver.number, '12');
+			assert.equal(rows.at(-1)?.partBestsMs[0], 90_000 + 11 * 100);
+		});
+
+		it('gives the time back when it is reinstated', () => {
+			const rows = rowsWith([ruling(false), ruling(true)]);
+
+			assert.ok(placeOf(rows, '12') < placeOf(rows, '11'));
+		});
 	});
 
 	it('ranks a car with no time in the last part after those with one', () => {
