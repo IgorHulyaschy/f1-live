@@ -59,7 +59,7 @@ const envSchema = z
 			.number()
 			.int()
 			.positive()
-			.default(16 * 1024 * 1024),
+			.default(4 * 1024 * 1024),
 		WS_PING_SECONDS: z.coerce.number().positive().default(20)
 	})
 	.superRefine((env, context) => {

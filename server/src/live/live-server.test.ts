@@ -81,6 +81,25 @@ describe('the live path replays a saved session', () => {
 	});
 });
 
+describe('a frame the decoder rejects', () => {
+	it('is skipped and the session carries on', async () => {
+		const expected = await reduceDirectly(FIXTURE_DIR);
+		const frames = await loadReplayFrames(FIXTURE_DIR);
+		const middle = frames[Math.floor(frames.length / 2)]?.timestamp ?? 0;
+
+		const playback = await startPlayback([
+			...frames.slice(0, 50),
+			{ topic: 'TimingData', data: { Lines: 'not lines' }, timestamp: middle },
+			...frames.slice(50)
+		]);
+
+		running.push(playback);
+		await playback.upstream.done;
+		await untilQuiet(playback.server);
+		assert.deepEqual(playback.server.session.current, expected);
+	});
+});
+
 /** A server with no upstream traffic, whose session the test feeds by hand. */
 async function startEmpty(env: Record<string, string> = {}) {
 	const playback = await startPlayback([], { env });

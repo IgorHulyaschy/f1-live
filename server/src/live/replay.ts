@@ -4,6 +4,7 @@ import path from 'node:path';
 import { z } from 'zod';
 
 import { archiveTopics, parseJsonStream, readArchive } from '../sources/f1/archive.js';
+import { F1_TOPICS } from '../sources/f1/decode.js';
 import type { TopicFrame } from '../sources/f1/decode.js';
 
 const keySchema = z.object({ Key: z.number() });
@@ -38,7 +39,17 @@ export async function findSavedSession(rawDir: string, key: number): Promise<str
 	return null;
 }
 
-/** Every topic of a saved session as one time-ordered stream of frames, whatever recorded it. */
-export async function loadReplayFrames(directory: string): Promise<TopicFrame[]> {
-	return readArchive(directory, await archiveTopics(directory));
+/**
+ * A saved session as one time-ordered stream of frames, whatever recorded it: every topic by
+ * default, or only `topics`.
+ */
+export async function loadReplayFrames(
+	directory: string,
+	topics?: readonly string[]
+): Promise<TopicFrame[]> {
+	// A live recording keeps topics that never sent a frame only in its subscribe results.
+	return readArchive(
+		directory,
+		topics ?? [...new Set([...F1_TOPICS, ...(await archiveTopics(directory))])]
+	);
 }

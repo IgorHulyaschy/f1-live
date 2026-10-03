@@ -55,7 +55,7 @@ export async function createServer(
 ): Promise<LiveServer> {
 	const app = Fastify({ logger: { level: config.logLevel } });
 	const log: EventLog = (event, fields) => app.log.info({ event, ...fields }, event);
-	const session = new LiveSession(config.live.logEvents, options.now);
+	const session = new LiveSession(config.live.logEvents);
 	const serves = config.mode !== 'ingest';
 
 	await app.register(cors, {
@@ -99,6 +99,10 @@ export async function createServer(
 				: null
 			: options.importer;
 
+	/** A background loop that ends on its own is a bug: say so instead of failing silently. */
+	const supervise = (name: string, task: Promise<void>) =>
+		task.catch((cause: unknown) => app.log.error({ err: cause }, `${name} stopped`));
+
 	const start = () => {
 		if (config.mode !== 'relay') {
 			const pipeline = new LivePipeline({
@@ -116,7 +120,7 @@ export async function createServer(
 				onSessionEnded: (recording) => importer?.sessionEnded(recording)
 			});
 
-			tasks.push(pipeline.run(stop.signal));
+			tasks.push(supervise('live-pipeline', pipeline.run(stop.signal)));
 		}
 
 		if (config.mode === 'ingest' && config.relay.url && config.relay.secret) {
@@ -128,7 +132,7 @@ export async function createServer(
 				fetchImpl: options.fetchImpl
 			});
 
-			tasks.push(pusher.run(stop.signal));
+			tasks.push(supervise('relay-pusher', pusher.run(stop.signal)));
 		}
 	};
 

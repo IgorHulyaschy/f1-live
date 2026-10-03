@@ -4,6 +4,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { loadConfig } from '../config.js';
+import { F1_TOPICS } from '../sources/f1/decode.js';
 import { FakeUpstream } from '../live/fake-upstream.js';
 import { findSavedSession, loadReplayFrames } from '../live/replay.js';
 import { createServer } from '../main.js';
@@ -13,12 +14,13 @@ const { values } = parseArgs({
 		key: { type: 'string' },
 		dir: { type: 'string' },
 		speed: { type: 'string', default: '10' },
-		import: { type: 'boolean', default: false }
+		import: { type: 'boolean', default: false },
+		'decoder-topics': { type: 'boolean', default: false }
 	}
 });
 
 const usage =
-	'Usage: npm run replay-live -w server -- (--key <session key> | --dir <session folder>) [--speed 10] [--import]';
+	'Usage: npm run replay-live -w server -- (--key <session key> | --dir <session folder>) [--speed 10] [--import] [--decoder-topics]';
 
 const speed = Number(values.speed);
 
@@ -41,7 +43,7 @@ if (!directory) {
 	);
 }
 
-const frames = await loadReplayFrames(directory);
+const frames = await loadReplayFrames(directory, values['decoder-topics'] ? F1_TOPICS : undefined);
 
 const upstream = await FakeUpstream.start(frames, { speed });
 

@@ -156,12 +156,19 @@ export class LiveSession {
 
 		const from = this.seq + 1;
 
+		// Reduced first, so an event the reducer rejects leaves the session as it was.
+		let snapshot = this.snapshot;
+
 		for (const event of events) {
-			this.snapshot = applyEvent(this.snapshot, event);
-			this.log.push(event);
+			snapshot = applyEvent(snapshot, event);
 		}
 
+		this.snapshot = snapshot;
 		this.seq += events.length;
+
+		for (const event of events) {
+			this.log.push(event);
+		}
 
 		// Trimmed in steps so a full log does not copy itself on every push.
 		if (this.log.length > this.maxLogEvents * 1.25) {

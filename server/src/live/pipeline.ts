@@ -12,7 +12,7 @@ import type { LiveSession } from './session.js';
 
 const END_STATUSES = new Set(['finished', 'finalised', 'ended']);
 
-const DECODE_LOG_EVERY = 1000;
+const FAILURE_LOG_EVERY = 1000;
 
 const sessionKeySchema = z.object({ Key: z.number() });
 
@@ -45,7 +45,7 @@ export class LivePipeline {
 	private decoder = new F1Decoder();
 	private sessionKey: number | null = null;
 	private recording: Recording | null = null;
-	private decodeFailures = 0;
+	private failures = 0;
 
 	constructor(options: PipelineOptions) {
 		const { rawDir, log, feed, now = Date.now } = options;
@@ -92,7 +92,7 @@ export class LivePipeline {
 			const data = snapshot[topic];
 
 			if (data !== undefined) {
-				this.decode({ topic, data, timestamp: at });
+				this.decode({ topic, data, timestamp: at }, false);
 			}
 		}
 	}
@@ -102,14 +102,21 @@ export class LivePipeline {
 
 		const sent = frame.timestamp === null ? Number.NaN : Date.parse(frame.timestamp);
 
-		this.decode({
-			topic: frame.topic,
-			data: frame.payload,
-			timestamp: Number.isNaN(sent) ? this.now() : sent
-		});
+		this.decode(
+			{
+				topic: frame.topic,
+				data: frame.payload,
+				timestamp: Number.isNaN(sent) ? this.now() : sent
+			},
+			true
+		);
 	}
 
-	private decode(frame: TopicFrame) {
+	/**
+	 * `announced` frames report a change as it happens. A subscribe result only restates how
+	 * things stand, so a server that starts after a session ended does not import it again.
+	 */
+	private decode(frame: TopicFrame, announced: boolean) {
 		if (frame.topic === 'SessionInfo') {
 			this.followSession(frame);
 		}
@@ -118,13 +125,14 @@ export class LivePipeline {
 
 		try {
 			events = this.decoder.decode(frame);
+			this.options.session.push(events);
 		} catch (cause) {
-			this.decodeFailures += 1;
+			this.failures += 1;
 
-			if (this.decodeFailures === 1 || this.decodeFailures % DECODE_LOG_EVERY === 0) {
-				this.options.log('decode-failed', {
+			if (this.failures === 1 || this.failures % FAILURE_LOG_EVERY === 0) {
+				this.options.log('frame-failed', {
 					topic: frame.topic,
-					failures: this.decodeFailures,
+					failures: this.failures,
 					error: describeError(cause)
 				});
 			}
@@ -132,9 +140,8 @@ export class LivePipeline {
 			return;
 		}
 
-		this.options.session.push(events);
-
 		if (
+			announced &&
 			this.recording &&
 			events.some((event) => event.kind === 'session_status' && END_STATUSES.has(event.status))
 		) {

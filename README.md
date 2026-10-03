@@ -47,11 +47,11 @@ Design rules: [docs/design/identity.md](docs/design/identity.md). What comes nex
 
 ## Layout
 
-| Workspace | What it is                                                                   |
-| --------- | ---------------------------------------------------------------------------- |
-| `shared`  | Race data contract shared by server and client (`shared/src/race.ts`).       |
-| `server`  | Fastify + Postgres. Subscribes to the live timing feed and serves `/onLoad`. |
-| `client`  | React 19, Vite, Tailwind 4, shadcn/ui and shadcn charts (Recharts).          |
+| Workspace | What it is                                                             |
+| --------- | ---------------------------------------------------------------------- |
+| `shared`  | Race data contract shared by server and client (`shared/src/race.ts`). |
+| `server`  | One Fastify process: the live timing feed, `WS /live`, saved sessions. |
+| `client`  | React 19, Vite, Tailwind 4, shadcn/ui and shadcn charts (Recharts).    |
 
 ## Getting started
 
@@ -62,11 +62,17 @@ npm install
 cp client/.env.example client/.env   # VITE_DATA_SOURCE=mock
 npm run dev -w client
 
-# Server against Postgres and the live feed
-cp server/.env.example server/.env   # set DATABASE_URL
-npm run migrations:up -w server
+# Server: live feed, WS /live and saved sessions on one port (3000); no database needed
+cp server/.env.example server/.env   # optional
 npm run dev -w server
+
+# With no session live, replay a saved one through the same live path
+npm run fetch:f1 -w server -- 9858
+npm run replay-live -w server -- --key 9858 --speed 10
 ```
+
+The WebSocket protocol, the ingest/relay split for cloud hosts and the load smoke are in
+[docs/product/live-protocol.md](docs/product/live-protocol.md).
 
 The mock replay is the 2025 Las Vegas Grand Prix. Grid, stints, race control, weather, VSC laps
 and the order at the flag are real (from `server/data-examples`); lap and sector times are
