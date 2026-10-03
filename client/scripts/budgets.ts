@@ -33,6 +33,14 @@ const OUT_DIR = 'dist-budget';
 
 const FORM_FACTORS = ['mobile', 'desktop'] as const;
 
+/**
+ * Ubuntu 24.04 runners forbid the unprivileged user namespaces Chrome's sandbox needs, so Chrome
+ * launched outside Playwright dies on start there. The flags replace the ones in
+ * lighthouserc.json, so they repeat them; macOS keeps the config's own.
+ */
+const LINUX_CHROME_FLAGS =
+	'--headless=new --ignore-certificate-errors --no-sandbox --disable-dev-shm-usage';
+
 const ROUTES = ['/', '/analysis', '/library'] as const;
 
 type ManifestEntry = {
@@ -101,7 +109,9 @@ async function scoreTable(): Promise<string> {
 	const rows = await Promise.all(
 		FORM_FACTORS.map(async (formFactor) => {
 			const manifest: ManifestEntry[] = JSON.parse(
-				await readFile(`${CLIENT_DIR}.lighthouseci/${formFactor}/manifest.json`, 'utf8')
+				await readFile(`${CLIENT_DIR}.lighthouseci/${formFactor}/manifest.json`, 'utf8').catch(
+					() => '[]'
+				)
 			);
 
 			return manifest.flatMap((entry) =>
@@ -146,6 +156,9 @@ try {
 					'--config=lighthouserc.json',
 					`--upload.outputDir=.lighthouseci/${formFactor}`,
 					...ROUTES.map((route) => `--collect.url=${server.origin}${route}`),
+					...(process.platform === 'linux'
+						? [`--collect.settings.chromeFlags=${LINUX_CHROME_FLAGS}`]
+						: []),
 					...(formFactor === 'desktop' ? ['--collect.settings.preset=desktop'] : [])
 				],
 				{ CHROME_PATH: chromePath }
@@ -157,6 +170,12 @@ try {
 }
 
 console.warn(`\n${await scoreTable()}`);
+
+if (!lighthouseOk.every(Boolean)) {
+	console.error(
+		'Lighthouse failed. If the log above shows Chrome dying on launch (for example "No usable sandbox"), the runs never started and no report was written.'
+	);
+}
 
 if (!bundleOk || !lighthouseOk.every(Boolean)) {
 	console.error('Budgets failed: see the size line and the Lighthouse assertions above.');
