@@ -109,6 +109,9 @@ to it and its layout.
   (1600 × 1000), and under the timing in Quali and Practice, beside Best sectors or Stints.
   Quali ends with Gap distance: the grid as metres behind pole.
 
+The **Season standings** tile (Analysis, add it from the library) lists the top ten of the open
+session's season after the latest round the viewer has seen; it links to `/standings`.
+
 ## What ships by default
 
 | Ready-made | For                      | Tiles                                                                           |
