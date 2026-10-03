@@ -83,7 +83,7 @@ export function formatReport(report: ImportReport, outputs: OutputDigest): strin
 		`raw: ${megabytes(report.rawBytes)}`,
 		`output: ${megabytes(outputs.bytes)}`,
 		`sessions with telemetry: ${built.length}`,
-		`telemetry skipped (no Position.z, no circuit key or no laps): ${telemetrySkipped.length}`,
+		`telemetry skipped (no Position.z, no circuit key, no laps or no lap to draw the circuit from): ${telemetrySkipped.length}`,
 		`telemetry failed: ${telemetryFailed.length}`,
 		...telemetryFailed.map(
 			({ outcome, reason }) => `  ${outcome.label} (${outcome.key}): ${reason}`
