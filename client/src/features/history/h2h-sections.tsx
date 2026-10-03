@@ -333,12 +333,10 @@ export function GapTrend({ totals, pair }: { totals: H2HTotals; pair: Pair }) {
 		<Panel>
 			<PanelHeader title="Qualifying gap" meta="each session, and the average of the last five" />
 			<figure className="px-4 py-3">
-				<svg
-					viewBox={`0 0 ${width} ${height}`}
-					className="h-40 w-full"
-					role="img"
-					aria-label={`Qualifying gap over ${points.length} sessions; below the line ${pair.a.label} was quicker`}
-				>
+				<figcaption className="sr-only">
+					{`Qualifying gap over ${points.length} sessions; below the line ${pair.a.label} was quicker`}
+				</figcaption>
+				<svg viewBox={`0 0 ${width} ${height}`} className="h-40 w-full" aria-hidden>
 					<line
 						x1={0}
 						x2={width}

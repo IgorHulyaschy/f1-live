@@ -220,6 +220,7 @@ export function sessionResults(snapshot: RaceSnapshot, season: number): SessionR
 
 			const classified =
 				!standing.disqualified && (!race || standing.lapsCompleted >= classifiedLaps);
+
 			const hasFastest = fastest === standing.driverNumber;
 
 			const points = classified

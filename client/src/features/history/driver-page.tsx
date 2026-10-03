@@ -33,6 +33,16 @@ function place(row: ResultRow | null): string {
 	return row.classified ? `P${row.position}` : row.status === 'nc' ? 'NC' : 'DNF';
 }
 
+function cell(result: ResultRow | null, key: number | undefined) {
+	return result && key !== undefined ? (
+		<Link to={sessionLink(key, result.number)} className="hover:underline">
+			{place(result)}
+		</Link>
+	) : (
+		'–'
+	);
+}
+
 function points(value: number): string {
 	return Number.isInteger(value) ? String(value) : value.toFixed(1);
 }
@@ -92,8 +102,8 @@ export function DriverPage() {
 	return (
 		<div className="flex flex-col gap-6" data-testid="driver-page">
 			<PageTitle title={name}>
-				{info?.code ?? ''} · every weekend since {years[0] ?? 2018} the archive holds. Points follow
-				each season’s rules; results you have not seen yet are left out.
+				{info?.code ? `${info.code}, every` : 'Every'} weekend since {years[0] ?? 2018} the archive
+				holds. Points follow each season’s rules; results you have not seen yet are left out.
 			</PageTitle>
 			<div className="flex flex-wrap items-end gap-x-6 gap-y-3 border-y py-3">
 				<Field label="Seasons">{summaries.length}</Field>
@@ -149,15 +159,6 @@ export function DriverPage() {
 										.filter((weekend) => weekend.season === year)
 										.map((weekend) => {
 											const row = weekend.race ?? weekend.qualifying;
-
-											const cell = (result: ResultRow | null, key: number | undefined) =>
-												result && key !== undefined ? (
-													<Link to={sessionLink(key, result.number)} className="hover:underline">
-														{place(result)}
-													</Link>
-												) : (
-													'–'
-												);
 
 											return (
 												<tr key={weekend.round.meetingKey} className="h-8 border-b last:border-b-0">

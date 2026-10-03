@@ -1,9 +1,10 @@
 import type { SeasonResults } from '@f1-live/shared/results';
-import { LinkIcon } from 'lucide-react';
+import { DownloadIcon, LinkIcon, LockIcon } from 'lucide-react';
 import * as React from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
 
+import { BRAND, brandSlug } from '@/brand';
 import { Key, KeyGroup } from '@/components/console/keys';
 import { LoadingState } from '@/components/site-frame';
 import {
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { useRace } from '@/data/race-context';
 import { useSeasonResults } from '@/data/results-context';
+import { useGoPro } from '@/features/account/go-pro';
 import { h2hFacts } from '@/insights/h2h-facts';
 import {
 	H2H_PRESETS,
@@ -49,6 +51,10 @@ const PRESET_LABEL: Record<H2HPreset, string> = {
 	season: 'This season',
 	career: 'Career overlap'
 };
+
+function tally(value: { a: number; b: number }) {
+	return { a: String(value.a), b: String(value.b) };
+}
 
 function readRef(text: string | null): RoundRef | null {
 	const match = /^(\d{4})\.(\d{1,2})$/.exec(text ?? '');
@@ -112,7 +118,8 @@ export function HeadToHeadPage() {
 	const state = useSeasonResults(years);
 	const [params] = useSearchParams();
 	const set = useSearchUpdate();
-	const { followedDriver } = useRace();
+	const { followedDriver, plan } = useRace();
+	const goPro = useGoPro();
 	const counts = useHistoryFilter();
 	const mode: H2HMode = params.get('mode') === 'teams' ? 'teams' : 'drivers';
 	const seasons = React.useMemo(() => (state.status === 'ready' ? state.seasons : []), [state]);
@@ -157,8 +164,16 @@ export function HeadToHeadPage() {
 			? null
 			: (askedPreset ?? (presetRanges.get(defaultPreset) ? defaultPreset : 'career'));
 
-	const range: H2HRange | null =
-		from && to ? { from, to } : preset ? (presetRanges.get(preset) ?? null) : null;
+	const fromKey = from ? writeRef(from) : null;
+	const toKey = to ? writeRef(to) : null;
+
+	const range = React.useMemo(
+		(): H2HRange | null =>
+			from && to ? { from, to } : preset ? (presetRanges.get(preset) ?? null) : null,
+		// from/to are rebuilt from the URL each render; their text keys are the stable inputs.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[fromKey, toKey, preset, presetRanges]
+	);
 
 	const events = React.useMemo(
 		() => (sides && range ? sharedEvents(seasons, sides.a, sides.b, range, include) : []),
@@ -188,9 +203,49 @@ export function HeadToHeadPage() {
 		url.searchParams.set('a', idA ?? '');
 		url.searchParams.set('b', idB ?? '');
 
-		// Owner item hook: T17's share card would render this comparison as an image here.
 		await navigator.clipboard.writeText(url.toString()).catch(() => undefined);
 		toast('Link copied', { description: 'It opens this comparison and range.' });
+	};
+
+	// The share card (Pro) reuses the gap card's frame and fonts; it loads when first used.
+	const saveCard = async () => {
+		if (!totals || !a || !b || !range) {
+			return;
+		}
+
+		const [{ h2hCardBlob }, { CARD_SIZES, readCardTheme }] = await Promise.all([
+			import('./h2h-card'),
+			import('@/features/gaps/gap-card')
+		]);
+
+		const size = CARD_SIZES[0];
+
+		const blob = await h2hCardBlob(size, {
+			a: { name: a.label, colour: a.colour },
+			b: { name: b.label, colour: b.colour },
+			subtitle: `${writeRef(range.from)} to ${writeRef(range.to)}, ${totals.racesTogether} races together`,
+			rows: [
+				{ label: 'Qualifying', ...tally(totals.qualifying) },
+				{ label: 'Race', ...tally(totals.race) },
+				{ label: 'Wins', ...tally({ a: totals.a.wins, b: totals.b.wins }) },
+				{ label: 'Podiums', ...tally({ a: totals.a.podiums, b: totals.b.podiums }) },
+				{ label: 'Poles', ...tally({ a: totals.a.poles, b: totals.b.poles }) },
+				{ label: 'DNFs', ...tally({ a: totals.a.dnfs, b: totals.b.dnfs }) },
+				{ label: 'Points', a: String(totals.a.points), b: String(totals.b.points) }
+			],
+			fact: facts[0]?.text ?? null,
+			brand: BRAND.name,
+			site: BRAND.origin.replace(/^https?:\/\//, ''),
+			theme: readCardTheme(document.documentElement)
+		});
+
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+
+		link.href = url;
+		link.download = `${brandSlug()}-h2h-${idA}-${idB}-${size.width}x${size.height}.png`;
+		link.click();
+		window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
 	};
 
 	return (
@@ -216,10 +271,27 @@ export function HeadToHeadPage() {
 							})
 						}
 					/>
-					<Key onClick={() => void share()} className="ml-auto">
-						<LinkIcon aria-hidden />
-						Copy link
-					</Key>
+					<span className="ml-auto flex gap-2">
+						{plan === 'pro' ? (
+							<Key onClick={() => void saveCard()} disabled={!totals} data-testid="h2h-card">
+								<DownloadIcon aria-hidden />
+								Card
+							</Key>
+						) : (
+							<Key
+								onClick={goPro}
+								title="Share cards are part of Pro"
+								data-testid="h2h-card-locked"
+							>
+								<LockIcon aria-hidden />
+								Card
+							</Key>
+						)}
+						<Key onClick={() => void share()}>
+							<LinkIcon aria-hidden />
+							Copy link
+						</Key>
+					</span>
 				</div>
 				<div className="flex flex-col gap-2 sm:flex-row">
 					<ContenderPicker
@@ -242,12 +314,11 @@ export function HeadToHeadPage() {
 					/>
 				</div>
 				<div className="flex flex-wrap items-center gap-2">
-					<div role="radiogroup" aria-label="Range" className="flex flex-wrap">
+					<fieldset aria-label="Range" className="flex flex-wrap">
 						{H2H_PRESETS.map((entry, index) => (
 							<Key
 								key={entry}
-								role="radio"
-								aria-checked={preset === entry}
+								aria-pressed={preset === entry}
 								pressed={preset === entry}
 								disabled={!presetRanges.get(entry)}
 								onClick={() => set({ preset: entry, from: null, to: null })}
@@ -256,7 +327,7 @@ export function HeadToHeadPage() {
 								{PRESET_LABEL[entry]}
 							</Key>
 						))}
-					</div>
+					</fieldset>
 					{range && choices.length > 0 ? (
 						<>
 							<RangeEnd
