@@ -2,3 +2,4 @@ package-lock.json
 server/data-examples/
 tools/oxlint/anti-slop/
 client/shots/output/
+server/accounts-migrations/
