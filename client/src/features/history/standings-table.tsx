@@ -114,7 +114,7 @@ export function StandingsTable({
 											<span className="type-wide text-xs font-bold">
 												{driver?.code ?? entry.id}
 											</span>
-											<span className="text-muted-foreground hidden truncate text-xs @xs:inline">
+											<span className="text-muted-foreground hidden truncate text-xs @xl:inline">
 												{driver ? `${driver.firstName} ${driver.lastName}` : ''}
 											</span>
 										</Link>

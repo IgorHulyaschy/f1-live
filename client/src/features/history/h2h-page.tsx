@@ -364,7 +364,7 @@ export function HeadToHeadPage() {
 				</p>
 			) : null}
 			{a && b && sides && totals && events.length > 0 ? (
-				<div className="grid items-start gap-6 xl:grid-cols-[minmax(0,5fr)_minmax(0,4fr)]">
+				<div className="grid items-start gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
 					<div className="flex flex-col gap-6">
 						<Scoreboard totals={totals} pair={{ a, b }} sides={sides} />
 						<GapTrend totals={totals} pair={{ a, b }} />

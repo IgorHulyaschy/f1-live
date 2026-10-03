@@ -267,7 +267,7 @@ export function DriverPage() {
 									</span>
 									<Link
 										to={`/h2h?a=${id}&b=${mate.driver}&preset=teammates`}
-										className="type-label hover:border-rule-strong inline-flex h-9 items-center gap-1.5 border border-b-2 px-2 sm:h-7 [&_svg]:size-3.5"
+										className="type-label hover:border-rule-strong inline-flex h-9 items-center gap-1.5 border border-b-2 px-2 sm:h-7"
 									>
 										<SwordsIcon aria-hidden />
 										H2H

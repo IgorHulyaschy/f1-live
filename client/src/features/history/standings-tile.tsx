@@ -56,7 +56,7 @@ export function SeasonStandingsTile() {
 						/>
 						<Link
 							to={`/standings?season=${season.season}&view=${view}`}
-							className="type-label hover:text-foreground inline-block py-2"
+							className="type-label hover:text-foreground block py-2"
 						>
 							Full standings
 						</Link>

@@ -138,7 +138,7 @@ export function ContenderPicker({
 			<Key
 				onClick={() => setOpen(true)}
 				aria-label={`${label}: ${value?.label ?? 'nobody'}`}
-				className="h-11 min-w-0 flex-1 justify-between gap-2 sm:h-10"
+				className="h-12 min-w-0 flex-1 justify-between gap-2"
 				data-testid={`h2h-pick-${label === 'First' ? 'a' : 'b'}`}
 			>
 				<span className="flex min-w-0 items-center gap-2">

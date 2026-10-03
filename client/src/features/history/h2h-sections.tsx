@@ -50,7 +50,7 @@ function Split({ a, b, pair }: { a: number; b: number; pair: Pair }) {
 	const sameTeam = pair.a.colour === pair.b.colour;
 
 	return (
-		<span aria-hidden className="col-span-3 flex h-1.5 gap-px">
+		<span aria-hidden className="col-span-3 flex h-2 gap-px">
 			<span
 				className="bg-team h-full w-(--size)"
 				style={{ '--team': `#${pair.a.colour}`, '--size': `${share}%` }}
@@ -193,7 +193,7 @@ export function Scoreboard({
 				/>
 				<Row pair={pair} label="Points" a={number(a.points)} b={number(b.points)} />
 			</ul>
-			<h3 className="type-label border-rule-strong mx-4 mt-3 border-b-2 pb-1">Deeper</h3>
+			<h3 className="type-label border-rule-strong mx-4 mt-2 border-b-2 pb-1">Deeper</h3>
 			<ul className="px-4 pb-2" data-testid="h2h-deeper">
 				{totals.sprintQualifying.a + totals.sprintQualifying.b > 0 ? (
 					<Row
@@ -342,7 +342,7 @@ export function GapTrend({ totals, pair }: { totals: H2HTotals; pair: Pair }) {
 						x2={width}
 						y1={height / 2}
 						y2={height / 2}
-						className="stroke-rule-strong"
+						className="stroke-border"
 						strokeWidth={1}
 					/>
 					{points.map((point, index) => (
@@ -505,7 +505,7 @@ export function EventList({ events, pair }: { events: readonly H2HEvent[]; pair:
 	return (
 		<Panel>
 			<PanelHeader title="Every weekend" meta={`${events.length}, newest first`} />
-			<div className="max-h-160 overflow-auto px-4">
+			<div className="max-h-120 overflow-auto px-4">
 				<table className="w-full text-sm" data-testid="h2h-events">
 					<caption className="sr-only">
 						Weekends {pair.a.label} and {pair.b.label} shared
