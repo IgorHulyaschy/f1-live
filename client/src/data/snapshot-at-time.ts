@@ -112,6 +112,8 @@ export function snapshotAtTime(race: RaceSnapshot, time: number): RaceSnapshot {
 					? { ...penalty, status: 'issued' }
 					: { ...penalty, servedLap }
 			),
+		overtakes: race.overtakes?.filter((pass) => pass.at <= at),
+		teamRadio: race.teamRadio?.filter((clip) => clip.at <= at),
 		personalBests: bestsSoFar(race, laps),
 		corrections: (race.corrections ?? []).filter((correction) => correction.at <= at)
 	};
