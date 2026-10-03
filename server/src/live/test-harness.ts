@@ -1,4 +1,4 @@
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -10,8 +10,10 @@ import { loadConfig } from '../config.js';
 import type { Config } from '../config.js';
 import { createServer } from '../main.js';
 import type { LiveServer, ServerOptions } from '../main.js';
+import { parseJsonStream } from '../sources/f1/archive.js';
 import { F1Decoder } from '../sources/f1/decode.js';
 import type { TopicFrame } from '../sources/f1/decode.js';
+import { CAR_DATA_TOPIC, POSITION_TOPIC } from '../sources/f1/telemetry.js';
 import { FakeUpstream } from './fake-upstream.js';
 import { LiveReplica, parseServerMessage } from './replica.js';
 import type { ReplicaStep } from './replica.js';
@@ -21,6 +23,23 @@ export const FIXTURE_DIR = path.join(
 	import.meta.dirname,
 	'../sources/f1/fixtures/2025-las-vegas-race'
 );
+
+const TELEMETRY_FIXTURE_DIR = path.join(
+	import.meta.dirname,
+	'../sources/f1/fixtures/2025-las-vegas-telemetry'
+);
+
+/** Ten seconds of positions and car data of the Las Vegas race, as frames on session time. */
+export function telemetryFrames(): TopicFrame[] {
+	return [POSITION_TOPIC, CAR_DATA_TOPIC]
+		.flatMap((topic) =>
+			parseJsonStream(
+				topic,
+				readFileSync(path.join(TELEMETRY_FIXTURE_DIR, `${topic}.jsonStream`), 'utf8')
+			).map((line) => ({ topic, data: line.data, timestamp: 1_763_870_000_000 + line.offsetMs }))
+		)
+		.toSorted((a, b) => a.timestamp - b.timestamp);
+}
 
 const WAIT_MS = 20_000;
 

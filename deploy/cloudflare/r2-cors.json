@@ -1,0 +1,12 @@
+{
+	"rules": [
+		{
+			"allowed": {
+				"origins": ["https://app.example.com"],
+				"methods": ["GET", "HEAD"],
+				"headers": ["*"]
+			},
+			"maxAgeSeconds": 86400
+		}
+	]
+}

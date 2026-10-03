@@ -36,7 +36,9 @@ replay keys and lap strip move and resize like timing or a chart.
   server needed. Export/Import does the same with a file.
 - **First run.** `/welcome` picks the driver you follow and a starting dashboard.
 - **Free and Pro.** Free keeps 3 dashboards of your own; Pro keeps any number, unlocks Pro tiles
-  and publishing. Accounts and the fan library are mocked in the browser for now.
+  and publishing. Accounts are real: an emailed sign-in link (Google and Apple when set up),
+  dashboards synced across devices, Pro through Stripe or a fake provider in development, and
+  an account page to export or delete everything. The fan library is still mocked.
 - **Pictures.** Driver photos, team logos and cars load from formula1.com in the viewer's browser,
   using the references the timing feed publishes; nothing is stored in the repo, and each has a
   drawn fallback. A paid launch needs a media licence first.
@@ -48,11 +50,11 @@ Design rules: [docs/design/identity.md](docs/design/identity.md). What comes nex
 
 ## Layout
 
-| Workspace | What it is                                                             |
-| --------- | ---------------------------------------------------------------------- |
-| `shared`  | Race data contract shared by server and client (`shared/src/race.ts`). |
-| `server`  | One Fastify process: the live timing feed, `WS /live`, saved sessions. |
-| `client`  | React 19, Vite, Tailwind 4, shadcn/ui and shadcn charts (Recharts).    |
+| Workspace | What it is                                                                             |
+| --------- | -------------------------------------------------------------------------------------- |
+| `shared`  | Contracts shared by server and client: race data, the dashboard document, plans.       |
+| `server`  | One Fastify process: the live feed, `WS /live`, saved sessions, and accounts (`/api`). |
+| `client`  | React 19, Vite, Tailwind 4, shadcn/ui and shadcn charts (Recharts).                    |
 
 ## Getting started
 
@@ -68,6 +70,10 @@ npm run dev -w client
 # Server: live feed, WS /live and saved sessions on one port (3000); no database needed
 cp server/.env.example server/.env   # optional
 npm run dev -w server
+
+# Accounts too: PGlite in data/accounts, sign-in links in the server log, fake payments.
+# Vite sends /api to the server, so sign-in works on http://localhost:5173 with no account anywhere.
+ACCOUNTS_DB=pglite npm run dev -w server
 
 # With no session live, replay a saved one through the same live path
 npm run fetch:f1 -w server -- 9858
@@ -86,6 +92,16 @@ With `VITE_DATA_SOURCE=api` the client reads `catalog.json` and saved sessions f
 season, meeting and session (`?session=<key>` links to one); opening the app during a live
 session goes to it. Live sessions can run behind the feed by a broadcast delay, and spoiler-free
 mode opens sessions at the start with results hidden.
+
+## Run the production build locally
+
+```sh
+docker compose up --build                 # http://localhost:8080
+docker compose --profile replay up        # also replays a saved race through ingest -> relay
+```
+
+Postgres, the relay and accounts API, and the client as static files behind Caddy. Hosting it for
+real, the CI workflow and the owner's checklist are in [docs/deploy.md](docs/deploy.md).
 
 ## Checks
 

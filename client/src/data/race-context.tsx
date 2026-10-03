@@ -398,11 +398,14 @@ function resolveLap(raw: string | null, maxLap: number, defaultLap: number): num
  */
 export function RaceProvider({
 	source,
+	accountPlan,
 	loadingFallback,
 	ErrorFallback,
 	children
 }: {
 	source: RaceSource;
+	/** The signed-in account's plan; Pro there means Pro everywhere, with no preview needed. */
+	accountPlan: Plan;
 	loadingFallback: React.ReactNode;
 	ErrorFallback: React.ComponentType<{ message: string }>;
 	children: React.ReactNode;
@@ -646,7 +649,7 @@ export function RaceProvider({
 		return clock ? snapshotAtTime(race, minuteTime(clock, lap)) : snapshotAtLap(race, lap);
 	}, [race, lap, following, clock, maxLap]);
 
-	const plan: Plan = searchParams.get('plan') === 'pro' ? 'pro' : 'free';
+	const plan: Plan = accountPlan === 'pro' || searchParams.get('plan') === 'pro' ? 'pro' : 'free';
 	const storedDriver = followedDriverStore.useValue();
 	const followedDriver = searchParams.get('driver') ?? storedDriver ?? DEFAULT_FOLLOWED_DRIVER;
 

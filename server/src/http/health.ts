@@ -9,9 +9,18 @@ export interface HealthSources {
 	session: LiveSession;
 	/** Absent in ingest mode, which has no viewers. */
 	hub?: LiveHub;
+	/** Why this process should not take traffic right now, or null when it can. */
+	notReady: () => Promise<string | null>;
 }
 
-export function registerHealth(app: FastifyInstance, { mode, session, hub }: HealthSources) {
+/**
+ * `/health` is liveness: the process answers, so do not restart it. `/ready` is readiness: it can
+ * do its job (the accounts database answers, shutdown has not begun), so route viewers to it.
+ */
+export function registerHealth(
+	app: FastifyInstance,
+	{ mode, session, hub, notReady }: HealthSources
+) {
 	app.get('/health', () => {
 		const { epoch, seq } = session.position;
 
@@ -25,5 +34,11 @@ export function registerHealth(app: FastifyInstance, { mode, session, hub }: Hea
 			uptimeSeconds: Math.round(process.uptime()),
 			rssMb: Math.round(process.memoryUsage().rss / 1024 / 1024)
 		};
+	});
+
+	app.get('/ready', async (_request, reply) => {
+		const problem = await notReady();
+
+		return problem ? reply.code(503).send({ status: problem }) : { status: 'ready' };
 	});
 }

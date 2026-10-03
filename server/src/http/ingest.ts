@@ -4,6 +4,7 @@ import type { RaceEvent, RaceSnapshot } from '@f1-live/shared';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 
+import type { LiveHub } from '../live/hub.js';
 import { PROTOCOL_VERSION } from '../live/protocol.js';
 import type { StateMessage } from '../live/protocol.js';
 import type { LiveSession } from '../live/session.js';
@@ -34,6 +35,26 @@ const stateBodySchema = z.object({
 	snapshot: z.custom<RaceSnapshot>((value) => pushedSnapshotSchema.safeParse(value).success)
 });
 
+/** Car numbers map to the arrays `LiveTelemetry` makes; a viewer's client reads them as they are. */
+const carsSchema = z.record(z.string(), z.array(z.number()));
+
+const channelMessageSchema = z.discriminatedUnion('type', [
+	z.object({
+		v: z.literal(PROTOCOL_VERSION),
+		type: z.literal('positions'),
+		at: z.number(),
+		cars: carsSchema
+	}),
+	z.object({
+		v: z.literal(PROTOCOL_VERSION),
+		type: z.literal('car_data'),
+		at: z.number(),
+		cars: carsSchema
+	})
+]);
+
+const channelsBodySchema = z.object({ messages: z.array(channelMessageSchema).max(2) });
+
 function digest(value: string): Buffer {
 	return createHash('sha256').update(value).digest();
 }
@@ -48,8 +69,15 @@ function hasSecret(request: FastifyRequest, expected: Buffer): boolean {
 /**
  * Relay side of the split: `POST /ingest/events` and `POST /ingest/state` from the ingest
  * process, behind the shared secret. Both answer with the position of the relay's copy.
+ * `POST /ingest/channels` hands the opt-in telemetry messages to the hub, which sends them to the
+ * viewers that subscribed.
  */
-export function registerIngest(app: FastifyInstance, session: LiveSession, secret: string) {
+export function registerIngest(
+	app: FastifyInstance,
+	session: LiveSession,
+	hub: LiveHub,
+	secret: string
+) {
 	const expected = digest(secret);
 
 	app.register((scope, _options, done) => {
@@ -87,6 +115,21 @@ export function registerIngest(app: FastifyInstance, session: LiveSession, secre
 			session.adopt(state);
 
 			return session.position;
+		});
+
+		scope.post('/ingest/channels', async (request, reply) => {
+			const body = channelsBodySchema.safeParse(request.body);
+
+			if (!body.success) {
+				return reply.code(400).send({ error: 'invalid channels body' });
+			}
+
+			for (const message of body.data.messages) {
+				hub.markLive(message.type);
+				hub.publish(message.type, JSON.stringify(message));
+			}
+
+			return reply.code(204).send();
 		});
 
 		done();

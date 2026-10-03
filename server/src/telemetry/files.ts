@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gzipSync } from 'node:zlib';
 
@@ -42,6 +42,36 @@ export function telemetryDir(dataDir: string): string {
 	return path.join(dataDir, 'out', 'telemetry');
 }
 
+/** The folder of one session's telemetry. */
+export function sessionTelemetryDir(dataDir: string, key: number): string {
+	return path.join(telemetryDir(dataDir), String(key));
+}
+
+/** The keys of the sessions that have telemetry, found by their `index.json`; none when there is no folder. */
+export async function telemetryKeys(dataDir: string): Promise<number[]> {
+	const entries = await readdir(telemetryDir(dataDir), { withFileTypes: true }).catch(() => []);
+
+	const found = await Promise.all(
+		entries
+			.filter((entry) => entry.isDirectory() && /^\d+$/.test(entry.name))
+			.map(async (entry) =>
+				(await readFile(path.join(telemetryDir(dataDir), entry.name, 'index.json')).then(
+					() => true,
+					() => false
+				))
+					? [Number(entry.name)]
+					: []
+			)
+	);
+
+	return found.flat().toSorted((a, b) => a - b);
+}
+
+/** Removes every session's telemetry and every saved outline, for a rebuild from the raw files alone. */
+export async function removeTelemetry(dataDir: string): Promise<void> {
+	await rm(telemetryDir(dataDir), { recursive: true, force: true });
+}
+
 function circuitFile(dataDir: string, circuitKey: string): string {
 	return path.join(telemetryDir(dataDir), 'circuits', `${circuitKey}.json`);
 }
@@ -83,8 +113,6 @@ export interface SessionManifest {
 	v: typeof TELEMETRY_VERSION;
 	sessionKey: number;
 	circuitKey: string;
-	/** ISO 8601 UTC. */
-	builtAt: string;
 	hasCarData: boolean;
 	/** Paths inside the session's folder. */
 	laps: string;

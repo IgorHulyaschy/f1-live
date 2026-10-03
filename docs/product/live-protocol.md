@@ -98,8 +98,9 @@ the newest sample, ms since the Unix epoch. A car keeps its last place until it 
 neutral, `brake` and `drs` are 1 or 0, and `drs` is always 0 in seasons without DRS.
 
 Both are throttled on the server, so a burst of frames is one message, and both count against
-`WS_MAX_BUFFER_BYTES` like every other message. Only the mode that reads the feed (`all`) sends
-them: `ingest` does not forward them to a `relay` yet.
+`WS_MAX_BUFFER_BYTES` like every other message. Every mode that serves viewers sends them. An
+`ingest` has no viewers, so it forwards both channels, throttled and batched the same way, to the
+relay, which sends them only to the viewers that subscribed (see Modes below).
 
 ## Epoch and sequence numbers
 
@@ -160,9 +161,10 @@ live feed -> LiveFeed -> RawWriter (data/raw, archive format)
 ```
 
 When the session reports `Finished`, `Finalised` or `Ends`, the server waits
-`IMPORT_DELAY_SECONDS` and runs `npm run import -w server -- --from-dir <raw dir> --key <key>`,
-so the session becomes a saved file served from `<DATA_DIR>/out`. If that command does not exist,
-it logs `import-skipped` and moves on.
+`IMPORT_DELAY_SECONDS` and runs `npm run import -w server -- --from-dir <raw root> --key <key>`,
+so the session becomes a saved file served from `<DATA_DIR>/out`, with its telemetry when the
+recording has `Position.z` (see [telemetry.md](telemetry.md)). If that command does not exist, it
+logs `import-skipped` and moves on.
 
 ### Modes
 
@@ -180,6 +182,11 @@ One codebase, chosen by `MODE`:
 { epoch, seq }`, or `409 { epoch, seq }` when it is somewhere else (a gap, another epoch).
   Events it already has are skipped, so a retry is harmless.
 - `POST /ingest/state` `{ …state message }` replaces the relay's copy.
+- `POST /ingest/channels` `{ messages: [positions and car_data messages] }` carries the telemetry
+  channels: the messages of one 250 ms tick in one request. The relay answers `204`, marks each
+  channel live and sends the message to the viewers subscribed to it. The channels are a live
+  picture, not a log: nothing is kept for an outage, a push that fails is dropped, and while one is
+  in flight only the newest message of each channel waits.
 
 The relay does not run the import, so it has no saved sessions of its own; a CDN or the ingest host serves `<DATA_DIR>/out`.
 

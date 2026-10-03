@@ -80,6 +80,15 @@ describe('GET /health', () => {
 	});
 });
 
+describe('GET /ready', () => {
+	it('is ready when nothing it depends on is down', async () => {
+		const response = await get('/ready');
+
+		assert.equal(response.status, 200);
+		assert.equal(JSON.parse(response.body.toString()).status, 'ready');
+	});
+});
+
 describe('CORS', () => {
 	it('answers only the configured origins', async () => {
 		const allowed = await get('/health', { Origin: 'https://app.example.com' });
