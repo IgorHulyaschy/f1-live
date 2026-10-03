@@ -316,6 +316,38 @@ describe('the telemetry channels through the relay', () => {
 		viewer.socket.close();
 	});
 
+	it('push every channel to a relay that answers with 204, as one from before the answer did', async () => {
+		const relay = await startRelay();
+		const pushed = new Set<string>();
+
+		const oldRelay: typeof fetch = (input, init) => {
+			const url = new URL(input instanceof Request ? input.url : input);
+
+			if (url.pathname !== '/ingest/channels') {
+				return fetch(input, init);
+			}
+
+			for (const { type } of z
+				.object({ messages: z.array(z.object({ type: z.string() })) })
+				.parse(JSON.parse(String(init?.body))).messages) {
+				pushed.add(type);
+			}
+
+			return Promise.resolve(new Response(null, { status: 204 }));
+		};
+
+		const ingest = await startIngest({
+			relayUrl: relay.baseUrl,
+			frames: telemetryFrames(),
+			speed: 5,
+			fetchImpl: oldRelay
+		});
+
+		await ingest.upstream.done;
+		await waitUntil(() => pushed.size === 2, 'both channels to be pushed');
+		assert.deepEqual([...pushed].toSorted(), ['car_data', 'positions']);
+	});
+
 	it('mark a channel as not live once the feed stops sending it', async () => {
 		const server = await createServer(
 			testConfig({ MODE: 'relay', RELAY_SECRET: SECRET, WS_PING_SECONDS: '0.05' }),

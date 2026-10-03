@@ -683,6 +683,7 @@ function addTime(
 			: [{ standing, totalMs: timeMs + (standing === penalised ? addedMs : 0) }];
 	});
 
+	// A car with no known crossing leaves the order undecided, so the penalty changes nothing.
 	if (timed.length !== sameLap.length) {
 		return standings;
 	}

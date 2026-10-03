@@ -214,6 +214,7 @@ export class RelayChannelPusher implements ChannelSink {
 	private readonly waiting = new Map<Channel, string>();
 	/** What the relay last said its viewers want; nothing until it has been asked. */
 	private wanted: ReadonlySet<Channel> = new Set();
+	private answeredAt = 0;
 	private sending = false;
 	private scheduled = false;
 	private failures = 0;
@@ -223,11 +224,14 @@ export class RelayChannelPusher implements ChannelSink {
 		this.signal = signal;
 		this.fetchImpl = options.fetchImpl ?? fetch;
 
+		const probeMs = options.probeMs ?? WANTED_PROBE_MS;
+
+		// A channel nobody wanted when the last push was answered may be wanted now.
 		const probe = setInterval(() => {
-			if (this.wanted.size === 0 && !this.sending) {
+			if (!this.sending && Date.now() - this.answeredAt >= probeMs) {
 				void this.send();
 			}
-		}, options.probeMs ?? WANTED_PROBE_MS);
+		}, probeMs);
 
 		probe.unref();
 		signal.addEventListener('abort', () => clearInterval(probe), { once: true });
@@ -286,7 +290,11 @@ export class RelayChannelPusher implements ChannelSink {
 				throw new Error(`relay answered ${response.status.toString()}`);
 			}
 
-			this.wanted = new Set(wantedSchema.parse(await response.json()).wanted);
+			// A relay from before this answer existed sends 204: it takes every channel.
+			this.wanted = new Set(
+				response.status === 204 ? CHANNELS : wantedSchema.parse(await response.json()).wanted
+			);
+			this.answeredAt = Date.now();
 			this.failures = 0;
 		} catch (cause) {
 			if (!this.signal.aborted) {

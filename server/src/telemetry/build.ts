@@ -204,7 +204,7 @@ export function drawableLap(
 				return { lap, loop };
 			}
 		} catch {
-			// Too few samples in this lap's window; the next lap may have them.
+			// The only error is too few samples in this lap's window; the next lap may have them.
 		}
 	}
 
