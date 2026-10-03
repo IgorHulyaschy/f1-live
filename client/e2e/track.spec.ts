@@ -54,6 +54,8 @@ test('the map follows the replay as it plays and as it is scrubbed', async ({ pa
 
 test('with reduced motion the map steps once a second instead of gliding', async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: 'reduce' });
+	// Real time: no lap ends in the few seconds watched, which would move the picture too.
+	await page.addInitScript(() => window.localStorage.setItem('pitwall-replay-speed', '1'));
 	await openRace(page, '/d/track?lap=30');
 
 	const map = page.getByTestId('track-map');
