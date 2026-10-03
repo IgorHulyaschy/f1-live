@@ -163,3 +163,36 @@ export function parseDashboardListText(text: string): Dashboard[] {
 
 	return uniqueBy(dashboards, (dashboard) => dashboard.id);
 }
+
+/** Same content, field by field: stored JSON can come back with its keys in another order. */
+export function sameDashboard(a: Dashboard, b: Dashboard): boolean {
+	return (
+		a.id === b.id &&
+		a.name === b.name &&
+		Boolean(a.fit) === Boolean(b.fit) &&
+		a.tiles.length === b.tiles.length &&
+		a.tiles.every((tile, index) => {
+			const other = b.tiles[index];
+
+			return (
+				other !== undefined &&
+				tile.id === other.id &&
+				tile.kind === other.kind &&
+				tile.settings?.metric === other.settings?.metric
+			);
+		}) &&
+		a.layout.length === b.layout.length &&
+		a.layout.every((place, index) => {
+			const other = b.layout[index];
+
+			return (
+				other !== undefined &&
+				place.i === other.i &&
+				place.x === other.x &&
+				place.y === other.y &&
+				place.w === other.w &&
+				place.h === other.h
+			);
+		})
+	);
+}

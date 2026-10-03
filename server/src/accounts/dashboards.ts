@@ -1,6 +1,4 @@
-import { isDeepStrictEqual } from 'node:util';
-
-import { type Dashboard, PRESET_IDS } from '@f1-live/shared/dashboard';
+import { type Dashboard, PRESET_IDS, sameDashboard } from '@f1-live/shared/dashboard';
 import { canAddOwnDashboard, type Entitlements } from '@f1-live/shared/plans';
 import { and, count, eq, isNotNull, notInArray } from 'drizzle-orm';
 
@@ -57,7 +55,12 @@ export async function listDocuments(
 	db: AccountsDatabase,
 	userId: string
 ): Promise<DashboardDocument[]> {
-	const rows = await db.select().from(dashboard).where(eq(dashboard.userId, userId));
+	// Ids start with a base-36 timestamp, so this is creation order for a new device.
+	const rows = await db
+		.select()
+		.from(dashboard)
+		.where(eq(dashboard.userId, userId))
+		.orderBy(dashboard.id);
 
 	return rows.map(toDocument);
 }
@@ -89,9 +92,10 @@ export async function writeDocument(
 			return { kind: 'stale', document: toDocument(stored ?? missing(write.id)) };
 		}
 
-		const unchanged = stored
-			? isDeepStrictEqual(stored.document, write.dashboard)
-			: write.dashboard === null;
+		const unchanged =
+			stored?.document && write.dashboard
+				? sameDashboard(stored.document, write.dashboard)
+				: (stored?.document ?? null) === write.dashboard;
 
 		if (unchanged) {
 			return { kind: 'saved', document: toDocument(stored ?? missing(write.id)) };
