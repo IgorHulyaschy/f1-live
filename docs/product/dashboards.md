@@ -25,8 +25,9 @@ One line under the top bar, always in view:
   ended now.
 - **Elsewhere.** On another session while one is live: "Live now" with a one-click Watch live.
   With nothing live: the next session, its start in the viewer's time and a countdown. The
-  Sessions key and, spoiler-free, Show results sit at the end; so do the replay keys when the
-  dashboard on screen has no Replay tile.
+  Sessions key and, while results are hidden, Jump to the finish sit at the end; so do the replay
+  keys when the dashboard on screen has no Replay tile. On a live session joined late, From the
+  start goes back to the beginning.
 
 On a phone the strip keeps the state, the part, the clock and the flag on one line, and the drop
 zone on a second.
@@ -49,7 +50,36 @@ The Replay tile is the session's timeline, at the top of every ready-made dashbo
   footer prints them on desktop.
 
 A short tile (three rows or fewer) keeps the keys and the barcode and leaves out the speed, the
-filter and the line under it. Spoiler-free, only the events already shown are marked.
+filter and the line under it. While results are hidden, only the events already shown are
+marked.
+
+## Spoiler protection
+
+On by default. A finished session the viewer has not revealed opens at its start (qualifying at
+the start of Q1, a race at lap 1), paused, with a line offering Play and, apart from it, Jump to
+the finish. Nothing outside the replay position gives the result away: the picker and ⌘K say
+"Results hidden", the tab title names no result, and the driver views show only what has
+happened so far. Watching to the end or Jump to the finish reveals the session; the picker has a
+Show key per session. A link with a position (`lap`) opens there. The rule and its helpers, and
+how lists of sessions must use them, are in [flows.md](flows.md#spoilers).
+
+## Driver, lap and compare views
+
+A driver anywhere on screen (a timing row, a car on the map or in its list, the grid wall, a
+knockout or best-sector row, the focus and battle tiles, a chart legend, a stint bar, race
+control) opens their session in a side sheet beside the dashboard, a full page on phones. The
+sheet is not modal: the replay keys still work and another driver's row opens theirs.
+
+| View    | Address             | Shows                                                                                                                                                                                                                                                                                                |
+| ------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Driver  | `?car=63`           | Position, gap, best lap, tyre, stops; every lap with its sectors, tyre, place, gap and interval, pit, flag, penalty and deleted time; runs and push laps in qualifying; stints; position; best sectors, ideal lap and traps; best-lap telemetry against pole or the teammate; race control and radio |
+| Lap     | `?car=63&carLap=26` | The lap's time, sectors, tyre, place and flag; speed, throttle, brake, gear and revs, or the mini-sector table, against any driver's lap (`vs`, `vsLap`)                                                                                                                                             |
+| Compare | `?car=63&vs=16`     | Both drivers' standing, best sectors against each other, lap against lap, and their best laps traced                                                                                                                                                                                                 |
+
+Breadcrumbs lead back up: Season and Event open the session picker, Session closes the sheet,
+the driver goes back from a lap. Back steps out one level and Close all of them, and either keeps
+the replay where it is; a view that came with a link closes onto its session. Clicking a lap
+opens it; race-control messages, race chart points and stint rows move the replay there.
 
 ## Session layouts
 

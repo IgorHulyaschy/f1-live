@@ -147,11 +147,11 @@ Event in any driver or lap view.
 
 **Exits.** Same as flows B and C.
 
-| Friction found                                                                           | Fix                                                                       |
-| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| A link without a position opened a finished session at its end.                          | The spoiler rule applies to links too; a position in the link still wins. |
-| The page title was "Pitwall" everywhere, so a tab or a search result said nothing.       | The title names the session and the open view, never a result.            |
-| On a 360 px phone the row is the only target and there is no way to see a driver's laps. | The driver view is a full page on phones, with Back and a close key.      |
+| Friction found                                                                           | Fix                                                                          |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| A link without a position opened a finished session at its end.                          | The spoiler rule applies to links too; a position in the link still wins.    |
+| A tab with a driver or lap open read like any other page of the app.                     | The title and share card name the open view and its session, never a result. |
+| On a 360 px phone the row is the only target and there is no way to see a driver's laps. | The driver view is a full page on phones, with Back and a close key.         |
 
 ![Before: a 360 px phone on a race](../screenshots/flows/before-phone-race.png)
 
