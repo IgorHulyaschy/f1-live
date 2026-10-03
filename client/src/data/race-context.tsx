@@ -10,7 +10,7 @@ import { delayedSnapshot } from './broadcast-delay.ts';
 import { LiveFeed, type LiveConnection, liveSessionKey, type LiveState } from './live-feed.ts';
 import type { RaceSource } from './race-source.ts';
 import { type StandingRow, standingsAt } from '../insights/standings.ts';
-import { isTimedSession } from '../insights/qualifying.ts';
+import { isSessionOver, isTimedSession } from '../insights/qualifying.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
 import { minuteTime, sessionClock, snapshotAtTime } from './snapshot-at-time.ts';
 import { delayStore, revealedStore, spoilerFreeStore } from './viewer-settings.ts';
@@ -416,6 +416,29 @@ export function RaceProvider({
 		searchParams.get('session')
 	);
 
+	// A session chosen for the viewer (none in the address) can change when one goes live; the
+	// lap the viewer stepped to belongs to the old one.
+	const autoKey = React.useRef<string | null>(null);
+
+	React.useEffect(() => {
+		if (searchParams.has('session') || key === null) {
+			return;
+		}
+
+		if (autoKey.current !== null && autoKey.current !== key) {
+			setSearchParams(
+				(params) => {
+					params.delete('lap');
+
+					return params;
+				},
+				{ replace: true }
+			);
+		}
+
+		autoKey.current = key;
+	}, [searchParams, key, setSearchParams]);
+
 	const entry = React.useMemo(
 		() => (catalog.status === 'ready' && key !== null ? findSession(catalog.value, key) : null),
 		[catalog, key]
@@ -469,7 +492,8 @@ export function RaceProvider({
 
 	const shown = ready ?? lastShown;
 	const race = shown?.race ?? null;
-	const isLive = Boolean(shown?.fromFeed && shown.key === liveKey);
+	// Live follows the state on screen, so a delayed screen stays live until it reaches the end.
+	const isLive = Boolean(shown?.fromFeed && !isSessionOver(shown.race.status ?? 'inactive'));
 	// This window drives playback; `mirroring` means another window is playing and we follow it.
 	const [playing, setLocalPlaying] = React.useState(false);
 	const [mirroring, setMirroring] = React.useState(false);

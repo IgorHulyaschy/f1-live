@@ -145,3 +145,34 @@ describe('qualifying parts', () => {
 		);
 	});
 });
+
+describe('flying laps', () => {
+	const dryThenWet: RaceSnapshot = {
+		...qualifying([
+			[0, 'started'],
+			[18, 'finished'],
+			[20, 'inactive'],
+			[22, 'started']
+		]),
+		laps: [
+			...DRIVERS.map((driver, index) => lap(driver, 2, 5, 80_000 + index * 100)),
+			// Rain in Q2: an out-lap, then a flying lap 15% slower than Q1's.
+			...DRIVERS.slice(0, 11).map((driver, index) => lap(driver, 3, 25, 130_000 + index * 100)),
+			...DRIVERS.slice(0, 11).map((driver, index) => lap(driver, 4, 27, 92_000 + index * 100))
+		]
+	};
+
+	it('keeps a wet part’s flying laps after a dry one, and drops its out-laps', () => {
+		const rows = standingsAt(dryThenWet);
+
+		assert.equal(rows[0]?.bestLapMs, 92_000);
+		assert.deepEqual(rows[0]?.partBestsMs, [80_000, 92_000]);
+	});
+
+	it('takes the part before as the pace while a part has only out-laps', () => {
+		const outLapsOnly = { ...dryThenWet, laps: dryThenWet.laps.filter((entry) => entry.lap !== 4) };
+		const rows = standingsAt(outLapsOnly);
+
+		assert.deepEqual(rows[0]?.partBestsMs, [80_000, null]);
+	});
+});

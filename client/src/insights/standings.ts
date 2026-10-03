@@ -53,9 +53,9 @@ const SECTOR_INDEXES = [0, 1, 2] as const;
 
 /**
  * Out-laps and cool-down laps carry a time made of their sectors, but nobody qualifies on one:
- * a lap this much slower than the fastest of its part (or of the part before, while the part
- * has only out-laps) is not counted as a part's best. A part at a time keeps a wet Q1 when Q3
- * runs dry.
+ * a lap this much slower than the fastest of its part is not counted as a part's best. Until
+ * some car has done a second lap in a part, the part has only out-laps, so the part before
+ * sets the pace. A part at a time keeps a wet part next to a dry one.
  */
 const FLYING_LAP_LIMIT = 1.12;
 
@@ -139,18 +139,29 @@ function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[]
 		(snapshot.personalBests ?? []).map((best) => [best.driverNumber, best.topSpeedsKph.speedTrap])
 	);
 
-	const fastestOfPart = Array.from({ length: Math.max(1, starts.length) }, (_, index) =>
-		minimum(
-			timedLaps.flatMap((lap) => (partOfLap(lap, starts) === index + 1 ? [lap.lapTimeMs] : []))
-		)
-	);
+	const parts = Array.from({ length: Math.max(1, starts.length) }, (_, index) => {
+		const laps = timedLaps.filter((lap) => partOfLap(lap, starts) === index + 1);
+		const perDriver = new Map<string, number>();
+
+		for (const lap of laps) {
+			perDriver.set(lap.driverNumber, (perDriver.get(lap.driverNumber) ?? 0) + 1);
+		}
+
+		return {
+			fastest: minimum(laps.map((lap) => lap.lapTimeMs)),
+			flyingLapsDone: [...perDriver.values()].some((count) => count > 1)
+		};
+	});
 
 	const isFlying = (lap: Lap) => {
 		const index = partOfLap(lap, starts) - 1;
+		const part = parts[index];
+		const previous = parts[index - 1];
 
-		const reference = minimum(
-			[fastestOfPart[index], fastestOfPart[index - 1]].flatMap((time) => time ?? [])
-		);
+		const reference =
+			part?.flyingLapsDone || !previous
+				? (part?.fastest ?? null)
+				: minimum([part?.fastest, previous.fastest].flatMap((time) => time ?? []));
 
 		return reference === null || lap.lapTimeMs <= reference * FLYING_LAP_LIMIT;
 	};

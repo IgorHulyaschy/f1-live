@@ -103,6 +103,17 @@ export function CommandMenu({
 
 	const byLap = stepUnit === 'lap';
 
+	// The latest state follows live on a live session, and shows results only by revealing them.
+	const showLatest = () => {
+		if (live.isLive) {
+			live.backToLive();
+		} else if (spoilers.hidden) {
+			spoilers.reveal();
+		} else {
+			setLap(steps);
+		}
+	};
+
 	// Neutralised laps are a race's; spoiler-free, only those already shown are offered.
 	const neutralisedLaps = byLap
 		? [
@@ -213,7 +224,7 @@ export function CommandMenu({
 							<SkipBackIcon />
 							{byLap ? 'Start of the race' : 'Start of the session'}
 						</CommandItem>
-						<CommandItem onSelect={() => run(() => setLap(steps))}>
+						<CommandItem onSelect={() => run(showLatest)}>
 							<SkipForwardIcon />
 							{byLap ? 'Latest lap' : 'Latest minute'}
 						</CommandItem>

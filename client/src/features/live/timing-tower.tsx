@@ -120,11 +120,14 @@ function LapTime({
 	row,
 	lap,
 	bestColumn = false,
+	fastestMs = null,
 	part
 }: {
 	row: StandingRow;
 	lap: Lap | null;
 	bestColumn?: boolean;
+	/** The session's fastest lap, which a best-lap column marks purple. */
+	fastestMs?: number | null;
 	part?: string;
 }) {
 	if (!lap || lap.lapTimeMs <= 0) {
@@ -139,8 +142,9 @@ function LapTime({
 			<span
 				className={cn(
 					'font-mono',
-					isBest && row.hasFastestLap && 'text-fastest',
-					isBest && !row.hasFastestLap && !bestColumn && 'text-personal-best'
+					bestColumn && lap.lapTimeMs === fastestMs && 'text-fastest',
+					!bestColumn && isBest && row.hasFastestLap && 'text-fastest',
+					!bestColumn && isBest && !row.hasFastestLap && 'text-personal-best'
 				)}
 			>
 				{formatLapTime(lap.lapTimeMs)}
@@ -193,6 +197,11 @@ export function TimingTower() {
 	const partPrefix = snapshot.session.type === 'sprint_qualifying' ? 'SQ' : 'Q';
 	// The modelled replay has no speed traps; the column only shows when the data has them.
 	const hasTraps = rows.some((row) => row.speedTrapKph !== null);
+
+	const sessionFastestMs = Math.min(
+		...rows.flatMap((row) => row.partBestsMs.flatMap((time) => time ?? []))
+	);
+
 	const before = timed ? new Map<string, number>() : previousPositions(snapshot.laps, lap);
 	const penalties = timePenalties(snapshot);
 	const pitServes = pitPenalties(snapshot);
@@ -411,6 +420,7 @@ export function TimingTower() {
 														row={row}
 														lap={row.bestLap}
 														bestColumn
+														fastestMs={sessionFastestMs}
 														part={
 															knockout && row.bestLap
 																? `${partPrefix}${lastTimedPart(row) + 1}`
