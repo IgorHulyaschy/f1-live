@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import * as React from 'react';
 import { type Layout, ReactGridLayout, useContainerWidth } from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
 
 import { Key } from '@/components/console/keys';
 import { useRaceView } from '@/data/race-context';
