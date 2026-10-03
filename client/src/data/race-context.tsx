@@ -256,21 +256,33 @@ function idleLive(): LiveState {
 
 const DELAY_TICK_MS = 250;
 
-/** The time, refreshed while `active`, for a screen that runs behind the feed. */
+function readDelayTick(): number {
+	return Math.floor(Date.now() / DELAY_TICK_MS) * DELAY_TICK_MS;
+}
+
+function readNoTick(): number {
+	return 0;
+}
+
+/**
+ * The time to the quarter second, refreshed while `active`, for a screen that runs behind the
+ * feed. It is read fresh, so turning a delay on never starts from a stale time.
+ */
 function useDelayClock(active: boolean): number {
-	const [now, setNow] = React.useState(() => Date.now());
+	const subscribe = React.useCallback(
+		(onTick: () => void) => {
+			if (!active) {
+				return () => undefined;
+			}
 
-	React.useEffect(() => {
-		if (!active) {
-			return;
-		}
+			const timer = window.setInterval(onTick, DELAY_TICK_MS);
 
-		const timer = window.setInterval(() => setNow(Date.now()), DELAY_TICK_MS);
+			return () => window.clearInterval(timer);
+		},
+		[active]
+	);
 
-		return () => window.clearInterval(timer);
-	}, [active]);
-
-	return now;
+	return React.useSyncExternalStore(subscribe, active ? readDelayTick : readNoTick);
 }
 
 /** Saved sessions loaded so far, so going back to one costs nothing. */
@@ -414,7 +426,8 @@ export function RaceProvider({
 	const feedReplica = liveState.replica;
 	const onFeed = key !== null && feedReplica?.sessionId === key;
 	const delaySeconds = delayStore.useValue();
-	const delayed = onFeed && key === liveKey && delaySeconds > 0;
+	// The delay holds on after the session ends, until the screen has caught up with the flag.
+	const delayed = onFeed && delaySeconds > 0;
 	const delayClock = useDelayClock(delayed);
 
 	const feedRace = React.useMemo(
@@ -537,8 +550,8 @@ export function RaceProvider({
 		(delta: number) => {
 			const raw = new URLSearchParams(window.location.search).get('lap');
 
-			// Live already shows the newest lap; only stepping back leaves it.
-			if (isLive && raw === null && delta > 0) {
+			// Following live already shows the newest lap; only stepping back leaves it.
+			if (isLive && raw === null && !resultsHidden && delta > 0) {
 				return;
 			}
 
@@ -548,7 +561,7 @@ export function RaceProvider({
 			updateParam('lap', String(next));
 			broadcast({ lap: next });
 		},
-		[updateParam, maxLap, defaultLap, broadcast, isLive]
+		[updateParam, maxLap, defaultLap, broadcast, isLive, resultsHidden]
 	);
 
 	// Playback stops by itself at the last available lap; on a live session it rejoins live there.

@@ -159,7 +159,7 @@ export function LapStrip() {
 							disabled={entry.step > done}
 							onClick={() => setLap(entry.step)}
 							aria-label={`Go to ${unit} ${entry.step}`}
-							title={`${timed ? 'Minute' : 'Lap'} ${entry.step}${STATUS_LABEL[entry.status]}${entry.note}`}
+							title={`${timed ? 'Minute' : 'Lap'} ${entry.step}${raced ? `${STATUS_LABEL[entry.status]}${entry.note}` : ''}`}
 							className="group relative flex h-full flex-1 cursor-pointer flex-col justify-end disabled:cursor-default"
 						>
 							{entry.fastest && entry.step <= lap ? (

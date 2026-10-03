@@ -95,15 +95,6 @@ export function defaultSessionKey(catalog: Catalog, liveKey: string | null): str
 	);
 }
 
-/** The next session that has not started yet, for a countdown. */
-export function nextSession(catalog: Catalog, now: number): SessionEntry | null {
-	return (
-		sessionEntries(catalog)
-			.filter((entry) => Date.parse(entry.session.startsAt) > now)
-			.toSorted((a, b) => a.session.startsAt.localeCompare(b.session.startsAt))[0] ?? null
-	);
-}
-
 export const SESSION_TYPE_LABEL: Record<SessionType, string> = {
 	race: 'Race',
 	sprint: 'Sprint',

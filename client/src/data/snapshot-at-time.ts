@@ -26,34 +26,39 @@ export function minuteTime(clock: SessionClock, minute: number): number {
 	return clock.startMs + minute * MINUTE_MS;
 }
 
-/** A driver's best so far, when the feed's own best was set later than `laps` reach. */
-function bestSoFar(driverNumber: string, laps: readonly Lap[]): PersonalBest {
-	const timed = laps.filter((lap) => lap.driverNumber === driverNumber && lap.lapTimeMs > 0);
+/**
+ * Each driver's best so far, from the laps a cut keeps. The feed's own bests hold the speeds
+ * of the whole session, which a replay must not show early, so speeds stay unknown.
+ */
+export function bestsSoFar(race: RaceSnapshot, laps: readonly Lap[]): PersonalBest[] {
+	return race.drivers.map((driver) => {
+		const timed = laps.filter((lap) => lap.driverNumber === driver.number && lap.lapTimeMs > 0);
 
-	const best = timed.reduce<Lap | null>(
-		(fastest, lap) => (!fastest || lap.lapTimeMs < fastest.lapTimeMs ? lap : fastest),
-		null
-	);
-
-	const sector = (index: 0 | 1 | 2) => {
-		const times = timed.flatMap((lap) =>
-			lap.sectorTimesMs[index] > 0 ? [lap.sectorTimesMs[index]] : []
+		const best = timed.reduce<Lap | null>(
+			(fastest, lap) => (!fastest || lap.lapTimeMs < fastest.lapTimeMs ? lap : fastest),
+			null
 		);
 
-		return times.length > 0 ? Math.min(...times) : null;
-	};
+		const sector = (index: 0 | 1 | 2) => {
+			const times = timed.flatMap((lap) =>
+				lap.sectorTimesMs[index] > 0 ? [lap.sectorTimesMs[index]] : []
+			);
 
-	return {
-		driverNumber,
-		lapTimeMs: best?.lapTimeMs ?? null,
-		lap: best?.lap ?? null,
-		sectorTimesMs: [sector(0), sector(1), sector(2)],
-		topSpeedsKph: { intermediate1: null, intermediate2: null, finishLine: null, speedTrap: null }
-	};
+			return times.length > 0 ? Math.min(...times) : null;
+		};
+
+		return {
+			driverNumber: driver.number,
+			lapTimeMs: best?.lapTimeMs ?? null,
+			lap: best?.lap ?? null,
+			sectorTimesMs: [sector(0), sector(1), sector(2)],
+			topSpeedsKph: { intermediate1: null, intermediate2: null, finishLine: null, speedTrap: null }
+		};
+	});
 }
 
 /** The snapshot without the feed's running order, which is the order now. */
-export function withoutStandings(race: RaceSnapshot): RaceSnapshot {
+function withoutStandings(race: RaceSnapshot): RaceSnapshot {
 	const { standings, ...rest } = race;
 
 	return standings ? rest : race;
@@ -97,7 +102,9 @@ export function snapshotAtTime(race: RaceSnapshot, time: number): RaceSnapshot {
 			message.at === undefined ? message.lap <= currentLap : message.at <= at
 		),
 		weather: race.weather.filter((sample) => sample.lap <= currentLap + 1),
-		retirements: race.retirements.filter((retirement) => retirement.lap <= currentLap),
+		retirements: race.retirements.filter((retirement) =>
+			retirement.at === undefined ? retirement.lap <= currentLap : retirement.at <= at
+		),
 		penalties: (race.penalties ?? [])
 			.filter((penalty) => penalty.lap <= currentLap)
 			.map(({ servedLap, ...penalty }) =>
@@ -105,11 +112,7 @@ export function snapshotAtTime(race: RaceSnapshot, time: number): RaceSnapshot {
 					? { ...penalty, status: 'issued' }
 					: { ...penalty, servedLap }
 			),
-		personalBests: (race.personalBests ?? []).map((best) =>
-			best.lap !== null && best.lap <= done(best.driverNumber)
-				? best
-				: bestSoFar(best.driverNumber, laps)
-		),
+		personalBests: bestsSoFar(race, laps),
 		corrections: (race.corrections ?? []).filter((correction) => correction.at <= at)
 	};
 }

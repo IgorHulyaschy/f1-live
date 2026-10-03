@@ -1,6 +1,7 @@
 import { applyEvent, type RaceEvent, type RaceSnapshot } from '@f1-live/shared';
 import { z } from 'zod';
 
+import { isSessionOver } from '../insights/qualifying.ts';
 import { type Arrival, recordArrival } from './broadcast-delay.ts';
 
 /** docs/product/live-protocol.md; a change of shape bumps it on both sides. */
@@ -336,7 +337,5 @@ export function liveSessionKey(state: LiveState): string | null {
 		return null;
 	}
 
-	const status = replica.snapshot.status;
-
-	return status === 'finalised' || status === 'ended' ? null : replica.sessionId;
+	return isSessionOver(replica.snapshot.status ?? 'inactive') ? null : replica.sessionId;
 }

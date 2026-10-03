@@ -31,11 +31,27 @@ export function feedTimeOf(snapshot: RaceSnapshot): number | null {
 	return times.length > 0 ? Math.max(...times) : null;
 }
 
+/** The last cut before joining, so a screen that asks every tick gets the same object. */
+let lastCut: { from: RaceSnapshot; at: number; cut: RaceSnapshot } | null = null;
+
+/** Feed times within this of the arrival read as the wall clock; a replay runs on its own. */
+const SAME_CLOCK_MS = 12 * 60 * 60 * 1000;
+
+function cutOnce(from: RaceSnapshot, at: number): RaceSnapshot {
+	if (lastCut?.from !== from || lastCut.at !== at) {
+		lastCut = { from, at, cut: snapshotAtTime(from, at) };
+	}
+
+	return lastCut.cut;
+}
+
 /**
  * The live session as a viewer saw it `delayMs` ago, so the screen matches a TV that runs behind.
  * After joining that is the state that had arrived by then. Before joining there is no such
  * state, so the first one is cut back by the times it carries: a viewer who joins late with a
- * delay is in step at once, not only after waiting out the delay. Cuts are made on whole seconds.
+ * delay is in step at once, not only after waiting out the delay. A live feed's clock is the
+ * wall clock, so a quiet spell such as a red flag stays in the cut; a replay's is its own.
+ * Cuts are made on whole seconds.
  */
 export function delayedSnapshot(
 	history: readonly Arrival[],
@@ -56,7 +72,10 @@ export function delayedSnapshot(
 		return first?.snapshot ?? null;
 	}
 
-	const cut = feedTime - (first.receivedAt - target);
+	const anchor =
+		Math.abs(first.receivedAt - feedTime) < SAME_CLOCK_MS ? first.receivedAt : feedTime;
 
-	return snapshotAtTime(first.snapshot, Math.floor(cut / 1000) * 1000);
+	const cut = anchor - (first.receivedAt - target);
+
+	return cutOnce(first.snapshot, Math.floor(cut / 1000) * 1000);
 }

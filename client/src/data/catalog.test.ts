@@ -6,8 +6,7 @@ import {
 	type Catalog,
 	catalogSchema,
 	defaultSessionKey,
-	findSession,
-	nextSession
+	findSession
 } from './catalog.ts';
 
 function session(key: number, name: string, startsAt: string, snapshot: boolean) {
@@ -79,10 +78,5 @@ describe('catalog', () => {
 		assert.equal(availability(entry('11002'), '11011', SATURDAY), 'saved');
 		assert.equal(availability(entry('11011'), null, SATURDAY), 'upcoming');
 		assert.equal(availability(entry('11010'), null, SATURDAY), 'missing');
-	});
-
-	it('finds the next session to start', () => {
-		assert.equal(nextSession(catalog, SATURDAY)?.key, '11011');
-		assert.equal(nextSession(catalog, Date.parse('2026-05-01T00:00:00.000Z')), null);
 	});
 });

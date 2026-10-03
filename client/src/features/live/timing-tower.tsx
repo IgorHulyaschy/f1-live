@@ -12,7 +12,7 @@ import { useRace } from '@/data/race-context';
 import { pitPenalties, timePenalties } from '@/insights/penalties';
 import { predictRejoin } from '@/insights/pit-window';
 import { type CutLine, cutLines, isKnockout, isTimedSession } from '@/insights/qualifying';
-import { oneSecondAid } from '@/insights/rules';
+import { ONE_SECOND_MS, oneSecondAid } from '@/insights/rules';
 import { lastTimedPart, OUT_LABEL, type StandingRow } from '@/insights/standings';
 import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -36,9 +36,6 @@ const VIEW_OPTIONS = [
 
 /** Cars shown either side of the followed driver in the near view. */
 const NEAR_CARS = 3;
-
-/** Within a second of the car ahead: DRS until 2025, overtake mode from 2026. */
-const ONE_SECOND_MS = 1000;
 
 const FLASH = {
 	gain: ['rgba(74, 222, 128, 0.2)', 'rgba(74, 222, 128, 0)'],

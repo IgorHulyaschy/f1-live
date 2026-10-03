@@ -74,7 +74,10 @@ export function CommandMenu({
 		sessionKey,
 		setSession,
 		live,
-		spoilers
+		spoilers,
+		lap,
+		steps,
+		stepUnit
 	} = useRace();
 
 	const navigate = useNavigate();
@@ -98,9 +101,20 @@ export function CommandMenu({
 		onOpenChange(false);
 	};
 
-	const neutralisedLaps = [
-		...new Set(race.laps.filter((lap) => lap.trackStatus !== 'green').map((lap) => lap.lap))
-	];
+	const byLap = stepUnit === 'lap';
+
+	// Neutralised laps are a race's; spoiler-free, only those already shown are offered.
+	const neutralisedLaps = byLap
+		? [
+				...new Set(
+					race.laps
+						.filter(
+							(entry) => entry.trackStatus !== 'green' && (!spoilers.hidden || entry.lap <= lap)
+						)
+						.map((entry) => entry.lap)
+				)
+			]
+		: [];
 
 	return (
 		<>
@@ -194,23 +208,23 @@ export function CommandMenu({
 						</CommandItem>
 					</CommandGroup>
 					<CommandSeparator />
-					<CommandGroup heading="Race">
+					<CommandGroup heading={byLap ? 'Race' : 'Session'}>
 						<CommandItem onSelect={() => run(() => setLap(1))}>
 							<SkipBackIcon />
-							Start of the race
+							{byLap ? 'Start of the race' : 'Start of the session'}
 						</CommandItem>
-						<CommandItem onSelect={() => run(() => setLap(race.currentLap))}>
+						<CommandItem onSelect={() => run(() => setLap(steps))}>
 							<SkipForwardIcon />
-							Latest lap
+							{byLap ? 'Latest lap' : 'Latest minute'}
 						</CommandItem>
-						{neutralisedLaps.map((lap) => (
+						{neutralisedLaps.map((neutralised) => (
 							<CommandItem
-								key={lap}
-								value={`lap ${lap} vsc neutralised`}
-								onSelect={() => run(() => setLap(lap))}
+								key={neutralised}
+								value={`lap ${neutralised} vsc neutralised`}
+								onSelect={() => run(() => setLap(neutralised))}
 							>
 								<FlagIcon />
-								Lap {lap}: neutralised
+								Lap {neutralised}: neutralised
 							</CommandItem>
 						))}
 					</CommandGroup>

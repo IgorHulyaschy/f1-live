@@ -77,8 +77,8 @@ export function StintChart() {
 
 		return driver ? [{ driver, state: slot.out ? 'out' : 'running' }] : [];
 	});
-	// Practice and qualifying have no race distance; their longest run sets the scale.
 
+	// Practice and qualifying have no race distance; their longest run sets the scale.
 	const totalLaps = snapshot.session.totalLaps || Math.max(1, snapshot.currentLap);
 	const now = snapshot.currentLap;
 

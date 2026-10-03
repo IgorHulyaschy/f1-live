@@ -8,6 +8,9 @@ export function hasDrs(session: Pick<Session, 'startsAt'>): boolean {
 	return new Date(session.startsAt).getUTCFullYear() < 2026;
 }
 
+/** Within this of the car ahead at a detection point: DRS until 2025, overtake mode from 2026. */
+export const ONE_SECOND_MS = 1000;
+
 const AID_SWITCH = /\b(DRS|OVERTAKE) (ENABLED|DISABLED)\b/;
 
 /** Race control switching the one-second aid on or off: DRS until 2025, overtake mode after. */

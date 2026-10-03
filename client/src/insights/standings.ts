@@ -1,6 +1,6 @@
 import type { Driver, Lap, RaceSnapshot, Standing, TyreCompound } from '@f1-live/shared';
 
-import { isTimedSession, partOfLap, partStarts, secondPartCars } from './qualifying.ts';
+import { isKnockout, isTimedSession, partOfLap, partStarts, secondPartCars } from './qualifying.ts';
 
 export type SectorMark = 'fastest' | 'personal-best' | 'none';
 
@@ -53,7 +53,9 @@ const SECTOR_INDEXES = [0, 1, 2] as const;
 
 /**
  * Out-laps and cool-down laps carry a time made of their sectors, but nobody qualifies on one:
- * a lap this much slower than the fastest of the session is not counted as a part's best.
+ * a lap this much slower than the fastest of its part (or of the part before, while the part
+ * has only out-laps) is not counted as a part's best. A part at a time keeps a wet Q1 when Q3
+ * runs dry.
  */
 const FLYING_LAP_LIMIT = 1.12;
 
@@ -89,7 +91,7 @@ function bestOf(laps: readonly Lap[]): Lap | null {
 type RowFacts = Omit<StandingRow, 'position' | 'positionsGained'>;
 
 /** Everything about each driver that does not depend on where they are placed. */
-function rowFacts(snapshot: RaceSnapshot): RowFacts[] {
+function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[] {
 	const timedSession = isTimedSession(snapshot.session.type);
 	const lapsByDriver = new Map<string, Lap[]>();
 
@@ -137,19 +139,28 @@ function rowFacts(snapshot: RaceSnapshot): RowFacts[] {
 		(snapshot.personalBests ?? []).map((best) => [best.driverNumber, best.topSpeedsKph.speedTrap])
 	);
 
-	const starts =
-		snapshot.session.type === 'qualifying' || snapshot.session.type === 'sprint_qualifying'
-			? partStarts(snapshot)
-			: [];
+	const fastestOfPart = Array.from({ length: Math.max(1, starts.length) }, (_, index) =>
+		minimum(
+			timedLaps.flatMap((lap) => (partOfLap(lap, starts) === index + 1 ? [lap.lapTimeMs] : []))
+		)
+	);
+
+	const isFlying = (lap: Lap) => {
+		const index = partOfLap(lap, starts) - 1;
+
+		const reference = minimum(
+			[fastestOfPart[index], fastestOfPart[index - 1]].flatMap((time) => time ?? [])
+		);
+
+		return reference === null || lap.lapTimeMs <= reference * FLYING_LAP_LIMIT;
+	};
 
 	return snapshot.drivers.map((driver): RowFacts => {
 		const driverLaps = lapsByDriver.get(driver.number) ?? [];
 		const lastLap = driverLaps.at(-1) ?? null;
 		const ownTimedLaps = driverLaps.filter((lap) => isTimed(lap, timedSession));
 
-		const flyingLaps = ownTimedLaps.filter(
-			(lap) => fastestLapMs === null || lap.lapTimeMs <= fastestLapMs * FLYING_LAP_LIMIT
-		);
+		const flyingLaps = ownTimedLaps.filter(isFlying);
 
 		const lastPart = Math.max(1, ...flyingLaps.map((lap) => partOfLap(lap, starts)));
 		const bestLap = bestOf(flyingLaps.filter((lap) => partOfLap(lap, starts) === lastPart));
@@ -292,9 +303,7 @@ function feedOrder(
  * Practice and qualifying: fastest first. In qualifying the cars knocked out in a part keep
  * their place under those that went through, ranked by their time in that part.
  */
-function timedOrder(snapshot: RaceSnapshot, rows: RowFacts[]): RowFacts[] {
-	const starts = partStarts(snapshot);
-
+function timedOrder(rows: RowFacts[], starts: readonly string[]): RowFacts[] {
 	const byTime = (a: RowFacts, b: RowFacts) =>
 		(a.bestLapMs ?? Infinity) - (b.bestLapMs ?? Infinity) ||
 		Number(a.driver.number) - Number(b.driver.number);
@@ -367,7 +376,8 @@ function withTimedGaps(rows: StandingRow[]): StandingRow[] {
  * state of a session) is shown in that order; a replay slice is ranked from its laps.
  */
 export function standingsAt(snapshot: RaceSnapshot): StandingRow[] {
-	const rows = rowFacts(snapshot);
+	const starts = isKnockout(snapshot.session.type) ? partStarts(snapshot) : [];
+	const rows = rowFacts(snapshot, starts);
 	const standings = snapshot.standings ?? [];
 	const timedSession = isTimedSession(snapshot.session.type);
 	const hasFeedOrder = standings.length > 0 && snapshot.laps.length > 0;
@@ -377,6 +387,6 @@ export function standingsAt(snapshot: RaceSnapshot): StandingRow[] {
 	}
 
 	return withTimedGaps(
-		placed(hasFeedOrder ? feedOrder(snapshot, rows, standings) : timedOrder(snapshot, rows))
+		placed(hasFeedOrder ? feedOrder(snapshot, rows, standings) : timedOrder(rows, starts))
 	);
 }

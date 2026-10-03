@@ -1,4 +1,9 @@
-import type { Lap, RaceSnapshot, SessionType } from '@f1-live/shared';
+import type { Lap, RaceSnapshot, SessionStatus, SessionType } from '@f1-live/shared';
+
+/** Finalised or ended: the classification stands, and live timing has moved on. */
+export function isSessionOver(status: SessionStatus): boolean {
+	return status === 'finalised' || status === 'ended';
+}
 
 /** Sessions run on single best laps, ranked by time rather than by distance. */
 export function isTimedSession(type: SessionType): boolean {
@@ -28,15 +33,17 @@ export function secondPartCars(cars: number): number {
 /** When each part of a session started, from its status log: 1 part outside qualifying. */
 export function partStarts(snapshot: RaceSnapshot): string[] {
 	const starts: string[] = [];
-	let previous: string | null = null;
+	let running = false;
+	let halted = false;
 
 	for (const change of snapshot.statusLog ?? []) {
-		// A red flag aborts a part and the restart continues it.
-		if (change.status === 'started' && previous !== 'started' && previous !== 'aborted') {
+		// A red flag aborts a part, and the restart continues it even after a spell of inactive.
+		if (change.status === 'started' && !running && !halted) {
 			starts.push(change.at);
 		}
 
-		previous = change.status;
+		running = change.status === 'started';
+		halted = change.status === 'aborted' || (halted && change.status === 'inactive');
 	}
 
 	return starts;
@@ -53,8 +60,6 @@ export function partOfLap(lap: Lap, starts: readonly string[]): number {
 	return Math.max(1, starts.filter((start) => start <= completed).length);
 }
 
-const FINAL_STATUSES = new Set(['finalised', 'ended']);
-
 export type QualifyingProgress = {
 	/** The part running now, or the last one run; null when the status log is missing. */
 	part: number | null;
@@ -67,7 +72,7 @@ export type QualifyingProgress = {
 export function qualifyingProgress(snapshot: RaceSnapshot): QualifyingProgress {
 	const starts = partStarts(snapshot);
 	const status = snapshot.status ?? 'inactive';
-	const finished = FINAL_STATUSES.has(status) || (status === 'finished' && starts.length >= 3);
+	const finished = isSessionOver(status) || (status === 'finished' && starts.length >= 3);
 
 	return {
 		part: starts.length > 0 ? Math.min(starts.length, 3) : null,

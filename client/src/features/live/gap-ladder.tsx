@@ -4,15 +4,12 @@ import { TeamStripe } from '@/components/driver-tag';
 import { useRace } from '@/data/race-context';
 import { battleAhead } from '@/insights/battle';
 import { isTimedSession } from '@/insights/qualifying';
-import { oneSecondAid } from '@/insights/rules';
+import { ONE_SECOND_MS, oneSecondAid } from '@/insights/rules';
 import type { StandingRow } from '@/insights/standings';
 import { cn } from '@/lib/utils';
 
 /** Cars listed either side of the followed driver. */
 const RUNGS = 2;
-
-/** Within a second of the car ahead: DRS until 2025, overtake mode from 2026. */
-const ONE_SECOND = 1;
 
 /** Race time between two running cars on the lead lap, from their gaps to the leader. */
 function gapSeconds(from: StandingRow, to: StandingRow): number | null {
@@ -105,7 +102,7 @@ export function GapLadder() {
 								ahead &&
 								!timed &&
 								aid.enabled !== false &&
-								Math.abs(gap) < ONE_SECOND ? (
+								Math.abs(gap) * 1000 < ONE_SECOND_MS ? (
 									<span className="type-label text-foreground border px-1">{aid.code}</span>
 								) : null}
 								<Digits

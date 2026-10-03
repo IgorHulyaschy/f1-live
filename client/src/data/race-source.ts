@@ -23,7 +23,7 @@ export type RaceSource = {
 };
 
 /** The archive key of the 2025 Las Vegas race, which the mock replays. */
-export const MOCK_SESSION_KEY = '9858';
+const MOCK_SESSION_KEY = '9858';
 
 const MOCK_CATALOG: Catalog = {
 	seasons: [

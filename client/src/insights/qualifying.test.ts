@@ -127,3 +127,21 @@ describe('qualifying', () => {
 		);
 	});
 });
+
+describe('qualifying parts', () => {
+	it('keeps a part going over a red flag, even through a spell of inactive', () => {
+		const snapshot = qualifying([
+			[0, 'started'],
+			[8, 'aborted'],
+			[10, 'inactive'],
+			[14, 'started'],
+			[24, 'finished']
+		]);
+
+		assert.deepEqual(qualifyingProgress(snapshot), { part: 1, running: false, finished: false });
+		assert.deepEqual(
+			cutLines(snapshot, 12).map((line) => line.label),
+			['Out in Q1']
+		);
+	});
+});
