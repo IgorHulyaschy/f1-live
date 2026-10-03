@@ -2,10 +2,12 @@ import { fileURLToPath } from 'node:url';
 
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 4173;
+import { PORTS } from './playwright.ports.ts';
+
+const PORT = PORTS.mockApp;
 
 /** The server for sign-in, sync and the fake checkout, on a port of its own. */
-export const ACCOUNTS_PORT = 3114;
+const ACCOUNTS_PORT = PORTS.accountsServer;
 
 /** Lets sandboxes with a preinstalled browser skip `playwright install`. */
 const executablePath = process.env.PW_CHROMIUM_PATH;
