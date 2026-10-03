@@ -6,31 +6,17 @@ import { DriverList } from '@/features/analysis/driver-list';
 import { FastestLaps } from '@/features/analysis/fastest-laps';
 import type { Metric } from '@/features/analysis/lap-series';
 import { PaceRanking } from '@/features/analysis/pace-ranking';
-import { DriverCard, GridWall } from '@/features/drivers/driver-tiles';
 import { BestSectors } from '@/features/live/best-sectors';
 import { FocusPanel } from '@/features/live/focus-panel';
 import { KnockoutPanel } from '@/features/live/knockout-panel';
-import { BoxNowPanel, GapsPanel } from '@/features/live/focus-tiles';
 import { RaceControlFeed } from '@/features/live/race-control-feed';
 import { TimingTower } from '@/features/live/timing-tower';
 import { LapStripTile, SessionTile, WeatherTile } from '@/features/session/session-tiles';
 import { Timeline } from '@/features/session/timeline';
-import { Degradation } from '@/features/strategy/degradation';
 import { LongRuns } from '@/features/strategy/long-runs';
-import { PitCost } from '@/features/strategy/pit-cost';
-import { PitCrews } from '@/features/strategy/pit-crews';
-import { PitStops } from '@/features/strategy/pit-stops';
 import { StintChart } from '@/features/strategy/stint-chart';
-import { UndercutLedger } from '@/features/strategy/undercut-ledger';
-import { StoryRibbon } from '@/features/story/story-ribbon';
-import { BattleMapTile } from '@/features/track/battle-map-tile';
-import { DominanceTile } from '@/features/track/dominance-tile';
-import { FlagMapTile } from '@/features/track/flag-map-tile';
-import { PitRejoinTile } from '@/features/track/pit-rejoin-tile';
-import { SpeedMapTile } from '@/features/track/speed-map-tile';
-import { TrackMapTile } from '@/features/track/track-map-tile';
 
-import type { Tile, TileSettings } from './dashboards';
+import { type Tile, type TileSettings, tileTitle } from './dashboards';
 
 // The chart library is the heaviest part of the app; it loads only with a chart tile.
 const ChartWorkspace = React.lazy(async () => ({
@@ -49,6 +35,72 @@ const ConditionsPanel = React.lazy(async () => ({
 	default: (await import('@/features/analysis/conditions-panel')).ConditionsPanel
 }));
 
+// Tiles that no session layout opens with load on first use, keeping the first download small.
+const DriverCard = React.lazy(async () => ({
+	default: (await import('@/features/drivers/driver-tiles')).DriverCard
+}));
+
+const GridWall = React.lazy(async () => ({
+	default: (await import('@/features/drivers/driver-tiles')).GridWall
+}));
+
+const BoxNowPanel = React.lazy(async () => ({
+	default: (await import('@/features/live/focus-tiles')).BoxNowPanel
+}));
+
+const GapsPanel = React.lazy(async () => ({
+	default: (await import('@/features/live/focus-tiles')).GapsPanel
+}));
+
+const Degradation = React.lazy(async () => ({
+	default: (await import('@/features/strategy/degradation')).Degradation
+}));
+
+const PitCost = React.lazy(async () => ({
+	default: (await import('@/features/strategy/pit-cost')).PitCost
+}));
+
+const PitCrews = React.lazy(async () => ({
+	default: (await import('@/features/strategy/pit-crews')).PitCrews
+}));
+
+const PitStops = React.lazy(async () => ({
+	default: (await import('@/features/strategy/pit-stops')).PitStops
+}));
+
+const UndercutLedger = React.lazy(async () => ({
+	default: (await import('@/features/strategy/undercut-ledger')).UndercutLedger
+}));
+
+const StoryRibbon = React.lazy(async () => ({
+	default: (await import('@/features/story/story-ribbon')).StoryRibbon
+}));
+
+// The maps share a drawing engine most dashboards never use; it loads with the first map tile.
+const BattleMapTile = React.lazy(async () => ({
+	default: (await import('@/features/track/battle-map-tile')).BattleMapTile
+}));
+
+const DominanceTile = React.lazy(async () => ({
+	default: (await import('@/features/track/dominance-tile')).DominanceTile
+}));
+
+const FlagMapTile = React.lazy(async () => ({
+	default: (await import('@/features/track/flag-map-tile')).FlagMapTile
+}));
+
+const PitRejoinTile = React.lazy(async () => ({
+	default: (await import('@/features/track/pit-rejoin-tile')).PitRejoinTile
+}));
+
+const SpeedMapTile = React.lazy(async () => ({
+	default: (await import('@/features/track/speed-map-tile')).SpeedMapTile
+}));
+
+const TrackMapTile = React.lazy(async () => ({
+	default: (await import('@/features/track/track-map-tile')).TrackMapTile
+}));
+
 /** A tile whose code is still loading: its ruled header and a quiet placeholder. */
 function LoadingTile({ title }: { title: string }) {
 	return (
@@ -59,6 +111,13 @@ function LoadingTile({ title }: { title: string }) {
 				<Skeleton className="h-40 w-full" />
 			</div>
 		</Panel>
+	);
+}
+
+/** A tile whose code loads on first use, with its loading state in the meantime. */
+function LazyTile({ tile, children }: { tile: Tile; children: React.ReactNode }) {
+	return (
+		<React.Suspense fallback={<LoadingTile title={tileTitle(tile)} />}>{children}</React.Suspense>
 	);
 }
 
@@ -88,11 +147,19 @@ export function TileContent({
 		}
 
 		case 'driver': {
-			return <DriverCard />;
+			return (
+				<LazyTile tile={tile}>
+					<DriverCard />
+				</LazyTile>
+			);
 		}
 
 		case 'grid': {
-			return <GridWall />;
+			return (
+				<LazyTile tile={tile}>
+					<GridWall />
+				</LazyTile>
+			);
 		}
 
 		case 'timing': {
@@ -104,11 +171,19 @@ export function TileContent({
 		}
 
 		case 'gaps': {
-			return <GapsPanel />;
+			return (
+				<LazyTile tile={tile}>
+					<GapsPanel />
+				</LazyTile>
+			);
 		}
 
 		case 'box-now': {
-			return <BoxNowPanel />;
+			return (
+				<LazyTile tile={tile}>
+					<BoxNowPanel />
+				</LazyTile>
+			);
 		}
 
 		case 'race-control': {
@@ -143,15 +218,27 @@ export function TileContent({
 		}
 
 		case 'degradation': {
-			return <Degradation />;
+			return (
+				<LazyTile tile={tile}>
+					<Degradation />
+				</LazyTile>
+			);
 		}
 
 		case 'pit-stops': {
-			return <PitStops />;
+			return (
+				<LazyTile tile={tile}>
+					<PitStops />
+				</LazyTile>
+			);
 		}
 
 		case 'story': {
-			return <StoryRibbon />;
+			return (
+				<LazyTile tile={tile}>
+					<StoryRibbon />
+				</LazyTile>
+			);
 		}
 
 		case 'telemetry': {
@@ -163,15 +250,27 @@ export function TileContent({
 		}
 
 		case 'undercut': {
-			return <UndercutLedger />;
+			return (
+				<LazyTile tile={tile}>
+					<UndercutLedger />
+				</LazyTile>
+			);
 		}
 
 		case 'pit-cost': {
-			return <PitCost />;
+			return (
+				<LazyTile tile={tile}>
+					<PitCost />
+				</LazyTile>
+			);
 		}
 
 		case 'pit-crews': {
-			return <PitCrews />;
+			return (
+				<LazyTile tile={tile}>
+					<PitCrews />
+				</LazyTile>
+			);
 		}
 
 		case 'championship': {
@@ -204,40 +303,58 @@ export function TileContent({
 
 		case 'track-map': {
 			return (
-				<TrackMapTile
-					settings={tile.settings}
-					onSettingsChange={(settings) => onSettingsChange?.({ ...tile.settings, ...settings })}
-				/>
+				<LazyTile tile={tile}>
+					<TrackMapTile
+						settings={tile.settings}
+						onSettingsChange={(settings) => onSettingsChange?.({ ...tile.settings, ...settings })}
+					/>
+				</LazyTile>
 			);
 		}
 
 		case 'battle-map': {
-			return <BattleMapTile />;
+			return (
+				<LazyTile tile={tile}>
+					<BattleMapTile />
+				</LazyTile>
+			);
 		}
 
 		case 'pit-rejoin': {
-			return <PitRejoinTile />;
+			return (
+				<LazyTile tile={tile}>
+					<PitRejoinTile />
+				</LazyTile>
+			);
 		}
 
 		case 'dominance': {
 			return (
-				<DominanceTile
-					span={tile.settings?.span}
-					onSpanChange={(span) => onSettingsChange?.({ ...tile.settings, span })}
-				/>
+				<LazyTile tile={tile}>
+					<DominanceTile
+						span={tile.settings?.span}
+						onSpanChange={(span) => onSettingsChange?.({ ...tile.settings, span })}
+					/>
+				</LazyTile>
 			);
 		}
 
 		case 'flag-map': {
-			return <FlagMapTile />;
+			return (
+				<LazyTile tile={tile}>
+					<FlagMapTile />
+				</LazyTile>
+			);
 		}
 
 		case 'speed-map': {
 			return (
-				<SpeedMapTile
-					channel={tile.settings?.channel}
-					onChannelChange={(channel) => onSettingsChange?.({ ...tile.settings, channel })}
-				/>
+				<LazyTile tile={tile}>
+					<SpeedMapTile
+						channel={tile.settings?.channel}
+						onChannelChange={(channel) => onSettingsChange?.({ ...tile.settings, channel })}
+					/>
+				</LazyTile>
 			);
 		}
 	}

@@ -6,7 +6,7 @@ import {
 	PlusIcon,
 	SunIcon
 } from 'lucide-react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, m } from 'motion/react';
 import * as React from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router';
 
@@ -150,7 +150,7 @@ function MainNav() {
 
 function NavIndicator() {
 	return (
-		<motion.span
+		<m.span
 			layoutId="nav-indicator"
 			className="bg-focus absolute inset-x-1.5 -bottom-px h-0.75 sm:inset-x-3.5"
 			transition={{ type: 'spring', stiffness: 600, damping: 45 }}
@@ -166,7 +166,7 @@ function FlagBanner() {
 	return (
 		<AnimatePresence initial={false}>
 			{status === 'green' ? null : (
-				<motion.output
+				<m.output
 					key={status}
 					initial={{ scaleX: 0 }}
 					animate={{ scaleX: 1 }}
@@ -180,7 +180,7 @@ function FlagBanner() {
 					)}
 				>
 					{TRACK_STATUS_LABEL[status]}
-				</motion.output>
+				</m.output>
 			)}
 		</AnimatePresence>
 	);

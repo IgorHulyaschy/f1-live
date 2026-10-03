@@ -1,4 +1,4 @@
-import { MotionConfig } from 'motion/react';
+import { LazyMotion, MotionConfig } from 'motion/react';
 import * as React from 'react';
 import { matchPath, Outlet, useLocation, useMatch } from 'react-router';
 
@@ -71,6 +71,24 @@ function BareHeader() {
 	);
 }
 
+/**
+ * Rows sliding and the nav underline need motion's engine. It loads a second after the page has,
+ * so the first screen never shares the connection with it; nothing on screen moves that soon.
+ */
+async function loadMotionFeatures() {
+	await new Promise<void>((resolve) => {
+		const later = () => window.setTimeout(resolve, 1000);
+
+		if (document.readyState === 'complete') {
+			later();
+		} else {
+			window.addEventListener('load', later, { once: true });
+		}
+	});
+
+	return (await import('./motion-features')).default;
+}
+
 function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: boolean }) {
 	const [commandOpen, setCommandOpen] = React.useState(false);
 	const openCommand = React.useCallback(() => setCommandOpen(true), []);
@@ -85,95 +103,99 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 
 	if (bare) {
 		return (
-			<MotionConfig reducedMotion="user">
-				<TooltipProvider>
-					<CompareProvider>
-						<div
-							className="flex h-svh flex-col"
-							style={focus ? { '--focus': `#${focus.teamColour}` } : undefined}
-						>
-							<BareHeader />
-							<Outlet />
-						</div>
-					</CompareProvider>
-				</TooltipProvider>
-			</MotionConfig>
+			<LazyMotion features={loadMotionFeatures} strict>
+				<MotionConfig reducedMotion="user">
+					<TooltipProvider>
+						<CompareProvider>
+							<div
+								className="flex h-svh flex-col"
+								style={focus ? { '--focus': `#${focus.teamColour}` } : undefined}
+							>
+								<BareHeader />
+								<Outlet />
+							</div>
+						</CompareProvider>
+					</TooltipProvider>
+				</MotionConfig>
+			</LazyMotion>
 		);
 	}
 
 	return (
-		<MotionConfig reducedMotion="user">
-			<TooltipProvider>
-				<CompareProvider>
-					<div
-						className="min-h-svh"
-						style={focus ? { '--focus': `#${focus.teamColour}` } : undefined}
-					>
-						<AppHeader onOpenCommand={openCommand} />
-						<main className="px-4 pb-6 md:px-6">
-							<Outlet />
-						</main>
-						<SiteFooter
-							className="pb-24 md:pb-8"
-							note={
-								sourceKind === 'mock'
-									? 'This replay uses the real grid, strategies, race control and result; lap times are modelled from them.'
-									: undefined
-							}
+		<LazyMotion features={loadMotionFeatures} strict>
+			<MotionConfig reducedMotion="user">
+				<TooltipProvider>
+					<CompareProvider>
+						<div
+							className="min-h-svh"
+							style={focus ? { '--focus': `#${focus.teamColour}` } : undefined}
 						>
-							<div className="flex flex-wrap items-center gap-2">
-								<span className="flex gap-2 sm:hidden">
-									<AccountFooterKey />
-									<Key onClick={toggleTheme}>{dark ? 'Light theme' : 'Dark theme'}</Key>
-								</span>
-								{wakeLockSupported() ? (
-									<Key
-										role="switch"
-										aria-checked={keepAwake}
-										pressed={keepAwake}
-										onClick={() => keepAwakeStore.set(!keepAwake)}
-										title="Keep the screen on while a race plays or runs live"
-									>
-										Screen awake
-									</Key>
-								) : null}
-								<InstallKey />
-							</div>
-							<dl className="type-label hidden gap-4 md:flex">
-								<div className="flex gap-1.5">
-									<dt>Laps</dt>
-									<dd className="text-foreground">← →</dd>
+							<AppHeader onOpenCommand={openCommand} />
+							<main className="px-4 pb-6 md:px-6">
+								<Outlet />
+							</main>
+							<SiteFooter
+								className="pb-24 md:pb-8"
+								note={
+									sourceKind === 'mock'
+										? 'This replay uses the real grid, strategies, race control and result; lap times are modelled from them.'
+										: undefined
+								}
+							>
+								<div className="flex flex-wrap items-center gap-2">
+									<span className="flex gap-2 sm:hidden">
+										<AccountFooterKey />
+										<Key onClick={toggleTheme}>{dark ? 'Light theme' : 'Dark theme'}</Key>
+									</span>
+									{wakeLockSupported() ? (
+										<Key
+											role="switch"
+											aria-checked={keepAwake}
+											pressed={keepAwake}
+											onClick={() => keepAwakeStore.set(!keepAwake)}
+											title="Keep the screen on while a race plays or runs live"
+										>
+											Screen awake
+										</Key>
+									) : null}
+									<InstallKey />
 								</div>
-								<div className="flex gap-1.5">
-									<dt>Play</dt>
-									<dd className="text-foreground">Space</dd>
-								</div>
-								<div className="flex gap-1.5">
-									<dt>Events</dt>
-									<dd className="text-foreground">⇧← →</dd>
-								</div>
-								<div className="flex gap-1.5">
-									<dt>Live</dt>
-									<dd className="text-foreground">L</dd>
-								</div>
-								<div className="flex gap-1.5">
-									<dt>Dashboards</dt>
-									<dd className="text-foreground">1–9</dd>
-								</div>
-								<div className="flex gap-1.5">
-									<dt>Jump</dt>
-									<dd className="text-foreground">⌘K</dd>
-								</div>
-							</dl>
-						</SiteFooter>
-						<PitBoard />
-						<AccountSession />
-					</div>
-				</CompareProvider>
-				<CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
-				<Toaster theme={dark ? 'dark' : 'light'} position="bottom-right" />
-			</TooltipProvider>
-		</MotionConfig>
+								<dl className="type-label hidden gap-4 md:flex">
+									<div className="flex gap-1.5">
+										<dt>Laps</dt>
+										<dd className="text-foreground">← →</dd>
+									</div>
+									<div className="flex gap-1.5">
+										<dt>Play</dt>
+										<dd className="text-foreground">Space</dd>
+									</div>
+									<div className="flex gap-1.5">
+										<dt>Events</dt>
+										<dd className="text-foreground">⇧← →</dd>
+									</div>
+									<div className="flex gap-1.5">
+										<dt>Live</dt>
+										<dd className="text-foreground">L</dd>
+									</div>
+									<div className="flex gap-1.5">
+										<dt>Dashboards</dt>
+										<dd className="text-foreground">1–9</dd>
+									</div>
+									<div className="flex gap-1.5">
+										<dt>Jump</dt>
+										<dd className="text-foreground">⌘K</dd>
+									</div>
+								</dl>
+							</SiteFooter>
+							<PitBoard />
+							<AccountSession />
+						</div>
+					</CompareProvider>
+					<CommandMenu open={commandOpen} onOpenChange={setCommandOpen} />
+					<Toaster theme={dark ? 'dark' : 'light'} position="bottom-right" />
+				</TooltipProvider>
+			</MotionConfig>
+		</LazyMotion>
 	);
 }
 
