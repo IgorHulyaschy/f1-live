@@ -109,18 +109,83 @@ test('a 22-car qualifying session cuts after 16 and shows no DRS', async ({ page
 	await expect(page.getByText('DRS', { exact: true })).toHaveCount(0);
 });
 
-test('spoiler-free opens at the start and shows results only when asked', async ({ page }) => {
-	await page.addInitScript(() => window.localStorage.setItem('pitwall-spoiler-free', 'true'));
-	await openRace(page, '/?session=9858');
+test('a finished race opens at the start, paused, with its results hidden', async ({ page }) => {
+	await openRace(page, '/?session=9858', { spoilerProtection: true });
 
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 1/50');
+	await expect(page.getByTestId('spoiler-start')).toContainText('Results hidden');
+	await expect(page.getByRole('button', { name: 'Play replay' })).toBeEnabled();
 	await expect(page.getByText('DSQ')).toHaveCount(0);
+	await expect(page).toHaveTitle('Las Vegas 2025 Race · Pitwall');
 
-	await page.getByRole('button', { name: 'Show results' }).click();
+	await page.getByRole('button', { name: 'Jump to the finish (shows results)' }).first().click();
 
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 50/50');
 	await expect(page.getByTestId('timing-row-NOR').getByText('DSQ').first()).toBeVisible();
-	await expect(page.getByRole('button', { name: 'Show results' })).toHaveCount(0);
+	await expect(page.getByTestId('spoiler-start')).toHaveCount(0);
+
+	// The reveal is remembered.
+	await page.reload();
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 50/50');
+});
+
+test('qualifying opens at the start of Q1 with no pole anywhere until revealed', async ({
+	page
+}) => {
+	await openRace(page, '/?session=11373', { spoilerProtection: true });
+
+	await expect(page.getByTestId('strip-part')).toHaveText('Q1');
+	await expect(page.getByTestId('spoiler-start')).toContainText('the start of Q1');
+	await expect(page.getByTestId('knockout')).not.toContainText('Pole');
+	await expect(page.getByTestId('knockout')).not.toContainText('RUS');
+
+	await page.goto('/library?session=11373');
+	await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+	await expect(page.getByText('Pole', { exact: true })).toHaveCount(0);
+
+	await page.goto('/?session=11373');
+	await page.getByRole('button', { name: 'Sessions' }).click();
+	const picker = page.getByTestId('session-picker');
+	await expect(picker.getByTestId('session-11373')).toContainText('Results hidden');
+	await expect(picker).not.toContainText('RUS');
+
+	// The picker's own reveal opens the session at its finish.
+	await picker.getByTestId('show-results-11373').click();
+	await expect(page.getByTestId('strip-part')).toHaveText('Q3');
+	await expect(page.getByTestId('knockout')).toContainText('Pole');
+});
+
+test('a link with a position opens there, and one without follows the spoiler rule', async ({
+	page
+}) => {
+	await openRace(page, '/?session=9858&lap=30', { spoilerProtection: true });
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 30/50');
+
+	await page.goto('/?session=9854');
+	await expect(page.getByTestId('strip-part')).toHaveText('Q1');
+});
+
+test('watching to the end reveals the session', async ({ page }) => {
+	await openRace(page, '/?session=9858&lap=49', { spoilerProtection: true });
+
+	await page.getByRole('button', { name: 'Next lap' }).click();
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 50/50');
+
+	await page.goto('/?session=9858');
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 50/50');
+});
+
+test('spoiler protection off opens finished sessions at the end again', async ({ page }) => {
+	await openRace(page, '/?session=9858', { spoilerProtection: true });
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 1/50');
+
+	await page.getByRole('button', { name: 'Sessions' }).click();
+	await page.getByRole('switch', { name: 'Spoiler protection' }).click();
+	await page.keyboard.press('Escape');
+	await page.goto('/?session=11373');
+
+	await expect(page.getByTestId('strip-part')).toHaveText('Q3');
+	await expect(page.getByTestId('spoiler-start')).toHaveCount(0);
 });
 
 test('a session without saved data still opens, with every panel saying why it is empty', async ({

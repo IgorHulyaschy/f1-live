@@ -22,7 +22,13 @@ import { snapshotAtLap } from './snapshot-at-lap.ts';
 import { minuteTime, sessionClock, snapshotAtTime } from './snapshot-at-time.ts';
 import { ReplayClock, type ReplaySpeed, replaySpeedStore } from './replay-clock.ts';
 import { type ReplayTimeline, replayTimeline, stepAt, stepTime } from './session-time.ts';
-import { delayStore, revealedStore, spoilerFreeStore } from './viewer-settings.ts';
+import { resultsHidden as sessionHidden, spoilerSafeStep } from './spoilers.ts';
+import {
+	delayStore,
+	revealSession,
+	spoilerProtectionStore,
+	useSpoilerSettings
+} from './viewer-settings.ts';
 
 export type Plan = 'free' | 'pro';
 
@@ -45,9 +51,9 @@ type LiveView = {
 };
 
 type Spoilers = {
-	/** The viewer's setting: open sessions at the start and hide results. */
-	free: boolean;
-	setFree: (free: boolean) => void;
+	/** The viewer's setting: open finished sessions at the start and hide their results. */
+	protect: boolean;
+	setProtect: (protect: boolean) => void;
 	/** Results of the session on screen are hidden now. */
 	hidden: boolean;
 	/** Shows this session's results: its end, or live. */
@@ -425,13 +431,6 @@ function useSessionKey(
 
 type ShownRace = { key: string; race: RaceSnapshot; fromFeed: boolean };
 
-/** The lap the URL asks for, clamped to the laps available, or the default. */
-function resolveLap(raw: string | null, maxLap: number, defaultLap: number): number {
-	const requested = Number(raw);
-
-	return Number.isInteger(requested) && requested > 0 ? Math.min(requested, maxLap) : defaultLap;
-}
-
 /**
  * Race data plus the viewer's choices. Session, lap, plan and followed driver live in the URL so
  * every view is linkable, and tests and screenshots can open an exact state.
@@ -586,23 +585,48 @@ export function RaceProvider({
 	const timed = race !== null && isTimedSession(race.session.type);
 	const clock = React.useMemo(() => (race && timed ? sessionClock(race) : null), [race, timed]);
 	const maxLap = clock ? clock.minutes : (race?.currentLap ?? 1);
-	const spoilerFree = spoilerFreeStore.useValue();
-	const revealed = revealedStore.useValue();
-	const resultsHidden = spoilerFree && shown !== null && !revealed.includes(shown.key);
-	const following = isLive && !searchParams.has('lap') && !resultsHidden;
-	const defaultLap = resultsHidden ? 1 : source.kind === 'mock' ? DEFAULT_REPLAY_LAP : maxLap;
-	const lap = following ? maxLap : resolveLap(searchParams.get('lap'), maxLap, defaultLap);
-
+	const spoilerSettings = useSpoilerSettings();
+	const following = isLive && !searchParams.has('lap');
 	const shownKey = shown?.key ?? null;
+	// A session watched live up to its end stays revealed, even before the reveal is saved.
+	const [watchedLive, setWatchedLive] = React.useState<string | null>(null);
 
-	// Seeing the latest state shows results, so in spoiler-free mode it reveals the session.
+	if (following && shownKey !== null && watchedLive !== shownKey) {
+		setWatchedLive(shownKey);
+	}
+
+	const resultsHidden =
+		shownKey !== null &&
+		sessionHidden(spoilerSettings, shownKey, isLive || watchedLive === shownKey);
+
+	const revealedLap = source.kind === 'mock' ? DEFAULT_REPLAY_LAP : maxLap;
+
+	const openAt = React.useCallback(
+		(raw: string | null) =>
+			spoilerSafeStep({
+				requested: raw,
+				hidden: resultsHidden,
+				lastStep: maxLap,
+				revealedStep: revealedLap
+			}),
+		[resultsHidden, maxLap, revealedLap]
+	);
+
+	const lap = following ? maxLap : openAt(searchParams.get('lap'));
+	const liveWatchedToEnd = Boolean(shown?.fromFeed && !isLive && watchedLive === shownKey);
+	const replayedToEnd = resultsHidden && race !== null && race.laps.length > 0 && lap >= maxLap;
+
+	// Seeing the end of a session, live or replayed, reveals it.
+	React.useEffect(() => {
+		if (shownKey !== null && (liveWatchedToEnd || replayedToEnd)) {
+			revealSession(shownKey);
+		}
+	}, [shownKey, liveWatchedToEnd, replayedToEnd]);
+
+	// Seeing the latest state shows results, so it reveals the session.
 	const reveal = React.useCallback(() => {
 		if (shownKey !== null) {
-			revealedStore.set(
-				[...revealedStore.get().filter((revealedKey) => revealedKey !== shownKey), shownKey].slice(
-					-50
-				)
-			);
+			revealSession(shownKey);
 		}
 
 		setLocalPlaying(false);
@@ -621,17 +645,17 @@ export function RaceProvider({
 			const raw = new URLSearchParams(window.location.search).get('lap');
 
 			// Following live already shows the newest lap; only stepping back leaves it.
-			if (isLive && raw === null && !resultsHidden && delta > 0) {
+			if (isLive && raw === null && delta > 0) {
 				return;
 			}
 
-			const current = resolveLap(raw, maxLap, defaultLap);
+			const current = openAt(raw);
 			const next = Math.min(Math.max(current + delta, 1), maxLap);
 
 			updateParam('lap', String(next));
 			broadcast({ lap: next });
 		},
-		[updateParam, maxLap, defaultLap, broadcast, isLive, resultsHidden]
+		[updateParam, maxLap, openAt, broadcast, isLive]
 	);
 
 	// Playback stops by itself at the last available lap; on a live session it rejoins live there.
@@ -664,11 +688,7 @@ export function RaceProvider({
 
 		const timer = window.setTimeout(
 			() => {
-				const onScreen = resolveLap(
-					new URLSearchParams(window.location.search).get('lap'),
-					maxLap,
-					defaultLap
-				);
+				const onScreen = openAt(new URLSearchParams(window.location.search).get('lap'));
 
 				if (isLive && onScreen + 1 >= maxLap) {
 					backToLive();
@@ -690,7 +710,7 @@ export function RaceProvider({
 		stepLap,
 		isLive,
 		maxLap,
-		defaultLap,
+		openAt,
 		backToLive
 	]);
 
@@ -756,8 +776,13 @@ export function RaceProvider({
 	);
 
 	const spoilers = React.useMemo<Spoilers>(
-		() => ({ free: spoilerFree, setFree: spoilerFreeStore.set, hidden: resultsHidden, reveal }),
-		[spoilerFree, resultsHidden, reveal]
+		() => ({
+			protect: spoilerSettings.protect,
+			setProtect: spoilerProtectionStore.set,
+			hidden: resultsHidden,
+			reveal
+		}),
+		[spoilerSettings.protect, resultsHidden, reveal]
 	);
 
 	const catalogValue = catalog.status === 'ready' ? catalog.value : null;

@@ -25,7 +25,7 @@ export function useFeedLabel(): 'Live' | 'Replay' | 'Upcoming' | 'No data' {
 /**
  * The race title and its facts. Like the replay and lap strip tiles it sits on the page itself,
  * not in a ruled panel: these are the screen's masthead, wherever a viewer moves them. The
- * Sessions and Show results keys are on the live strip, on every page.
+ * Sessions and Jump to the finish keys are on the live strip, on every page.
  */
 export function SessionTile() {
 	const { race, snapshot } = useRaceView();

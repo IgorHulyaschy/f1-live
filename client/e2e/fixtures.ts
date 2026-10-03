@@ -3,11 +3,22 @@ import { z } from 'zod';
 
 /**
  * Opens a page of the mock replay as a returning viewer and waits until the race has loaded.
- * formula1.com pictures are refused so every run sees the same drawn fallbacks.
+ * formula1.com pictures are refused so every run sees the same drawn fallbacks. Spoiler
+ * protection is off unless asked for, so a session opens where the replay last did: tests of the
+ * protection itself pass `spoilerProtection`, as a first visit has it.
  */
-export async function openRace(page: Page, path = '/'): Promise<void> {
+export async function openRace(
+	page: Page,
+	path = '/',
+	{ spoilerProtection = false }: { spoilerProtection?: boolean } = {}
+): Promise<void> {
 	await page.route('https://media.formula1.com/**', (route) => route.abort());
 	await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
+
+	if (!spoilerProtection) {
+		await page.addInitScript(() => window.localStorage.setItem('pitwall-spoiler-free', 'false'));
+	}
+
 	await page.goto(path);
 	await expect(page.getByTestId('lap-counter')).toBeVisible();
 }

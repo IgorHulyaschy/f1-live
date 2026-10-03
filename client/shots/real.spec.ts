@@ -51,6 +51,8 @@ for (const viewport of VIEWPORTS) {
 					await page.addInitScript((chosen) => {
 						window.localStorage.setItem('pitwall-welcomed', 'true');
 						window.localStorage.setItem('pitwall-theme', chosen);
+						// These audit finished sessions as they ended; spoiler protection has shots of its own.
+						window.localStorage.setItem('pitwall-spoiler-free', 'false');
 					}, theme);
 					await page.goto(screen.path);
 					await expect(page.getByTestId('lap-counter')).toBeAttached();

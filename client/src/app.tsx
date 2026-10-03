@@ -18,6 +18,7 @@ import { CompareProvider } from '@/features/analysis/compare-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
 import type { RaceSource } from '@/data/race-source';
 import { useRaceAlerts } from '@/hooks/use-race-alerts';
+import { usePageTitle } from '@/hooks/use-page-title';
 import { useRaceHotkeys } from '@/hooks/use-race-hotkeys';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 
@@ -85,6 +86,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 
 	useRaceHotkeys(openCommand);
 	useRaceAlerts();
+	usePageTitle();
 
 	if (bare) {
 		return (
