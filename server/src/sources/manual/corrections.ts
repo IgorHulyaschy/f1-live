@@ -17,8 +17,11 @@ const manualCorrectionsSchema = z.object({
 			.object({
 				driverNumber: z.string().min(1),
 				kind: z.enum(CORRECTION_KINDS),
-				/** For a time penalty: the seconds added to the race time. */
-				seconds: z.number().positive().optional(),
+				/** For a time penalty: the seconds added to the race time; negative when a penalty is withdrawn. */
+				seconds: z
+					.number()
+					.refine((seconds) => seconds !== 0)
+					.optional(),
 				reason: z.string().min(1),
 				/** When the decision was published, ISO 8601 UTC. */
 				at: z.iso.datetime(),

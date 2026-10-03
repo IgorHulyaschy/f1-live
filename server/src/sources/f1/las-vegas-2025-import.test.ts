@@ -74,14 +74,15 @@ describe('2025 Las Vegas race import', { skip }, () => {
 	it('reaches the same classification from the OpenF1 session result alone', async () => {
 		const result = parseSessionResult(
 			JSON.stringify([
-				{ session_key: 9858, driver_number: 1, dsq: false },
-				{ session_key: 9858, driver_number: 4, dsq: true },
-				{ session_key: 9858, driver_number: 81, dsq: true }
+				{ session_key: 9858, driver_number: 1, dsq: false, number_of_laps: 50, duration: null },
+				{ session_key: 9858, driver_number: 4, dsq: true, number_of_laps: null, duration: null },
+				{ session_key: 9858, driver_number: 81, dsq: true, number_of_laps: null, duration: null }
 			])
 		);
 
 		const openF1: CorrectionSource = {
-			load: ({ endedAt }) => Promise.resolve(correctionsFromResult(result, endedAt))
+			load: ({ endedAt, standings }) =>
+				Promise.resolve(correctionsFromResult(result, standings, endedAt))
 		};
 
 		const snapshot = await importRace([openF1]);

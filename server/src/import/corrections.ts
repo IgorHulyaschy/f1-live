@@ -1,4 +1,4 @@
-import type { ClassificationCorrectionEvent } from '@f1-live/shared';
+import type { ClassificationCorrectionEvent, Standing } from '@f1-live/shared';
 
 /** Where a session's corrections come from; one source per provider or file. */
 export interface CorrectionSource {
@@ -10,6 +10,8 @@ export interface CorrectionTarget {
 	key: number;
 	/** When the session's own events end, ISO 8601 UTC, for sources that do not date a decision. */
 	endedAt: string;
+	/** The running order the session's own events ended with, for sources that publish the official one. */
+	standings: readonly Standing[];
 }
 
 function conflictKey(event: ClassificationCorrectionEvent): string {

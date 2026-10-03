@@ -21,5 +21,5 @@ and they win over any other source for the same driver and kind.
 ```
 
 `kind` is `disqualified` or `time_penalty`; a time penalty also needs `seconds`, added to the race
-time. `source` is required so every entry can be checked. Run `npm run rebuild -w server` after
+time (negative when the stewards withdraw a penalty). `source` is required so every entry can be checked. Run `npm run rebuild -w server` after
 editing.

@@ -84,13 +84,15 @@ export async function ingestSession(input: IngestInput): Promise<IngestResult> {
 
 	const sources = input.corrections ?? [new OpenF1Corrections(dataDir), new ManualCorrections()];
 
+	const ended = events.reduce(applyEvent, EMPTY_SNAPSHOT);
+	const target = { key, endedAt: last.at, standings: ended.standings ?? [] };
+
 	const corrections = mergeCorrections(
-		await Promise.all(sources.map((source) => source.load({ key, endedAt: last.at })))
+		await Promise.all(sources.map((source) => source.load(target)))
 	);
 
 	const all = [...events, ...corrections];
-
-	const snapshot = all.reduce(applyEvent, EMPTY_SNAPSHOT);
+	const snapshot = corrections.reduce(applyEvent, ended);
 
 	await writeErrors(
 		dataDir,
