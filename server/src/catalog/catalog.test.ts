@@ -149,7 +149,7 @@ describe('buildCatalog', () => {
 		);
 	});
 
-	it('carries the circuit, the country and the start time of each session', () => {
+	it('carries the circuit, the country and the start and end of each session', () => {
 		const session = buildCatalog([parseSeasonIndex(INDEX)], NO_OUTPUTS, now).seasons[0]?.meetings[0]
 			?.sessions[1];
 
@@ -158,6 +158,7 @@ describe('buildCatalog', () => {
 			type: 'race',
 			name: 'Race',
 			startsAt: '2025-11-23T04:00:00.000Z',
+			endsAt: '2025-11-23T06:00:00.000Z',
 			status: 'finished',
 			circuit: 'Las Vegas',
 			country: { code: 'USA', name: 'United States' },

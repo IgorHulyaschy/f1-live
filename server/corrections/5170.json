@@ -1,0 +1,12 @@
+{
+	"key": 5170,
+	"corrections": [
+		{
+			"driverNumber": "8",
+			"kind": "disqualified",
+			"reason": "Car floor did not comply with the technical regulations",
+			"at": "2018-09-02T20:00:00Z",
+			"source": "https://www.formula1.com/en/results/2018/races/992/italy/race-result"
+		}
+	]
+}

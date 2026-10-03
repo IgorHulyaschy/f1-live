@@ -2,6 +2,7 @@ import { stat, statfs } from 'node:fs/promises';
 import path from 'node:path';
 
 import { buildCatalog, mergeCatalogs } from '../catalog/catalog.js';
+import type { Catalog } from '../catalog/catalog.js';
 import type { IndexedSeason } from '../catalog/season-index.js';
 import { mapLimited } from '../pkg/http.js';
 import { fetchMeetingResults } from '../sources/openf1/fetch-result.js';
@@ -13,6 +14,13 @@ import {
 	readCatalog,
 	writeCatalog
 } from '../sinks/files.js';
+import {
+	readAdjustments,
+	readSnapshot,
+	resultsPathOf,
+	seasonResults,
+	writeSeasonResults
+} from '../results/season.js';
 import { removeTelemetry, telemetryKeys } from '../telemetry/files.js';
 import { ArchiveMissing, fetchSeasonIndex, fetchSession } from './fetch.js';
 import type { TopicSet } from './fetch.js';
@@ -244,7 +252,7 @@ async function fetchTargets(chosen: Chosen, options: ImportOptions): Promise<Map
 }
 
 /** Rebuilds `out/catalog.json` from the season indexes under the raw directory. */
-async function writeCatalogFromRaw(options: ImportOptions): Promise<void> {
+async function writeCatalogFromRaw(options: ImportOptions): Promise<Catalog> {
 	const rawDir = rawDirOf(options.dataDir);
 	const seasons = await readSeasonIndexes(rawDir);
 
@@ -259,14 +267,52 @@ async function writeCatalogFromRaw(options: ImportOptions): Promise<void> {
 
 	// The raw folder may hold fewer season indexes than the catalog has seen, as on an ingest host
 	// that only records: what the catalog already lists stays.
-	await writeCatalog(
-		options.dataDir,
-		mergeCatalogs(
-			await readCatalog(options.dataDir),
-			buildCatalog(seasons, available, options.now),
-			available
-		)
+	const catalog = mergeCatalogs(
+		await readCatalog(options.dataDir),
+		buildCatalog(seasons, available, options.now),
+		available
 	);
+
+	await writeCatalog(options.dataDir, catalog);
+
+	return catalog;
+}
+
+/**
+ * Writes the results index of each season a session of `keys` belongs to, and of each season that
+ * has none yet (`out/results/<season>.json.gz`).
+ */
+async function writeResults(
+	catalog: Catalog,
+	keys: ReadonlySet<number>,
+	options: ImportOptions
+): Promise<void> {
+	const adjustments = await readAdjustments();
+
+	for (const season of catalog.seasons) {
+		const touched = season.meetings.some((meeting) =>
+			meeting.sessions.some((session) => keys.has(session.key))
+		);
+
+		// oxlint-disable-next-line no-await-in-loop -- one season at a time keeps memory flat.
+		if (!touched && (await fileExists(resultsPathOf(options.dataDir, season.year)))) {
+			continue;
+		}
+
+		// oxlint-disable-next-line no-await-in-loop -- see above.
+		const results = await seasonResults(
+			season,
+			(key) => readSnapshot(options.dataDir, key),
+			adjustments
+		);
+
+		// oxlint-disable-next-line no-await-in-loop -- see above.
+		const bytes = await writeSeasonResults(options.dataDir, results);
+
+		options.log(
+			`results ${season.year}: ${results.rounds.length} rounds, ${(bytes / 1e3).toFixed(0)} KB`
+		);
+	}
 }
 
 /** Sessions from the season indexes: fetch them unless offline, then ingest each. */
@@ -387,8 +433,13 @@ export async function runImport(
 ): Promise<ImportReport> {
 	const started = Date.now();
 	const { outcomes, skipped } = await importSelection(selection, options);
+	const catalog = await writeCatalogFromRaw(options);
 
-	await writeCatalogFromRaw(options);
+	await writeResults(
+		catalog,
+		new Set(outcomes.flatMap((outcome) => (outcome.result === null ? [] : [outcome.key]))),
+		options
+	);
 
 	return {
 		outcomes,

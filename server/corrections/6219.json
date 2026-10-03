@@ -1,0 +1,21 @@
+{
+	"key": 6219,
+	"corrections": [
+		{
+			"driverNumber": "7",
+			"kind": "time_penalty",
+			"seconds": 30,
+			"reason": "Rejoining the track before the safety-car line during the restart (drive-through converted after the race)",
+			"at": "2021-04-18T19:00:00Z",
+			"source": "https://www.formula1.com/en/results/2021/races/1065/emilia-romagna/race-result"
+		},
+		{
+			"driverNumber": "18",
+			"kind": "time_penalty",
+			"seconds": 5,
+			"reason": "Overtaking off the track; decided after the race",
+			"at": "2021-04-18T19:00:00Z",
+			"source": "https://www.formula1.com/en/results/2021/races/1065/emilia-romagna/race-result"
+		}
+	]
+}

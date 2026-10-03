@@ -1,0 +1,13 @@
+{
+	"key": 5546,
+	"corrections": [
+		{
+			"driverNumber": "44",
+			"kind": "time_penalty",
+			"seconds": 5,
+			"reason": "Causing a collision with car 23 (Albon); decided after the race",
+			"at": "2019-11-17T21:00:00Z",
+			"source": "https://www.formula1.com/en/results/2019/races/1019/brazil/race-result"
+		}
+	]
+}

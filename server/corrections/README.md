@@ -25,3 +25,10 @@ lap down). A time penalty also needs `seconds`, added to the race time (negative
 stewards withdraw a penalty); a lapped car is re-sorted among the cars on its lap by the time it
 crossed the line. `source` is required so every entry can be checked. Run `npm run rebuild -w server` after
 editing.
+
+## Constructors' points outside a session
+
+`seasons.json` lists changes to the constructors' standings that no session carries, such as Force
+India's exclusion in 2018 or Racing Point's deduction in 2020: the season, the team as the timing
+feed names it, the round it counts from, the points (negative for a deduction), the reason and a
+`source`. The results index carries them and the standings add them from that round on.

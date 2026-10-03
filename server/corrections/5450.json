@@ -1,0 +1,13 @@
+{
+	"key": 5450,
+	"corrections": [
+		{
+			"driverNumber": "3",
+			"kind": "time_penalty",
+			"seconds": 10,
+			"reason": "Two 5-second penalties for leaving the track and rejoining unsafely on the last lap; decided after the race",
+			"at": "2019-06-23T18:00:00Z",
+			"source": "https://www.formula1.com/en/results/2019/races/1007/france/race-result"
+		}
+	]
+}

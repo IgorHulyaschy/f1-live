@@ -1,0 +1,19 @@
+{
+	"key": 5202,
+	"corrections": [
+		{
+			"driverNumber": "31",
+			"kind": "disqualified",
+			"reason": "Fuel flow exceeded 100 kg/h on lap 1",
+			"at": "2018-10-22T02:00:00Z",
+			"source": "https://www.formula1.com/en/results/2018/races/996/united-states/race-result"
+		},
+		{
+			"driverNumber": "20",
+			"kind": "disqualified",
+			"reason": "Used more than 105 kg of fuel",
+			"at": "2018-10-22T02:00:00Z",
+			"source": "https://www.formula1.com/en/results/2018/races/996/united-states/race-result"
+		}
+	]
+}
