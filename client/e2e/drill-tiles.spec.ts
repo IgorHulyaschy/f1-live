@@ -32,7 +32,7 @@ test('the driver view becomes a dashboard of its own, a tile per part', async ({
 	await expect(page).toHaveURL(/\/d\/board-/);
 	await expect(page.getByRole('heading', { name: 'Norris’s session' })).toBeVisible();
 	await expect(page.getByTestId('drill-tile').first()).toHaveAttribute('data-driver', '4');
-	expect(await page.getByTestId('drill-tile').count()).toBeGreaterThanOrEqual(5);
+	await expect.poll(() => page.getByTestId('drill-tile').count()).toBeGreaterThanOrEqual(5);
 
 	// The part scrolls in its tile, so the traces keep their height instead of folding to a line.
 	const speed = page

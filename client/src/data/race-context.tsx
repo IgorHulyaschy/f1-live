@@ -21,6 +21,7 @@ import { type StandingRow, standingsAt } from '../insights/standings.ts';
 import { isSessionOver, isTimedSession } from '../insights/qualifying.ts';
 import { snapshotAtLap } from './snapshot-at-lap.ts';
 import { minuteTime, sessionClock, snapshotAtTime } from './snapshot-at-time.ts';
+import { INITIAL_EPOCH, nextEpoch, receivePlayback } from './playback-epoch.ts';
 import { ReplayClock, type ReplaySpeed, replaySpeedStore } from './replay-clock.ts';
 import { type ReplayTimeline, replayTimeline, stepAt, stepTime } from './session-time.ts';
 import { resultsHidden as sessionHidden, spoilerSafeStep } from './spoilers.ts';
@@ -194,6 +195,8 @@ export function useChosenDriver(): string {
 /** Race state shared by every open Pitwall window, so tiles on other monitors stay in step. */
 const SYNC_CHANNEL = 'pitwall-race';
 
+const WINDOW_ID = Math.random().toString(36).slice(2);
+
 /**
  * What one window tells the others. Only deliberate actions are sent (a lap step, a new driver,
  * play or pause), never state a window loaded or clamped, so opening a tab moves nobody.
@@ -207,6 +210,8 @@ const syncMessageSchema = z.object({
 	playing: z.boolean().optional(),
 	// A lap step made by playback itself: only a window still following that playback takes it.
 	tick: z.literal(true).optional(),
+	// The play or pause a playing message starts, or the play a step belongs to.
+	epoch: z.object({ count: z.int().nonnegative(), sender: z.string() }).optional(),
 	// A window that just opened asks whoever is playing to say so, so it can follow along.
 	hello: z.literal(true).optional(),
 	session: z.string().optional(),
@@ -580,10 +585,13 @@ export function RaceProvider({
 	);
 
 	const answerHello = React.useRef<() => void>(() => undefined);
+	// Read by the message handler before React has committed the last play or pause.
+	const lastEpoch = React.useRef(INITIAL_EPOCH);
+	const followingPlayback = React.useRef(false);
 
 	// Changes from another window are applied here without being sent on again.
 	const broadcast = useSyncChannel((message) => {
-		const { playing: remotePlaying, live: remoteLive, tick, hello, ...params } = message;
+		const { playing: remotePlaying, live: remoteLive, tick, hello, epoch, ...params } = message;
 
 		if (hello) {
 			answerHello.current();
@@ -591,10 +599,18 @@ export function RaceProvider({
 			return;
 		}
 
-		// A step sent before this window paused would move it off the lap it stopped on.
-		if (tick && !mirroring) {
+		// A step sent before the last play or pause would move this window off the lap it stopped on.
+		const received = receivePlayback(
+			lastEpoch.current,
+			{ epoch, playing: remotePlaying, tick },
+			followingPlayback.current
+		);
+
+		if (!received.apply) {
 			return;
 		}
+
+		lastEpoch.current = received.last;
 
 		// A pause puts the lap on screen before it flips the button, so no window shows Play
 		// with a lap it is about to leave.
@@ -610,6 +626,7 @@ export function RaceProvider({
 
 		if (remotePlaying !== undefined) {
 			setLocalPlaying(false);
+			followingPlayback.current = remotePlaying;
 			setMirroring(remotePlaying);
 		}
 	});
@@ -690,7 +707,7 @@ export function RaceProvider({
 			const next = Math.min(Math.max(current + delta, 1), maxLap);
 
 			updateParam('lap', String(next));
-			broadcast(byPlayback ? { lap: next, tick: true } : { lap: next });
+			broadcast(byPlayback ? { lap: next, tick: true, epoch: lastEpoch.current } : { lap: next });
 		},
 		[updateParam, maxLap, openAt, broadcast, isLive]
 	);
@@ -757,7 +774,7 @@ export function RaceProvider({
 			const raw = new URLSearchParams(window.location.search).get('lap');
 
 			if (drivesPlayback && raw !== null) {
-				broadcast({ playing: true, lap: openAt(raw) });
+				broadcast({ playing: true, lap: openAt(raw), epoch: lastEpoch.current });
 			}
 		};
 	});
@@ -765,12 +782,18 @@ export function RaceProvider({
 	const setPlaying = React.useCallback(
 		(next: boolean) => {
 			setLocalPlaying(next);
+			followingPlayback.current = false;
 			setMirroring(false);
+			lastEpoch.current = nextEpoch(lastEpoch.current, WINDOW_ID);
 			// Pausing carries the lap it stopped on, so every window lands there in one update.
 			// The address bar is read, not the last render, so a step that just committed counts.
 			const raw = new URLSearchParams(window.location.search).get('lap');
 
-			broadcast(next || raw === null ? { playing: next } : { playing: next, lap: openAt(raw) });
+			const { current: epoch } = lastEpoch;
+
+			broadcast(
+				next || raw === null ? { playing: next, epoch } : { playing: next, lap: openAt(raw), epoch }
+			);
 		},
 		[broadcast, openAt]
 	);
