@@ -1,89 +1,36 @@
-# Pitwall (f1-live)
+# Pitwall
 
 A hub of Formula 1 knowledge: ask any question and get the answer with its proof, dig into deep
 stats, and follow any session live or replay it later without spoilers.
 Working name only; the product must not use "F1" or "Formula 1" in its brand.
 
-![Live dashboard: timing tower, followed driver and race control](docs/screenshots/live-desktop-dark.png)
+![The 2025 Las Vegas race at lap 30: timing, stints, race control and the track.](docs/tour/replay/race-lap-30.png)
 
-| Pit wall at 2560px                                                                                 | Building a dashboard                                                                           |
-| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| ![Pit wall preset on a 2560px monitor](docs/screenshots/pit-wall-2560.png)                         | ![Edit mode with tile bars and resize handles](docs/screenshots/edit-mode.png)                 |
-| **Analysis**                                                                                       | **Strategy**                                                                                   |
-| ![Lap time chart, true pace and fastest laps](docs/screenshots/analysis-desktop-dark.png)          | ![Stints, tyre wear and pit stops](docs/screenshots/strategy-desktop-dark.png)                 |
-| **Library**                                                                                        | **Drivers**                                                                                    |
-| ![Ready-made and fan dashboards with layout thumbnails](docs/screenshots/library-desktop-dark.png) | ![Grid of driver plates, driver card and positions](docs/screenshots/drivers-desktop-dark.png) |
+## Tour
 
-More screens (light theme, tablet, phones, edit mode): [docs/screenshots.md](docs/screenshots.md). The whole dashboard flow, step by step: [docs/flow.md](docs/flow.md).
+Every screen in pictures, one page per area. [All of it, in one index](docs/tour/README.md).
 
-## History
+| Area                                              | What it answers                              |
+| ------------------------------------------------- | -------------------------------------------- |
+| [Live race](docs/tour/live.md)                    | What is happening on track right now         |
+| [Replay](docs/tour/replay.md)                     | Any session since 2018, without spoilers     |
+| [Watching a race closely](docs/tour/racewatch.md) | Who is racing whom, and who is faster        |
+| [Ask](docs/tour/ask.md)                           | Plain-words questions, answered with proof   |
+| [What you can ask](docs/tour/ask-kinds.md)        | Every kind of question, with its answer      |
+| [History](docs/tour/history.md)                   | Seasons, standings and head to head          |
+| [Drivers](docs/tour/drivers.md)                   | One driver up close, or against another      |
+| [Dashboards](docs/tour/dashboards.md)             | Tiles you arrange, from a phone to a wall    |
+| [Track](docs/tour/track.md)                       | Where everyone is, and who gains where       |
+| [Strategy](docs/tour/strategy.md)                 | Tyres, stops, undercuts and true pace        |
+| [Accounts and library](docs/tour/accounts.md)     | Sync, Pro, and publishing dashboards to fans |
 
-Seasons from 2018 on: a calendar with `.ics` export, standings after any round, driver pages and a
-head to head for any two drivers or teams. See [docs/product/history.md](docs/product/history.md).
+## How it works
 
-## Dashboards
-
-The whole screen is tiles on a 24-column grid, from a phone to a wall monitor: the race title,
-replay keys and lap strip move and resize like timing or a chart.
-
-- **A home.** `/` asks a question, shows what is live or next, the championship and the latest
-  weekend; a returning viewer's start page is kept.
-- **Session-aware.** `/session` opens the layout for the session on screen: Race, Quali or Practice,
-  named in the first tab. One slim bar says on every page whether a session is live, which part,
-  the time left or the lap, and the flag; everything else sits in one menu.
-- **One timeline.** The Replay tile plays at 1×, 10× and 60× real time, jumps between events
-  (flags, stops, your driver's moments) with Shift and the arrows, and scrubs along the race
-  barcode. Track maps move smoothly between laps.
-- **No spoilers.** A finished session you have not seen opens at its start, paused, with Play
-  and a separate Jump to the finish; nothing else on screen gives the result away. Watching to
-  the end reveals it, on every device you are signed in on. Live stays live.
-- **Drill down.** Click a driver anywhere (timing, the map, charts, knockout, race control) for
-  their session in a side sheet: every lap with its sectors, tyres, gaps and rulings, qualifying
-  runs, stints, best sectors and telemetry. Click a lap for its traces against anyone's lap, or
-  compare two drivers. Each view has its own address; Back and Escape close it.
-- **Ready-made.** The three session layouts, Analysis and Strategy (at `/analysis`,
-  `/strategy`), Battle, Track, Drivers, Race story and Pit wall; the ones a session does not need
-  wait under More. Edit any of them and Reset brings it back; New dashboard starts your own.
-- **41 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
-  Drivers (focus, driver, grid, driver view), Timing (with knockout, best sectors, fights, pace now
-  and the two-driver duel), Track (track map,
-  battle map, pit rejoin, mini-sector dominance, flag map, speed map, gap distance, ghost lap),
-  Analysis (charts, telemetry traces, long runs, championship, conditions) and Strategy (stints,
-  tyre wear, stops, undercut ledger, stop cost, pit crews). Tiles for another kind of session
-  shrink to one line.
-  Drag by the bar, resize from the edges, or use the keyboard: focus a grip, arrows move, Shift
-  and arrows resize. Edit mode bars sit in
-  the gaps, so a dashboard looks the same while you build it.
-- **Maps.** Every car on the circuit, smooth at the display's refresh rate: from the replay's
-  car positions, the live feed's positions channel, or estimated from timing when there are
-  none.
-- **Gaps as distance.** Qualifying or the race on one straight, each car behind by the metres
-  its gap is worth; the best laps run together as a ghost lap; and a picture of it at social
-  sizes to share.
-- **Any monitor.** Tiles fill the window from a laptop to an ultrawide, which gets its own
-  arrangement; text grows with the screen, Larger text is there for a TV, and narrow screens
-  stack tiles. Panels lay out by their tile's width (container queries).
-- **Windows.** Pop out a tile or a dashboard; lap, driver, plan, compared drivers and play/pause
-  stay in sync.
-- **Library and sharing.** `/library` has your dashboards, the ready-made ones and fan
-  dashboards to search, preview, add and report. Pro publishes under a handle chosen once
-  (reserved names and profanity refused). The library starts with example dashboards, marked as
-  such. **Share** copies a link that carries the whole dashboard; no
-  server needed. Export/Import does the same with a file.
-- **First run.** `/welcome` picks the driver you follow and a starting dashboard.
-- **Free and Pro.** Free keeps 3 dashboards of your own; Pro keeps any number, unlocks Pro tiles
-  and publishing. Accounts are real: an emailed sign-in link (Google and Apple when set up),
-  dashboards synced across devices, Pro through Stripe or a fake provider in development, and
-  an account page to export or delete everything. The fan library is still mocked.
-- **Pictures.** Driver photos, team logos and cars load from formula1.com in the viewer's browser,
-  using the references the timing feed publishes; nothing is stored in the repo, and each has a
-  drawn fallback. A paid launch needs a media licence first.
-
-How it all fits together, what ships by default and the backend contract:
-[docs/product/dashboards.md](docs/product/dashboards.md). How pace is worked out and asked:
-[docs/product/pace.md](docs/product/pace.md).
-
-Design rules: [docs/design/identity.md](docs/design/identity.md). What comes next: [docs/plans](docs/plans/README.md).
+One pipeline: a source emits events, one pure function folds them into the race, and sinks write
+files and serve `WS /live`. Replay and live share it; a finished session has its result held back
+until you choose to see it. [docs/architecture.md](docs/architecture.md) walks through it with four
+diagrams: the whole system, one live message, replay and the spoiler rule, and the client.
+How pace is worked out and asked: [docs/product/pace.md](docs/product/pace.md).
 
 ## Layout
 
@@ -94,6 +41,10 @@ Design rules: [docs/design/identity.md](docs/design/identity.md). What comes nex
 | `client`  | React 19, Vite, Tailwind 4, shadcn/ui and shadcn charts (Recharts).                    |
 
 ## Getting started
+
+Needs Node 22.18 or newer and, for the browser tests, a Playwright browser
+(`npx playwright install chromium`; `openssl` for `npm run budgets`). Run the commands below in
+separate terminals: the client serves on http://localhost:5173, the server on port 3000.
 
 ```sh
 npm install
@@ -142,15 +93,24 @@ real, the CI workflow and the owner's checklist are in [docs/deploy.md](docs/dep
 
 ## Checks
 
-| Command                       | What it runs                                               |
-| ----------------------------- | ---------------------------------------------------------- |
-| `npm run check`               | Typecheck (TypeScript 7), oxlint and Prettier.             |
-| `npm run lint`                | oxlint with the anti-slop and shadcn lint plugins.         |
-| `npm run format`              | Prettier.                                                  |
-| `npm run test:unit -w client` | Node test runner over the mock race and insights.          |
-| `npm run test:e2e`            | Playwright on the mock replay, then on real data and live. |
-| `npm run shots`               | Screenshots on the mock and on real data, dark/light.      |
-| `npm run budgets`             | Initial bundle size and Lighthouse CI, mobile and desktop. |
+One test file: run the runner directly, for example `node --test client/src/data/spoilers.test.ts`
+(client, shared) or `node --import tsx --test server/src/live/session.test.ts` (server). The rules
+a change must keep, the branch and commit style and what "done" means are in [AGENTS.md](AGENTS.md).
+
+One e2e spec: `cd client && CI=1 npx playwright test --project=e2e <file>` for `client/e2e/*.spec.ts`, or
+`-c playwright.real.config.ts --project=real` for `client/e2e/real/`. Unit tests need no build and no data.
+
+| Command              | What it runs                                                                             |
+| -------------------- | ---------------------------------------------------------------------------------------- |
+| `npm run check`      | Typecheck (TypeScript 7), oxlint, Prettier and the link check.                           |
+| `npm run lint`       | oxlint with the anti-slop and shadcn lint plugins.                                       |
+| `npm run format`     | Prettier.                                                                                |
+| `npm run test:unit`  | Node test runner in every workspace, and the docs check.                                 |
+| `npm run test:e2e`   | Playwright: mock replay, production build, real data, live, archive and the local stack. |
+| `npm run shots`      | Screenshots on the mock and on real data, dark/light.                                    |
+| `npm run docs:shots` | Regenerates every picture in `docs/tour`.                                                |
+| `npm run docs:links` | Broken link or missing image in README.md and `docs/`.                                   |
+| `npm run budgets`    | Initial bundle size and Lighthouse CI, mobile and desktop.                               |
 
 Shots land in `client/shots/output/<viewport>/<page>-<plan>-<theme>.png` and, on real data, in
 `client/shots/output/real/` (not committed); they are meant for design and quality audits. The
@@ -197,32 +157,9 @@ The anti-slop oxlint plugin is vendored in `tools/oxlint/anti-slop` (see `UPSTRE
 primitives live in `client/src/components/ui`; screens compose them through variants rather than
 restyling them, which `@shadcn/lint` enforces.
 
-### ROADMAP
+## More
 
-- ⌛ - in progress
-- ✅ - done
-- 🔜 - coming soon
-
-| Feature          | Progress                            | Status         |
-| ---------------- | ----------------------------------- | -------------- |
-| WebSocket        | ![50%](https://progress-bar.xyz/50) | ⌛ In Progress |
-| Sector Colors    | ![0%](https://progress-bar.xyz/0)   | 🔜 Coming soon |
-| REST Historical  | ![50%](https://progress-bar.xyz/50) | ⌛ In Progress |
-| Position Changes | ![0%](https://progress-bar.xyz/0)   | 🔜 Coming soon |
-| Segments         | ![0%](https://progress-bar.xyz/0)   | 🔜 Coming soon |
-| Pit-stops        | ![0%](https://progress-bar.xyz/0)   | 🔜 Coming soon |
-| Deltas           | ![0%](https://progress-bar.xyz/0)   | 🔜 Coming soon |
-| Incidents        | ![0%](https://progress-bar.xyz/0)   | 🔜 Coming soon |
-| Weather          | ![0%](https://progress-bar.xyz/0)   | 🔜 Coming soon |
-
-### OLD ROADMAP
-
-- [ ] ws connection with the world (highest)
-- [ ] start working with sector colors and best laps (highest)
-- [ ] REST to get historical data (mid)
-- [ ] start working with drivers position changes in sprint/race (mid)
-- [ ] start working with segments (mid)
-- [ ] start working with pit-stops (mid)
-- [ ] start working with deltas (low)
-- [ ] analyze how to work with incidents (low)
-- [ ] start work with weather (low)
+- [What the product does](docs/product/features.md), [dashboards and tiles](docs/product/dashboards.md), [flows](docs/product/flows.md), [history](docs/product/history.md), [telemetry](docs/product/telemetry.md) and the [live protocol](docs/product/live-protocol.md).
+- Design rules: [docs/design/identity.md](docs/design/identity.md).
+- What comes next: [docs/plans](docs/plans/README.md).
+- Hosting, CI and the owner's checklist: [docs/deploy.md](docs/deploy.md).

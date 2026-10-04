@@ -81,9 +81,7 @@ skipping the quiet parts.
 | Reveals stayed on one browser.                                                                        | Signed in, reveals and the switch sync with the account.                                   |
 | The page title and the picker gave no sign whether a session's results were hidden.                   | "Results hidden" in the picker with a per-session Show results; the title names no result. |
 
-![Before: Bahrain qualifying opens at its end, pole on screen](../screenshots/flows/before-quali-at-the-end.png)
-
-![After: Baku qualifying opens at the start of Q1, paused, results hidden; Russell's driver view shows only his laps so far](../screenshots/flows/after-hidden-driver-view.png)
+![Race opens at lap 1, paused, results hidden, with Play and Jump to the finish](../tour/replay/spoiler-hold.png)
 
 ## C. Deep dive after watching
 
@@ -116,9 +114,7 @@ session once it is revealed.
 | Nothing shows two drivers side by side except charts of the compared set.                           | Compare from the driver view.                                             |
 | Chart points, stint bars and race-control messages do not react to clicks, so nothing reads as one. | Points and messages move the replay; stint bars open the driver's stints. |
 
-![Before: clicking a row only follows the driver](../screenshots/flows/before-row-click.png)
-
-![After: a lap view, Russell's pole lap traced against Leclerc's best](../screenshots/flows/after-lap-view.png)
+![A lap view: a qualifying lap traced against a rival's](../tour/drivers/lap-traces-vs.png)
 
 ## D. Browse history
 
@@ -145,8 +141,6 @@ Event in any driver or lap view.
 | The picker gives no sign of which sessions were watched.                         | "Results hidden" marks the unrevealed ones; revealed ones read plainly. |
 | Following one driver through a weekend means finding them again in each session. | The driver view's `car` stays in the address across sessions.           |
 | Season and meeting are only reachable from the strip's Sessions key.             | The breadcrumbs open the picker on that season or meeting.              |
-
-![Before: the session picker](../screenshots/flows/before-session-picker.png)
 
 ## F. Alerts for the driver you follow
 
@@ -187,8 +181,6 @@ is not pushed to someone with spoiler protection on who has not revealed that se
 | A link without a position opened a finished session at its end.                          | The spoiler rule applies to links too; a position in the link still wins.    |
 | A tab with a driver or lap open read like any other page of the app.                     | The title and share card name the open view and its session, never a result. |
 | On a 360 px phone the row is the only target and there is no way to see a driver's laps. | The driver view is a full page on phones, with Back and a close key.         |
-
-![Before: a 360 px phone on a race](../screenshots/flows/before-phone-race.png)
 
 ## F. Ask a question
 

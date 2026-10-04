@@ -16,11 +16,13 @@
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"typecheck": "npm run typecheck --workspaces",
-		"check": "npm run format:check && npm run lint && npm run typecheck",
-		"test:unit": "npm run test:unit --workspaces --if-present",
+		"check": "npm run format:check && npm run lint && npm run typecheck && npm run docs:links",
+		"test:unit": "npm run test:unit --workspaces --if-present && node --test 'tools/docs/*.test.ts'",
 		"test:e2e": "npm run test:e2e -w client",
 		"shots": "npm run shots -w client",
-		"budgets": "npm run budgets -w client"
+		"budgets": "npm run budgets -w client",
+		"docs:links": "node tools/docs/check-links.ts",
+		"docs:shots": "npm run docs:shots -w client"
 	},
 	"devDependencies": {
 		"@oxlint/plugins": "1.86.0",

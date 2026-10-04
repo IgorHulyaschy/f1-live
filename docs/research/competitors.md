@@ -264,7 +264,7 @@ CSV export, FIA documents, G-force plots, pit crew league, rain radar, and predi
 
 [pw-readme]: ../../README.md
 [pw-dash]: ../product/dashboards.md
-[pw-shots]: ../screenshots.md
+[pw-shots]: ../tour/README.md
 [pw-plan1]: ../plans/01-real-data.md
 [archive-baku]: https://livetiming.formula1.com/static/2026/2026-09-26_Azerbaijan_Grand_Prix/2026-09-26_Race/Index.json
 [archive-lv]: https://livetiming.formula1.com/static/2025/2025-11-22_Las_Vegas_Grand_Prix/2025-11-22_Race/Index.json

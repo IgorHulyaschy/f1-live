@@ -54,7 +54,7 @@ Every tile works unchanged, because the server serves the same `RaceSnapshot` co
 
 - **Server** (`server/src`): the first version subscribes to three topics, stores lap times and
   raw frames in Postgres, and serves `GET /onLoad` with lap times only. The steps below replace it.
-- **Client** (`client/src/data/api-source.ts`): it rebuilds positions from summed lap times, so
+- **Client** (`api-source.ts`): it rebuilds positions from summed lap times, so
   tyres, stops, race control and weather are blank on the API source.
 - **Network:** `livetiming.formula1.com` (live and the static archive) and `api.openf1.org` are
   reachable from the development machine.

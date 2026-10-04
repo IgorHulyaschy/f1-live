@@ -33,3 +33,6 @@ Thumbs.db
 # Raw live-timing dumps and recordings
 live-update-*.json
 /data/
+
+# Screenshot output of npm run shots (the pictures worth keeping live in docs/tour)
+/shots/output/
