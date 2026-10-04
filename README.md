@@ -158,7 +158,7 @@ and replay a trimmed race through `replay-live`. A trimmed 2019 race (`client/e2
 its `derive-fixture.ts`) has its positions fetched from a stand-in archive. If Playwright's own browser
 is not installed, point it at any Chromium with `PW_CHROMIUM_PATH=/path/to/chrome`.
 
-Playwright starts its own servers on fixed ports: the apps on 4173 to 4178, the servers on 3111 to 3114. Worktrees that run e2e or shots side by side set `PW_PORT_BASE` to a different number in
+Playwright starts its own servers on fixed ports: the apps on 4173 to 4179, the servers on 3111 to 3114. Worktrees that run e2e or shots side by side set `PW_PORT_BASE` to a different number in
 each, for example `PW_PORT_BASE=4373 CI=1 npm run test:e2e`; it moves every one of those ports
 (`client/playwright.ports.ts` lists them). Run with `CI=1`, so Playwright never reuses a server
 that another run started.

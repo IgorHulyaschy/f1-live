@@ -12,8 +12,8 @@ const SERVER_OFFSET = 1062;
 function readBase(value: string | undefined): number {
 	const base = value === undefined || value === '' ? DEFAULT_BASE : Number(value);
 
-	if (!Number.isInteger(base) || base < SERVER_OFFSET + 1024 || base + 5 > 65_535) {
-		throw new Error(`PW_PORT_BASE must be a whole number from 2086 to 65530, got ${value}`);
+	if (!Number.isInteger(base) || base < SERVER_OFFSET + 1024 || base + 6 > 65_535) {
+		throw new Error(`PW_PORT_BASE must be a whole number from 2086 to 65529, got ${value}`);
 	}
 
 	return base;
@@ -33,6 +33,8 @@ export const PORTS = {
 	mediaOffApp: base + 4,
 	/** The app on a 2019 race whose positions the server fetches from a stand-in archive. */
 	archiveApp: base + 5,
+	/** The production build with the accounts server, standing in for the Docker stack (playwright.stack.config.ts). */
+	stackApp: base + 6,
 	realServer: base - SERVER_OFFSET,
 	liveServer: base - SERVER_OFFSET + 1,
 	archiveServer: base - SERVER_OFFSET + 2,

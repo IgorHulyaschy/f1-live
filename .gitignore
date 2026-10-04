@@ -4,6 +4,7 @@ node_modules/
 # Build output
 dist/
 client/dist-e2e/
+client/dist-stack/
 client/dist-budget/
 .lighthouseci/
 *.tsbuildinfo

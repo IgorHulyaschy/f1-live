@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { mailedLink, openRace, testEmail } from '../fixtures.ts';
+import { fromMenu, mailedLink, openRace, testEmail } from '../fixtures.ts';
 
 // Not 9858: the replay profile plays that race live, and a live session takes over its page.
 test('a saved session loads from the static data files', async ({ page }) => {
@@ -23,7 +23,7 @@ test('sign-in with the dev mailbox and the fake checkout work through the produc
 	const email = testEmail('stack');
 
 	await openRace(page, '/library');
-	await page.getByRole('button', { name: 'Sign in' }).click();
+	await fromMenu(page, 'Sign in');
 
 	const dialog = page.getByRole('dialog', { name: 'Sign in' });
 

@@ -53,7 +53,7 @@ docker compose down -v                  # stop and delete the Postgres volume
 With `replay` running, open http://localhost:8080/ : the app goes to the live race (about 35 s after
 the start, at the default `REPLAY_SPEED=100`). Sign-in works with the dev mailbox and Pro with the
 fake checkout, because the app is on localhost. `npm run test:stack -w client` checks all of it
-(`STACK_REPLAY=1` adds the live path).
+(`STACK_REPLAY=1` adds the live path). Without Docker, `STACK_LOCAL=1 npx playwright test -c playwright.stack.config.ts` runs the same specs against the production build and a local server; `npm run test:e2e` includes it.
 
 ## CI
 
