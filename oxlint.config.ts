@@ -66,6 +66,23 @@ export default defineConfig({
 	},
 	overrides: [
 		{
+			// The client image is built without server/, so nothing in client/ may import from it.
+			files: ['client/**'],
+			rules: {
+				'no-restricted-imports': [
+					'error',
+					{
+						patterns: [
+							{
+								regex: '(^|/)server/',
+								message: 'The client is built without server/; move what both need into shared/.'
+							}
+						]
+					}
+				]
+			}
+		},
+		{
 			// shadcn/ui primitives own their appearance.
 			files: ['client/src/components/ui/**'],
 			rules: {

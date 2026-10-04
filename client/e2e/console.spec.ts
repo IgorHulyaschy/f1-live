@@ -22,6 +22,8 @@ test('the command palette follows a driver by name', async ({ page }) => {
 	await openRace(page);
 
 	await page.keyboard.press('Control+k');
+	// Once the results load, a name also offers "Try asking" rewrites; Enter still follows it.
+	await expect(page.getByTestId('ask-surprise')).toBeVisible();
 	await page.getByTestId('ask-input').fill('Piastri');
 	await page.keyboard.press('Enter');
 

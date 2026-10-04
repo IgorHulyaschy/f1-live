@@ -162,6 +162,9 @@ each, for example `PW_PORT_BASE=4373 CI=1 npm run test:e2e`; it moves every one 
 (`client/playwright.ports.ts` lists them). Run with `CI=1`, so Playwright never reuses a server
 that another run started.
 
+Locally each suite runs two browser workers; `PW_WORKERS` changes it (GitHub Actions keeps
+Playwright's default).
+
 ### Launch budgets
 
 `npm run budgets` builds the mock replay with drawn pictures and serves it the way a static host

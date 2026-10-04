@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
 
 import { PORTS } from './playwright.ports.ts';
+import { WORKERS } from './playwright.workers.ts';
 
 /**
  * The app on real data. `real` reads the committed fixture (e2e/real/data: the 2025 Las Vegas
@@ -46,6 +47,7 @@ function app(port: number, serverPort: number, extra: Record<string, string> = {
 export default defineConfig({
 	forbidOnly: Boolean(process.env.CI),
 	retries: process.env.CI ? 1 : 0,
+	workers: WORKERS,
 	reporter: process.env.CI ? 'github' : 'list',
 	use: {
 		trace: 'retain-on-failure',

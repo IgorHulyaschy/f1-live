@@ -6,13 +6,13 @@ import {
 	type PublishBody,
 	type ReportReason
 } from '@f1-live/shared/library';
+import { SEED_EXAMPLES } from '@f1-live/shared/library-examples';
 import { and, count, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 
 import type { AccountsDatabase } from '../db/database.js';
 import { libraryAdd, libraryEntry, libraryHandle, libraryReport } from '../db/schema.js';
 import { checkHandle, hasBlockedWord, type Policy } from './moderation.js';
-import { SEED_EXAMPLES } from './seed-examples.js';
 
 export type LibraryPolicy = Policy & { reportsToHide: number; maxPublished: number };
 

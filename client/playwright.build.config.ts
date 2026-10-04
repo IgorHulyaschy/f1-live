@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 import { PORTS } from './playwright.ports.ts';
+import { WORKERS } from './playwright.workers.ts';
 
 /**
  * The production build of the mock replay, with the `console` analytics provider so the consent
@@ -15,6 +16,7 @@ const executablePath = process.env.PW_CHROMIUM_PATH;
 export default defineConfig({
 	forbidOnly: Boolean(process.env.CI),
 	retries: process.env.CI ? 1 : 0,
+	workers: WORKERS,
 	reporter: process.env.CI ? 'github' : 'list',
 	use: {
 		baseURL: `http://localhost:${PORT}`,

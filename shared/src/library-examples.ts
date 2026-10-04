@@ -1,4 +1,4 @@
-import type { Dashboard } from '@f1-live/shared/dashboard';
+import type { Dashboard } from './dashboard.ts';
 
 /**
  * Example dashboards the library starts with, so it is never empty. They belong to no account and

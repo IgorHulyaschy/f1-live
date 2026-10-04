@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig, devices } from '@playwright/test';
 
 import { PORTS } from './playwright.ports.ts';
+import { WORKERS } from './playwright.workers.ts';
 
 const PORT = PORTS.mockApp;
 
@@ -15,6 +16,7 @@ const executablePath = process.env.PW_CHROMIUM_PATH;
 export default defineConfig({
 	forbidOnly: Boolean(process.env.CI),
 	retries: process.env.CI ? 1 : 0,
+	workers: WORKERS,
 	reporter: process.env.CI ? 'github' : 'list',
 	use: {
 		baseURL: `http://localhost:${PORT}`,

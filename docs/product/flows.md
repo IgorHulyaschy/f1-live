@@ -205,7 +205,7 @@ shared `/?ask=…` link, which opens Ask on that question.
    to include.
 4. Anything that is not a question finds drivers, grands prix, teams, seasons, pages, sessions,
    dashboards, tiles, laps and settings by name, grouped, the best group first. Text that almost
-   parses offers "Try asking" rewrites.
+   parses offers "Try asking" rewrites, below the names it matches.
 
 **Exits.** The proof (any page of flows C and D), or Esc back where the viewer was.
 

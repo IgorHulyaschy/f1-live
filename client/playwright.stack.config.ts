@@ -1,5 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
+import { WORKERS } from './playwright.workers.ts';
+
 /**
  * The production build behind Caddy, as `docker compose up` runs it (docs/deploy.md). It starts
  * nothing itself: bring the stack up first. `STACK_URL` points it elsewhere, and `STACK_REPLAY=1`
@@ -12,6 +14,7 @@ export default defineConfig({
 	testDir: './e2e/stack',
 	forbidOnly: Boolean(process.env.CI),
 	retries: process.env.CI ? 1 : 0,
+	workers: WORKERS,
 	reporter: process.env.CI ? 'github' : 'list',
 	use: {
 		...devices['Desktop Chrome'],

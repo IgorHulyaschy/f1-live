@@ -13,6 +13,7 @@
 		"./alerts": "./src/alerts.ts",
 		"./dashboard": "./src/dashboard.ts",
 		"./library": "./src/library.ts",
+		"./library-examples": "./src/library-examples.ts",
 		"./plans": "./src/plans.ts",
 		"./viewer": "./src/viewer.ts",
 		"./results": "./src/results.ts",

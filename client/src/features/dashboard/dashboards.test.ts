@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { PRESET_IDS, sameDashboard } from '@f1-live/shared/dashboard';
+import { SEED_EXAMPLES } from '@f1-live/shared/library-examples';
 
 import { arrangeTile } from './arrange.ts';
 import {
@@ -17,8 +18,6 @@ import {
 	swapTiles,
 	TILE_INFO
 } from './dashboards.ts';
-// The examples the library ships with live on the server; the client must be able to draw them.
-import { SEED_EXAMPLES } from '../../../../server/src/accounts/library/seed-examples.ts';
 import { decodeShare, encodeShare } from '../library/share.ts';
 
 function overlaps(

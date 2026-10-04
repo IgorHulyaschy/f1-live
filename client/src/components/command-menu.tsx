@@ -638,6 +638,18 @@ export function CommandMenu({
 							</CommandItem>
 						</CommandGroup>
 					) : null}
+					{groups.map(({ group, entries }) => (
+						<CommandGroup key={group} heading={group}>
+							{entries.map((item) => (
+								<CommandItem key={item.id} value={item.id} onSelect={() => run(item.run)}>
+									{item.icon}
+									<span className="flex min-w-0 items-center gap-2 truncate">{item.label}</span>
+									{item.hint ? <CommandShortcut>{item.hint}</CommandShortcut> : null}
+								</CommandItem>
+							))}
+						</CommandGroup>
+					))}
+					{/* Below the names the text matches, so Enter on a name opens it rather than a rewrite. */}
 					{suggestions.length > 0 ? (
 						<CommandGroup heading="Try asking">
 							{suggestions.map((suggestion) => (
@@ -652,17 +664,6 @@ export function CommandMenu({
 							))}
 						</CommandGroup>
 					) : null}
-					{groups.map(({ group, entries }) => (
-						<CommandGroup key={group} heading={group}>
-							{entries.map((item) => (
-								<CommandItem key={item.id} value={item.id} onSelect={() => run(item.run)}>
-									{item.icon}
-									<span className="flex min-w-0 items-center gap-2 truncate">{item.label}</span>
-									{item.hint ? <CommandShortcut>{item.hint}</CommandShortcut> : null}
-								</CommandItem>
-							))}
-						</CommandGroup>
-					))}
 					{typed === '' ? (
 						<>
 							<CommandGroup heading="Ask">
