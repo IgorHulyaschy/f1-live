@@ -245,3 +245,37 @@ for (const viewport of [
 		}
 	});
 }
+
+/** The stewards' decisions and the facts: a driver page, race control and an Ask answer. */
+for (const viewport of [
+	{ name: 'android', width: 360, height: 800 },
+	{ name: 'desktop', width: 1440, height: 900 }
+] as const) {
+	test.describe(`stewards ${viewport.name}`, () => {
+		test.use({ viewport: { width: viewport.width, height: viewport.height } });
+
+		for (const screen of [
+			{ name: 'driver-page', path: '/drivers/lando-norris', ready: 'driver-penalties' },
+			{ name: 'race-control', path: '/session?lap=30', ready: 'stewards-documents' },
+			{ name: 'ask', path: '/', ready: 'home' }
+		] as const) {
+			test(`${screen.name}`, async ({ page }) => {
+				await page.route('https://media.formula1.com/**', (route) => route.abort());
+				await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
+				await page.addInitScript(() =>
+					window.localStorage.setItem('pitwall-spoiler-free', 'false')
+				);
+				await page.goto(screen.path);
+				await expect(page.getByTestId(screen.ready)).toBeVisible();
+
+				if (screen.name === 'ask') {
+					await page.getByTestId('home-ask').click();
+					await page.getByTestId('ask-input').fill('Why was Norris penalised in Las Vegas?');
+					await expect(page.getByTestId('ask-answer')).toBeVisible();
+				}
+
+				await shoot(page, `shots/output/stewards/${screen.name}-${viewport.name}.png`);
+			});
+		}
+	});
+}

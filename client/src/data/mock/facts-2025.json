@@ -1,0 +1,448 @@
+{
+	"fetchedAt": "2026-10-03",
+	"drivers": {
+		"pierre-gasly": {
+			"wikidata": "Q11816647",
+			"birthDate": "1996-02-07",
+			"birthPlace": "Rouen",
+			"nationality": "France"
+		},
+		"fernando-alonso": {
+			"wikidata": "Q10514",
+			"birthDate": "1981-07-29",
+			"birthPlace": "Oviedo",
+			"nationality": "Spain"
+		},
+		"charles-leclerc": {
+			"wikidata": "Q17541912",
+			"birthDate": "1997-10-16",
+			"birthPlace": "Monte Carlo",
+			"nationality": "Monaco"
+		},
+		"lance-stroll": {
+			"wikidata": "Q16238921",
+			"birthDate": "1998-10-29",
+			"birthPlace": "Montreal",
+			"nationality": "Canada"
+		},
+		"nico-hulkenberg": {
+			"wikidata": "Q76547",
+			"birthDate": "1987-08-19",
+			"birthPlace": "Emmerich am Rhein",
+			"nationality": "Germany"
+		},
+		"esteban-ocon": {
+			"wikidata": "Q15074165",
+			"birthDate": "1996-09-17",
+			"birthPlace": "\u00c9vreux",
+			"nationality": "France"
+		},
+		"max-verstappen": {
+			"wikidata": "Q2239218",
+			"birthDate": "1997-09-30",
+			"birthPlace": "Hasselt",
+			"nationality": "Kingdom of the Netherlands"
+		},
+		"lewis-hamilton": {
+			"wikidata": "Q9673",
+			"birthDate": "1985-01-07",
+			"birthPlace": "Stevenage",
+			"nationality": "United Kingdom"
+		},
+		"carlos-sainz": {
+			"wikidata": "Q544856",
+			"birthDate": "1994-09-01",
+			"birthPlace": "Madrid",
+			"nationality": "Spain"
+		},
+		"lando-norris": {
+			"wikidata": "Q22007193",
+			"birthDate": "1999-11-13",
+			"birthPlace": "Bristol",
+			"nationality": "United Kingdom"
+		},
+		"alexander-albon": {
+			"wikidata": "Q16149172",
+			"birthDate": "1996-03-23",
+			"birthPlace": "Portland Hospital",
+			"nationality": "Thailand"
+		},
+		"george-russell": {
+			"wikidata": "Q17319645",
+			"birthDate": "1998-02-15",
+			"birthPlace": "King's Lynn",
+			"nationality": "United Kingdom"
+		},
+		"yuki-tsunoda": {
+			"wikidata": "Q59209579",
+			"birthDate": "2000-05-11",
+			"birthPlace": "Sagamihara",
+			"nationality": "Japan"
+		},
+		"oscar-piastri": {
+			"wikidata": "Q28741262",
+			"birthDate": "2001-04-06",
+			"birthPlace": "Melbourne",
+			"nationality": "Australia"
+		},
+		"liam-lawson": {
+			"wikidata": "Q59180330",
+			"birthDate": "2002-02-11",
+			"birthPlace": "Hastings",
+			"nationality": "New Zealand"
+		},
+		"oliver-bearman": {
+			"wikidata": "Q107023292",
+			"birthDate": "2005-05-08",
+			"birthPlace": "Chelmsford",
+			"nationality": "United Kingdom"
+		},
+		"franco-colapinto": {
+			"wikidata": "Q88463514",
+			"birthDate": "2003-05-27",
+			"birthPlace": "Pilar",
+			"nationality": "Argentina"
+		},
+		"jack-doohan": {
+			"wikidata": "Q81453998",
+			"birthDate": "2003-01-20",
+			"birthPlace": "Gold Coast",
+			"nationality": "Australia"
+		},
+		"gabriel-bortoleto": {
+			"wikidata": "Q106641273",
+			"birthDate": "2004-10-14",
+			"birthPlace": null,
+			"nationality": "Brazil"
+		},
+		"isack-hadjar": {
+			"wikidata": "Q105071364",
+			"birthDate": "2004-09-28",
+			"birthPlace": "Paris",
+			"nationality": "France"
+		},
+		"kimi-antonelli": {
+			"wikidata": "Q112073790",
+			"birthDate": "2006-08-25",
+			"birthPlace": "Bologna",
+			"nationality": "Italy"
+		}
+	},
+	"circuits": {
+		"melbourne": {
+			"wikidata": "Q171288",
+			"lengthMetres": 5278,
+			"openedYear": 1953,
+			"location": "City of Port Phillip",
+			"country": "Australia",
+			"latitude": -37.84972222222222,
+			"longitude": 144.96833333333333
+		},
+		"sakhir": {
+			"wikidata": "Q171332",
+			"lengthMetres": 5412,
+			"openedYear": null,
+			"location": "Sakhir",
+			"country": "Bahrain",
+			"latitude": 26.0325,
+			"longitude": 50.510555555556
+		},
+		"sakhir-outer-track": {
+			"wikidata": "Q171332",
+			"lengthMetres": 5412,
+			"openedYear": null,
+			"location": "Sakhir",
+			"country": "Bahrain",
+			"latitude": 26.0325,
+			"longitude": 50.510555555556
+		},
+		"shanghai": {
+			"wikidata": "Q171358",
+			"lengthMetres": 5451,
+			"openedYear": 2003,
+			"location": "Jiading",
+			"country": "People's Republic of China",
+			"latitude": 31.338888888889,
+			"longitude": 121.21972222222
+		},
+		"baku": {
+			"wikidata": "Q17004958",
+			"lengthMetres": 6003,
+			"openedYear": null,
+			"location": "Baku",
+			"country": "Azerbaijan",
+			"latitude": 40.3725,
+			"longitude": 49.8533
+		},
+		"catalunya": {
+			"wikidata": "Q171404",
+			"lengthMetres": 4675,
+			"openedYear": 1989,
+			"location": "Vall\u00e8s Oriental",
+			"country": "Spain",
+			"latitude": 41.57,
+			"longitude": 2.2611111111111
+		},
+		"monte-carlo": {
+			"wikidata": "Q171400",
+			"lengthMetres": 3337,
+			"openedYear": null,
+			"location": "Monte Carlo",
+			"country": "Monaco",
+			"latitude": 43.734722222222,
+			"longitude": 7.4205555555556
+		},
+		"montreal": {
+			"wikidata": "Q172860",
+			"lengthMetres": 4361,
+			"openedYear": 1978,
+			"location": "Montreal",
+			"country": "Canada",
+			"latitude": 45.50055555555556,
+			"longitude": -73.5225
+		},
+		"paul-ricard": {
+			"wikidata": "Q171424",
+			"lengthMetres": 5842,
+			"openedYear": 1969,
+			"location": "Le Castellet",
+			"country": "France",
+			"latitude": 43.250555555556,
+			"longitude": 5.7916666666667
+		},
+		"spielberg": {
+			"wikidata": "Q171566",
+			"lengthMetres": 4318,
+			"openedYear": null,
+			"location": "Spielberg",
+			"country": "Austria",
+			"latitude": 47.219722222222,
+			"longitude": 14.764722222222
+		},
+		"silverstone": {
+			"wikidata": "Q171402",
+			"lengthMetres": 5891,
+			"openedYear": 1947,
+			"location": "Silverstone",
+			"country": "United Kingdom",
+			"latitude": 52.075,
+			"longitude": -1.0166666666666666
+		},
+		"hockenheim": {
+			"wikidata": "Q152408",
+			"lengthMetres": 4574,
+			"openedYear": 1932,
+			"location": "Hockenheim",
+			"country": "Germany",
+			"latitude": 49.327777777778,
+			"longitude": 8.5658333333333
+		},
+		"hungaroring": {
+			"wikidata": "Q171356",
+			"lengthMetres": 4381,
+			"openedYear": 1985,
+			"location": "Mogyor\u00f3d",
+			"country": "Hungary",
+			"latitude": 47.582222222222,
+			"longitude": 19.251111111111
+		},
+		"spa-francorchamps": {
+			"wikidata": "Q172851",
+			"lengthMetres": 7003,
+			"openedYear": 1924,
+			"location": "Province of Liege",
+			"country": "Belgium",
+			"latitude": 50.437222222222,
+			"longitude": 5.9713888888889
+		},
+		"monza": {
+			"wikidata": "Q171417",
+			"lengthMetres": 5793,
+			"openedYear": null,
+			"location": "Monza",
+			"country": "Italy",
+			"latitude": 45.620555555556,
+			"longitude": 9.2894444444444
+		},
+		"singapore": {
+			"wikidata": "Q171390",
+			"lengthMetres": null,
+			"openedYear": null,
+			"location": null,
+			"country": "Singapore",
+			"latitude": 1.291403,
+			"longitude": 103.864147
+		},
+		"sochi": {
+			"wikidata": "Q174004",
+			"lengthMetres": 5848,
+			"openedYear": 2014,
+			"location": "Sirius",
+			"country": "Russia",
+			"latitude": 43.40833,
+			"longitude": 39.96556
+		},
+		"suzuka": {
+			"wikidata": "Q174170",
+			"lengthMetres": 5807,
+			"openedYear": 1962,
+			"location": "Suzuka",
+			"country": "Japan",
+			"latitude": 34.84166666666667,
+			"longitude": 136.5388888888889
+		},
+		"austin": {
+			"wikidata": "Q59626",
+			"lengthMetres": 5513,
+			"openedYear": 2010,
+			"location": "Austin",
+			"country": "United States",
+			"latitude": 30.1328,
+			"longitude": -97.6411
+		},
+		"mexico-city": {
+			"wikidata": "Q173099",
+			"lengthMetres": 4304,
+			"openedYear": 1962,
+			"location": "Iztacalco",
+			"country": "Mexico",
+			"latitude": 19.404197222222,
+			"longitude": -99.088747222222
+		},
+		"interlagos": {
+			"wikidata": "Q171387",
+			"lengthMetres": 4309,
+			"openedYear": null,
+			"location": "Cidade Dutra District",
+			"country": "Brazil",
+			"latitude": -23.701111111111,
+			"longitude": -46.697222222222
+		},
+		"yas-marina-circuit": {
+			"wikidata": "Q172869",
+			"lengthMetres": 5554,
+			"openedYear": 2009,
+			"location": "Abu Dhabi",
+			"country": "United Arab Emirates",
+			"latitude": 24.470244444444,
+			"longitude": 54.606075
+		},
+		"mugello": {
+			"wikidata": "Q782455",
+			"lengthMetres": 5245,
+			"openedYear": 1973,
+			"location": "Scarperia e San Piero",
+			"country": "Italy",
+			"latitude": 43.9975,
+			"longitude": 11.37194
+		},
+		"nurburgring": {
+			"wikidata": "Q152207",
+			"lengthMetres": 5148,
+			"openedYear": 1925,
+			"location": "Rhineland-Palatinate",
+			"country": "Germany",
+			"latitude": 50.335555555556,
+			"longitude": 6.9475
+		},
+		"algarve-international-circuit": {
+			"wikidata": "Q789427",
+			"lengthMetres": 4653,
+			"openedYear": 2008,
+			"location": "Portim\u00e3o",
+			"country": "Portugal",
+			"latitude": 37.2294,
+			"longitude": -8.63053
+		},
+		"imola": {
+			"wikidata": "Q171313",
+			"lengthMetres": 4909,
+			"openedYear": 1950,
+			"location": "Imola",
+			"country": "Italy",
+			"latitude": 44.341111111111,
+			"longitude": 11.713333333333
+		},
+		"istanbul": {
+			"wikidata": "Q172743",
+			"lengthMetres": 5338,
+			"openedYear": 2005,
+			"location": "Tuzla",
+			"country": "Turkey",
+			"latitude": 40.951666666667,
+			"longitude": 29.405
+		},
+		"zandvoort": {
+			"wikidata": "Q173083",
+			"lengthMetres": 4259,
+			"openedYear": 1948,
+			"location": "Zandvoort",
+			"country": "Netherlands",
+			"latitude": 52.388292,
+			"longitude": 4.543011
+		},
+		"losail": {
+			"wikidata": "Q547535",
+			"lengthMetres": null,
+			"openedYear": 2003,
+			"location": "Lusail",
+			"country": "Qatar",
+			"latitude": 25.49,
+			"longitude": 51.45417
+		},
+		"lusail": {
+			"wikidata": "Q547535",
+			"lengthMetres": null,
+			"openedYear": 2003,
+			"location": "Lusail",
+			"country": "Qatar",
+			"latitude": 25.49,
+			"longitude": 51.45417
+		},
+		"jeddah": {
+			"wikidata": "Q102141307",
+			"lengthMetres": 6175,
+			"openedYear": null,
+			"location": "Jeddah Corniche",
+			"country": "Saudi Arabia",
+			"latitude": 21.631944444444443,
+			"longitude": 39.10444444444445
+		},
+		"miami": {
+			"wikidata": "Q106544792",
+			"lengthMetres": 5412,
+			"openedYear": null,
+			"location": null,
+			"country": "United States",
+			"latitude": 25.958055555555557,
+			"longitude": -80.2388888888889
+		},
+		"las-vegas": {
+			"wikidata": "Q113112116",
+			"lengthMetres": null,
+			"openedYear": null,
+			"location": "Paradise",
+			"country": "United States",
+			"latitude": 36.11002777777778,
+			"longitude": -115.16180555555556
+		},
+		"madring": {
+			"wikidata": "Q126193406",
+			"lengthMetres": null,
+			"openedYear": null,
+			"location": "Madrid",
+			"country": "Spain",
+			"latitude": 40.463611,
+			"longitude": -3.617778
+		},
+		"kuala-lumpur": {
+			"wikidata": "Q172738",
+			"lengthMetres": 2706,
+			"openedYear": 1997,
+			"location": "Selangor",
+			"country": "Malaysia",
+			"latitude": 2.7605555555556,
+			"longitude": 101.7375
+		}
+	}
+}

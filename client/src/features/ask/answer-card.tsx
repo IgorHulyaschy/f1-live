@@ -10,6 +10,11 @@ import { cn } from '@/lib/utils';
 import { type AnswerPicture, type HeldSession, type Rich, richPart } from './ask-data';
 import type { AskOutcome, Visual } from './answers';
 
+/** A proof can be a document on another site, which opens in its own tab. */
+function newTab(href: string): { target?: '_blank'; rel?: string } {
+	return href.startsWith('https://') ? { target: '_blank', rel: 'noreferrer' } : {};
+}
+
 function RichText({ rich, onNavigate }: { rich: Rich; onNavigate: () => void }) {
 	return rich.map((part, index) => {
 		const { text, href } = richPart(part);
@@ -22,6 +27,7 @@ function RichText({ rich, onNavigate }: { rich: Rich; onNavigate: () => void }) 
 				// oxlint-disable-next-line react/no-array-index-key
 				key={index}
 				to={href}
+				{...newTab(href)}
 				onClick={onNavigate}
 				className="decoration-focus underline decoration-2 underline-offset-3 hover:decoration-4"
 			>
@@ -57,6 +63,7 @@ function VisualView({ visual, onNavigate }: { visual: Visual; onNavigate: () => 
 					<li key={bar.label}>
 						<Link
 							to={bar.href}
+							{...newTab(bar.href)}
 							onClick={onNavigate}
 							className="hover:bg-accent grid grid-cols-[7rem_1fr_4rem] items-center gap-2 text-xs"
 						>
@@ -103,7 +110,12 @@ function VisualView({ visual, onNavigate }: { visual: Visual; onNavigate: () => 
 								className={cn('py-0.5 pr-2', index > 0 && 'font-mono tabular-nums')}
 							>
 								{index === 0 || (visual.columns[0] === 'Pos' && index === 1) ? (
-									<Link to={row.href} onClick={onNavigate} className="flex items-center gap-1.5">
+									<Link
+										to={row.href}
+										{...newTab(row.href)}
+										onClick={onNavigate}
+										className="flex items-center gap-1.5"
+									>
 										{row.colour && index === 1 ? (
 											<span
 												aria-hidden
@@ -132,11 +144,11 @@ function HeldNote({ sessions }: { sessions: readonly HeldSession[] }) {
 			data-testid="ask-hidden-note"
 		>
 			<EyeOffIcon aria-hidden className="size-4 shrink-0" />
-			<span>
+			<span className="bg-background px-1">
 				{sessions.length === 1 ? sessions[0]?.label : `${sessions.length} sessions`} left out: you
 				have not seen {sessions.length === 1 ? 'it' : 'them'} yet.
 			</span>
-			<Key className="ml-auto" onClick={() => revealAll(sessions)}>
+			<Key className="bg-background text-foreground ml-auto" onClick={() => revealAll(sessions)}>
 				Reveal to include
 			</Key>
 		</p>

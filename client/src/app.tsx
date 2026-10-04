@@ -12,6 +12,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { RaceProvider, useRace } from '@/data/race-context';
+import { DecisionsProvider } from '@/data/decisions-context';
 import { ResultsProvider } from '@/data/results-context';
 import { SnapshotsProvider } from '@/data/snapshots-context';
 import { TelemetryProvider } from '@/data/telemetry-context';
@@ -299,7 +300,9 @@ export function AppLayout({ source, bare = false }: { source: RaceSource; bare?:
 			<TelemetryProvider source={source.telemetry}>
 				<ResultsProvider load={source.loadResults}>
 					<SnapshotsProvider load={source.loadSession}>
-						<Console sourceKind={source.kind} bare={bare} />
+						<DecisionsProvider loadDecisions={source.loadDecisions} loadFacts={source.loadFacts}>
+							<Console sourceKind={source.kind} bare={bare} />
+						</DecisionsProvider>
 					</SnapshotsProvider>
 				</ResultsProvider>
 			</TelemetryProvider>

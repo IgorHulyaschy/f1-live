@@ -53,6 +53,21 @@ export function errorsPathOf(dataDir: string, key: number): string {
 	return path.join(outDirOf(dataDir), 'errors', `${key}.json`);
 }
 
+/** Wikidata facts for drivers and circuits, as the client reads them. */
+export function factsPathOf(dataDir: string): string {
+	return path.join(outDirOf(dataDir), 'facts.json');
+}
+
+/** The stewards' decisions of one season, as the client reads them. */
+export function decisionsPathOf(dataDir: string, season: number): string {
+	return path.join(outDirOf(dataDir), 'decisions', `${season}.json`);
+}
+
+/** What a source fetched, kept so a rebuild needs no network: `<data>/<source>/<name>`. */
+export function sourceCacheOf(dataDir: string, source: 'wikidata' | 'fia', name: string): string {
+	return path.join(dataDir, source, name);
+}
+
 /** Writes through a temporary file, so a reader never sees half a file. */
 export async function writeAtomic(file: string, content: string | Uint8Array): Promise<void> {
 	await mkdir(path.dirname(file), { recursive: true });

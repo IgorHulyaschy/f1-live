@@ -11,6 +11,8 @@ import { isTimedSession } from '@/insights/qualifying';
 import { isAidSwitch } from '@/insights/rules';
 import { cn } from '@/lib/utils';
 
+const StewardsDocuments = React.lazy(() => import('./stewards-documents'));
+
 const VISIBLE_MESSAGES = 7;
 
 type Filter = 'all' | 'flags' | 'stewards' | 'mine';
@@ -183,6 +185,9 @@ export function RaceControlFeed() {
 					</AnimatePresence>
 				</ol>
 			)}
+			<React.Suspense fallback={null}>
+				<StewardsDocuments />
+			</React.Suspense>
 			<Conditions />
 		</Panel>
 	);

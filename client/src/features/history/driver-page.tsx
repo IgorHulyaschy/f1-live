@@ -18,6 +18,7 @@ import {
 } from '@/insights/season-results';
 import { hasTeamPictures } from '@/lib/media';
 
+import { DriverFactsPanel, DriverPenaltiesPanel } from './driver-stewards';
 import { sessionLink } from './h2h-sections';
 import {
 	driverInfo,
@@ -281,6 +282,8 @@ export function DriverPage() {
 							</table>
 						</div>
 					</Panel>
+					<DriverFactsPanel id={id} />
+					<DriverPenaltiesPanel id={id} seasons={seasons} include={include} />
 					<Panel>
 						<PanelHeader title="Teammates" meta="head to head as teammates" />
 						<ul className="px-4" data-testid="driver-teammates">

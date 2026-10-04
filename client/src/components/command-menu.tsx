@@ -62,7 +62,8 @@ import { type AskOutcome, answerQuery } from '@/features/ask/answers';
 import { recentQuestions, rememberQuestion } from '@/features/ask/recent';
 import { sessionHref } from '@/features/ask/ask-data';
 import { examples, type Suggestion, surprise } from '@/features/ask/surprise';
-import { useAskData } from '@/features/ask/use-ask-data';
+import { isStewardsQuery } from '@/features/ask/steward-answers';
+import { useAskData, useStewardsData } from '@/features/ask/use-ask-data';
 import { useCreateDashboard } from '@/features/dashboard/use-add-dashboard';
 import { addTile, TILE_INFO } from '@/features/dashboard/dashboards';
 import { newId, saveDashboard } from '@/features/dashboard/dashboard-store';
@@ -191,10 +192,12 @@ export function CommandMenu({
 
 	const question = query && data ? questionText(query, data.context) : null;
 
+	const stewards = useStewardsData(isStewardsQuery(query));
+
 	// Answers that need a session's saved data ask for it once the typing settles; the reply waits.
 	const first = React.useMemo(
-		() => (query && data ? answerQuery(data, query, null) : null),
-		[data, query]
+		() => (query && data ? answerQuery(data, query, null, stewards) : null),
+		[data, query, stewards]
 	);
 
 	const wanted = useSettled(first?.kind === 'snapshot' ? first.key : null, SNAPSHOT_DELAY_MS);
@@ -208,13 +211,13 @@ export function CommandMenu({
 		}
 
 		if (wanted === first.key && loaded.status === 'ready') {
-			return answerQuery(data, query, loaded.snapshot);
+			return answerQuery(data, query, loaded.snapshot, stewards);
 		}
 
 		return wanted === first.key && loaded.status === 'error'
 			? { kind: 'missing', message: `The ${first.label} could not be loaded.` }
 			: { kind: 'loading', label: `the ${first.label}` };
-	}, [first, query, data, wanted, loaded]);
+	}, [first, query, data, wanted, loaded, stewards]);
 
 	// The first answer item is selected as the answer arrives, so Enter opens its proof.
 	const answerItem =
@@ -263,7 +266,13 @@ export function CommandMenu({
 
 	const follow = (href: string) => {
 		leave();
-		void navigate(href);
+
+		// A proof can be a document on another site, such as the FIA's.
+		if (href.startsWith('https://')) {
+			window.open(href, '_blank', 'noreferrer');
+		} else {
+			void navigate(href);
+		}
 	};
 
 	const byLap = stepUnit === 'lap';

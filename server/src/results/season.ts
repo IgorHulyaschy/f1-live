@@ -1,15 +1,16 @@
-import { readFile } from 'node:fs/promises';
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 
 import type { RaceSnapshot } from '@f1-live/shared';
 import { driverImageId } from '@f1-live/shared/pictures';
-import { driverIdOf } from '@f1-live/shared/results';
-import type {
-	ResultAdjustment,
-	ResultDriver,
-	ResultRound,
-	SeasonResults
+import {
+	driverIdOf,
+	type ResultAdjustment,
+	type ResultDriver,
+	type ResultRound,
+	type SeasonResults,
+	seasonResultsSchema
 } from '@f1-live/shared/results';
 import { z } from 'zod';
 
@@ -149,4 +150,21 @@ export async function writeSeasonResults(dataDir: string, results: SeasonResults
 	await writeAtomic(resultsPathOf(dataDir, results.season), bytes);
 
 	return bytes.length;
+}
+
+/** Every season the index holds, oldest first; none when the import has not run. */
+export async function readSeasonResults(dataDir: string): Promise<SeasonResults[]> {
+	const folder = path.dirname(resultsPathOf(dataDir, 0));
+	const names = await readdir(folder).catch(() => []);
+
+	return Promise.all(
+		names
+			.filter((name) => /^\d{4}\.json\.gz$/.test(name))
+			.toSorted()
+			.map(async (name) =>
+				seasonResultsSchema.parse(
+					JSON.parse(gunzipSync(await readFile(path.join(folder, name))).toString('utf8'))
+				)
+			)
+	);
 }

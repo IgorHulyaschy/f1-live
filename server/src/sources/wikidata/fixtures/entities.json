@@ -1,0 +1,321 @@
+{
+	"Q10514": {
+		"id": "Q10514",
+		"labels": { "en": { "value": "Fernando Alonso" } },
+		"claims": {
+			"P569": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "time",
+							"value": {
+								"time": "+1981-07-29T00:00:00Z",
+								"timezone": 0,
+								"before": 0,
+								"after": 0,
+								"precision": 11,
+								"calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+							}
+						}
+					}
+				}
+			],
+			"P19": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "wikibase-entityid",
+							"value": { "entity-type": "item", "numeric-id": 14317, "id": "Q14317" }
+						}
+					}
+				}
+			],
+			"P27": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "wikibase-entityid",
+							"value": { "entity-type": "item", "numeric-id": 29, "id": "Q29" }
+						}
+					}
+				}
+			]
+		}
+	},
+	"Q9673": {
+		"id": "Q9673",
+		"labels": { "en": { "value": "Lewis Hamilton" } },
+		"claims": {
+			"P19": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "wikibase-entityid",
+							"value": { "entity-type": "item", "numeric-id": 19795, "id": "Q19795" }
+						}
+					}
+				}
+			],
+			"P27": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "wikibase-entityid",
+							"value": { "entity-type": "item", "numeric-id": 145, "id": "Q145" }
+						}
+					}
+				}
+			],
+			"P569": [
+				{
+					"rank": "preferred",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "time",
+							"value": {
+								"time": "+1985-01-07T00:00:00Z",
+								"timezone": 0,
+								"before": 0,
+								"after": 0,
+								"precision": 11,
+								"calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+							}
+						}
+					}
+				},
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "time",
+							"value": {
+								"time": "+1985-00-00T00:00:00Z",
+								"timezone": 0,
+								"before": 0,
+								"after": 0,
+								"precision": 9,
+								"calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+							}
+						}
+					}
+				}
+			]
+		}
+	},
+	"Q172851": {
+		"id": "Q172851",
+		"labels": { "en": { "value": "Spa-Francochamps Circuit" } },
+		"claims": {
+			"P625": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "globecoordinate",
+							"value": {
+								"latitude": 50.437222222222,
+								"longitude": 5.9713888888889,
+								"altitude": null,
+								"precision": null,
+								"globe": "http://www.wikidata.org/entity/Q2"
+							}
+						}
+					}
+				}
+			],
+			"P17": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "wikibase-entityid",
+							"value": { "entity-type": "item", "numeric-id": 31, "id": "Q31" }
+						}
+					}
+				}
+			],
+			"P131": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "wikibase-entityid",
+							"value": { "entity-type": "item", "numeric-id": 1127, "id": "Q1127" }
+						}
+					}
+				}
+			],
+			"P2043": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "quantity",
+							"value": { "amount": "+7003", "unit": "http://www.wikidata.org/entity/Q11573" }
+						}
+					}
+				}
+			],
+			"P571": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "time",
+							"value": {
+								"time": "+1924-00-00T00:00:00Z",
+								"timezone": 0,
+								"before": 0,
+								"after": 0,
+								"precision": 9,
+								"calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+							}
+						}
+					}
+				}
+			]
+		}
+	},
+	"Q547535": {
+		"id": "Q547535",
+		"labels": { "en": { "value": "Losail International Circuit" } },
+		"claims": {
+			"P625": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "globecoordinate",
+							"value": {
+								"latitude": 25.49,
+								"longitude": 51.45417,
+								"altitude": null,
+								"precision": 0.0001,
+								"globe": "http://www.wikidata.org/entity/Q2"
+							}
+						}
+					}
+				}
+			],
+			"P17": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "wikibase-entityid",
+							"value": { "entity-type": "item", "numeric-id": 846, "id": "Q846" }
+						}
+					}
+				}
+			],
+			"P131": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "wikibase-entityid",
+							"value": { "entity-type": "item", "numeric-id": 935886, "id": "Q935886" }
+						}
+					}
+				}
+			],
+			"P571": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "time",
+							"value": {
+								"time": "+2003-00-00T00:00:00Z",
+								"timezone": 0,
+								"before": 0,
+								"after": 0,
+								"precision": 9,
+								"calendarmodel": "http://www.wikidata.org/entity/Q1985727"
+							}
+						}
+					}
+				}
+			]
+		}
+	},
+	"Q113112116": {
+		"id": "Q113112116",
+		"labels": { "en": { "value": "Las Vegas Strip Circuit" } },
+		"claims": {
+			"P625": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "globecoordinate",
+							"value": {
+								"latitude": 36.11002777777778,
+								"longitude": -115.16180555555556,
+								"altitude": null,
+								"precision": 0.000277778,
+								"globe": "http://www.wikidata.org/entity/Q2"
+							}
+						}
+					}
+				}
+			],
+			"P17": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "wikibase-entityid",
+							"value": { "entity-type": "item", "numeric-id": 30, "id": "Q30" }
+						}
+					}
+				}
+			],
+			"P131": [
+				{
+					"rank": "normal",
+					"mainsnak": {
+						"snaktype": "value",
+						"datavalue": {
+							"type": "wikibase-entityid",
+							"value": { "entity-type": "item", "numeric-id": 984542, "id": "Q984542" }
+						}
+					}
+				}
+			]
+		}
+	},
+	"Q14317": { "id": "Q14317", "labels": { "en": { "value": "Oviedo" } }, "claims": {} },
+	"Q29": { "id": "Q29", "labels": { "en": { "value": "Spain" } }, "claims": {} },
+	"Q19795": { "id": "Q19795", "labels": { "en": { "value": "Stevenage" } }, "claims": {} },
+	"Q145": { "id": "Q145", "labels": { "en": { "value": "United Kingdom" } }, "claims": {} },
+	"Q1127": { "id": "Q1127", "labels": { "en": { "value": "Province of Liege" } }, "claims": {} },
+	"Q31": { "id": "Q31", "labels": { "en": { "value": "Belgium" } }, "claims": {} },
+	"Q935886": { "id": "Q935886", "labels": { "en": { "value": "Lusail" } }, "claims": {} },
+	"Q846": { "id": "Q846", "labels": { "en": { "value": "Qatar" } }, "claims": {} },
+	"Q984542": { "id": "Q984542", "labels": { "en": { "value": "Paradise" } }, "claims": {} },
+	"Q30": { "id": "Q30", "labels": { "en": { "value": "United States" } }, "claims": {} }
+}

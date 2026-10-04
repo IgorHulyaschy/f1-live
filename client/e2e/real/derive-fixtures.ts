@@ -189,3 +189,18 @@ if (existsSync(resultsDir)) {
 		copyFileSync(path.join(resultsDir, file), path.join(target, 'results', file));
 	}
 }
+
+// The stewards' decisions per season and the Wikidata facts, for the driver pages and Ask.
+const decisionsDir = path.join(out, 'decisions');
+
+if (existsSync(decisionsDir)) {
+	mkdirSync(path.join(target, 'decisions'), { recursive: true });
+
+	for (const file of readdirSync(decisionsDir).filter((name) => name.endsWith('.json'))) {
+		copyFileSync(path.join(decisionsDir, file), path.join(target, 'decisions', file));
+	}
+}
+
+if (existsSync(path.join(out, 'facts.json'))) {
+	copyFileSync(path.join(out, 'facts.json'), path.join(target, 'facts.json'));
+}

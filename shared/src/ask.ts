@@ -85,7 +85,13 @@ export type Query =
 	/** When the next session starts: any, one kind, or at one grand prix. */
 	| { kind: 'schedule'; session: AskSession | null; event: string | null }
 	/** How far one driver or team is from the lead, and whether the title is still open. */
-	| { kind: 'gap'; table: 'drivers' | 'teams'; subject: Subject | null; season: number };
+	| { kind: 'gap'; table: 'drivers' | 'teams'; subject: Subject | null; season: number }
+	/** The stewards' penalties of one driver, over seasons or at one grand prix. */
+	| { kind: 'penalties'; subject: Subject; seasons: SeasonSpan; event: string | null }
+	/** How old a driver is, from the birth date Wikidata holds. */
+	| { kind: 'age'; subject: Subject }
+	/** The youngest driver to win a race over seasons. */
+	| { kind: 'youngest_winner'; seasons: SeasonSpan };
 
 /** A name the parser can match: a driver, a team line or a grand prix. */
 export type AskEntity = {
@@ -135,7 +141,10 @@ type Keyword =
 	| { kind: 'seasons' }
 	| { kind: 'next' }
 	| { kind: 'when' }
-	| { kind: 'gap' };
+	| { kind: 'gap' }
+	| { kind: 'penalty' }
+	| { kind: 'age' }
+	| { kind: 'youngest' };
 
 const KEYWORDS: readonly (readonly [string, Keyword])[] = [
 	...(
@@ -322,6 +331,16 @@ const KEYWORDS: readonly (readonly [string, Keyword])[] = [
 	['ahead', { kind: 'gap' }],
 	['still', { kind: 'gap' }],
 	['deficit', { kind: 'gap' }],
+	['penalty', { kind: 'penalty' }],
+	['penalties', { kind: 'penalty' }],
+	['penalised', { kind: 'penalty' }],
+	['penalized', { kind: 'penalty' }],
+	['penalise', { kind: 'penalty' }],
+	['penalize', { kind: 'penalty' }],
+	['punished', { kind: 'penalty' }],
+	['old', { kind: 'age' }],
+	['age', { kind: 'age' }],
+	['youngest', { kind: 'youngest' }],
 	['chance', { kind: 'gap' }],
 	['chances', { kind: 'gap' }],
 	['clinch', { kind: 'gap' }]
@@ -384,6 +403,7 @@ const STOPWORDS = new Set([
 	'times',
 	'fastest',
 	'quickest',
+	'why',
 	'grands',
 	'prix',
 	'each',
@@ -559,6 +579,9 @@ type Reading = {
 	next: boolean;
 	when: boolean;
 	gap: boolean;
+	penalty: boolean;
+	age: boolean;
+	youngest: boolean;
 	seasons: SeasonSpan | undefined;
 	round: number | null;
 	afterRound: number | null;
@@ -592,6 +615,9 @@ function read(text: string, context: AskContext): Reading {
 		next: false,
 		when: false,
 		gap: false,
+		penalty: false,
+		age: false,
+		youngest: false,
 		seasons: undefined,
 		round: null,
 		afterRound: null,
@@ -742,6 +768,21 @@ function read(text: string, context: AskContext): Reading {
 				break;
 			}
 
+			case 'penalty': {
+				reading.penalty = true;
+				break;
+			}
+
+			case 'age': {
+				reading.age = true;
+				break;
+			}
+
+			case 'youngest': {
+				reading.youngest = true;
+				break;
+			}
+
 			case 'all-time': {
 				allTime = true;
 				break;
@@ -824,6 +865,20 @@ function decide(reading: Reading, context: AskContext): Query | null {
 	const [first, second] = reading.subjects;
 	const seasons = reading.seasons === undefined ? null : reading.seasons;
 	const sessionWord = reading.sessions.at(-1);
+
+	if (reading.youngest) {
+		return { kind: 'youngest_winner', seasons };
+	}
+
+	if (first?.kind === 'driver' && !second) {
+		if (reading.age) {
+			return { kind: 'age', subject: first };
+		}
+
+		if (reading.penalty) {
+			return { kind: 'penalties', subject: first, seasons, event: reading.events[0] ?? null };
+		}
+	}
 
 	if (reading.gap && !second) {
 		return {
@@ -1120,6 +1175,22 @@ export function questionText(query: Query, context: AskContext): string {
 			}
 
 			return `${query.table === 'teams' ? 'Constructors gap' : 'Gap'} to the leader in ${query.season}`;
+		}
+
+		case 'penalties': {
+			const who = subjectLabel(query.subject);
+
+			return query.event === null
+				? `Penalties for ${who} ${seasonsText(query.seasons, context, 'career')}`
+				: `Why was ${who} penalised in ${labelOf(context, 'event', query.event)}`;
+		}
+
+		case 'age': {
+			return `How old is ${subjectLabel(query.subject)}`;
+		}
+
+		case 'youngest_winner': {
+			return `Youngest race winner ${seasonsText(query.seasons, context, 'ever')}`;
 		}
 	}
 }

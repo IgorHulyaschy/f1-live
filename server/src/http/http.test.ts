@@ -36,6 +36,9 @@ before(async () => {
 	);
 	mkdirSync(path.join(out, 'results'), { recursive: true });
 	writeFileSync(path.join(out, 'results', '2018.json.gz'), gzipSync('{"season":2018}'));
+	mkdirSync(path.join(out, 'decisions'), { recursive: true });
+	writeFileSync(path.join(out, 'decisions', '2025.json'), '{"season":2025}');
+	writeFileSync(path.join(out, 'facts.json'), '{"drivers":{}}');
 	writeFileSync(path.join(out, 'catalog.json'), JSON.stringify({ seasons: [2025] }));
 	writeFileSync(path.join(out, 'snapshots', '9858.json.gz'), gzipSync(JSON.stringify(SNAPSHOT)));
 	writeFileSync(path.join(out, 'events', '9858.ndjson.gz'), gzipSync('{"kind":"x"}\n'));
@@ -166,6 +169,13 @@ describe('saved sessions', () => {
 
 		assert.equal(response.status, 200);
 		assert.deepEqual(JSON.parse(gunzipSync(response.body).toString()), { season: 2018 });
+	});
+
+	it('serve the facts and a season of decisions', async () => {
+		assert.deepEqual((await get('/facts.json')).body.toString(), '{"drivers":{}}');
+		assert.deepEqual(JSON.parse((await get('/decisions/2025.json')).body.toString()), {
+			season: 2025
+		});
 	});
 
 	it('serve nothing else, nor anything outside out/', async () => {

@@ -126,6 +126,10 @@ Event in any driver or lap view.
 2. Pick a session: it opens with the spoiler rule, in its own layout.
 3. A driver across a weekend: open the driver, then the next session from the picker; the driver
    view stays open on the same car (`car` is kept in the address).
+4. Why a car was penalised, or how old a driver is: ask (⌘K or the home Ask box; "Why was Norris
+   penalised in Las Vegas?", "How old is Alonso?"). The answer links to the FIA document or the
+   Wikidata item. A driver page lists the same penalties by season next to the driver's facts.
+   Where each fact comes from is in [history.md](history.md#stewards-decisions-and-facts).
 
 **Exits.** Any session; the calendar, standings, driver pages and head to head are described in
 [history.md](history.md) and use the same spoiler helper (30 day window).
@@ -200,6 +204,10 @@ shared `/?ask=…` link, which opens Ask on that question.
    a countdown and the weekend. "How many points is Norris behind" or "can Norris still win the
    title" gives the points to the leader and to the place ahead, the points still available, and
    whether the title is still open; unseen races are left out, counted as still available, and named.
+   "Why was Norris penalised in Las Vegas", "penalties for Verstappen this season", "how old is
+   Alonso" and "youngest race winner since 2018" answer from the FIA stewards' documents and
+   Wikidata; the answer links to the document or the Wikidata item (new tab). Their files load
+   only when such a question is typed. A penalty of an unseen session shows the Reveal step.
 3. A question whose answer is the result of a session the viewer has not seen shows a Reveal step
    and no result. A count that includes such sessions leaves them out and names them, with Reveal
    to include.
@@ -226,8 +234,9 @@ One rule, in `client/src/data/spoilers.ts`:
 - `spoilerSafeStep(...)`: where a session opens: the position in the link, else the start when
   hidden, else the end (or live).
 
-Every place that lists sessions or results (the picker, ⌘K and its answers, the live strip, the page title, and
-T11a's calendar, standings and library) asks these; a list of sessions uses `useIsRevealed()` and
+Every place that lists sessions or results (the picker, ⌘K and its answers, the live strip, the page
+title, and T11a's calendar, standings and library; the penalties on driver pages, in Ask and in race
+control) asks these; a list of sessions uses `useIsRevealed()` and
 `revealSession(key)` from `client/src/data/viewer-settings.ts`. Reveals are kept for the newest
 200 sessions on the device and, signed in, on the account: `PUT /api/me/viewer` sends the device's
 settings and answers the account's, merged (every reveal from either side; the newer change of the

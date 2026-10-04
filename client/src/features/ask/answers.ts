@@ -43,6 +43,7 @@ import {
 	standingsHref
 } from './ask-data.ts';
 import { insightAnswer } from './insight-answers.ts';
+import { STEWARDS_LOADING, type Stewards, stewardsAnswer } from './steward-answers.ts';
 
 export type Bar = {
 	label: string;
@@ -84,7 +85,9 @@ export type AskOutcome =
 	| { kind: 'held'; sessions: HeldSession[] }
 	| { kind: 'missing'; message: string }
 	/** The answer needs the session's saved data, which is not loaded yet. */
-	| { kind: 'snapshot'; key: string; label: string };
+	| { kind: 'snapshot'; key: string; label: string }
+	/** The answer needs documents that are still loading. */
+	| { kind: 'loading'; label: string };
 
 const STAT_NOUN: Record<Exclude<AskStat, 'summary'>, { one: string; many: string }> = {
 	wins: { one: 'win', many: 'wins' },
@@ -1056,7 +1059,8 @@ function leadersAnswer(data: AskData, query: Extract<Query, { kind: 'leaders' }>
 export function answerQuery(
 	data: AskData,
 	query: Query,
-	snapshot: RaceSnapshot | null
+	snapshot: RaceSnapshot | null,
+	stewards: Stewards = STEWARDS_LOADING
 ): AskOutcome {
 	switch (query.kind) {
 		case 'result':
@@ -1109,6 +1113,12 @@ export function answerQuery(
 
 		case 'gap': {
 			return gapAnswer(data, query);
+		}
+
+		case 'penalties':
+		case 'age':
+		case 'youngest_winner': {
+			return stewardsAnswer(data, query, stewards);
 		}
 	}
 }

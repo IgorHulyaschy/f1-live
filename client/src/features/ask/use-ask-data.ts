@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import { useFacts, useSeasonDecisions } from '@/data/decisions-context';
 import { useRace } from '@/data/race-context';
 import { useSeasonResults } from '@/data/results-context';
 import { heldFromHistory } from '@/data/spoilers';
@@ -8,6 +9,7 @@ import { useNow } from '@/hooks/use-now';
 
 import { buildAskContext } from './ask-context';
 import type { AskData } from './ask-data';
+import type { Stewards } from './steward-answers';
 
 /** The first season with a results index. */
 const FIRST_SEASON = 2018;
@@ -59,4 +61,40 @@ export function useAskData(): AskDataState {
 	);
 
 	return { data, error: results.status === 'error' ? results.message : null, retry };
+}
+
+/**
+ * The stewards' documents and the facts, fetched only while a question needs them: the files of
+ * every season are large next to what most questions read.
+ */
+export function useStewardsData(wanted: boolean): Stewards {
+	const { catalog } = useRace();
+
+	const years = React.useMemo(
+		() =>
+			wanted
+				? (catalog?.seasons.map((season) => season.year).filter((year) => year >= FIRST_SEASON) ??
+					[])
+				: [],
+		[wanted, catalog]
+	);
+
+	const decisions = useSeasonDecisions(years);
+	const facts = useFacts(wanted);
+
+	if (decisions.status === 'error' || facts.status === 'error') {
+		return {
+			status: 'error',
+			message:
+				decisions.status === 'error'
+					? decisions.message
+					: facts.status === 'error'
+						? facts.message
+						: ''
+		};
+	}
+
+	return decisions.status === 'ready' && facts.status === 'ready'
+		? { status: 'ready', decisions: decisions.value, facts: facts.value }
+		: { status: 'loading' };
 }

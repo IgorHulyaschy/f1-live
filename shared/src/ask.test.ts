@@ -453,6 +453,27 @@ const QUESTIONS: { text: string; expected: Query | null }[] = [
 		expected: { kind: 'gap', table: 'drivers', subject: PIA, season: 2024 }
 	},
 
+	// Stewards' decisions and facts
+	{
+		text: 'why was norris penalised in las vegas',
+		expected: { kind: 'penalties', subject: NOR, seasons: null, event: 'las-vegas' }
+	},
+	{
+		text: 'penalties for verstappen this season',
+		expected: { kind: 'penalties', subject: VER, seasons: { from: 2025, to: 2025 }, event: null }
+	},
+	{
+		text: 'hamilton penalties 2024',
+		expected: { kind: 'penalties', subject: HAM, seasons: { from: 2024, to: 2024 }, event: null }
+	},
+	{ text: 'how old is alonso', expected: { kind: 'age', subject: ALO } },
+	{ text: 'age of leclerc', expected: { kind: 'age', subject: LEC } },
+	{
+		text: 'youngest race winner since 2018',
+		expected: { kind: 'youngest_winner', seasons: { from: 2018, to: 2025 } }
+	},
+	{ text: 'youngest winner ever', expected: { kind: 'youngest_winner', seasons: null } },
+
 	// Not understood
 	{ text: 'hello there', expected: null },
 	{ text: 'is it going to rain', expected: null },

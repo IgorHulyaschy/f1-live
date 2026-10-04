@@ -5,6 +5,8 @@ import {
 	type RaceSnapshot,
 	SESSION_TYPES
 } from '@f1-live/shared';
+import { type SeasonDecisions, seasonDecisionsSchema } from '@f1-live/shared/decisions';
+import { type Facts, factsSchema } from '@f1-live/shared/facts';
 import { type SeasonResults, seasonResultsSchema } from '@f1-live/shared/results';
 import { z } from 'zod';
 
@@ -28,6 +30,10 @@ export type RaceSource = {
 	loadSession: (key: string) => Promise<RaceSnapshot>;
 	/** A season's results index; null when the source has none for it. */
 	loadResults: (season: number) => Promise<SeasonResults | null>;
+	/** A season's stewards' decisions; null when the source has none for it. */
+	loadDecisions: (season: number) => Promise<SeasonDecisions | null>;
+	/** Driver and circuit facts from Wikidata; null when the source has none. */
+	loadFacts: () => Promise<Facts | null>;
 	/** `WS /live` (docs/product/live-protocol.md), or null when the source has no live feed. */
 	liveUrl: string | null;
 	/** Saved sessions' telemetry, or null when the source has none. */
@@ -134,6 +140,34 @@ async function fetchResults(apiUrl: string, season: number): Promise<SeasonResul
 	return seasonResultsSchema.parse(await response.json());
 }
 
+async function fetchDecisions(apiUrl: string, season: number): Promise<SeasonDecisions | null> {
+	const response = await fetch(`${apiUrl}/decisions/${season}.json`);
+
+	if (response.status === 404) {
+		return null;
+	}
+
+	if (!response.ok) {
+		throw new Error(`GET decisions for ${season} failed with ${response.status}`);
+	}
+
+	return seasonDecisionsSchema.parse(await response.json());
+}
+
+async function fetchFacts(apiUrl: string): Promise<Facts | null> {
+	const response = await fetch(`${apiUrl}/facts.json`);
+
+	if (response.status === 404) {
+		return null;
+	}
+
+	if (!response.ok) {
+		throw new Error(`GET facts failed with ${response.status}`);
+	}
+
+	return factsSchema.parse(await response.json());
+}
+
 /** The server sends the gzip file with Content-Encoding: gzip, so fetch unpacks it. */
 async function fetchSnapshot(apiUrl: string, key: string): Promise<RaceSnapshot> {
 	const response = await fetchOk(`${apiUrl}/snapshots/${encodeURIComponent(key)}.json.gz`);
@@ -164,6 +198,8 @@ export function createRaceSource(
 			loadCatalog: () => fetchCatalog(urls.apiUrl),
 			loadSession: (key) => fetchSnapshot(urls.apiUrl, key),
 			loadResults: (season) => fetchResults(urls.apiUrl, season),
+			loadDecisions: (season) => fetchDecisions(urls.apiUrl, season),
+			loadFacts: () => fetchFacts(urls.apiUrl),
 			liveUrl: urls.liveUrl,
 			telemetry,
 			maps: { ...apiMapTelemetry(urls.apiUrl), archive }
@@ -182,6 +218,9 @@ export function createRaceSource(
 			return (await import('./mock/simulate-race.ts')).simulateLasVegas2025();
 		},
 		loadResults: async (season) => (await import('./mock/sample-results.ts')).sampleResults(season),
+		loadDecisions: async (season) =>
+			(await import('./mock/sample-decisions.ts')).sampleDecisions(season),
+		loadFacts: async () => (await import('./mock/sample-facts.ts')).sampleFacts(),
 		liveUrl: null,
 		telemetry: lazyTelemetrySource(async () =>
 			(await import('./mock/sample-telemetry.ts')).createSampleTelemetrySource()

@@ -25,12 +25,13 @@ function retryAfterMs(response: Response): number | null {
 /**
  * GET that retries network errors and busy or limiting responses, waiting longer each time and
  * as long as `Retry-After` asks. Any other response comes back for the caller to judge;
- * after the last try it throws.
+ * after the last try it throws. `headers` go with every try, for a site that wants a User-Agent.
  */
 export async function fetchPolitely(
 	url: string,
 	policy: RetryPolicy = POLITE_RETRY,
-	wait: (ms: number) => Promise<void> = sleep
+	wait: (ms: number) => Promise<void> = sleep,
+	headers?: Record<string, string>
 ): Promise<Response> {
 	let failure = '';
 
@@ -38,7 +39,10 @@ export async function fetchPolitely(
 		let delayMs = policy.baseDelayMs * 2 ** (attempt - 1);
 
 		try {
-			const response = await fetch(url, { signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+			const response = await fetch(url, {
+				headers,
+				signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+			});
 
 			if (!RETRYABLE.has(response.status)) {
 				return response;
@@ -78,3 +82,14 @@ export async function mapLimited<T, R>(
 
 	return results;
 }
+
+/**
+ * Identifies our fetchers to the sites they read, as Wikimedia and the FIA ask. Set `CONTACT`
+ * to an address or a page where the site can reach whoever runs the fetch.
+ */
+export function userAgent(): string {
+	return `Pitwall/0.1 (fan data fetcher; ${process.env['CONTACT'] ?? 'contact unset'})`;
+}
+
+/** Requests per second the fetchers stay under on a site that is not ours. */
+export const POLITE_PAUSE_MS = 500;

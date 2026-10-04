@@ -6,7 +6,9 @@ import type { Catalog } from '../catalog/catalog.js';
 import type { IndexedSeason } from '../catalog/season-index.js';
 import { GB, freeBytes } from '../pkg/disk.js';
 import { mapLimited } from '../pkg/http.js';
+import { writeDecisions } from '../sources/fia/write-decisions.js';
 import { fetchMeetingResults } from '../sources/openf1/fetch-result.js';
+import { writeFacts } from '../sources/wikidata/fetch-facts.js';
 import {
 	folderBytes,
 	openF1CacheOf,
@@ -308,6 +310,17 @@ async function writeResults(
 	}
 }
 
+/** The outputs built from saved Wikidata and FIA files, which need the results index first. */
+async function writeDerived(options: ImportOptions): Promise<void> {
+	if (await writeFacts(options.dataDir, options.now)) {
+		options.log('facts: written');
+	}
+
+	for (const [season, count] of await writeDecisions(options.dataDir)) {
+		options.log(`decisions ${season}: ${count}`);
+	}
+}
+
 /** Sessions from the season indexes: fetch them unless offline, then ingest each. */
 async function importFromArchive(
 	selection: Extract<Selection, { kind: 'meeting' | 'key' }>,
@@ -433,6 +446,7 @@ export async function runImport(
 		new Set(outcomes.flatMap((outcome) => (outcome.result === null ? [] : [outcome.key]))),
 		options
 	);
+	await writeDerived(options);
 
 	return {
 		outcomes,

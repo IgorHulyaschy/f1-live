@@ -12,6 +12,8 @@ const SERVED = [
 	{ route: '/snapshots/*', dir: 'snapshots', cache: 'public, max-age=300, must-revalidate' },
 	{ route: '/events/*', dir: 'events', cache: 'public, max-age=300, must-revalidate' },
 	{ route: '/telemetry/*', dir: 'telemetry', cache: 'public, max-age=300, must-revalidate' },
+	{ route: '/facts.json', file: 'facts.json', cache: 'public, max-age=300, must-revalidate' },
+	{ route: '/decisions/*', dir: 'decisions', cache: 'public, max-age=300, must-revalidate' },
 	{ route: '/results/*', dir: 'results', cache: 'public, max-age=300, must-revalidate' }
 ] as const;
 

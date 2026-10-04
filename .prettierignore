@@ -7,3 +7,4 @@ client/e2e/real/data/out/telemetry/
 server/accounts-migrations/
 client/src/data/mock/results-2025.json
 .agent/skills/
+server/src/sources/fia/fixtures/
