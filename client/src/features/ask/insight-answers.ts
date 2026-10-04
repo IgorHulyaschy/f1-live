@@ -1,7 +1,8 @@
 import type { AskInsight, Subject } from '@f1-live/shared/ask';
-import type { Driver, RaceSnapshot, Stint, TyreCompound } from '@f1-live/shared';
+import type { Driver, RaceSnapshot, Stint } from '@f1-live/shared';
 import { driverIdOf } from '@f1-live/shared/results';
 
+import { COMPOUND_NAME } from '../../insights/pace.ts';
 import { crewLeague } from '../../insights/pit-cost.ts';
 import { bestSectors } from '../../insights/sectors.ts';
 import { countedLaps } from '../../insights/standings.ts';
@@ -16,15 +17,6 @@ import {
 	sessionLabel
 } from './ask-data.ts';
 import type { AskOutcome, TableRow } from './answers.ts';
-
-const COMPOUND_NAME: Record<TyreCompound, string> = {
-	SOFT: 'Soft',
-	MEDIUM: 'Medium',
-	HARD: 'Hard',
-	INTERMEDIATE: 'Intermediate',
-	WET: 'Wet',
-	UNKNOWN: 'Unknown'
-};
 
 const STOPS_NAME = ['No-stop', 'One-stop', 'Two-stop', 'Three-stop'];
 

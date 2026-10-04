@@ -8,7 +8,7 @@ import { pitPenalties, timePenalties } from './penalties.ts';
 import { PIT_LOSS_MS, pitLossOf, predictRejoin } from './pit-window.ts';
 import { oneSecondAid } from './rules.ts';
 import { standingsAt } from './standings.ts';
-import { stintPaces, tyreCorrectedPace } from './tyre-pace.ts';
+import { stintPaces } from './tyre-pace.ts';
 
 const race = simulateLasVegas2025();
 
@@ -115,14 +115,6 @@ describe('tyre pace', () => {
 
 		assert.ok(mediums.length > 5);
 		assert.ok(mediums.every((stint) => stint.degradationSecondsPerLap > 0));
-	});
-
-	it('ranks drivers with the best at zero delta', () => {
-		const ranking = tyreCorrectedPace(snapshotAtLap(race, 45));
-
-		assert.ok(ranking.length >= 15);
-		assert.equal(ranking[0]?.deltaToBestSeconds, 0);
-		assert.ok(ranking.every((entry, index) => index === 0 || entry.deltaToBestSeconds >= 0));
 	});
 });
 

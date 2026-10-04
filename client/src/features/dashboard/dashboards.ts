@@ -164,8 +164,8 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 	},
 	pace: {
 		group: 'Analysis',
-		title: 'True pace',
-		description: 'Pace with fuel load and tyre age taken out.',
+		title: 'Race pace',
+		description: 'Pace with fuel, tyre age and compound taken out, by stint or compound.',
 		size: { w: 12, h: 12 },
 		min: { w: 6, h: 5 },
 		pro: true,

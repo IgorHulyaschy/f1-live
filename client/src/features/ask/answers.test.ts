@@ -25,19 +25,24 @@ const AFTER_BAHRAIN = Date.parse('2026-10-04T12:00:00Z');
 
 const FIXTURE_SESSIONS = ['9852', '9854', '9858', '11373', '11730', '11731'] as const;
 
-function dataWith(held: readonly string[] = [], now = NOW): AskData {
+function dataWith(held: readonly string[] = [], now = NOW, openKey = '9858'): AskData {
 	return {
 		seasons: SEASONS,
 		context: now === NOW ? CONTEXT : buildAskContext(SEASONS, CATALOG, now),
 		catalog: CATALOG,
 		held: (key) => held.includes(key),
 		now,
-		openKey: '9858'
+		openKey
 	};
 }
 
-function outcome(question: string, held: readonly string[] = [], now = NOW): AskOutcome {
-	const data = dataWith(held, now);
+function outcome(
+	question: string,
+	held: readonly string[] = [],
+	now = NOW,
+	openKey = '9858'
+): AskOutcome {
+	const data = dataWith(held, now, openKey);
 	const query = resolve(question, data.context);
 
 	assert.ok(query, `"${question}" parses`);
@@ -55,8 +60,13 @@ function outcome(question: string, held: readonly string[] = [], now = NOW): Ask
 	return answerQuery(data, query, fixtureSession(key));
 }
 
-function answer(question: string, held: readonly string[] = [], now = NOW): Answer {
-	const result = outcome(question, held, now);
+function answer(
+	question: string,
+	held: readonly string[] = [],
+	now = NOW,
+	openKey = '9858'
+): Answer {
+	const result = outcome(question, held, now, openKey);
 
 	if (result.kind !== 'answer') {
 		assert.fail(`"${question}" answers, not ${result.kind}`);
@@ -450,5 +460,64 @@ describe('Surprise me and the examples', () => {
 				assert.deepEqual(resolve(example.text, CONTEXT), example.query, example.text);
 			}
 		}
+	});
+});
+
+const headline = (reply: Answer) => text(reply.headline);
+
+describe('Pace answers', () => {
+	// The open session stands in for the one the question names: the fixture holds no other race.
+	const RACE = '11731';
+	const PRACTICE = '9852';
+
+	it('who was faster in a stint reads a verdict with the laps it used', () => {
+		const reply = answer('who was faster in the second stint, ver or nor', [], NOW, RACE);
+
+		assert.match(
+			headline(reply),
+			/VER was 1\.67 s a lap quicker than NOR in stint 2 on the 17 laps both drove clean; allowing for VER's Soft against NOR's Hard, 0\.96 s/
+		);
+		assert.equal(reply.visual?.kind, 'table');
+		assert.ok(
+			reply.proof.href.includes('duel=VER,NOR') || reply.proof.href.includes('duel=NOR,VER')
+		);
+	});
+
+	it('ranks the field on race pace, each bar a link to a driver lap', () => {
+		const reply = answer('race pace ranking', [], NOW, RACE);
+
+		assert.match(headline(reply), /had the best pace over the race/);
+		assert.equal(reply.visual?.kind, 'bars');
+
+		if (reply.visual?.kind === 'bars') {
+			assert.equal(reply.visual.bars[0]?.value, 0);
+			assert.ok(reply.visual.bars.every((bar) => bar.href.includes('car=')));
+		}
+	});
+
+	it('filters the ranking to one compound', () => {
+		assert.match(headline(answer('fastest on mediums', [], NOW, RACE)), /on Medium tyres/);
+	});
+
+	it('compares two drivers by their short names', () => {
+		assert.match(headline(answer('ver vs nor pace', [], NOW, RACE)), /VER|NOR/);
+	});
+
+	it('reads the best long run of a practice session', () => {
+		assert.match(headline(answer('best long run', [], NOW, PRACTICE)), /best long run/);
+	});
+
+	it('reads the widest team-mate gap, or one team', () => {
+		assert.match(headline(answer('mercedes team mate gap', [], NOW, RACE)), /quicker than/);
+	});
+
+	it('finds the team-mate gap from either car of the team', () => {
+		for (const name of ['russell', 'antonelli']) {
+			assert.match(headline(answer(`${name} team mate gap`, [], NOW, RACE)), /quicker than/);
+		}
+	});
+
+	it('keeps a held race to itself', () => {
+		assert.equal(outcome('race pace ranking', ['11731'], NOW, RACE).kind, 'held');
 	});
 });

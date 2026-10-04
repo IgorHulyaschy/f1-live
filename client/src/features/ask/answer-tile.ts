@@ -23,6 +23,14 @@ export function answerTile(data: AskData, query: Query): TileKind | null {
 		return after === null && openSession(data)?.season === query.season ? 'season-standings' : null;
 	}
 
+	if (query.kind === 'pace') {
+		const found = findAskSession(data, query.session);
+
+		return query.mode !== 'long_run' && 'found' in found && found.found.key === data.openKey
+			? 'pace'
+			: null;
+	}
+
 	if (query.kind !== 'insight') {
 		return null;
 	}

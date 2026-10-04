@@ -47,6 +47,35 @@ function lapMark(first: Lap, second: Lap): DuelLap['mark'] {
 	return first.trackStatus === 'green' && second.trackStatus === 'green' ? null : 'neutral';
 }
 
+/** Every lap both drivers have driven, in lap order. */
+export function duelLaps(
+	snapshot: RaceSnapshot,
+	firstNumber: string,
+	secondNumber: string
+): DuelLap[] {
+	const theirs = new Map(
+		snapshot.laps.filter((lap) => lap.driverNumber === secondNumber).map((lap) => [lap.lap, lap])
+	);
+
+	return snapshot.laps.flatMap((lap): DuelLap[] => {
+		const other = lap.driverNumber === firstNumber ? theirs.get(lap.lap) : undefined;
+
+		return other
+			? [
+					{
+						lap: lap.lap,
+						gainSeconds:
+							isCleanLap(lap) && isCleanLap(other)
+								? (lap.lapTimeMs - other.lapTimeMs) / 1000
+								: null,
+						gapSeconds: lineGap(lap, other),
+						mark: lapMark(lap, other)
+					}
+				]
+			: [];
+	});
+}
+
 /**
  * Two drivers lap by lap: who was quicker on each lap both drove clean, the gap between them at the
  * line, and their pace over the last laps. Any two cars, wherever they are on track.
@@ -64,27 +93,7 @@ export function duel(
 		return null;
 	}
 
-	const theirs = new Map(
-		snapshot.laps.filter((lap) => lap.driverNumber === secondNumber).map((lap) => [lap.lap, lap])
-	);
-
-	const laps = snapshot.laps.flatMap((lap): DuelLap[] => {
-		const other = lap.driverNumber === firstNumber ? theirs.get(lap.lap) : undefined;
-
-		return other
-			? [
-					{
-						lap: lap.lap,
-						gainSeconds:
-							isCleanLap(lap) && isCleanLap(other)
-								? (lap.lapTimeMs - other.lapTimeMs) / 1000
-								: null,
-						gapSeconds: lineGap(lap, other),
-						mark: lapMark(lap, other)
-					}
-				]
-			: [];
-	});
+	const laps = duelLaps(snapshot, firstNumber, secondNumber);
 
 	const gapSeconds =
 		first.gapToLeaderMs !== null && second.gapToLeaderMs !== null && first.state !== 'out'

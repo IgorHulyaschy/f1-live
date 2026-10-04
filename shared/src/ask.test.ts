@@ -506,6 +506,92 @@ const QUESTIONS: { text: string; expected: Query | null }[] = [
 	},
 	{ text: 'youngest winner ever', expected: { kind: 'youngest_winner', seasons: null } },
 
+	// Pace
+	{
+		text: 'who was faster in the second stint, ver or nor',
+		expected: {
+			kind: 'pace',
+			mode: 'versus',
+			session: { kind: 'open' },
+			a: VER,
+			b: NOR,
+			span: { kind: 'stint', stint: 2 },
+			compound: null
+		}
+	},
+	{
+		text: 'race pace ranking bahrain',
+		expected: {
+			kind: 'pace',
+			mode: 'ranking',
+			session: { kind: 'event', event: 'bahrain', season: null, session: 'race' },
+			a: null,
+			b: null,
+			span: { kind: 'race' },
+			compound: null
+		}
+	},
+	{
+		text: 'fastest on mediums at bahrain',
+		expected: {
+			kind: 'pace',
+			mode: 'ranking',
+			session: { kind: 'event', event: 'bahrain', season: null, session: 'race' },
+			a: null,
+			b: null,
+			span: { kind: 'race' },
+			compound: 'MEDIUM'
+		}
+	},
+	{
+		text: 'ver vs nor pace in bahrain',
+		expected: {
+			kind: 'pace',
+			mode: 'versus',
+			session: { kind: 'event', event: 'bahrain', season: null, session: 'race' },
+			a: VER,
+			b: NOR,
+			span: { kind: 'race' },
+			compound: null
+		}
+	},
+	{
+		text: 'best long run in fp2',
+		expected: {
+			kind: 'pace',
+			mode: 'long_run',
+			session: { kind: 'latest', session: 'practice_2' },
+			a: null,
+			b: null,
+			span: { kind: 'race' },
+			compound: null
+		}
+	},
+	{
+		text: 'mercedes team mate gap in bahrain',
+		expected: {
+			kind: 'pace',
+			mode: 'teammates',
+			session: { kind: 'event', event: 'bahrain', season: null, session: 'race' },
+			a: team('mercedes'),
+			b: null,
+			span: { kind: 'race' },
+			compound: null
+		}
+	},
+	{
+		text: 'who was faster over the last 10 laps, ver or nor',
+		expected: {
+			kind: 'pace',
+			mode: 'versus',
+			session: { kind: 'open' },
+			a: VER,
+			b: NOR,
+			span: { kind: 'last', laps: 10 },
+			compound: null
+		}
+	},
+
 	// Not understood
 	{ text: 'hello there', expected: null },
 	{ text: 'is it going to rain', expected: null },
@@ -628,6 +714,31 @@ test('three ways to write a span give the same seasons', () => {
 			},
 			text
 		);
+	}
+});
+
+test('points, wins and season wording stay out of pace', () => {
+	for (const text of [
+		'points gap to team mate hamilton',
+		'team mate gap hamilton 2024',
+		'wet weather wins verstappen'
+	]) {
+		assert.notEqual(resolve(text)?.kind, 'pace', text);
+	}
+});
+
+test('questions that only share a word with pace keep their own answer', () => {
+	const kinds = {
+		'what happened to russell': 'story',
+		'fastest lap on softs verstappen': 'record',
+		'who won bahrain': 'result',
+		standings: 'standings',
+		'who was fastest in bahrain': 'result',
+		'who is faster verstappen or norris': 'h2h'
+	};
+
+	for (const [text, kind] of Object.entries(kinds)) {
+		assert.equal(resolve(text)?.kind ?? null, kind, text);
 	}
 });
 

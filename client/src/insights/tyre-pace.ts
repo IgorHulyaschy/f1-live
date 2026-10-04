@@ -1,6 +1,6 @@
-import type { Driver, Lap, RaceSnapshot, TyreCompound } from '@f1-live/shared';
+import type { RaceSnapshot, TyreCompound } from '@f1-live/shared';
 
-import { average, fuelCorrectedSeconds, isCleanLap } from './clean-laps.ts';
+import { average, fuelCorrectedSeconds, isCleanLap, median } from './clean-laps.ts';
 
 /** Fewer clean laps than this make a degradation fit meaningless. */
 const MIN_STINT_LAPS = 6;
@@ -14,15 +14,6 @@ export interface StintPace {
 	degradationSecondsPerLap: number;
 	/** Fitted fuel-corrected lap time on a brand-new set of this compound. */
 	newTyrePaceSeconds: number;
-}
-
-export interface CorrectedPace {
-	driver: Driver;
-	compound: TyreCompound;
-	sampleLaps: number;
-	/** Fuel- and tyre-age-corrected pace over the recent window, on a common compound basis. */
-	paceSeconds: number;
-	deltaToBestSeconds: number;
 }
 
 interface LineFit {
@@ -88,82 +79,53 @@ export function stintPaces(snapshot: RaceSnapshot): StintPace[] {
 	return paces;
 }
 
-function median(values: readonly number[]): number | null {
-	const sorted = values.toSorted((a, b) => a - b);
-	const middle = Math.floor(sorted.length / 2);
-
-	if (sorted.length === 0) {
-		return null;
-	}
-
-	return sorted.length % 2 === 1
-		? (sorted[middle] ?? null)
-		: ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
+export interface CompoundShift {
+	shift: (compound: TyreCompound) => number;
+	applied: boolean;
 }
 
-/**
- * Who is really fastest right now: recent clean laps with fuel and tyre age removed, and each
- * compound shifted by the field's median new-tyre gap to the hard, so different strategies compare.
- */
-export function tyreCorrectedPace(snapshot: RaceSnapshot, windowLaps = 8): CorrectedPace[] {
-	const stints = stintPaces(snapshot);
+/** A compound's offset is trusted only when this many stints back it. */
+const MIN_COMPOUND_STINTS = 2;
 
-	const hardBaseline = median(
-		stints.filter((stint) => stint.compound === 'HARD').map((stint) => stint.newTyrePaceSeconds)
+const DRY_ORDER: readonly TyreCompound[] = ['SOFT', 'MEDIUM', 'HARD'];
+
+/**
+ * How much slower than the hard, on a new set, each compound runs: the field's median new-tyre
+ * pace on it less its median on the hard. Different strategies then compare on equal tyres.
+ *
+ * The offsets are field medians, so a race where the softs ran late and short can fit the soft
+ * slower than the hard. The shift applies only when every dry compound that ran has enough
+ * stints and the offsets keep the physical order (soft not slower than medium, medium not slower
+ * than hard); otherwise every shift is zero and `applied` is false.
+ */
+export function compoundShifter(stints: readonly StintPace[]): CompoundShift {
+	const paces = (compound: TyreCompound) =>
+		stints.flatMap((stint) => (stint.compound === compound ? [stint.newTyrePaceSeconds] : []));
+
+	const medianOn = (compound: TyreCompound) => median(paces(compound));
+	const hardBaseline = medianOn('HARD');
+
+	const ran = DRY_ORDER.filter((compound) => paces(compound).length > 0);
+
+	const enough =
+		hardBaseline !== null && ran.every((compound) => paces(compound).length >= MIN_COMPOUND_STINTS);
+
+	const medians = ran.flatMap((compound) => medianOn(compound) ?? []);
+
+	const ordered = medians.every(
+		(value, index) => index === 0 || (medians[index - 1] ?? 0) <= value
 	);
 
-	const compoundShift = (compound: TyreCompound): number => {
-		const compoundMedian = median(
-			stints.filter((stint) => stint.compound === compound).map((stint) => stint.newTyrePaceSeconds)
-		);
+	const applied = enough && ordered;
 
-		return hardBaseline === null || compoundMedian === null ? 0 : compoundMedian - hardBaseline;
+	return {
+		applied,
+		shift: (compound) => {
+			const compoundMedian = medianOn(compound);
+
+			return !applied || hardBaseline === null || compoundMedian === null
+				? 0
+				: compoundMedian - hardBaseline;
+		}
 	};
-
-	const results: Omit<CorrectedPace, 'deltaToBestSeconds'>[] = [];
-
-	for (const driver of snapshot.drivers) {
-		const current = snapshot.stints.findLast((stint) => stint.driverNumber === driver.number);
-
-		const fit = current
-			? stints.find(
-					(stint) => stint.driverNumber === driver.number && stint.stint === current.stint
-				)
-			: undefined;
-
-		if (!current || !fit || current.endLap < snapshot.currentLap - 1) {
-			continue;
-		}
-
-		const recent: Lap[] = stintLaps(
-			snapshot,
-			driver.number,
-			current.startLap,
-			current.endLap
-		).slice(-windowLaps);
-
-		const corrected = average(
-			recent.map(
-				(lap) =>
-					fuelCorrectedSeconds(lap, snapshot.session.totalLaps) -
-					fit.degradationSecondsPerLap * lap.tyreAge -
-					compoundShift(current.compound)
-			)
-		);
-
-		if (corrected !== null) {
-			results.push({
-				driver,
-				compound: current.compound,
-				sampleLaps: recent.length,
-				paceSeconds: corrected
-			});
-		}
-	}
-
-	results.sort((a, b) => a.paceSeconds - b.paceSeconds);
-
-	const best = results[0]?.paceSeconds ?? 0;
-
-	return results.map((result) => ({ ...result, deltaToBestSeconds: result.paceSeconds - best }));
 }

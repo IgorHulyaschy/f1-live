@@ -46,6 +46,7 @@ import {
 	teamNameIn
 } from './ask-data.ts';
 import { insightAnswer } from './insight-answers.ts';
+import { paceAnswer } from './pace-answers.ts';
 import { STEWARDS_LOADING, type Stewards, stewardsAnswer } from './steward-answers.ts';
 import { storyAnswer, storyRow, type StoryVisual } from './story-answer.ts';
 
@@ -1085,6 +1086,7 @@ export function answerQuery(
 	switch (query.kind) {
 		case 'result':
 		case 'insight':
+		case 'pace':
 		case 'story': {
 			const lookup = findAskSession(data, query.session);
 
@@ -1118,9 +1120,13 @@ export function answerQuery(
 					: { kind: 'snapshot', key: info.key, label: sessionLabel(info) };
 			}
 
-			return snapshot && snapshot.session.id === info.key
-				? insightAnswer(data, info, query.insight, query.subject, snapshot)
-				: { kind: 'snapshot', key: info.key, label: sessionLabel(info) };
+			if (!snapshot || snapshot.session.id !== info.key) {
+				return { kind: 'snapshot', key: info.key, label: sessionLabel(info) };
+			}
+
+			return query.kind === 'pace'
+				? paceAnswer(data, info, query, snapshot)
+				: insightAnswer(data, info, query.insight, query.subject, snapshot);
 		}
 
 		case 'standings': {

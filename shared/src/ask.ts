@@ -41,6 +41,18 @@ export const ASK_INSIGHTS = ['fastest_lap', 'top_speed', 'tyres', 'pit_stops', '
 
 export type AskInsight = (typeof ASK_INSIGHTS)[number];
 
+/** Tyre compounds a pace question can name. */
+export const ASK_COMPOUNDS = ['SOFT', 'MEDIUM', 'HARD', 'INTERMEDIATE', 'WET'] as const;
+
+export type AskCompound = (typeof ASK_COMPOUNDS)[number];
+
+/** Which laps a pace question counts: the session, one stint of each driver, or its last laps. */
+export type PaceSpan =
+	{ kind: 'race' } | { kind: 'stint'; stint: number } | { kind: 'last'; laps: number };
+
+/** What a pace question asks for: the field ranked, two drivers, a team's cars, or practice runs. */
+export type PaceMode = 'ranking' | 'versus' | 'teammates' | 'long_run';
+
 /** A driver by the id `driverIdOf` gives, or a team by its line across names. */
 export type Subject = { kind: 'driver' | 'team'; id: string };
 
@@ -93,7 +105,17 @@ export type Query =
 	/** How old a driver is, from the birth date Wikidata holds. */
 	| { kind: 'age'; subject: Subject }
 	/** The youngest driver to win a race over seasons. */
-	| { kind: 'youngest_winner'; seasons: SeasonSpan };
+	| { kind: 'youngest_winner'; seasons: SeasonSpan }
+	/** Who was quicker in one session, over a span and on a compound; `a` and `b` name drivers or a team. */
+	| {
+			kind: 'pace';
+			mode: PaceMode;
+			session: SessionRef;
+			a: Subject | null;
+			b: Subject | null;
+			span: PaceSpan;
+			compound: AskCompound | null;
+	  };
 
 /** A name the parser can match: a driver, a team line or a grand prix. */
 export type AskEntity = {
@@ -148,7 +170,14 @@ type Keyword =
 	| { kind: 'gap' }
 	| { kind: 'penalty' }
 	| { kind: 'age' }
-	| { kind: 'youngest' };
+	| { kind: 'youngest' }
+	| { kind: 'pace' }
+	| { kind: 'quicker' }
+	| { kind: 'long-run' }
+	| { kind: 'stint' }
+	| { kind: 'stint-number'; stint: number }
+	| { kind: 'laps' }
+	| { kind: 'compound'; compound: AskCompound };
 
 const KEYWORDS: readonly (readonly [string, Keyword])[] = [
 	...(
@@ -356,12 +385,44 @@ const KEYWORDS: readonly (readonly [string, Keyword])[] = [
 	['old', { kind: 'age' }],
 	['age', { kind: 'age' }],
 	['youngest', { kind: 'youngest' }],
+	['pace', { kind: 'pace' }],
+	['race pace', { kind: 'pace' }],
+	['true pace', { kind: 'pace' }],
+	['pace ranking', { kind: 'pace' }],
+	['faster', { kind: 'quicker' }],
+	['quicker', { kind: 'quicker' }],
+	['slower', { kind: 'quicker' }],
+	['fastest', { kind: 'quicker' }],
+	['quickest', { kind: 'quicker' }],
+	['long run', { kind: 'long-run' }],
+	['long runs', { kind: 'long-run' }],
+	['race sim', { kind: 'long-run' }],
+	['stint', { kind: 'stint' }],
+	['first stint', { kind: 'stint-number', stint: 1 }],
+	['second stint', { kind: 'stint-number', stint: 2 }],
+	['third stint', { kind: 'stint-number', stint: 3 }],
+	['fourth stint', { kind: 'stint-number', stint: 4 }],
+	['laps', { kind: 'laps' }],
+	['team mate', { kind: 'teammates' }],
 	['chance', { kind: 'gap' }],
 	['chances', { kind: 'gap' }],
 	['clinch', { kind: 'gap' }]
 ];
 
-const KEYWORD_TABLE = new Map(KEYWORDS.map(([phrase, keyword]) => [phrase, keyword]));
+const COMPOUND_WORDS: readonly (readonly [AskCompound, readonly string[]])[] = [
+	['SOFT', ['soft', 'softs']],
+	['MEDIUM', ['medium', 'mediums']],
+	['HARD', ['hard', 'hards']],
+	['INTERMEDIATE', ['intermediate', 'intermediates', 'inters']],
+	['WET', ['wet', 'wets', 'full wets']]
+];
+
+const KEYWORD_TABLE = new Map<string, Keyword>([
+	...KEYWORDS,
+	...COMPOUND_WORDS.flatMap(([compound, names]) =>
+		names.map((name): [string, Keyword] => [name, { kind: 'compound', compound }])
+	)
+]);
 
 const LONGEST_PHRASE = 4;
 
@@ -599,6 +660,12 @@ type Reading = {
 	penalty: boolean;
 	age: boolean;
 	youngest: boolean;
+	pace: boolean;
+	quicker: boolean;
+	longRun: boolean;
+	stint: number | null;
+	lastLaps: number | null;
+	compound: AskCompound | null;
 	seasons: SeasonSpan | undefined;
 	round: number | null;
 	afterRound: number | null;
@@ -637,6 +704,12 @@ function read(text: string, context: AskContext): Reading {
 		penalty: false,
 		age: false,
 		youngest: false,
+		pace: false,
+		quicker: false,
+		longRun: false,
+		stint: null,
+		lastLaps: null,
+		compound: null,
 		seasons: undefined,
 		round: null,
 		afterRound: null,
@@ -656,7 +729,15 @@ function read(text: string, context: AskContext): Reading {
 		}
 
 		if (piece.kind === 'number') {
-			if (afterKeyword('round')) {
+			if (afterKeyword('stint')) {
+				reading.stint = piece.value;
+			} else if (
+				afterKeyword('latest') &&
+				next?.kind === 'keyword' &&
+				next.keyword.kind === 'laps'
+			) {
+				reading.lastLaps = piece.value;
+			} else if (afterKeyword('round')) {
 				if (afterKeywordAt(list, index - 2, 'after')) {
 					reading.afterRound = piece.value;
 				} else {
@@ -812,6 +893,31 @@ function read(text: string, context: AskContext): Reading {
 				break;
 			}
 
+			case 'pace': {
+				reading.pace = true;
+				break;
+			}
+
+			case 'quicker': {
+				reading.quicker = true;
+				break;
+			}
+
+			case 'long-run': {
+				reading.longRun = true;
+				break;
+			}
+
+			case 'stint-number': {
+				reading.stint = keyword.stint;
+				break;
+			}
+
+			case 'compound': {
+				reading.compound = keyword.compound;
+				break;
+			}
+
 			case 'all-time': {
 				allTime = true;
 				break;
@@ -890,6 +996,79 @@ function sessionRef(
 	return null;
 }
 
+/** A pace question, or null when the reading asks for something else. */
+function paceQuery(reading: Reading, context: AskContext): Query | null {
+	const [first, second] = reading.subjects;
+	const twoDrivers = first?.kind === 'driver' && second?.kind === 'driver';
+
+	// Points and season wording is the standings' gap; a team-mate pace gap names a session or none.
+	const mates =
+		reading.teammates &&
+		reading.gap &&
+		!reading.insight &&
+		reading.stat === null &&
+		reading.seasons === undefined;
+
+	const wanted =
+		reading.pace ||
+		reading.longRun ||
+		mates ||
+		reading.stint !== null ||
+		reading.lastLaps !== null ||
+		(reading.compound !== null && !reading.insight && (reading.quicker || first || second)) ||
+		(reading.quicker && twoDrivers && sessionRef(reading, context, 'race') !== null);
+
+	if (
+		!wanted ||
+		reading.insight ||
+		reading.win ||
+		reading.pole ||
+		reading.standings ||
+		reading.stat !== null
+	) {
+		return null;
+	}
+
+	const word = reading.sessions.at(-1);
+
+	const mode: PaceMode = reading.longRun
+		? 'long_run'
+		: mates
+			? 'teammates'
+			: twoDrivers
+				? 'versus'
+				: 'ranking';
+
+	const fallback: AskSession = mode === 'long_run' ? 'practice_2' : 'race';
+
+	// "The latest 10 laps" is a span, not the latest session.
+	const named = sessionRef(
+		reading.lastLaps === null ? reading : { ...reading, latest: false },
+		context,
+		fallback
+	);
+
+	const session: SessionRef =
+		named ?? (word ? { kind: 'latest', session: word } : { kind: 'open' });
+
+	const span: PaceSpan =
+		reading.stint !== null
+			? { kind: 'stint', stint: reading.stint }
+			: reading.lastLaps !== null
+				? { kind: 'last', laps: reading.lastLaps }
+				: { kind: 'race' };
+
+	return {
+		kind: 'pace',
+		mode,
+		session,
+		a: first ?? null,
+		b: twoDrivers ? second : null,
+		span,
+		compound: reading.compound
+	};
+}
+
 function decide(reading: Reading, context: AskContext): Query | null {
 	const [first, second] = reading.subjects;
 	const seasons = reading.seasons === undefined ? null : reading.seasons;
@@ -907,6 +1086,12 @@ function decide(reading: Reading, context: AskContext): Query | null {
 		if (reading.penalty) {
 			return { kind: 'penalties', subject: first, seasons, event: reading.events[0] ?? null };
 		}
+	}
+
+	const pace = paceQuery(reading, context);
+
+	if (pace) {
+		return pace;
 	}
 
 	if (reading.gap && !second) {
@@ -1148,6 +1333,49 @@ function winnerText(ref: SessionRef, context: AskContext): string {
 	}
 }
 
+const COMPOUND_WORD: Record<AskCompound, string> = {
+	SOFT: 'softs',
+	MEDIUM: 'mediums',
+	HARD: 'hards',
+	INTERMEDIATE: 'intermediates',
+	WET: 'wets'
+};
+
+function paceText(query: Extract<Query, { kind: 'pace' }>, context: AskContext): string {
+	const label = (subject: Subject | null) =>
+		subject ? labelOf(context, subject.kind, subject.id) : '';
+
+	const span =
+		query.span.kind === 'stint'
+			? ` stint ${query.span.stint}`
+			: query.span.kind === 'last'
+				? ` last ${query.span.laps} laps`
+				: '';
+
+	const compound = query.compound === null ? '' : ` on ${COMPOUND_WORD[query.compound]}`;
+	const where = ` ${sessionText(query.session, context, '')}`;
+
+	switch (query.mode) {
+		case 'versus': {
+			return `${label(query.a)} vs ${label(query.b)} pace${span}${compound}${where}`;
+		}
+
+		case 'teammates': {
+			return `${query.a ? `${label(query.a)} ` : ''}team mate gap${span}${compound}${where}`;
+		}
+
+		case 'long_run': {
+			return `Best long run${where}`;
+		}
+
+		case 'ranking': {
+			const who = query.a ? `${label(query.a)} ` : '';
+
+			return `${who}race pace${span}${compound}${where}`;
+		}
+	}
+}
+
 /** A query as a question the parser reads back to the same query, for examples and sharing. */
 export function questionText(query: Query, context: AskContext): string {
 	const subjectLabel = (subject: Subject) => labelOf(context, subject.kind, subject.id);
@@ -1233,6 +1461,10 @@ export function questionText(query: Query, context: AskContext): string {
 
 		case 'age': {
 			return `How old is ${subjectLabel(query.subject)}`;
+		}
+
+		case 'pace': {
+			return paceText(query, context);
 		}
 
 		case 'youngest_winner': {

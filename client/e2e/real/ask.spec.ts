@@ -193,3 +193,20 @@ test('a record answer shows the driver’s portrait, named for them', async ({ p
 		page.getByTestId('ask-answer').getByRole('img', { name: 'Lando Norris' })
 	).toBeAttached({ timeout: 15_000 });
 });
+
+test('who was faster in a stint answers with a verdict and the duel as proof', async ({ page }) => {
+	await openAsk(page);
+	await ask(page, 'who was faster in the second stint, ver or nor');
+
+	const answer = page.getByTestId('ask-answer');
+
+	await expect(answer).toContainText(
+		/(VER|NOR) was \d\.\d\d s a lap quicker than (VER|NOR) in stint 2 on the \d+ laps both drove clean; allowing for tyre age \(both on Hard\), /,
+		{
+			timeout: 15_000
+		}
+	);
+	await expect(answer.getByRole('table')).toBeVisible();
+	await page.getByTestId('ask-proof').click();
+	await expect(page).toHaveURL(/session=9858.*duel=(VER,NOR|NOR,VER)/);
+});

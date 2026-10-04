@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { DriverList } from '@/features/analysis/driver-list';
 import { FastestLaps } from '@/features/analysis/fastest-laps';
 import type { Metric } from '@/features/analysis/lap-series';
-import { PaceRanking } from '@/features/analysis/pace-ranking';
+import { RacePace } from '@/features/analysis/race-pace';
 import { BestSectors } from '@/features/live/best-sectors';
 import { FocusPanel } from '@/features/live/focus-panel';
 import { KnockoutPanel } from '@/features/live/knockout-panel';
@@ -259,7 +259,7 @@ export function TileContent({
 		}
 
 		case 'pace': {
-			return <PaceRanking />;
+			return <RacePace />;
 		}
 
 		case 'fastest-laps': {

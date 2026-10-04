@@ -33,6 +33,8 @@ const PAGES = [
 	{ name: 'analysis-qualifying', path: '/analysis?session=9854' },
 	{ name: 'battle-qualifying', path: '/d/battle?session=11373' },
 	{ name: 'analysis-race', path: '/analysis?session=9858&plan=pro' },
+	// The Race pace tile with two drivers picked: the verdict over the span.
+	{ name: 'race-pace-pair', path: '/analysis?session=9858&plan=pro&duel=VER,NOR' },
 	{ name: 'strategy-pro', path: '/strategy?session=9858&plan=pro' },
 	{ name: 'race-story', path: '/d/story?session=9858&plan=pro' },
 	{ name: 'story-qualifying', path: '/d/story?session=9854&plan=pro' },
@@ -108,7 +110,7 @@ for (const viewport of VIEWPORTS) {
 	});
 }
 
-/** Ask over a race: empty, an answer with a table, one with bars, a held session and a driver's story. */
+/** Ask over a race: empty, an answer with a table, one with bars, pace answers, a held session and a driver's story. */
 const ASKS = [
 	{ name: 'ask-empty', question: '' },
 	{ name: 'ask-result', question: 'who won monza 2024' },
@@ -125,7 +127,10 @@ const ASKS = [
 		question: 'russell result bahrain',
 		now: '2026-10-04T12:00:00.000Z'
 	},
-	{ name: 'ask-search', question: 'lecler' }
+	{ name: 'ask-search', question: 'lecler' },
+	{ name: 'ask-pace-versus', question: 'who was faster in the second stint, ver or nor' },
+	{ name: 'ask-pace-ranking', question: 'race pace ranking' },
+	{ name: 'ask-pace-teammates', question: 'team mate gap' }
 ] as const;
 
 for (const viewport of VIEWPORTS.filter((entry) => ['mobile', 'laptop'].includes(entry.name))) {

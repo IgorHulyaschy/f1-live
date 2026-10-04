@@ -177,7 +177,7 @@ sit at the bottom or the right edge, never between the viewer and the data; the 
 | Race       | Fights: who is racing whom | Duel: who is faster    | Pace now: the whole field   |
 | Quali      | Timing with the cut lines  | Knockout: who is out   | Best sectors                |
 | Practice   | Timing: who is quickest    | Long runs: race pace   | Stints: tyres               |
-| Analysis   | True pace                  | Lap chart              | Fastest laps                |
+| Analysis   | Race pace                  | Lap chart              | Fastest laps                |
 | Strategy   | Stints: tyres and age      | Undercut: will it work | Pit stops: who just came in |
 | Battle     | Battle chart: the gap      | Gaps                   | Box now                     |
 | Track      | Track map                  | Battle map             | Pit rejoin                  |
@@ -198,7 +198,7 @@ session's season after the latest round the viewer has seen; it links to `/stand
 | Race       | Race day on one screen   | Replay, Timing, Fights, Track map, Duel, Pace now, Focus, Race control, Stints |
 | Quali      | Qualifying on one screen | Replay, Timing, Knockout, Track map, Best sectors, Race control, Gap distance  |
 | Practice   | Practice on one screen   | Replay, Timing, Long runs, Track map, Stints, Race control                     |
-| Analysis   | Lap charts               | Compare, Chart, True pace, Fastest laps, Telemetry                             |
+| Analysis   | Lap charts               | Compare, Chart, Race pace, Fastest laps, Telemetry                             |
 | Strategy   | Tyres and stops          | Stints, Tyre wear, Undercut ledger, Pit stops, Stop cost, Pit crews            |
 | Battle     | Your driver's fight      | Timing, Battle chart, Gaps, Box now                                            |
 | Track      | The race on the circuit  | The eight Track tiles                                                          |
@@ -208,7 +208,7 @@ session's season after the latest round the viewer has seen; it links to `/stand
 
 Viewers can edit any of them; Reset puts it back as shipped. Race keeps the id the Live preset
 had (`live`), so an edited Live opens as an edited Race. There are 41 tiles in 6 groups (Race,
-Drivers, Timing, Track, Analysis, Strategy). Nine of them are Pro: Box now, True pace, Tyre wear,
+Drivers, Timing, Track, Analysis, Strategy). Nine of them are Pro: Box now, Race pace, Tyre wear,
 Undercut ledger, Conditions, Pit rejoin, Dominance, Speed map and Ghost lap.
 
 The three race watching tiles, on Race and in the library under Timing. They answer the
