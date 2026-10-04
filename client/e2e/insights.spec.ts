@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
-import { openRace } from './fixtures.ts';
+import { openRace, test } from './fixtures.ts';
 
 // The modelled replay of the 2025 Las Vegas race: no passes or radio, but stops, flags,
 // penalties, the championship before the race and a few of the real race's laps of telemetry.

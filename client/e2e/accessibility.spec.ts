@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
-import { openRace, seriousViolations } from './fixtures.ts';
+import { openRace, seriousViolations, test } from './fixtures.ts';
 
 const RACE_ROUTES = [
 	'/session',

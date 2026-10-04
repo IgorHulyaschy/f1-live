@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
-import { expectFits, FIT_SIZES, openRace } from './fixtures.ts';
+import { expectFits, FIT_SIZES, openRace, test } from './fixtures.ts';
 import { serveTestPictures } from './pictures';
 
 test.beforeEach(async ({ page }) => {

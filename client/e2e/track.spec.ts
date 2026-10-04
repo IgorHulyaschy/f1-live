@@ -1,6 +1,6 @@
-import { expect, type Locator, test } from '@playwright/test';
+import { expect, type Locator } from '@playwright/test';
 
-import { openRace } from './fixtures.ts';
+import { openRace, test } from './fixtures.ts';
 
 // The mock replay has the real Las Vegas outline and no car positions, so every map estimates.
 

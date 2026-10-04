@@ -1,6 +1,6 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-import { fromMenu, openRace } from './fixtures.ts';
+import { fromMenu, openRace, test } from './fixtures.ts';
 
 /** A dashboard saved before tiles always fit the window: it still carries the old Fit switch. */
 const OLD_DASHBOARD = {

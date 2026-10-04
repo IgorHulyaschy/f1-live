@@ -1,6 +1,6 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
-import { openRace } from './fixtures.ts';
+import { openRace, test } from './fixtures.ts';
 
 /** A returning viewer with spoiler protection off, on a page that is not the session. */
 async function open(page: Page, path: string): Promise<void> {
@@ -10,23 +10,15 @@ async function open(page: Page, path: string): Promise<void> {
 	await page.goto(path);
 }
 
-async function expectFiaDocument(link: ReturnType<Page['locator']>): Promise<void> {
-	const href = await link.getAttribute('href');
-
-	expect(href).toMatch(/^https:\/\/www\.fia\.com\/.+\.pdf$/);
-
-	const response = await link
-		.page()
-		.request.head(href ?? '')
-		.catch(() => null);
-
-	// The sandbox may be offline; a reachable site must serve the document.
-	if (response) {
-		expect(response.status()).toBeLessThan(400);
-	}
+/** The link names a decision document on fia.com; the test never follows it. */
+async function expectFiaDocument(link: Locator): Promise<void> {
+	await expect(link).toHaveAttribute('href', /^https:\/\/www\.fia\.com\/.+\.pdf$/);
+	await expect(link).toHaveAccessibleName(/\S/);
 }
 
-test('race control lists the stewards’ documents with a working link', async ({ page }) => {
+test('race control lists the stewards’ documents with a link to each document', async ({
+	page
+}) => {
 	await openRace(page);
 
 	const documents = page.getByTestId('stewards-documents');

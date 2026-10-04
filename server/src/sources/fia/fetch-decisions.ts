@@ -92,12 +92,16 @@ const pause = () => new Promise((resolve) => setTimeout(resolve, POLITE_PAUSE_MS
 
 /**
  * The text of a document's PDF; null when the FIA no longer serves it or it is not a PDF.
- * A busy site throws, and the document is tried again on the next run.
+ * A busy site, a refusal (403, which the FIA sends to a client it throttles) or a limit (429)
+ * throws, and the document is tried again on the next run.
  */
-async function fetchText(url: string): Promise<string | null> {
-	const response = await fetchPolitely(url, undefined, undefined, { 'User-Agent': userAgent() });
+export async function fetchText(
+	url: string,
+	get: typeof fetchPolitely = fetchPolitely
+): Promise<string | null> {
+	const response = await get(url, undefined, undefined, { 'User-Agent': userAgent() });
 
-	if (response.status === 403 || response.status === 404) {
+	if (response.status === 404) {
 		return null;
 	}
 

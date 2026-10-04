@@ -1,7 +1,7 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { z } from 'zod';
 
-import { fromMenu, mailedLink, openRace, signInWithLink, testEmail } from './fixtures.ts';
+import { fromMenu, mailedLink, openRace, signInWithLink, testEmail, test } from './fixtures.ts';
 
 const FAN_DASHBOARDS = ['Second screen', 'TV wall', 'Teammates', 'Driver wall', 'Just the order'];
 

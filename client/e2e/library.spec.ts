@@ -1,7 +1,7 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { z } from 'zod';
 
-import { fromMenu, goPro, openRace, signInWithLink, testEmail } from './fixtures.ts';
+import { fromMenu, goPro, openRace, signInWithLink, testEmail, test } from './fixtures.ts';
 import { serveTestPictures } from './pictures';
 
 test('a fan dashboard can be previewed and added from the library', async ({ page }) => {

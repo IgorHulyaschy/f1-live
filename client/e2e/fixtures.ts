@@ -1,8 +1,42 @@
 import { AxeBuilder } from '@axe-core/playwright';
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Locator, type Page, test as base } from '@playwright/test';
 import { z } from 'zod';
 
 import { serveTestPictures } from './pictures';
+
+const MEDIA_HOSTNAME = 'media.formula1.com';
+
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1']);
+
+/**
+ * `test` that fails when a page asks a host other than this machine for anything its own
+ * `page.route` did not answer: a test must not depend on fia.com, wikidata.org or formula1.com.
+ */
+export const test = base.extend<{ noOutsideRequests: undefined }>({
+	noOutsideRequests: [
+		async ({ context }, use) => {
+			const outside: string[] = [];
+
+			// A route of the page is tried first; one that falls back reaches this catch-all.
+			await context.route(
+				(url) => !LOCAL_HOSTS.has(url.hostname),
+				(route) => {
+					// Pictures are decoration: unless a test serves them, they fail and the drawn fallbacks show.
+					if (new URL(route.request().url()).hostname === MEDIA_HOSTNAME) {
+						return route.abort();
+					}
+
+					outside.push(route.request().url());
+
+					return route.abort();
+				}
+			);
+			await use(undefined);
+			expect(outside, 'requests to a host that no route answered').toEqual([]);
+		},
+		{ auto: true }
+	]
+});
 
 /**
  * Opens a page of the mock replay as a returning viewer and waits until the race has loaded.

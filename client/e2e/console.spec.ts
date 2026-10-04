@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
-import { openRace } from './fixtures.ts';
+import { openRace, test } from './fixtures.ts';
 
 test('arrow keys step laps and number keys switch pages', async ({ page }) => {
 	await openRace(page, '/session?lap=20');

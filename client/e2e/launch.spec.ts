@@ -1,6 +1,6 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
-import { fromMenu, openRace, seriousViolations } from './fixtures.ts';
+import { fromMenu, openRace, seriousViolations, test } from './fixtures.ts';
 
 /** Records wake lock requests and releases, which headless Chromium would refuse. */
 async function stubWakeLock(page: Page): Promise<void> {

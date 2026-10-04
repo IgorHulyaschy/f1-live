@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
-import { fromMenu, openRace } from './fixtures.ts';
+import { fromMenu, openRace, test } from './fixtures.ts';
 
 test('presets open as tabs and render their tiles in a grid', async ({ page }) => {
 	await openRace(page, '/d/wall');

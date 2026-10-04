@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 import { z } from 'zod';
 
-import { openRace, signInWithLink, testEmail } from './fixtures.ts';
+import { openRace, signInWithLink, testEmail, test } from './fixtures.ts';
 
 const settingsReply = z.object({
 	settings: z

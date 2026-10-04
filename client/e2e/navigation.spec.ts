@@ -1,6 +1,6 @@
-import { expect, test } from '@playwright/test';
+import { expect } from '@playwright/test';
 
-import { openRace } from './fixtures.ts';
+import { openRace, test } from './fixtures.ts';
 
 test('a race opens on the Race layout, with the session in the strip', async ({ page }) => {
 	await openRace(page);
