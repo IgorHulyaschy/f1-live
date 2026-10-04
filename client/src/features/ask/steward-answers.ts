@@ -9,6 +9,7 @@ import { eventIdOf, eventShortName, labelOf } from './ask-context.ts';
 import {
 	type AskData,
 	driverHref,
+	endWithStop,
 	type HeldSession,
 	plural,
 	type Rich,
@@ -151,7 +152,7 @@ function penaltiesAnswer(
 		kind: 'answer',
 		headline,
 		detail: first.infringement
-			? [`${first.infringement}.${note}`]
+			? [`${endWithStop(first.infringement)}${note}`]
 			: note === ''
 				? null
 				: [note.trim()],

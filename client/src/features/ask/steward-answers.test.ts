@@ -58,6 +58,19 @@ describe('stewards questions', () => {
 		}
 	});
 
+	it('a quoted infringement ends with one full stop', () => {
+		const result = ask('why was norris penalised in las vegas');
+
+		assert.equal(result.kind, 'answer');
+
+		if (result.kind === 'answer') {
+			const text = JSON.stringify(result.detail);
+
+			assert.match(text, /Alleged breach|Article|infring/i);
+			assert.doesNotMatch(text, /\.\./);
+		}
+	});
+
 	it('penalties of a season that the viewer has not seen are held, not listed', () => {
 		const result = ask('why was norris penalised in las vegas', ['9858']);
 

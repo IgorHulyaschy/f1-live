@@ -234,6 +234,13 @@ export function formatPoints(points: number): string {
 	return points.toLocaleString('en-GB', { maximumFractionDigits: 1 });
 }
 
+/** Ends a quoted source text with one full stop: quoted text often carries its own. */
+export function endWithStop(text: string): string {
+	const trimmed = text.trim();
+
+	return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+}
+
 export function plural(count: number, one: string, many = `${one}s`): string {
 	return `${count.toLocaleString('en-GB')} ${count === 1 ? one : many}`;
 }
@@ -257,13 +264,32 @@ export function pictureOf(
 			: null;
 	}
 
-	for (const season of seasons.toReversed()) {
-		const team = Object.keys(season.teams).find((name) => teamIdOf(name) === subject.id);
+	const found = lastTeamIn(seasons, subject.id);
 
-		if (team) {
-			return { kind: 'team', team: seasonTeam(season, team) };
+	return found ? { kind: 'team', team: seasonTeam(found.season, found.name) } : null;
+}
+
+/** A team line in the last season of `seasons` that has it, under the name that season used. */
+function lastTeamIn(
+	seasons: readonly SeasonResults[],
+	id: string
+): { season: SeasonResults; name: string } | null {
+	for (const season of seasons.toReversed()) {
+		const name = Object.keys(season.teams).find((entry) => teamIdOf(entry) === id);
+
+		if (name) {
+			return { season, name };
 		}
 	}
 
 	return null;
+}
+
+/** The team's name as the last of `seasons` it raced in called it: "AlphaTauri" in 2021. */
+export function teamNameIn(
+	seasons: readonly SeasonResults[],
+	id: string,
+	fallback: string
+): string {
+	return lastTeamIn(seasons, id)?.name ?? fallback;
 }

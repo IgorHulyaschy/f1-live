@@ -84,6 +84,18 @@ function links(rich: Rich): string[] {
 	return rich.flatMap((part) => richPart(part).href ?? []);
 }
 
+describe('the tyres answer', () => {
+	it('lists every driver who ran, not the first ten', () => {
+		const reply = answer('what tyres did everyone use in las vegas');
+		const rows = reply.visual?.kind === 'table' ? reply.visual.rows : [];
+
+		const ran = new Set(fixtureSession('9858').stints.map((stint) => stint.driverNumber));
+
+		assert.equal(rows.length, ran.size);
+		assert.ok(rows.length > 10);
+	});
+});
+
 describe('answers match the official tables', () => {
 	it('2021: Verstappen champion on 395.5, Hamilton 8 behind', () => {
 		const reply = answer('Drivers standings 2021');

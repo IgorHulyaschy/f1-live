@@ -65,7 +65,12 @@ export function insightAnswer(
 	const label = sessionLabel(info);
 	const drivers = new Map(snapshot.drivers.map((driver) => [driver.number, driver]));
 	const mine = snapshot.drivers.filter((driver) => isMine(subject, driver));
-	const subjectName = subject ? labelOf(data.context, subject.kind, subject.id) : null;
+
+	const subjectName = subject
+		? subject.kind === 'team' && mine[0]
+			? mine[0].team
+			: labelOf(data.context, subject.kind, subject.id)
+		: null;
 
 	if (subject && mine.length === 0) {
 		return { kind: 'missing', message: `${subjectName} did not take part in the ${label}.` };
@@ -227,7 +232,6 @@ export function insightAnswer(
 
 			const rows: TableRow[] = order
 				.filter((driver) => isMine(subject, driver))
-				.slice(0, 10)
 				.map((driver) => ({
 					cells: [driver.lastName, stintText(byDriver.get(driver.number) ?? [])],
 					href: sessionHref(info.key, driver.number),

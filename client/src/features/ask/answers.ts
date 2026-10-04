@@ -22,7 +22,7 @@ import {
 } from '../../insights/head-to-head.ts';
 import { formatLocalStart, formatUntil, sessionEntries } from '../../data/catalog.ts';
 import { scoredRounds } from '../../insights/season-results.ts';
-import { teamIdOf, teamLineName } from '../../insights/teams.ts';
+import { teamIdOf } from '../../insights/teams.ts';
 import { formatGap, formatLapTime } from '../../lib/format.ts';
 import { eventIdOf, eventShortName, labelOf } from './ask-context.ts';
 import {
@@ -30,6 +30,7 @@ import {
 	type AnswerPicture,
 	type AskSessionInfo,
 	driverHref,
+	endWithStop,
 	findAskSession,
 	formatPoints,
 	type HeldSession,
@@ -41,7 +42,8 @@ import {
 	sessionHref,
 	sessionLabel,
 	spanOf,
-	standingsHref
+	standingsHref,
+	teamNameIn
 } from './ask-data.ts';
 import { insightAnswer } from './insight-answers.ts';
 import { STEWARDS_LOADING, type Stewards, stewardsAnswer } from './steward-answers.ts';
@@ -156,8 +158,11 @@ function sideOf(subject: Subject): Side {
 		: { kind: 'team', id: subject.id };
 }
 
-function nameOf(data: AskData, subject: Subject): string {
-	return labelOf(data.context, subject.kind, subject.id);
+/** A driver's name, or a team's as the last of `seasons` called it. */
+function nameOf(data: AskData, subject: Subject, seasons: readonly SeasonResults[]): string {
+	const label = labelOf(data.context, subject.kind, subject.id);
+
+	return subject.kind === 'team' ? teamNameIn(seasons, subject.id, label) : label;
 }
 
 function subjectHref(subject: Subject, season: number | undefined, latest: number): string {
@@ -246,7 +251,7 @@ function resultAnswer(
 	if (subject && mine.length === 0) {
 		return {
 			kind: 'missing',
-			message: `${nameOf(data, subject)} did not take part in the ${label}.`
+			message: `${nameOf(data, subject, season ? [season] : [])} did not take part in the ${label}.`
 		};
 	}
 
@@ -307,7 +312,7 @@ function resultAnswer(
 				cells: [
 					row.classified || row.status === 'finished' ? String(row.position) : '–',
 					name(row),
-					teamLineName(teamIdOf(row.team), row.team),
+					row.team,
 					rowTime(results, row, leader)
 				],
 				href: sessionHref(info.key, row.number),
@@ -358,8 +363,7 @@ function countedStandings(
 			: driverStandings(season, through.round, include)
 		: [];
 
-	const entryName = (id: string) =>
-		teams ? teamLineName(teamIdOf(id), id) : labelOf(data.context, 'driver', id);
+	const entryName = (id: string) => (teams ? id : labelOf(data.context, 'driver', id));
 
 	const hrefOf = (id: string) =>
 		teams
@@ -520,7 +524,7 @@ function gapAnswer(data: AskData, query: Extract<Query, { kind: 'gap' }>): AskOu
 	if (!asked) {
 		return {
 			kind: 'missing',
-			message: `${subject ? labelOf(data.context, subject.kind, subject.id) : 'Nobody'} has no points in ${season.season}.`
+			message: `${subject ? nameOf(data, subject, [season]) : 'Nobody'} has no points in ${season.season}.`
 		};
 	}
 
@@ -722,7 +726,11 @@ function h2hAnswer(data: AskData, query: Extract<Query, { kind: 'h2h' }>): AskOu
 
 	const all = sharedEvents(span.seasons, a, b, range, include);
 	const events = query.teammates ? all.filter(asTeammates) : all;
-	const names = { a: nameOf(data, query.a), b: nameOf(data, query.b) };
+
+	const names = {
+		a: nameOf(data, query.a, span.seasons),
+		b: nameOf(data, query.b, span.seasons)
+	};
 
 	const hidden = hiddenSessions(span.seasons, a, b, range, include).map((session) => {
 		const entry = allSessions(span.seasons).find((item) => item.session.key === session.key);
@@ -801,7 +809,7 @@ function h2hAnswer(data: AskData, query: Extract<Query, { kind: 'h2h' }>): AskOu
 		detail: [
 			...(focus === 'race' ? [] : [`${lines.race}. `]),
 			...(focus === 'qualifying' ? [] : [`${lines.qualifying}. `]),
-			...(fact ? [`${fact.text}.`] : []),
+			...(fact ? [endWithStop(fact.text)] : []),
 			...(evidence
 				? [
 						' From ',
@@ -874,7 +882,7 @@ function statFormat(stat: CountedStat, value: number): string {
 function recordAnswer(data: AskData, query: Extract<Query, { kind: 'record' }>): AskOutcome {
 	const span = spanOf(data, query.seasons);
 	const teams = query.subject.kind === 'team';
-	const name = nameOf(data, query.subject);
+	const name = nameOf(data, query.subject, span.seasons);
 	const side = sideOf(query.subject);
 
 	const taking = allSessions(span.seasons).filter(
@@ -1016,7 +1024,7 @@ function leadersAnswer(data: AskData, query: Extract<Query, { kind: 'leaders' }>
 	const single = span.from === span.to;
 
 	const nameOfId = (id: string) =>
-		teams ? teamLineName(id, id) : labelOf(data.context, 'driver', id);
+		teams ? teamNameIn(span.seasons, id, id) : labelOf(data.context, 'driver', id);
 
 	const hrefOf = (id: string) =>
 		teams ? standingsHref(span.to, null, true) : driverHref(id, single ? span.from : undefined);
