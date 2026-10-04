@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router';
 import { useRace } from '@/data/race-context';
 import { sameItems, useStableValue } from '@/hooks/use-stable-value';
 import { fights } from '@/insights/battle';
+import { pickedPair } from '@/insights/duel';
 import { isTimedSession } from '@/insights/qualifying';
 import { entryState } from '@/lib/history-entry';
 
@@ -35,6 +36,8 @@ export function PairProvider({ children }: { children: React.ReactNode }) {
 	const [searchParams, setSearchParams] = useSearchParams();
 	const [hovered, setHovered] = React.useState<Pair | null>(null);
 	const raw = searchParams.get('duel');
+	// The latest pick and the URL it left behind: until the page re-reads the URL, two quick clicks must chain.
+	const latest = React.useRef<{ pair: Pair; raw: string | null } | null>(null);
 
 	const picked = React.useMemo((): Pair | null => {
 		const numbers = (raw ?? '')
@@ -87,6 +90,8 @@ export function PairProvider({ children }: { children: React.ReactNode }) {
 				.map((number) => snapshot.drivers.find((driver) => driver.number === number)?.code)
 				.join(',');
 
+			latest.current = { pair: next, raw };
+
 			setSearchParams(
 				(params) => {
 					params.set('duel', codes);
@@ -104,15 +109,16 @@ export function PairProvider({ children }: { children: React.ReactNode }) {
 			hovered,
 			setPair,
 			pick: (driverNumber) => {
-				const kept = (picked ?? pair)?.at(-1);
+				const pending = latest.current?.raw === raw ? latest.current.pair : null;
+				const next = pickedPair(pending ?? picked ?? pair, driverNumber);
 
-				if (kept && kept !== driverNumber) {
-					setPair([kept, driverNumber]);
+				if (next) {
+					setPair(next);
 				}
 			},
 			setHovered
 		};
-	}, [pair, picked, hovered, snapshot.drivers, setSearchParams, broadcast]);
+	}, [pair, picked, raw, hovered, snapshot.drivers, setSearchParams, broadcast]);
 
 	return <PairContext.Provider value={value}>{children}</PairContext.Provider>;
 }

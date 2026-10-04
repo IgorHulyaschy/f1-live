@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { snapshotAtLap } from '../data/snapshot-at-lap.ts';
-import { duel, duelVerdict, lapRangeText } from './duel.ts';
+import { duel, duelVerdict, lapRangeText, pickedPair } from './duel.ts';
 import { paceNow } from './pace-now.ts';
 import { standingsAt } from './standings.ts';
 import { fixtureSession } from './test-fixtures.ts';
@@ -119,5 +119,23 @@ describe('paceNow', () => {
 
 	it('has no pace before any car has clean laps', () => {
 		assert.deepEqual(paceNow(snapshotAtLap(lasVegas, 3)), []);
+	});
+});
+
+describe('pickedPair', () => {
+	it('keeps the driver picked last and puts the new one after it', () => {
+		assert.deepEqual(pickedPair(['16', '81'], '4'), ['81', '4']);
+	});
+
+	it('keeps the click order when the pair was not yet re-read from the page', () => {
+		const first = pickedPair(['44', '16'], '81');
+
+		assert.deepEqual(first, ['16', '81']);
+		assert.deepEqual(pickedPair(first, '16'), ['81', '16']);
+	});
+
+	it('ignores the driver who is already last', () => {
+		assert.equal(pickedPair(['16', '81'], '81'), null);
+		assert.equal(pickedPair(null, '81'), null);
 	});
 });

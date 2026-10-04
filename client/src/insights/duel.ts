@@ -216,3 +216,16 @@ export function duelVerdict(
 		text: `${rate} and ${seconds(gap)} behind: ${outlook}.`
 	};
 }
+
+/**
+ * The pair after one more driver is picked: the one picked last stays and the new one follows it,
+ * so the order in the URL is the order the viewer clicked. Null when it is the same driver.
+ */
+export function pickedPair(
+	current: readonly [string, string] | null,
+	driverNumber: string
+): [string, string] | null {
+	const kept = current?.[1];
+
+	return kept && kept !== driverNumber ? [kept, driverNumber] : null;
+}
