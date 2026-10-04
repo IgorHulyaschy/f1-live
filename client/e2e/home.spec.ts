@@ -8,12 +8,13 @@ test.beforeEach(async ({ page }) => {
 });
 
 test('a first visit lands on the home and catches up in one click', async ({ page }) => {
+	// The day after the race, so it is still held back.
+	await page.clock.setFixedTime(new Date('2025-11-23T12:00:00Z'));
 	await page.goto('/');
 
 	await expect(page.getByTestId('home')).toBeVisible();
 	await expect(page.getByTestId('home-championship')).toBeVisible();
-	// The latest race is hidden: the table is the one going into it.
-	await expect(page.getByText('Before this session')).toBeVisible();
+	await expect(page.getByTestId('home-held-rounds')).toBeVisible();
 	await expect(page.getByTestId('live-strip')).toHaveCount(0);
 
 	await page.getByTestId('home-session-9858').getByRole('link', { name: 'Catch up' }).click();

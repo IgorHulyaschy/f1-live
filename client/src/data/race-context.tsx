@@ -205,6 +205,10 @@ const syncMessageSchema = z.object({
 	compare: z.string().optional(),
 	duel: z.string().optional(),
 	playing: z.boolean().optional(),
+	// A lap step made by playback itself: only a window still following that playback takes it.
+	tick: z.literal(true).optional(),
+	// A window that just opened asks whoever is playing to say so, so it can follow along.
+	hello: z.literal(true).optional(),
 	session: z.string().optional(),
 	live: z.literal(true).optional()
 });
@@ -234,6 +238,7 @@ function useSyncChannel(receive: (message: SyncMessage) => void): (message: Sync
 			}
 		});
 		channel.current = opened;
+		channel.current?.postMessage({ hello: true } satisfies SyncMessage);
 
 		return () => {
 			opened.close();
@@ -556,14 +561,14 @@ export function RaceProvider({
 	const [mirroring, setMirroring] = React.useState(false);
 
 	const updateParams = React.useCallback(
-		(change: (params: URLSearchParams) => void) => {
+		(change: (params: URLSearchParams) => void, flushSync = false) => {
 			setSearchParams(
 				(params) => {
 					change(params);
 
 					return params;
 				},
-				{ replace: true, state: entryState() }
+				{ replace: true, state: entryState(), flushSync }
 			);
 		},
 		[setSearchParams]
@@ -574,15 +579,25 @@ export function RaceProvider({
 		[updateParams]
 	);
 
+	const answerHello = React.useRef<() => void>(() => undefined);
+
 	// Changes from another window are applied here without being sent on again.
 	const broadcast = useSyncChannel((message) => {
-		const { playing: remotePlaying, live: remoteLive, ...params } = message;
+		const { playing: remotePlaying, live: remoteLive, tick, hello, ...params } = message;
 
-		if (remotePlaying !== undefined) {
-			setLocalPlaying(false);
-			setMirroring(remotePlaying);
+		if (hello) {
+			answerHello.current();
+
+			return;
 		}
 
+		// A step sent before this window paused would move it off the lap it stopped on.
+		if (tick && !mirroring) {
+			return;
+		}
+
+		// A pause puts the lap on screen before it flips the button, so no window shows Play
+		// with a lap it is about to leave.
 		updateParams((current) => {
 			if (params.session !== undefined || remoteLive) {
 				current.delete('lap');
@@ -591,7 +606,12 @@ export function RaceProvider({
 			for (const [name, value] of Object.entries(params)) {
 				current.set(name, String(value));
 			}
-		});
+		}, remotePlaying === false);
+
+		if (remotePlaying !== undefined) {
+			setLocalPlaying(false);
+			setMirroring(remotePlaying);
+		}
 	});
 
 	const timed = race !== null && isTimedSession(race.session.type);
@@ -658,7 +678,7 @@ export function RaceProvider({
 	// The router hands functional updates the params of the last render, so two quick clicks would
 	// both step from the same lap. The address bar is updated as soon as a navigation commits.
 	const stepLap = React.useCallback(
-		(delta: number) => {
+		(delta: number, byPlayback = false) => {
 			const raw = new URLSearchParams(window.location.search).get('lap');
 
 			// Following live already shows the newest lap; only stepping back leaves it.
@@ -670,7 +690,7 @@ export function RaceProvider({
 			const next = Math.min(Math.max(current + delta, 1), maxLap);
 
 			updateParam('lap', String(next));
-			broadcast({ lap: next });
+			broadcast(byPlayback ? { lap: next, tick: true } : { lap: next });
 		},
 		[updateParam, maxLap, openAt, broadcast, isLive]
 	);
@@ -710,7 +730,7 @@ export function RaceProvider({
 				if (isLive && onScreen + 1 >= maxLap) {
 					backToLive();
 				} else {
-					stepLap(1);
+					stepLap(1, true);
 				}
 			},
 			Math.max(0, (next - from) / speed)
@@ -731,13 +751,28 @@ export function RaceProvider({
 		backToLive
 	]);
 
+	// A window that just opened learns that this one is playing, and from where, and follows it.
+	React.useEffect(() => {
+		answerHello.current = () => {
+			const raw = new URLSearchParams(window.location.search).get('lap');
+
+			if (drivesPlayback && raw !== null) {
+				broadcast({ playing: true, lap: openAt(raw) });
+			}
+		};
+	});
+
 	const setPlaying = React.useCallback(
 		(next: boolean) => {
 			setLocalPlaying(next);
 			setMirroring(false);
-			broadcast({ playing: next });
+			// Pausing carries the lap it stopped on, so every window lands there in one update.
+			// The address bar is read, not the last render, so a step that just committed counts.
+			const raw = new URLSearchParams(window.location.search).get('lap');
+
+			broadcast(next || raw === null ? { playing: next } : { playing: next, lap: openAt(raw) });
 		},
-		[broadcast]
+		[broadcast, openAt]
 	);
 
 	const setSession = React.useCallback(

@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 
 import { Key } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
+import { useRace } from '@/data/race-context';
 import { useSeasonResults } from '@/data/results-context';
 import { revealSession } from '@/data/viewer-settings';
 import { includedKeys, useHistoryFilter, useYears } from '@/features/history/history-data';
@@ -30,6 +31,7 @@ export function HomeStandings({
 	linkClassName: string;
 	fallback: React.ReactNode;
 }) {
+	const { catalog } = useRace();
 	const year = useYears().at(-1);
 	const state = useSeasonResults(year === undefined ? [] : [year]);
 	const counts = useHistoryFilter();
@@ -43,7 +45,13 @@ export function HomeStandings({
 	const round = season ? scoredRounds(season, include).at(-1) : undefined;
 	const held = season ? heldRounds(season, include) : null;
 
-	if (state.status !== 'loading' && (!season || !held || (!round && held.rounds.length === 0))) {
+	// Until the catalog names the seasons nothing is known to be missing, so the standings load
+	// rather than flash the fallback first.
+	if (
+		catalog &&
+		state.status !== 'loading' &&
+		(!season || !held || (!round && held.rounds.length === 0))
+	) {
 		return fallback;
 	}
 

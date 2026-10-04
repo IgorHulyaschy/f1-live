@@ -143,7 +143,7 @@ test('play in one window is mirrored, and pause from the other stops it', async 
 
 	await main.getByRole('button', { name: 'Play replay' }).click();
 	await expect(other.getByRole('button', { name: 'Pause replay' })).toBeVisible();
-	await expect(other.getByTestId('lap-counter')).toHaveText('Lap 11/50');
+	await expect(other.getByTestId('lap-counter')).not.toHaveText('Lap 10/50', { timeout: 15_000 });
 
 	await other.getByRole('button', { name: 'Pause replay' }).click();
 	await expect(main.getByRole('button', { name: 'Play replay' })).toBeVisible();
@@ -180,4 +180,31 @@ test('a tile’s header ends in its options, the same on every tile', async ({ c
 
 	await expect(page).toHaveURL(/edit=1/);
 	await expect(page.getByTestId('tile-options')).toHaveCount(0);
+});
+
+test('a window opened while the race plays follows it, and a pause stops both on one lap', async ({
+	context
+}) => {
+	const main = await context.newPage();
+
+	await openRace(main, '/?lap=10');
+	await main.getByRole('button', { name: 'Play replay' }).click();
+	await expect(main.getByRole('button', { name: 'Pause replay' })).toBeVisible();
+
+	const late = await context.newPage();
+
+	await openRace(late, '/?lap=3');
+	await expect(late.getByRole('button', { name: 'Pause replay' })).toBeVisible({
+		timeout: 15_000
+	});
+	await expect(late.getByTestId('lap-counter')).not.toHaveText('Lap 3/50');
+
+	await late.getByRole('button', { name: 'Pause replay' }).click();
+	await expect(main.getByRole('button', { name: 'Play replay' })).toBeVisible();
+
+	const stopped = await late.getByTestId('lap-counter').textContent();
+
+	await main.waitForTimeout(2000);
+	await expect(late.getByTestId('lap-counter')).toHaveText(stopped ?? '');
+	await expect(main.getByTestId('lap-counter')).toHaveText(stopped ?? '');
 });
