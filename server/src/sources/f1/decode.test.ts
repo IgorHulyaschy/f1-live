@@ -4,9 +4,10 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 
 import { EMPTY_SNAPSHOT, applyEvent } from '@f1-live/shared';
-import type { RaceEvent } from '@f1-live/shared';
+import type { RaceEvent, RaceSnapshot } from '@f1-live/shared';
 
 import { mergeStreams, parseJsonStream } from './archive.js';
+import { sessionResults } from '../../results/session-results.js';
 import { F1Decoder, parseDuration } from './decode.js';
 import type { TopicFrame } from './decode.js';
 
@@ -401,7 +402,6 @@ describe('F1Decoder', () => {
 				['22', 2, 'HARD', 0],
 				['63', 18, 'UNKNOWN', 0],
 				['63', 18, 'HARD', 0],
-				['63', 18, 'HARD', 0],
 				['22', 28, 'UNKNOWN', 0],
 				['22', 28, 'MEDIUM', 1]
 			]
@@ -494,7 +494,6 @@ describe('F1Decoder', () => {
 			[
 				[1, 'MEDIUM'],
 				[18, 'UNKNOWN'],
-				[18, 'HARD'],
 				[18, 'HARD']
 			]
 		);
@@ -715,6 +714,190 @@ describe('F1Decoder', () => {
 			/LapCount frame at 2025-11-23T03:06:27.850Z/
 		);
 		assert.deepEqual(decoder.decode(frame('TeamRadio', '00:00:01.000', { Captures: [] })), []);
+	});
+});
+
+/**
+ * Trimmed from the 2026 Bahrain race (archive key 11731): six cars with the stints, laps and
+ * pit lane of TimingAppData, TyreStintSeries and TimingData. In this race the feed reused stint
+ * numbers for new sets and renumbered its list mid-race.
+ */
+const BAHRAIN = path.join(import.meta.dirname, 'fixtures/2026-bahrain-race-stints');
+
+const BAHRAIN_START_MS = Date.parse('2026-10-04T06:06:59.414Z');
+
+async function bahrainRace(): Promise<RaceSnapshot> {
+	const topics = [
+		'SessionInfo',
+		'SessionStatus',
+		'DriverList',
+		'TimingAppData',
+		'TyreStintSeries',
+		'TimingData'
+	];
+
+	const streams = await Promise.all(
+		topics.map(async (topic) => {
+			const text = await readFile(path.join(BAHRAIN, `${topic}.jsonStream`), 'utf8');
+
+			return [topic, parseJsonStream(topic, text)] as const;
+		})
+	);
+
+	return decodeAll(mergeStreams(new Map(streams), BAHRAIN_START_MS)).reduce(
+		applyEvent,
+		EMPTY_SNAPSHOT
+	);
+}
+
+describe('F1Decoder stints of the 2026 Bahrain race', () => {
+	it('starts a stint with the fitted set after every stop, whatever number the feed gives it', async () => {
+		const snapshot = await bahrainRace();
+
+		const stintsOf = (driverNumber: string) =>
+			snapshot.stints
+				.filter((stint) => stint.driverNumber === driverNumber)
+				.map((stint) => [stint.compound, stint.startLap, stint.tyreAgeAtStart ?? 0]);
+
+		// Hamilton: stops on laps 31 and 43; the feed gave the new sets the number of a duplicate.
+		assert.deepEqual(stintsOf('44'), [
+			['SOFT', 1, 0],
+			['MEDIUM', 32, 3],
+			['SOFT', 44, 3]
+		]);
+		// Leclerc: four stops; the feed shifted its list down by one before the fourth.
+		assert.deepEqual(stintsOf('16'), [
+			['SOFT', 1, 0],
+			['INTERMEDIATE', 4, 0],
+			['SOFT', 10, 0],
+			['SOFT', 29, 3],
+			['SOFT', 44, 3]
+		]);
+		assert.deepEqual(stintsOf('63'), [
+			['INTERMEDIATE', 1, 0],
+			['MEDIUM', 10, 0],
+			['SOFT', 33, 3],
+			['SOFT', 45, 3]
+		]);
+		assert.deepEqual(stintsOf('1'), [
+			['MEDIUM', 1, 0],
+			['HARD', 10, 0],
+			['SOFT', 35, 3],
+			['SOFT', 46, 3]
+		]);
+		// Antonelli: the feed numbered every stint of this one in order.
+		assert.deepEqual(stintsOf('12'), [
+			['INTERMEDIATE', 1, 0],
+			['MEDIUM', 10, 0],
+			['SOFT', 34, 3],
+			['SOFT', 45, 3]
+		]);
+		// Bottas stopped on track on lap 7 without a stop in the pits.
+		assert.deepEqual(stintsOf('77'), [['SOFT', 1, 0]]);
+	});
+
+	it('reads a car the feed flags as stopped as out, though it never says Retired', async () => {
+		const snapshot = await bahrainRace();
+
+		assert.deepEqual(
+			snapshot.retirements.map(({ driverNumber, lap, reason }) => [driverNumber, lap, reason]),
+			[
+				['77', 8, 'Stopped'],
+				['63', 50, 'Stopped']
+			]
+		);
+		assert.equal(
+			snapshot.standings?.find((standing) => standing.driverNumber === '77')?.retired,
+			true
+		);
+		assert.equal(
+			snapshot.standings?.find((standing) => standing.driverNumber === '44')?.retired,
+			false
+		);
+	});
+});
+
+describe('F1Decoder stopped cars', () => {
+	const race = frame('SessionInfo', '00:00:01.000', { Type: 'Race', Name: 'Race' });
+	const lightsOut = frame('SessionStatus', '00:05:00.000', { Status: 'Started' });
+
+	const stopped = (offset: string, value: boolean) =>
+		frame('TimingData', offset, { Lines: { '77': { Stopped: value } } });
+
+	it('takes a stopped car out and back in when the feed clears the flag', () => {
+		const events = decodeAll([
+			race,
+			lightsOut,
+			stopped('00:10:00.000', true),
+			stopped('00:10:30.000', false)
+		]);
+
+		assert.deepEqual(
+			events.filter((event) => event.kind.startsWith('retirement')),
+			[
+				{ kind: 'retirement', at: at('00:10:00.000'), driverNumber: '77', reason: 'Stopped' },
+				{ kind: 'retirement_revoked', at: at('00:10:30.000'), driverNumber: '77' }
+			]
+		);
+	});
+
+	it('keeps a car out once the feed says it retired', () => {
+		const events = decodeAll([
+			race,
+			lightsOut,
+			stopped('00:10:00.000', true),
+			frame('TimingData', '00:10:10.000', { Lines: { '77': { Retired: true } } }),
+			stopped('00:10:30.000', false)
+		]);
+
+		assert.deepEqual(
+			events.filter((event) => event.kind.startsWith('retirement')).map((event) => event.kind),
+			['retirement']
+		);
+	});
+
+	it('leaves a car stopped on the grid alone', () => {
+		const events = decodeAll([race, stopped('00:03:00.000', true), lightsOut]);
+
+		assert.deepEqual(ofKind(events, 'retirement'), []);
+	});
+
+	it('leaves practice and qualifying cars alone, which stop and restart all the time', () => {
+		for (const [type, name] of [
+			['Practice', 'Practice 1'],
+			['Qualifying', 'Qualifying']
+		] as const) {
+			const events = decodeAll([
+				frame('SessionInfo', '00:00:01.000', { Type: type, Name: name }),
+				lightsOut,
+				stopped('00:10:00.000', true)
+			]);
+
+			assert.deepEqual(ofKind(events, 'retirement'), []);
+		}
+	});
+});
+
+describe('sessionResults of the 2026 Bahrain race', () => {
+	it('marks the retirements with their lap and signal, and classifies by the 90% rule rounded down', async () => {
+		const results = sessionResults(await bahrainRace(), 2026);
+		const row = (number: string) => results?.rows.find((entry) => entry.number === number);
+
+		assert.equal(results?.leaderLaps, 55);
+
+		// Russell: stopped on track on lap 50 with 49 of 55 laps; 90% of 55 rounds down to 49.
+		assert.deepEqual(
+			[row('63')?.status, row('63')?.classified, row('63')?.retirement],
+			['dnf', true, { lap: 50, reason: 'Stopped' }]
+		);
+
+		assert.deepEqual(
+			[row('77')?.status, row('77')?.classified, row('77')?.retirement],
+			['dnf', false, { lap: 8, reason: 'Stopped' }]
+		);
+
+		assert.equal(row('44')?.status, 'finished');
+		assert.equal(row('44')?.retirement, undefined);
 	});
 });
 

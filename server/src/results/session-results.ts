@@ -248,6 +248,14 @@ export function sessionResults(snapshot: RaceSnapshot, season: number): SessionR
 				if (hasFastest) {
 					row.fastestLap = true;
 				}
+
+				const retirement = snapshot.retirements.find(
+					(entry) => entry.driverNumber === standing.driverNumber
+				);
+
+				if (status === 'dnf' && retirement !== undefined) {
+					row.retirement = { lap: retirement.lap, reason: retirement.reason };
+				}
 			} else {
 				row.parts =
 					parts.get(standing.driverNumber) ?? Array.from({ length: partCount }, () => null);

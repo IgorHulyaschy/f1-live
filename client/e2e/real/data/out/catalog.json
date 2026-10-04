@@ -2500,7 +2500,7 @@
 							"name": "Race",
 							"startsAt": "2026-10-04T07:00:00.000Z",
 							"endsAt": "2026-10-04T09:00:00.000Z",
-							"status": "upcoming",
+							"status": "finished",
 							"circuit": "Kuala Lumpur",
 							"country": {
 								"code": "BRN",
@@ -2509,7 +2509,7 @@
 							"outputs": {
 								"raw": false,
 								"events": false,
-								"snapshot": false
+								"snapshot": true
 							}
 						}
 					]

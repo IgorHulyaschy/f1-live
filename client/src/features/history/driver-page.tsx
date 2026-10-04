@@ -1,4 +1,4 @@
-import type { ResultRow } from '@f1-live/shared/results';
+import { dnfLabel, type ResultRow } from '@f1-live/shared/results';
 import { SwordsIcon } from 'lucide-react';
 import * as React from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
@@ -41,7 +41,7 @@ function place(row: ResultRow | null): string {
 		return row.status.toUpperCase();
 	}
 
-	return row.classified ? `P${row.position}` : row.status === 'nc' ? 'NC' : 'DNF';
+	return row.classified ? `P${row.position}` : row.status === 'nc' ? 'NC' : dnfLabel(row);
 }
 
 function cell(result: ResultRow | null, key: number | undefined) {

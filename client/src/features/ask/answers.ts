@@ -1,6 +1,7 @@
 import type { AskSession, AskStat, Query, Subject } from '@f1-live/shared/ask';
 import type { RaceSnapshot } from '@f1-live/shared';
 import {
+	dnfLabel,
 	driverStandings,
 	type ResultRow,
 	type SeasonResults,
@@ -44,6 +45,7 @@ import {
 } from './ask-data.ts';
 import { insightAnswer } from './insight-answers.ts';
 import { STEWARDS_LOADING, type Stewards, stewardsAnswer } from './steward-answers.ts';
+import { storyAnswer, storyRow, type StoryVisual } from './story-answer.ts';
 
 export type Bar = {
 	label: string;
@@ -62,7 +64,9 @@ export type TableRow = {
 
 /** The small picture under an answer. */
 export type Visual =
-	{ kind: 'bars'; bars: Bar[] } | { kind: 'table'; columns: readonly string[]; rows: TableRow[] };
+	| { kind: 'bars'; bars: Bar[] }
+	| { kind: 'table'; columns: readonly string[]; rows: TableRow[] }
+	| StoryVisual;
 
 export type Answer = {
 	kind: 'answer';
@@ -197,6 +201,10 @@ function rowTime(session: SessionResults, row: ResultRow, leader: ResultRow | un
 		return best ? formatLapTime(best) : 'No time';
 	}
 
+	if (row.status === 'dnf') {
+		return dnfLabel(row);
+	}
+
 	if (row.status !== 'finished' && row.status !== 'nc') {
 		return row.status.toUpperCase();
 	}
@@ -261,8 +269,12 @@ function resultAnswer(
 			: mine.flatMap((row, index) => [
 					...(index > 0 ? [' and '] : []),
 					car(row),
-					` ${row.status === 'dnf' ? 'retired, classified' : finishVerb(info)} `,
-					place(row)
+					...(row.status === 'dnf'
+						? [
+								` retired${row.retirement ? ` on lap ${row.retirement.lap}` : ''}, ${row.classified ? 'classified ' : 'not classified'}`,
+								...(row.classified ? [place(row)] : [])
+							]
+						: [` ${finishVerb(info)} `, place(row)])
 				]);
 
 	const rows = results.rows.slice(0, 10);
@@ -1064,7 +1076,8 @@ export function answerQuery(
 ): AskOutcome {
 	switch (query.kind) {
 		case 'result':
-		case 'insight': {
+		case 'insight':
+		case 'story': {
 			const lookup = findAskSession(data, query.session);
 
 			if ('missing' in lookup) {
@@ -1077,13 +1090,24 @@ export function answerQuery(
 				return { kind: 'held', sessions: [heldOf(info)] };
 			}
 
-			if (query.kind === 'result') {
-				return info.results
-					? resultAnswer(data, info, info.results, query.subject)
-					: {
-							kind: 'missing',
-							message: `There is no classification for the ${sessionLabel(info)}.`
-						};
+			if (query.kind === 'result' || query.kind === 'story') {
+				if (!info.results) {
+					return {
+						kind: 'missing',
+						message: `There is no classification for the ${sessionLabel(info)}.`
+					};
+				}
+
+				const row = query.kind === 'story' ? storyRow(info.results, query.subject) : undefined;
+
+				// A driver who was not in the session, or a session without a story, gets the result.
+				if (!row || (info.type !== 'race' && info.type !== 'sprint')) {
+					return resultAnswer(data, info, info.results, query.subject);
+				}
+
+				return snapshot && snapshot.session.id === info.key
+					? storyAnswer(data, info, info.results, row, snapshot)
+					: { kind: 'snapshot', key: info.key, label: sessionLabel(info) };
 			}
 
 			return snapshot && snapshot.session.id === info.key

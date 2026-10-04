@@ -36,6 +36,8 @@ const resultRowSchema = z.object({
 	gapMs: z.number().nullable().optional(),
 	points: z.number(),
 	bestLapMs: z.number().nullable(),
+	/** A retired car (`dnf`): the lap it stopped on and the feed's signal for it ("Retired", "Stopped"). */
+	retirement: z.object({ lap: z.int().positive(), reason: z.string() }).optional(),
 	/** The session's fastest lap. */
 	fastestLap: z.boolean().optional(),
 	lapsLed: z.int().nonnegative().optional(),
@@ -109,6 +111,11 @@ export const seasonResultsSchema = z.object({
 });
 
 export type SeasonResults = z.infer<typeof seasonResultsSchema>;
+
+/** "DNF", with the lap the car stopped on where the feed said. */
+export function dnfLabel(row: Pick<ResultRow, 'retirement'>): string {
+	return row.retirement ? `DNF L${row.retirement.lap}` : 'DNF';
+}
 
 /** Names the timing feed has printed two ways for one driver, by the id of the other. */
 const DRIVER_ALIASES = new Map([['andrea-kimi-antonelli', 'kimi-antonelli']]);

@@ -32,20 +32,18 @@ import { comparableLaps, fastestComparableLap } from '../../src/insights/telemet
 
 /**
  * 2025 Las Vegas (a race with two disqualifications, qualifying with 20 cars), 2026 Baku (22) and
- * 2026 Bahrain, whose qualifying the gap visuals open on.
+ * 2026 Bahrain, whose qualifying the gap visuals open on and whose race, in which Russell stopped
+ * on lap 50, Ask tells the story of.
  */
 const MEETINGS = new Map([
 	[2025, [1274]],
 	[2026, [1295, 1308]]
 ]);
 
-const SESSIONS = ['9852', '9854', '9858', '11373', '11730'];
+const SESSIONS = ['9852', '9854', '9858', '11373', '11730', '11731'];
 
-/**
- * Sessions only the unit tests read, the 2026 Bahrain race, without the mini-sector segments and
- * team radio. The catalogue does not list them as saved, so the app never opens them.
- */
-const UNIT_SESSIONS = ['11731'];
+/** Races Ask and the unit tests read, not the charts, so saved without the mini-sector segments and team radio. */
+const TRIMMED_SESSIONS = ['11731'];
 
 /**
  * Drivers whose laps the telemetry charts open on, per session: the first three at the end and
@@ -76,7 +74,7 @@ const target = path.join(import.meta.dirname, 'data', 'out');
 
 const snapshots = new Map<string, RaceSnapshot>();
 
-for (const key of [...SESSIONS, ...UNIT_SESSIONS]) {
+for (const key of SESSIONS) {
 	const lines = gunzipSync(readFileSync(path.join(out, 'events', `${key}.jsonl.gz`)))
 		.toString('utf8')
 		.split('\n')
@@ -88,7 +86,7 @@ for (const key of [...SESSIONS, ...UNIT_SESSIONS]) {
 		EMPTY_SNAPSHOT
 	);
 
-	const saved = UNIT_SESSIONS.includes(key)
+	const saved = TRIMMED_SESSIONS.includes(key)
 		? {
 				...snapshot,
 				miniSectors: EMPTY_SNAPSHOT.miniSectors,
@@ -152,8 +150,7 @@ const catalog = catalogSchema.parse(
 );
 
 // The history pages list the seasons the catalogue has, so every season with a results index
-// stays, its meetings cut to the ones the tests open. 2026 keeps its whole calendar, with this
-// weekend's race (11731) still to come in the app.
+// stays, its meetings cut to the ones the tests open. 2026 keeps its whole calendar.
 const resultYears = new Set(
 	existsSync(path.join(out, 'results'))
 		? readdirSync(path.join(out, 'results')).map((name) => Number.parseInt(name, 10))

@@ -108,13 +108,23 @@ for (const viewport of VIEWPORTS) {
 	});
 }
 
-/** Ask over a race: empty, an answer with a table, one with bars, and a held session. */
+/** Ask over a race: empty, an answer with a table, one with bars, a held session and a driver's story. */
 const ASKS = [
 	{ name: 'ask-empty', question: '' },
 	{ name: 'ask-result', question: 'who won monza 2024' },
 	{ name: 'ask-standings', question: 'standings 2025' },
 	{ name: 'ask-h2h', question: 'norris vs piastri 2024' },
 	{ name: 'ask-held', question: 'who won vegas 2025', spoilers: true },
+	{
+		name: 'ask-story',
+		question: 'what happened to russell in bahrain',
+		now: '2026-10-04T12:00:00.000Z'
+	},
+	{
+		name: 'ask-dnf',
+		question: 'russell result bahrain',
+		now: '2026-10-04T12:00:00.000Z'
+	},
 	{ name: 'ask-search', question: 'lecler' }
 ] as const;
 
@@ -129,6 +139,10 @@ for (const viewport of VIEWPORTS.filter((entry) => ['mobile', 'laptop'].includes
 
 					if ('spoilers' in shot) {
 						await page.clock.setFixedTime(new Date('2025-11-24T12:00:00.000Z'));
+					}
+
+					if ('now' in shot) {
+						await page.clock.setFixedTime(new Date(shot.now));
 					}
 
 					await page.addInitScript(

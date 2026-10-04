@@ -108,7 +108,7 @@ describe('fights in the 2026 Bahrain race', () => {
 		assert.ok(now.gapSeconds < 1);
 	});
 
-	it('sees a fight coming: GAS on softs within a second of SAI on hards in 2 to 3 laps', () => {
+	it('sees a fight coming: GAS on mediums within a second of SAI on softs in 2 to 3 laps', () => {
 		const coming = fights(snapshotAtLap(bahrain, 20)).find(
 			(fight) => fight.behind.driver.code === 'GAS'
 		);
@@ -117,7 +117,15 @@ describe('fights in the 2026 Bahrain race', () => {
 		assert.equal(coming.ahead.driver.code, 'SAI');
 		assert.ok(coming.gapSeconds > 1);
 		assert.deepEqual(coming.within, [2, 3]);
-		assert.deepEqual(coming.reason, { kind: 'compound', behind: 'SOFT', ahead: 'HARD' });
+		assert.equal(coming.reason, null);
+	});
+
+	it('names the tyres as the reason: LEC on softs behind NOR on hards', () => {
+		const fight = fights(snapshotAtLap(bahrain, 20)).find(
+			(entry) => entry.behind.driver.code === 'LEC'
+		);
+
+		assert.deepEqual(fight?.reason, { kind: 'compound', behind: 'SOFT', ahead: 'HARD' });
 	});
 
 	it('splits a pair at a stop: COL is compared only on the laps since', () => {

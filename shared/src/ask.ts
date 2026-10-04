@@ -60,6 +60,8 @@ export type SessionRef =
 export type Query =
 	/** A session's classification, or where one driver or team finished in it. */
 	| { kind: 'result'; session: SessionRef; subject: Subject | null }
+	/** What happened to one driver in a race or sprint: the outcome, and the moments on the way. */
+	| { kind: 'story'; session: SessionRef; subject: Subject }
 	/** A reading of one session's data, optionally for one driver or team. */
 	| { kind: 'insight'; insight: AskInsight; session: SessionRef; subject: Subject | null }
 	/** The table after a round (`after` null: the latest round there is). */
@@ -124,6 +126,8 @@ type Keyword =
 	| { kind: 'standings'; teams: boolean }
 	| { kind: 'teams' }
 	| { kind: 'result' }
+	| { kind: 'story' }
+	| { kind: 'did' }
 	| { kind: 'win' }
 	| { kind: 'pole' }
 	| { kind: 'versus' }
@@ -266,6 +270,17 @@ const KEYWORDS: readonly (readonly [string, Keyword])[] = [
 	['result', { kind: 'result' }],
 	['results', { kind: 'result' }],
 	['classification', { kind: 'result' }],
+	['what happened', { kind: 'story' }],
+	['happened', { kind: 'story' }],
+	['happend', { kind: 'story' }],
+	['hapened', { kind: 'story' }],
+	['hapenned', { kind: 'story' }],
+	['happenned', { kind: 'story' }],
+	['how did', { kind: 'story' }],
+	['how was', { kind: 'story' }],
+	['why did', { kind: 'story' }],
+	['why was', { kind: 'story' }],
+	['did', { kind: 'did' }],
 	['finish', { kind: 'result' }],
 	['finished', { kind: 'result' }],
 	['win', { kind: 'win' }],
@@ -570,6 +585,8 @@ type Reading = {
 	standings: { teams: boolean } | null;
 	teamsWord: boolean;
 	result: boolean;
+	story: boolean;
+	did: boolean;
 	win: boolean;
 	pole: boolean;
 	teammates: boolean;
@@ -606,6 +623,8 @@ function read(text: string, context: AskContext): Reading {
 		standings: null,
 		teamsWord: false,
 		result: false,
+		story: false,
+		did: false,
 		win: false,
 		pole: false,
 		teammates: false,
@@ -720,6 +739,16 @@ function read(text: string, context: AskContext): Reading {
 
 			case 'result': {
 				reading.result = true;
+				break;
+			}
+
+			case 'story': {
+				reading.story = true;
+				break;
+			}
+
+			case 'did': {
+				reading.did = true;
 				break;
 			}
 
@@ -942,6 +971,19 @@ function decide(reading: Reading, context: AskContext): Query | null {
 
 	const subject = first ?? null;
 
+	// "What happened to X", "how did X do", "why did X retire", "did X finish": the driver's race.
+	if (first?.kind === 'driver' && (reading.story || (reading.did && reading.result))) {
+		const ref =
+			sessionRef(reading, context, 'race') ??
+			(reading.seasons === undefined
+				? { kind: 'latest' as const, session: 'race' as const }
+				: null);
+
+		if (ref && (ref.kind === 'open' || ref.session === 'race' || ref.session === 'sprint')) {
+			return { kind: 'story', session: ref, subject: first };
+		}
+	}
+
 	if (reading.insight) {
 		const ref = sessionRef(reading, context, 'race');
 
@@ -1113,10 +1155,14 @@ export function questionText(query: Query, context: AskContext): string {
 	switch (query.kind) {
 		case 'result': {
 			if (query.subject) {
-				return `How did ${subjectLabel(query.subject)} do ${sessionText(query.session, context, '')}`;
+				return `Result of ${subjectLabel(query.subject)} ${sessionText(query.session, context, '')}`;
 			}
 
 			return winnerText(query.session, context);
+		}
+
+		case 'story': {
+			return `What happened to ${subjectLabel(query.subject)} ${sessionText(query.session, context, '')}`;
 		}
 
 		case 'insight': {

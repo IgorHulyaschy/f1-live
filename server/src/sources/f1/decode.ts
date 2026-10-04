@@ -145,6 +145,8 @@ const timingDataSchema = z
 					NumberOfLaps: z.number(),
 					InPit: z.boolean(),
 					Retired: z.boolean(),
+					/** On track and not moving; the feed clears it if the car goes on. */
+					Stopped: z.boolean(),
 					LastLapTime: value,
 					Sectors: indexed(timingSectorSchema)
 				})
@@ -153,8 +155,17 @@ const timingDataSchema = z
 	})
 	.partial();
 
+const flag = z.union([z.boolean(), z.string(), z.number()]);
+
 const stintSchema = z
-	.object({ Compound: z.string(), StartLaps: z.number(), TotalLaps: z.number() })
+	.object({
+		Compound: z.string(),
+		StartLaps: z.number(),
+		TotalLaps: z.number(),
+		/** Only a stint that is fitted (or fitted again) says whether its set is new. */
+		New: flag,
+		TyresNotChanged: flag
+	})
 	.partial();
 
 const timingAppDataSchema = z
@@ -511,6 +522,14 @@ interface StintEntry {
 	sent: string;
 }
 
+/** A driver's stints as the decoder keeps them; the feed's numbers only say which one an update is about. */
+interface StintTrack {
+	/** In the order they were fitted; the last is the current one. */
+	stints: StintEntry[];
+	/** The stint each number the feed used last described. */
+	byNumber: Map<number, StintEntry>;
+}
+
 interface BestEntry {
 	lapTime: string;
 	lap: number | null;
@@ -570,9 +589,12 @@ export class F1Decoder {
 	private readonly driversSent = new Map<string, string>();
 	private readonly lines = new Map<string, TimingLine>();
 	private readonly grid = new Map<string, number>();
-	private readonly stints = new Map<string, Map<number, StintEntry>>();
+	private readonly stints = new Map<string, StintTrack>();
 	private readonly bests = new Map<string, BestEntry>();
 	private readonly retired = new Set<string>();
+
+	/** Cars out only because the feed says they stopped, so a restart takes them back. */
+	private readonly stopped = new Set<string>();
 	private readonly publishedStops = new Set<string>();
 	private readonly stopsWithSeries = new Set<string>();
 	private readonly raceControlSeen = new Set<number>();
@@ -851,6 +873,10 @@ export class F1Decoder {
 				events.push(...this.retire(driverNumber, at));
 			}
 
+			if (delta.Stopped !== undefined) {
+				events.push(...this.onStopped(driverNumber, delta.Stopped, at));
+			}
+
 			return events;
 		});
 	}
@@ -996,14 +1022,51 @@ export class F1Decoder {
 		return line;
 	}
 
-	private retire(driverNumber: string, at: string): RaceEvent[] {
+	private retire(driverNumber: string, at: string, reason = 'Retired'): RaceEvent[] {
+		this.stopped.delete(driverNumber);
+
 		if (this.retired.has(driverNumber)) {
 			return [];
 		}
 
 		this.retired.add(driverNumber);
 
-		return [{ kind: 'retirement', at, driverNumber, reason: 'Retired' }];
+		return [{ kind: 'retirement', at, driverNumber, reason }];
+	}
+
+	/**
+	 * A car stopped on track is out, though the feed may never say `Retired` for it. Most never
+	 * move again; the feed clears the flag for those that do. Practice and qualifying cars stop
+	 * and restart all the time, and a race has cars stopped on the grid, so only a race under way
+	 * counts it.
+	 */
+	private onStopped(driverNumber: string, stopped: boolean, at: string): RaceEvent[] {
+		if (stopped) {
+			const { Type, Name } = this.sessionInfo;
+			const type = Type === undefined ? undefined : sessionTypeOf(Type, Name ?? '');
+
+			if (
+				!this.started ||
+				(type !== 'race' && type !== 'sprint') ||
+				this.retired.has(driverNumber)
+			) {
+				return [];
+			}
+
+			const events = this.retire(driverNumber, at, 'Stopped');
+
+			this.stopped.add(driverNumber);
+
+			return events;
+		}
+
+		if (!this.stopped.delete(driverNumber)) {
+			return [];
+		}
+
+		this.retired.delete(driverNumber);
+
+		return [{ kind: 'retirement_revoked', at, driverNumber }];
 	}
 
 	private onTimingAppData(update: z.output<typeof timingAppDataSchema>, at: string): RaceEvent[] {
@@ -1022,31 +1085,30 @@ export class F1Decoder {
 
 	/**
 	 * TimingAppData and TyreStintSeries number stints the same way and are merged into one
-	 * table. A new stint starts on the lap after the last pit entry, or after the lap in
-	 * progress when the stint appears without one.
+	 * table. The numbers are no identity: the feed reuses one for the set fitted at a stop,
+	 * adds duplicates of the set in use, and renumbers its list in rewrites that never say
+	 * `New` or `StartLaps`. So a car's pit entry decides: after one, the next stint the feed
+	 * fits, under whatever number, starts on the lap after it.
 	 */
 	private onStints(
 		driverNumber: string,
 		updates: readonly (readonly [number, StintUpdate])[],
 		at: string
 	): RaceEvent[] {
-		const stints = this.stints.get(driverNumber) ?? new Map<number, StintEntry>();
+		const track = this.stints.get(driverNumber) ?? { stints: [], byNumber: new Map() };
 
-		this.stints.set(driverNumber, stints);
+		this.stints.set(driverNumber, track);
 
-		return updates.flatMap(([index, update]): RaceEvent[] => {
-			const stint = stints.get(index) ?? {
-				compound: undefined,
-				tyreAgeAtStart: 0,
-				tyreAge: 0,
-				startLap: this.nextStintStart(driverNumber, stints, index),
-				sent: ''
-			};
+		return updates.flatMap(([number, update]): RaceEvent[] => {
+			const stint = this.stintOf(driverNumber, track, number, update);
+
+			if (stint === null) {
+				return [];
+			}
 
 			stint.compound = update.Compound ?? stint.compound;
 			stint.tyreAgeAtStart = update.StartLaps ?? stint.tyreAgeAtStart;
 			stint.tyreAge = update.TotalLaps ?? stint.tyreAge;
-			stints.set(index, stint);
 
 			if (stint.compound === undefined) {
 				return [];
@@ -1073,28 +1135,67 @@ export class F1Decoder {
 		});
 	}
 
-	private nextStintStart(
+	/** The stint an update is about; null for a rewrite of an earlier one. */
+	private stintOf(
 		driverNumber: string,
-		stints: ReadonlyMap<number, StintEntry>,
-		index: number
-	): number {
-		if (index === 0) {
-			return 1;
-		}
-
+		track: StintTrack,
+		number: number,
+		update: StintUpdate
+	): StintEntry | null {
+		const current = track.stints.at(-1);
 		const line = this.lineOf(driverNumber);
-		const latestStart = Math.max(1, ...[...stints.values()].map((stint) => stint.startLap));
 
-		if (line.lastPitEntryLap !== null && line.lastPitEntryLap + 1 > latestStart) {
-			return line.lastPitEntryLap + 1;
+		const fit = (startLap: number): StintEntry => {
+			const stint: StintEntry = {
+				// Left out, the set is the one the number last named, as in a client that merges updates.
+				compound: track.byNumber.get(number)?.compound,
+				tyreAgeAtStart: 0,
+				tyreAge: 0,
+				startLap,
+				sent: ''
+			};
+
+			track.stints.push(stint);
+			track.byNumber.set(number, stint);
+
+			return stint;
+		};
+
+		if (current === undefined) {
+			return fit(number === 0 ? 1 : line.lapsCompleted + 1);
 		}
 
-		// Without a pit entry, as when joining mid-session, the stint before ran its own laps.
-		const previous = stints.get(index - 1);
+		const linked = track.byNumber.get(number);
 
-		return previous
-			? previous.startLap + Math.max(0, previous.tyreAge - previous.tyreAgeAtStart)
-			: line.lapsCompleted + 1;
+		// `UNKNOWN` and no laps run are how the feed first lists a set it has just fitted.
+		const fitted =
+			update.New !== undefined ||
+			update.StartLaps !== undefined ||
+			update.Compound === 'UNKNOWN' ||
+			update.TotalLaps === 0;
+
+		// The stint in use ended with a pit entry: a new set is the next thing the feed fits.
+		if (line.lastPitEntryLap !== null && line.lastPitEntryLap >= current.startLap) {
+			if (fitted || linked === undefined) {
+				return fit(line.lastPitEntryLap + 1);
+			}
+		}
+
+		if (linked !== undefined) {
+			return linked === current ? current : null;
+		}
+
+		// A number the feed has not used, without a stop: a duplicate of the stint in use, unless
+		// the stint in use has run its laps (a session joined midway, or a pit entry never seen).
+		const next = current.startLap + Math.max(0, current.tyreAge - current.tyreAgeAtStart);
+
+		if (next > current.startLap && !['1', 'true'].includes(String(update.TyresNotChanged))) {
+			return fit(next);
+		}
+
+		track.byNumber.set(number, current);
+
+		return current;
 	}
 
 	private onTimingStats(update: z.output<typeof timingStatsSchema>, at: string): RaceEvent[] {

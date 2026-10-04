@@ -20,25 +20,29 @@ const NOW = Date.parse('2026-10-03T12:00:00Z');
 
 const CONTEXT = buildAskContext(SEASONS, CATALOG, NOW);
 
-const FIXTURE_SESSIONS = ['9852', '9854', '9858', '11373', '11730'] as const;
+/** The Bahrain race (11731) has been run: the afternoon of its day. */
+const AFTER_BAHRAIN = Date.parse('2026-10-04T12:00:00Z');
 
-function dataWith(held: readonly string[] = []): AskData {
+const FIXTURE_SESSIONS = ['9852', '9854', '9858', '11373', '11730', '11731'] as const;
+
+function dataWith(held: readonly string[] = [], now = NOW): AskData {
 	return {
 		seasons: SEASONS,
-		context: CONTEXT,
+		context: now === NOW ? CONTEXT : buildAskContext(SEASONS, CATALOG, now),
 		catalog: CATALOG,
 		held: (key) => held.includes(key),
-		now: NOW,
+		now,
 		openKey: '9858'
 	};
 }
 
-function outcome(question: string, held: readonly string[] = []): AskOutcome {
-	const query = resolve(question, CONTEXT);
+function outcome(question: string, held: readonly string[] = [], now = NOW): AskOutcome {
+	const data = dataWith(held, now);
+	const query = resolve(question, data.context);
 
 	assert.ok(query, `"${question}" parses`);
 
-	const first = answerQuery(dataWith(held), query, null);
+	const first = answerQuery(data, query, null);
 
 	if (first.kind !== 'snapshot') {
 		return first;
@@ -48,11 +52,11 @@ function outcome(question: string, held: readonly string[] = []): AskOutcome {
 
 	assert.ok(key, `session ${first.key} is in the fixture`);
 
-	return answerQuery(dataWith(held), query, fixtureSession(key));
+	return answerQuery(data, query, fixtureSession(key));
 }
 
-function answer(question: string, held: readonly string[] = []): Answer {
-	const result = outcome(question, held);
+function answer(question: string, held: readonly string[] = [], now = NOW): Answer {
+	const result = outcome(question, held, now);
 
 	if (result.kind !== 'answer') {
 		assert.fail(`"${question}" answers, not ${result.kind}`);
@@ -154,6 +158,86 @@ describe('answers match the official tables', () => {
 	it('2026 poles: Russell in Baku, Verstappen in Bahrain', () => {
 		assert.match(text(answer('Who was on pole at Azerbaijan GP 2026').headline), /^Russell/);
 		assert.match(text(answer('Who was on pole at Bahrain GP 2026').headline), /^Verstappen/);
+	});
+});
+
+describe('what happened to a driver in a race', () => {
+	const RUSSELL =
+		'Russell retired on lap 50: stopped on track under yellow flags, still classified P20 with 49 of 55 laps';
+
+	for (const question of [
+		'what happened to russell in bahrain',
+		'what hapenned to russel in bahrein',
+		'how did russell do in bahrain',
+		'why did russell retire in bahrain',
+		'did russell finish in bahrain'
+	]) {
+		it(question, () => {
+			const reply = answer(question, [], AFTER_BAHRAIN);
+
+			assert.equal(text(reply.headline), RUSSELL);
+			assert.equal(reply.visual?.kind, 'story');
+			assert.equal(reply.proof.href, '/session?session=11731&car=63&carLap=50');
+		});
+	}
+
+	it('tells the race with a position line, markers and three to six linked moments', () => {
+		const reply = answer('what happened to russell in bahrain', [], AFTER_BAHRAIN);
+		const story = reply.visual?.kind === 'story' ? reply.visual : null;
+
+		assert.ok(story);
+		assert.equal(story.laps, 55);
+		assert.deepEqual(story.positions[0], { lap: 0, position: 7 });
+		assert.deepEqual(story.positions.at(-1), { lap: 49, position: 3 });
+		assert.deepEqual(
+			story.markers.map((marker) => [marker.kind, marker.lap]),
+			[
+				['stop', 9],
+				['stop', 32],
+				['stop', 44],
+				['out', 50]
+			]
+		);
+		assert.ok(story.bands.some((band) => band.status === 'safety_car' && band.from === 44));
+		assert.ok(story.moments.length >= 3 && story.moments.length <= 6);
+		assert.deepEqual(
+			story.moments.map((moment) => moment.when),
+			['Start', 'Lap 9', 'Lap 32', 'Lap 44', 'Lap 49', 'Lap 50']
+		);
+		assert.match(
+			story.moments.at(-1)?.text ?? '',
+			/^Out, stopped on track: yellow flags, marshals/
+		);
+		assert.ok(
+			story.moments.every((moment) => moment.href.startsWith('/session?session=11731&car=63'))
+		);
+	});
+
+	it('a car that stopped before it could be classified says so', () => {
+		assert.equal(
+			text(answer('why did bottas retire in bahrain', [], AFTER_BAHRAIN).headline),
+			'Bottas retired on lap 8: stopped on track under yellow flags, not classified (7 of 55 laps)'
+		);
+	});
+
+	it('a finisher gets the place and the grid slot', () => {
+		assert.equal(
+			text(answer('how did hamilton do in bahrain', [], AFTER_BAHRAIN).headline),
+			'Hamilton finished P3 from P2 on the grid in the 2026 Bahrain GP Race'
+		);
+	});
+
+	it('a session that is not a race answers with the result', () => {
+		const reply = answer('what happened to russell in bahrain qualifying', [], AFTER_BAHRAIN);
+
+		assert.equal(reply.visual?.kind, 'table');
+	});
+
+	it('is held back until the race is revealed', () => {
+		assert.equal(
+			outcome('what happened to russell in bahrain', ['11731'], AFTER_BAHRAIN).kind,
+			'held'
+		);
 	});
 });
 
@@ -287,10 +371,12 @@ describe('every number links to where it came from', () => {
 		'Hamilton stats 2018',
 		'Norris vs Piastri as teammates 2024',
 		'Who won the Italian GP 2024',
-		'Pit stops at Las Vegas GP 2025 race'
+		'Pit stops at Las Vegas GP 2025 race',
+		'What happened to Russell in Bahrain',
+		'How did Hamilton do in Bahrain'
 	]) {
 		it(question, () => {
-			const reply = answer(question);
+			const reply = answer(question, [], AFTER_BAHRAIN);
 
 			const numbers = reply.headline.filter(
 				(part) =>

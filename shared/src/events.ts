@@ -145,6 +145,13 @@ export interface RetirementEvent {
 	reason: string;
 }
 
+/** A car reported out is running again, as one that stopped on track and was restarted. */
+export interface RetirementRevokedEvent {
+	kind: 'retirement_revoked';
+	at: string;
+	driverNumber: string;
+}
+
 /**
  * The stewards issued a penalty, or report one served or revoked; `lap` is when they announced
  * it.
@@ -221,6 +228,7 @@ export type RaceEvent =
 	| RaceControlEvent
 	| WeatherEvent
 	| RetirementEvent
+	| RetirementRevokedEvent
 	| PenaltyEvent
 	| PersonalBestEvent
 	| MiniSectorEvent

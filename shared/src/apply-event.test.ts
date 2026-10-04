@@ -309,6 +309,26 @@ describe('applyEvent', () => {
 		assert.equal(snapshot.standings?.[0]?.inPit, false);
 	});
 
+	it('puts a car back in the race when its retirement is revoked', () => {
+		const out = replay([
+			...started(),
+			standing(10, '77', 20, null),
+			lap(100, '77', 1),
+			{ kind: 'retirement', at: at(150), driverNumber: '77', reason: 'Stopped' }
+		]);
+
+		assert.equal(out.standings?.[0]?.retired, true);
+
+		const back = replay([{ kind: 'retirement_revoked', at: at(180), driverNumber: '77' }], out);
+
+		assert.deepEqual(back.retirements, []);
+		assert.equal(back.standings?.[0]?.retired, false);
+		assert.equal(
+			replay([{ kind: 'retirement_revoked', at: at(190), driverNumber: '5' }], back),
+			back
+		);
+	});
+
 	it('counts no stop for a car that enters the pits and retires there', () => {
 		const snapshot = replay([
 			...started(),

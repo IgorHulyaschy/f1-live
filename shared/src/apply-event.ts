@@ -8,6 +8,7 @@ import type {
 	PitLaneTimeEvent,
 	RaceEvent,
 	RetirementEvent,
+	RetirementRevokedEvent,
 	StandingEvent,
 	TrackStatusEvent,
 	TyresFittedEvent,
@@ -120,6 +121,8 @@ export function applyEvent(state: RaceSnapshot, event: RaceEvent): RaceSnapshot 
 			return applyWeather(state, event);
 		case 'retirement':
 			return applyRetirement(state, event);
+		case 'retirement_revoked':
+			return applyRetirementRevoked(state, event);
 		case 'penalty':
 			return applyPenalty(state, event);
 		case 'personal_best':
@@ -507,6 +510,24 @@ function applyRetirement(state: RaceSnapshot, event: RetirementEvent): RaceSnaps
 			]
 		},
 		{ ...standing, retired: true }
+	);
+}
+
+function applyRetirementRevoked(state: RaceSnapshot, event: RetirementRevokedEvent): RaceSnapshot {
+	const standing = standingOf(state, event.driverNumber);
+
+	if (!standing.retired) {
+		return state;
+	}
+
+	return withStanding(
+		{
+			...state,
+			retirements: state.retirements.filter(
+				(retirement) => retirement.driverNumber !== event.driverNumber
+			)
+		},
+		{ ...standing, retired: false }
 	);
 }
 

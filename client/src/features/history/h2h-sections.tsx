@@ -1,4 +1,4 @@
-import type { ResultRow } from '@f1-live/shared/results';
+import { dnfLabel, type ResultRow } from '@f1-live/shared/results';
 import * as React from 'react';
 import { Link } from 'react-router';
 
@@ -493,7 +493,7 @@ function place(row: ResultRow | undefined): string {
 		return 'DNS';
 	}
 
-	return row.classified ? `P${row.position}` : row.status === 'nc' ? 'NC' : 'DNF';
+	return row.classified ? `P${row.position}` : row.status === 'nc' ? 'NC' : dnfLabel(row);
 }
 
 function Cell({

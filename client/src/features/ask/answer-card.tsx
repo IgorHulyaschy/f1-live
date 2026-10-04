@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 
 import { type AnswerPicture, type HeldSession, type Rich, richPart } from './ask-data';
 import type { AskOutcome, Visual } from './answers';
+import { StoryView } from './story-view';
 
 /** A proof can be a document on another site, which opens in its own tab. */
 function newTab(href: string): { target?: '_blank'; rel?: string } {
@@ -83,6 +84,10 @@ function VisualView({ visual, onNavigate }: { visual: Visual; onNavigate: () => 
 				))}
 			</ol>
 		);
+	}
+
+	if (visual.kind === 'story') {
+		return <StoryView story={visual} onNavigate={onNavigate} />;
 	}
 
 	return (

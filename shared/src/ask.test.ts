@@ -65,9 +65,41 @@ const QUESTIONS: { text: string; expected: Query | null }[] = [
 	{
 		text: 'how did hamilton do at silverstone 2024',
 		expected: {
-			kind: 'result',
+			kind: 'story',
 			session: { kind: 'event', event: 'british', season: 2024, session: 'race' },
 			subject: HAM
+		}
+	},
+	{
+		text: 'what happened to russell in bahrain',
+		expected: {
+			kind: 'story',
+			session: { kind: 'event', event: 'bahrain', season: null, session: 'race' },
+			subject: RUS
+		}
+	},
+	{
+		text: 'what hapenned to russel in bahrein',
+		expected: {
+			kind: 'story',
+			session: { kind: 'event', event: 'bahrain', season: null, session: 'race' },
+			subject: RUS
+		}
+	},
+	{
+		text: 'why did russell retire in bahrain',
+		expected: {
+			kind: 'story',
+			session: { kind: 'event', event: 'bahrain', season: null, session: 'race' },
+			subject: RUS
+		}
+	},
+	{
+		text: 'did russell finish in bahrain',
+		expected: {
+			kind: 'story',
+			session: { kind: 'event', event: 'bahrain', season: null, session: 'race' },
+			subject: RUS
 		}
 	},
 	{
@@ -105,7 +137,7 @@ const QUESTIONS: { text: string; expected: Query | null }[] = [
 	{
 		text: 'how did russell finish at spa 2023',
 		expected: {
-			kind: 'result',
+			kind: 'story',
 			session: { kind: 'event', event: 'belgian', season: 2023, session: 'race' },
 			subject: RUS
 		}
@@ -593,6 +625,26 @@ test('three ways to write a span give the same seasons', () => {
 				seasons: { from: 2019, to: 2021 },
 				teammates: false,
 				focus: null
+			},
+			text
+		);
+	}
+});
+
+test('the four ways to ask what happened to a driver all give the driver story', () => {
+	for (const text of [
+		'what happened to russell in bahrain',
+		'what hapenned to russel in bahrein',
+		'how did russell do in bahrain',
+		'why did russell retire in bahrain',
+		'did russell finish in bahrain'
+	]) {
+		assert.deepEqual(
+			resolve(text),
+			{
+				kind: 'story',
+				session: { kind: 'event', event: 'bahrain', season: null, session: 'race' },
+				subject: RUS
 			},
 			text
 		);

@@ -68,6 +68,38 @@ test('a question about an unseen session offers to reveal it and shows no result
 	await expect(page.getByTestId('ask-answer')).toContainText('won the 2025 Las Vegas GP');
 });
 
+test('what happened to a driver answers with how the race ended, and the moments open the lap', async ({
+	page
+}) => {
+	// The evening of the 2026 Bahrain race, in which Russell stopped on lap 50.
+	await page.clock.setFixedTime(new Date('2026-10-04T12:00:00.000Z'));
+	await openAsk(page);
+	await ask(page, 'what happened to russell in bahrain');
+
+	const answer = page.getByTestId('ask-answer');
+
+	await expect(answer).toContainText(
+		'Russell retired on lap 50: stopped on track under yellow flags, still classified P20 with 49 of 55 laps',
+		{ timeout: 15_000 }
+	);
+	await expect(answer.getByTestId('ask-sparkline')).toBeVisible();
+
+	// The cross sits at lap 50 of 55 along the line, not at the right edge.
+	const sparkline = answer.getByTestId('ask-sparkline');
+	const frame = await sparkline.boundingBox();
+	const out = await sparkline.locator('path[stroke="var(--danger)"]').boundingBox();
+	const share = frame && out ? (out.x + out.width / 2 - frame.x) / frame.width : 0;
+
+	// In the picture's units: the plot runs from 26 to 352 of 360 across the 55 laps.
+	expect(share * 360).toBeCloseTo(26 + (50 / 55) * 326, -1);
+
+	const moments = answer.getByTestId('ask-moments').getByRole('listitem');
+
+	await expect(moments).toHaveCount(6);
+	await moments.last().getByRole('link').click();
+	await expect(page).toHaveURL(/session=11731&car=63&carLap=50/);
+});
+
 test('a gap question answers from the standings and the proof opens them', async ({ page }) => {
 	await openAsk(page);
 	await ask(page, 'how many points is piastri behind in 2025');
