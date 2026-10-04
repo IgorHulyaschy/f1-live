@@ -2,6 +2,8 @@ import { AxeBuilder } from '@axe-core/playwright';
 import { expect, type Locator, type Page } from '@playwright/test';
 import { z } from 'zod';
 
+import { serveTestPictures } from './pictures';
+
 /**
  * Opens a page of the mock replay as a returning viewer and waits until the race has loaded.
  * formula1.com pictures are refused so every run sees the same drawn fallbacks. Spoiler
@@ -13,7 +15,7 @@ export async function openRace(
 	path = '/session',
 	{ spoilerProtection = false }: { spoilerProtection?: boolean } = {}
 ): Promise<void> {
-	await page.route('https://media.formula1.com/**', (route) => route.abort());
+	await serveTestPictures(page);
 	await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
 
 	if (!spoilerProtection) {

@@ -11,8 +11,9 @@ import {
 	CommandItem,
 	CommandList
 } from '@/components/ui/command';
-import { allDrivers, teammates } from '@/insights/season-results';
+import { allDrivers, seasonFace, seasonTeam, teammates } from '@/insights/season-results';
 import { teamIdOf, teamLineName } from '@/insights/teams';
+import type { Face, TeamSubject } from '@/lib/media';
 
 import { driverName } from './history-data';
 
@@ -28,6 +29,8 @@ export type Contender = {
 	colour: string;
 	/** The latest season they appear in. */
 	lastSeason: number;
+	/** What to draw for them, as of that season: a driver's portrait or a team line's car. */
+	picture: { face: Face } | { team: TeamSubject };
 };
 
 /** Everyone who can be compared in a mode, the most recent first. */
@@ -49,7 +52,10 @@ export function contenders(seasons: readonly SeasonResults[], mode: H2HMode): Co
 							label: driverName(info ?? null, id),
 							short: info?.code ?? id.slice(0, 3).toUpperCase(),
 							colour,
-							lastSeason: season.season
+							lastSeason: season.season,
+							picture: {
+								face: seasonFace(season, row.driver, { team: row.team, number: row.number })
+							}
 						});
 					} else {
 						found.set(id, {
@@ -57,7 +63,8 @@ export function contenders(seasons: readonly SeasonResults[], mode: H2HMode): Co
 							label: teamLineName(id, row.team),
 							short: teamLineName(id, row.team).slice(0, 3).toUpperCase(),
 							colour,
-							lastSeason: season.season
+							lastSeason: season.season,
+							picture: { team: seasonTeam(season, row.team) }
 						});
 					}
 				}
@@ -214,7 +221,10 @@ export function contenderOf(list: readonly Contender[], id: string | null): Cont
 			label: id,
 			short: id.slice(0, 3).toUpperCase(),
 			colour: '888888',
-			lastSeason: 0
+			lastSeason: 0,
+			picture: {
+				face: { number: '', team: '', teamColour: '888888', firstName: id, lastName: '' }
+			}
 		}
 	);
 }

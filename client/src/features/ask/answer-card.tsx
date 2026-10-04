@@ -2,10 +2,12 @@ import { EyeOffIcon } from 'lucide-react';
 import { Link } from 'react-router';
 
 import { Key } from '@/components/console/keys';
+import { DriverPortrait, TeamLogo } from '@/components/driver-media';
 import { revealSession } from '@/data/viewer-settings';
+import { hasTeamPictures } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
-import { type HeldSession, type Rich, richPart } from './ask-data';
+import { type AnswerPicture, type HeldSession, type Rich, richPart } from './ask-data';
 import type { AskOutcome, Visual } from './answers';
 
 function RichText({ rich, onNavigate }: { rich: Rich; onNavigate: () => void }) {
@@ -27,6 +29,16 @@ function RichText({ rich, onNavigate }: { rich: Rich; onNavigate: () => void }) 
 			</Link>
 		);
 	});
+}
+
+function Picture({ picture }: { picture: AnswerPicture }) {
+	if (picture.kind === 'driver') {
+		return <DriverPortrait driver={picture.face} size="md" />;
+	}
+
+	return hasTeamPictures(picture.team) ? (
+		<TeamLogo subject={picture.team} showName={false} />
+	) : null;
 }
 
 function revealAll(sessions: readonly HeldSession[]) {
@@ -179,9 +191,12 @@ export function AnswerCard({
 					aria-live="polite"
 					data-testid="ask-answer"
 				>
-					<p className="text-base leading-snug font-semibold text-balance">
-						<RichText rich={outcome.headline} onNavigate={onNavigate} />
-					</p>
+					<div className="flex items-center gap-3">
+						{outcome.picture ? <Picture picture={outcome.picture} /> : null}
+						<p className="min-w-0 text-base leading-snug font-semibold text-balance">
+							<RichText rich={outcome.headline} onNavigate={onNavigate} />
+						</p>
+					</div>
 					{outcome.detail ? (
 						<p className="text-muted-foreground text-sm">
 							<RichText rich={outcome.detail} onNavigate={onNavigate} />

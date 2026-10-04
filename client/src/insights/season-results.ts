@@ -8,6 +8,8 @@ import type {
 } from '@f1-live/shared/results';
 import { driverStandings } from '@f1-live/shared/results';
 
+import type { Face, TeamSubject } from '../lib/media.ts';
+
 function rowOf(session: SessionResults, driver: string): ResultRow | undefined {
 	return session.rows.find((row) => row.driver === driver);
 }
@@ -37,6 +39,24 @@ export function latestTeams(season: SeasonResults, throughRound = Infinity): Map
 	}
 
 	return teams;
+}
+
+/** Each driver's team and race number as of their latest session through a round. */
+export function latestEntries(
+	season: SeasonResults,
+	throughRound = Infinity
+): Map<string, { team: string; number: string }> {
+	const entries = new Map<string, { team: string; number: string }>();
+
+	for (const round of season.rounds) {
+		for (const session of round.round <= throughRound ? round.sessions : []) {
+			for (const row of session.rows) {
+				entries.set(row.driver, { team: row.team, number: row.number });
+			}
+		}
+	}
+
+	return entries;
 }
 
 /** Places moved since the round before, by driver id; absent for a driver new to the table. */
@@ -216,4 +236,38 @@ export function allDrivers(seasons: readonly SeasonResults[]): Map<string, numbe
 	}
 
 	return counts;
+}
+
+/** A driver of a season as a picture subject: the season's own picture ids, so 2019 shows 2019. */
+export function seasonFace(
+	season: SeasonResults,
+	id: string,
+	entry: { team: string; number: string } | undefined
+): Face {
+	const info = season.drivers[id];
+	const team = entry?.team ?? '';
+
+	const face: Face = {
+		number: entry?.number ?? '',
+		team,
+		teamColour: season.teams[team] ?? '888888',
+		firstName: info?.firstName ?? id,
+		lastName: info?.lastName ?? '',
+		season: season.season
+	};
+
+	if (info?.imageId !== undefined) {
+		face.imageId = info.imageId;
+	}
+
+	if (info?.headshotUrl !== undefined) {
+		face.headshotUrl = info.headshotUrl;
+	}
+
+	return face;
+}
+
+/** A team of a season as a picture subject. */
+export function seasonTeam(season: SeasonResults, team: string): TeamSubject {
+	return { team, teamColour: season.teams[team] ?? '888888', season: season.season };
 }

@@ -1,4 +1,5 @@
 import type { Driver } from '@f1-live/shared';
+import { teamFolderOf } from '@f1-live/shared/pictures';
 
 /**
  * Driver, team and car pictures, loaded straight from formula1.com in the viewer's browser. None
@@ -10,44 +11,86 @@ const MEDIA_HOST = 'https://media.formula1.com/image/upload';
 
 export const MEDIA_ENABLED = import.meta.env.VITE_F1_MEDIA !== 'off';
 
-/** The team's folder in the driver's media id, e.g. "common/f1/2025/mclaren". */
-function teamFolder(driver: Driver): { path: string; year: string; team: string } | null {
-	const match = /^(common\/f1\/(\d{4})\/([a-z0-9]+))\//.exec(driver.imageId ?? '');
+/** A driver as a picture subject: a live `Driver`, or one read from the results index of a season. */
+export type Face = Pick<
+	Driver,
+	'number' | 'team' | 'teamColour' | 'firstName' | 'lastName' | 'imageId' | 'headshotUrl'
+> & { season?: number };
 
-	return match?.[1] && match[2] && match[3]
-		? { path: match[1], year: match[2], team: match[3] }
-		: null;
+/** A team as a picture subject; a `Face` is one too. */
+export type TeamSubject = Pick<Face, 'team' | 'teamColour' | 'imageId' | 'season'>;
+
+/** One picture to try; `srcSet` adds the 2x file for dense screens. */
+export interface Picture {
+	src: string;
+	srcSet?: string;
+}
+
+/** The team's folder in the media host, e.g. "common/f1/2025/mclaren", from the driver's id or the season. */
+function teamFolder(subject: TeamSubject): { path: string; year: string; team: string } | null {
+	const fromId = /^(common\/f1\/(\d{4})\/([a-z0-9]+))\//.exec(subject.imageId ?? '');
+
+	const path =
+		fromId?.[1] ??
+		(subject.season === undefined ? null : teamFolderOf(subject.season, subject.team));
+
+	const match = /^common\/f1\/(\d{4})\/([a-z0-9]+)$/.exec(path ?? '');
+
+	return path && match?.[1] && match[2] ? { path, year: match[1], team: match[2] } : null;
 }
 
 function transformed(publicId: string, transform: string): string {
 	return `${MEDIA_HOST}/${transform}/q_auto/${publicId}.webp`;
 }
 
+/** The file at the box's width and, for dense screens, at twice that. */
+function scaled(publicId: string, mode: 'c_lfill' | 'c_fit', width: number): Picture {
+	const at = (factor: number) => transformed(publicId, `${mode},w_${width * factor}`);
+
+	return { src: at(1), srcSet: `${at(1)} 1x, ${at(2)} 2x` };
+}
+
 /** The driver's pictures to try in order: the side-on cut-out, then the feed's own headshot. */
-export function driverPhotoUrls(driver: Driver, width: number): string[] {
+export function driverPictures(face: Face, width: number): Picture[] {
 	if (!MEDIA_ENABLED) {
 		return [];
 	}
 
-	return [
-		driver.imageId ? transformed(driver.imageId, `c_lfill,w_${width}`) : null,
-		driver.headshotUrl ?? null
-	].filter((url) => url !== null);
+	const pictures: Picture[] = [];
+
+	if (face.imageId) {
+		pictures.push(scaled(face.imageId, 'c_lfill', width));
+	}
+
+	if (face.headshotUrl) {
+		pictures.push({ src: face.headshotUrl });
+	}
+
+	return pictures;
 }
 
-export function teamLogoUrl(driver: Driver, tone: 'white' | 'black', width: number): string | null {
-	const folder = teamFolder(driver);
+/** Whether the media host has a logo and a car for the team; false for the seasons before it does and with pictures off. */
+export function hasTeamPictures(subject: TeamSubject): boolean {
+	return MEDIA_ENABLED && teamFolder(subject) !== null;
+}
+
+export function teamLogoPicture(
+	subject: TeamSubject,
+	tone: 'white' | 'black',
+	width: number
+): Picture | null {
+	const folder = teamFolder(subject);
 
 	return MEDIA_ENABLED && folder
-		? transformed(`${folder.path}/${folder.year}${folder.team}logo${tone}`, `c_fit,w_${width}`)
+		? scaled(`${folder.path}/${folder.year}${folder.team}logo${tone}`, 'c_fit', width)
 		: null;
 }
 
-export function carImageUrl(driver: Driver, width: number): string | null {
-	const folder = teamFolder(driver);
+export function carPicture(subject: TeamSubject, width: number): Picture | null {
+	const folder = teamFolder(subject);
 
 	return MEDIA_ENABLED && folder
-		? transformed(`${folder.path}/${folder.year}${folder.team}carright`, `c_fit,w_${width}`)
+		? scaled(`${folder.path}/${folder.year}${folder.team}carright`, 'c_fit', width)
 		: null;
 }
 

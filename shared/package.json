@@ -16,6 +16,7 @@
 		"./plans": "./src/plans.ts",
 		"./viewer": "./src/viewer.ts",
 		"./results": "./src/results.ts",
+		"./pictures": "./src/pictures.ts",
 		"./ask": "./src/ask.ts",
 		"./ask-match": "./src/ask-match.ts"
 	},

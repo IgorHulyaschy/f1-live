@@ -65,14 +65,14 @@ export function DriverCard() {
 				</Select>
 			</PanelHeader>
 			<div className="flex items-stretch border-b">
-				<DriverPortrait driver={driver} tinted className="h-36 w-28 @md:h-44 @md:w-36" />
+				<DriverPortrait driver={driver} size="xl" tinted />
 				<div className="flex min-w-0 flex-1 flex-col justify-between gap-3 px-4 py-3">
 					<div className="flex min-w-0 flex-col gap-1">
 						<span className="type-label">{driver.firstName}</span>
 						<span className="type-wide truncate text-2xl leading-none font-black @md:text-3xl">
 							{driver.lastName}
 						</span>
-						<TeamLogo driver={driver} className="mt-1 h-5 w-28" />
+						<TeamLogo subject={driver} className="mt-1" />
 					</div>
 					<div className="flex items-end gap-4 font-mono">
 						<span className="flex flex-col">
@@ -102,7 +102,7 @@ export function DriverCard() {
 					<span className="font-mono">{row.pitStops}</span>
 				</Field>
 			</div>
-			<CarSide driver={driver} className="mx-4 my-3" />
+			<CarSide subject={driver} className="mx-4 my-3" />
 		</Panel>
 	);
 }

@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { replaying } from '../e2e/live/replay.ts';
+import { serveTestPictures } from '../e2e/pictures';
 
 /**
  * Audit screenshots of a live session: 2026 Baku qualifying replayed through the live path, on
@@ -37,7 +38,7 @@ for (const viewport of VIEWPORTS) {
 		for (const screen of PAGES) {
 			for (const theme of THEMES) {
 				test(`${screen.name} ${theme}`, async ({ page }) => {
-					await page.route('https://media.formula1.com/**', (route) => route.abort());
+					await serveTestPictures(page);
 					await page.addInitScript((chosen) => {
 						window.localStorage.setItem('pitwall-welcomed', 'true');
 						window.localStorage.setItem('pitwall-theme', chosen);

@@ -5,7 +5,8 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react
 
 import { Digits } from '@/components/console/digits';
 import { Key } from '@/components/console/keys';
-import { Kbd, Panel, PanelHeader } from '@/components/console/panel';
+import { Field, Kbd, Panel, PanelHeader } from '@/components/console/panel';
+import { DriverPortrait } from '@/components/driver-media';
 import { TeamStripe } from '@/components/driver-tag';
 import {
 	availability,
@@ -265,8 +266,9 @@ function Entries({
 
 /** The session on now, or the next to start. */
 function NowPanel() {
-	const { catalog, live } = useRace();
+	const { catalog, live, race, followedDriver } = useRace();
 	const now = useNow();
+	const followed = race.drivers.find((driver) => driver.number === followedDriver);
 	const liveEntry = catalog && live.liveKey ? findSession(catalog, live.liveKey) : null;
 	const next = catalog && !liveEntry ? nextSession(catalog, now) : null;
 
@@ -300,6 +302,14 @@ function NowPanel() {
 						Nothing on and nothing scheduled yet. Catch up on the latest weekend.
 					</p>
 				)}
+				{followed ? (
+					<div className="flex items-center gap-3 border-t pt-3" data-testid="home-following">
+						<DriverPortrait driver={followed} size="md" tinted />
+						<Field label="Following">
+							{followed.firstName} {followed.lastName}
+						</Field>
+					</div>
+				) : null}
 			</div>
 		</Panel>
 	);
@@ -356,7 +366,7 @@ function ChampionshipPanel({
 										<span className="text-muted-foreground w-5 font-mono text-xs">
 											{row.position}
 										</span>
-										{driver ? <TeamStripe driver={driver} /> : null}
+										{driver ? <DriverPortrait driver={driver} size="xs" /> : null}
 										<span className="type-wide min-w-0 flex-1 truncate text-sm font-bold">
 											{driver ? `${driver.firstName} ${driver.lastName}` : `#${row.id}`}
 										</span>

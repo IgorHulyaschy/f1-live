@@ -23,6 +23,7 @@ import {
 	useSearchUpdate,
 	useYears
 } from './history-data';
+import { RoundPodium } from './round-podium';
 import { StandingsTable, type StandingsView } from './standings-table';
 
 const VIEWS = [
@@ -106,6 +107,9 @@ export function StandingsPage() {
 			) : null}
 			{state.status === 'ready' && (!season || !round) ? (
 				<p className="text-muted-foreground text-sm">No results for {year} yet.</p>
+			) : null}
+			{season && round ? (
+				<RoundPodium season={season} round={round} include={include} className="max-w-3xl" />
 			) : null}
 			{season && round ? (
 				<Panel className="max-w-3xl">

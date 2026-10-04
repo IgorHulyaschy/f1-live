@@ -26,12 +26,14 @@ import { formatGap, formatLapTime } from '../../lib/format.ts';
 import { eventIdOf, eventShortName, labelOf } from './ask-context.ts';
 import {
 	type AskData,
+	type AnswerPicture,
 	type AskSessionInfo,
 	driverHref,
 	findAskSession,
 	formatPoints,
 	type HeldSession,
 	heldOf,
+	pictureOf,
 	plural,
 	practiceOf,
 	type Rich,
@@ -72,6 +74,8 @@ export type Answer = {
 	proof: { label: string; href: string };
 	/** Sessions left out until the viewer reveals them. */
 	hidden: HeldSession[];
+	/** The driver or team the answer is about, where it is about one. */
+	picture?: AnswerPicture | undefined;
 };
 
 export type AskOutcome =
@@ -885,6 +889,7 @@ function recordAnswer(data: AskData, query: Extract<Query, { kind: 'record' }>):
 	);
 
 	const source = `${plural(races.length, 'race')} ${span.label}`;
+	const picture = pictureOf(span.seasons, query.subject) ?? undefined;
 
 	if (query.stat === 'summary') {
 		const stats = ['wins', 'poles', 'podiums', 'points'] as const;
@@ -921,7 +926,8 @@ function recordAnswer(data: AskData, query: Extract<Query, { kind: 'record' }>):
 			},
 			source,
 			proof: { label: teams ? 'Open the standings' : `Open ${name}'s page`, href: proof },
-			hidden
+			hidden,
+			picture
 		};
 	}
 
@@ -969,7 +975,8 @@ function recordAnswer(data: AskData, query: Extract<Query, { kind: 'record' }>):
 				: null,
 		source,
 		proof: { label: teams ? 'Open the standings' : `Open ${name}'s page`, href: proof },
-		hidden
+		hidden,
+		picture
 	};
 }
 

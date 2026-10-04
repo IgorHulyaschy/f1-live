@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { serveTestPictures } from '../e2e/pictures';
+
 /**
  * Audit screenshots on real data (the e2e fixture: 2025 Las Vegas, 2026 Baku qualifying), at two
  * phones, a tablet, a laptop, a desktop and a 2560 px monitor, dark and light. Output goes to
@@ -69,7 +71,7 @@ for (const viewport of VIEWPORTS) {
 		for (const screen of PAGES) {
 			for (const theme of THEMES) {
 				test(`${screen.name} ${theme}`, async ({ page }) => {
-					await page.route('https://media.formula1.com/**', (route) => route.abort());
+					await serveTestPictures(page);
 					await page.addInitScript(
 						([chosen, spoilers]) => {
 							window.localStorage.setItem('pitwall-welcomed', 'true');
@@ -120,7 +122,7 @@ for (const viewport of VIEWPORTS.filter((entry) => ['mobile', 'laptop'].includes
 		for (const shot of ASKS) {
 			for (const theme of THEMES) {
 				test(`${shot.name} ${theme}`, async ({ page }) => {
-					await page.route('https://media.formula1.com/**', (route) => route.abort());
+					await serveTestPictures(page);
 
 					if ('spoilers' in shot) {
 						await page.clock.setFixedTime(new Date('2025-11-24T12:00:00.000Z'));

@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+import { serveTestPictures } from '../pictures';
+
 test('the home’s championship says which recent rounds it holds back and shows them in one click', async ({
 	page
 }) => {
 	// A week after Baku 2026: Monza, Madrid and Baku are recent and unseen, so the table stops at R12.
 	await page.clock.setFixedTime(new Date('2026-10-03T12:00:00.000Z'));
-	await page.route('https://media.formula1.com/**', (route) => route.abort());
+	await serveTestPictures(page);
 	await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
 	await page.goto('/');
 

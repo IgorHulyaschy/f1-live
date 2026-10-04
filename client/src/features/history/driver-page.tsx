@@ -4,10 +4,19 @@ import * as React from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 
 import { Field, Panel, PanelHeader } from '@/components/console/panel';
+import { CarSide, DriverPortrait, TeamLogo } from '@/components/driver-media';
 import { SeasonSwitch } from '@/components/season-switch';
 import { LoadingState } from '@/components/site-frame';
 import { useSeasonResults } from '@/data/results-context';
-import { driverWeekends, seasonSummaries, teammates } from '@/insights/season-results';
+import {
+	driverWeekends,
+	latestEntries,
+	seasonFace,
+	seasonSummaries,
+	seasonTeam,
+	teammates
+} from '@/insights/season-results';
+import { hasTeamPictures } from '@/lib/media';
 
 import { sessionLink } from './h2h-sections';
 import {
@@ -69,6 +78,8 @@ export function DriverPage() {
 	const ownYears = summaries.map((summary) => summary.season);
 	const year = Number(params.get('season')) || (ownYears.at(-1) ?? 0);
 	const mates = teammates(countedSeasons(seasons, include), id);
+	const heroSeason = seasons.find((season) => season.season === year);
+	const heroEntry = heroSeason ? latestEntries(heroSeason).get(id) : undefined;
 
 	const hidden = driverWeekends(seasons, id).flatMap((weekend) =>
 		Object.values(weekend.sessions).flatMap((session) =>
@@ -108,6 +119,27 @@ export function DriverPage() {
 				{info?.code ? `${info.code}, every` : 'Every'} weekend since {years[0] ?? 2018} the archive
 				holds. Points follow each season’s rules; results you have not seen yet are left out.
 			</PageTitle>
+			{heroSeason && heroEntry ? (
+				<div className="flex items-end gap-4" data-testid="driver-hero">
+					<DriverPortrait driver={seasonFace(heroSeason, id, heroEntry)} size="xl" tinted />
+					<div className="flex min-w-0 flex-col gap-2">
+						<Field label={String(year)}>{heroEntry.team}</Field>
+						{hasTeamPictures(seasonTeam(heroSeason, heroEntry.team)) ? (
+							<>
+								<TeamLogo
+									subject={seasonTeam(heroSeason, heroEntry.team)}
+									size="md"
+									showName={false}
+								/>
+								<CarSide
+									subject={seasonTeam(heroSeason, heroEntry.team)}
+									className="w-56 max-w-full"
+								/>
+							</>
+						) : null}
+					</div>
+				</div>
+			) : null}
 			<div className="flex flex-wrap items-end gap-x-6 gap-y-3 border-y py-3">
 				<Field label="Seasons">{summaries.length}</Field>
 				<Field label="Races">{career.races}</Field>

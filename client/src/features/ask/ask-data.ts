@@ -1,7 +1,10 @@
-import type { AskContext, AskSession, SeasonSpan, SessionRef } from '@f1-live/shared/ask';
+import type { AskContext, AskSession, SeasonSpan, SessionRef, Subject } from '@f1-live/shared/ask';
 import type { SeasonResults, SessionResults } from '@f1-live/shared/results';
 
 import { type Catalog, sessionEntries } from '../../data/catalog.ts';
+import { latestEntries, seasonFace, seasonTeam } from '../../insights/season-results.ts';
+import { teamIdOf } from '../../insights/teams.ts';
+import type { Face, TeamSubject } from '../../lib/media.ts';
 import { SESSION_PATH } from '../dashboard/paths.ts';
 import { eventIdOf, eventShortName } from './ask-context.ts';
 
@@ -233,4 +236,34 @@ export function formatPoints(points: number): string {
 
 export function plural(count: number, one: string, many = `${one}s`): string {
 	return `${count.toLocaleString('en-GB')} ${count === 1 ? one : many}`;
+}
+
+/** Whose picture sits beside an answer about one driver or team. */
+export type AnswerPicture = { kind: 'driver'; face: Face } | { kind: 'team'; team: TeamSubject };
+
+/** The subject as the last season of the span names them, so a 2019 answer shows 2019's car. */
+export function pictureOf(
+	seasons: readonly SeasonResults[],
+	subject: Subject
+): AnswerPicture | null {
+	if (subject.kind === 'driver') {
+		const season = seasons.findLast((entry) => entry.drivers[subject.id]);
+
+		return season
+			? {
+					kind: 'driver',
+					face: seasonFace(season, subject.id, latestEntries(season).get(subject.id))
+				}
+			: null;
+	}
+
+	for (const season of seasons.toReversed()) {
+		const team = Object.keys(season.teams).find((name) => teamIdOf(name) === subject.id);
+
+		if (team) {
+			return { kind: 'team', team: seasonTeam(season, team) };
+		}
+	}
+
+	return null;
 }

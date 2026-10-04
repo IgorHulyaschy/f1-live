@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+import { serveTestPictures } from '../e2e/pictures';
+
 /**
  * Audit screenshots of the production build (playwright.build.config.ts): the consent question,
  * asked only when an analytics provider is configured, and the shell painted before any script.
@@ -27,7 +29,7 @@ for (const viewport of VIEWPORTS) {
 			test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
 			test.beforeEach(async ({ page }) => {
-				await page.route('https://media.formula1.com/**', (route) => route.abort());
+				await serveTestPictures(page);
 				await page.addInitScript((saved) => {
 					window.localStorage.setItem('pitwall-welcomed', 'true');
 					window.localStorage.setItem('pitwall-theme', saved);

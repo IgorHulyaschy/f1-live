@@ -209,14 +209,16 @@ export function SessionPicker({ onPicked }: { onPicked?: () => void }) {
 											{selected ? (
 												<span aria-hidden className="bg-focus absolute inset-y-0 left-0 w-0.75" />
 											) : null}
-											<span className="type-wide min-w-0 flex-1 truncate text-xs font-bold">
+											<span className="type-wide min-w-max flex-1 text-xs font-bold">
 												{entry.session.name}
 											</span>
-											{switchingTo === entry.key ? (
-												<span className="type-label">Loading</span>
-											) : (
-												<AvailabilityNote entry={entry} state={state} hidden={hidden} />
-											)}
+											<span className="ml-auto shrink-0">
+												{switchingTo === entry.key ? (
+													<span className="type-label">Loading</span>
+												) : (
+													<AvailabilityNote entry={entry} state={state} hidden={hidden} />
+												)}
+											</span>
 										</button>
 										{hidden ? (
 											<Key

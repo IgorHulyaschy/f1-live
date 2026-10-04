@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test';
 
 import { expectFits, FIT_SIZES, openRace } from './fixtures.ts';
+import { serveTestPictures } from './pictures';
 
 test.beforeEach(async ({ page }) => {
-	await page.route('https://media.formula1.com/**', (route) => route.abort());
+	await serveTestPictures(page);
 });
 
 test('a first visit lands on the home and catches up in one click', async ({ page }) => {

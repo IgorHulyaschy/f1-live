@@ -2,7 +2,9 @@ import type { SeasonResults, SessionFilter } from '@f1-live/shared/results';
 import { driverStandings, teamStandings } from '@f1-live/shared/results';
 import { Link } from 'react-router';
 
-import { latestTeams, standingsMoves } from '@/insights/season-results';
+import { CarSide, DriverPortrait, TeamLogo } from '@/components/driver-media';
+import { latestEntries, seasonFace, seasonTeam, standingsMoves } from '@/insights/season-results';
+import { hasTeamPictures } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
 export type StandingsView = 'drivers' | 'teams';
@@ -43,7 +45,7 @@ export function StandingsTable({
 	limit?: number;
 	className?: string;
 }) {
-	const teams = latestTeams(season, throughRound);
+	const entrants = latestEntries(season, throughRound);
 	const moves = view === 'drivers' ? standingsMoves(season, throughRound, include) : new Map();
 
 	const entries = (
@@ -72,6 +74,11 @@ export function StandingsTable({
 					<th scope="col" className="type-label px-2 text-left font-normal">
 						{view === 'drivers' ? 'Driver' : 'Team'}
 					</th>
+					{view === 'teams' ? (
+						<th scope="col" className="type-label hidden px-2 font-normal @lg:table-cell">
+							<span className="sr-only">Car</span>
+						</th>
+					) : null}
 					<th scope="col" className="type-label hidden px-2 text-right font-normal @md:table-cell">
 						Wins
 					</th>
@@ -88,8 +95,9 @@ export function StandingsTable({
 			</thead>
 			<tbody>
 				{entries.map((entry) => {
-					const team = view === 'drivers' ? (teams.get(entry.id) ?? '') : entry.id;
+					const team = view === 'drivers' ? (entrants.get(entry.id)?.team ?? '') : entry.id;
 					const driver = season.drivers[entry.id];
+					const subject = seasonTeam(season, team);
 
 					return (
 						<tr key={entry.id} className="h-9 border-b last:border-b-0" data-testid="standings-row">
@@ -109,8 +117,12 @@ export function StandingsTable({
 									{view === 'drivers' ? (
 										<Link
 											to={`/drivers/${entry.id}`}
-											className="flex min-w-0 items-baseline gap-2 hover:underline"
+											className="flex min-w-0 items-center gap-2 hover:underline"
 										>
+											<DriverPortrait
+												driver={seasonFace(season, entry.id, entrants.get(entry.id))}
+												size="sm"
+											/>
 											<span className="type-wide text-xs font-bold">
 												{driver?.code ?? entry.id}
 											</span>
@@ -119,10 +131,20 @@ export function StandingsTable({
 											</span>
 										</Link>
 									) : (
-										<span className="type-wide truncate text-xs font-bold">{entry.id}</span>
+										<>
+											{hasTeamPictures(subject) ? (
+												<TeamLogo subject={subject} size="sm" showName={false} />
+											) : null}
+											<span className="type-wide truncate text-xs font-bold">{entry.id}</span>
+										</>
 									)}
 								</span>
 							</td>
+							{view === 'teams' ? (
+								<td className="hidden px-2 @lg:table-cell">
+									{hasTeamPictures(subject) ? <CarSide subject={subject} size="sm" /> : null}
+								</td>
+							) : null}
 							<td className="hidden px-2 text-right font-mono @md:table-cell">{entry.wins}</td>
 							<td className="hidden px-2 text-right font-mono @md:table-cell">{entry.podiums}</td>
 							<td className="text-muted-foreground hidden px-2 text-right font-mono @sm:table-cell">

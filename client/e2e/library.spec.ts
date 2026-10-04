@@ -2,6 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { z } from 'zod';
 
 import { goPro, openRace, signInWithLink, testEmail } from './fixtures.ts';
+import { serveTestPictures } from './pictures';
 
 test('a fan dashboard can be previewed and added from the library', async ({ page }) => {
 	await openRace(page, '/library');
@@ -175,7 +176,7 @@ test('Free keeps three dashboards of your own and points to Pro', async ({ page 
 });
 
 test('first run picks a driver and a starting dashboard', async ({ page }) => {
-	await page.route('https://media.formula1.com/**', (route) => route.abort());
+	await serveTestPictures(page);
 	await page.goto('/');
 	await page.getByRole('link', { name: 'Set up' }).click();
 

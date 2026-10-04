@@ -46,7 +46,6 @@ export function PitBoard() {
 			type="button"
 			data-pit-board
 			onClick={showFocus}
-			aria-label={`Following ${row.driver.code}, P${row.position}. Show details.`}
 			className="bg-background/95 text-left border-rule-strong fixed inset-x-0 bottom-0 z-40 grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 border-t-2 px-4 py-2 backdrop-blur-sm md:hidden"
 			style={{ '--team': `#${row.driver.teamColour}` }}
 		>
@@ -61,6 +60,7 @@ export function PitBoard() {
 			</span>
 			{row.compound ? <TyreBadge compound={row.compound} age={row.tyreAge} /> : <span />}
 			<span className="font-mono text-xs">L{lap}</span>
+			<span className="sr-only">Following {row.driver.code}. Show details.</span>
 		</button>
 	);
 }

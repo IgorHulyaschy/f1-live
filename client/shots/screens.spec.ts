@@ -2,6 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { z } from 'zod';
 
 import { signInWithLink, testEmail } from '../e2e/fixtures.ts';
+import { serveTestPictures } from '../e2e/pictures';
 
 /**
  * Audit screenshots: every page at every viewport, free and Pro, dark and light.
@@ -90,7 +91,7 @@ for (const viewport of VIEWPORTS) {
 				for (const theme of THEMES) {
 					test(`${screen.name} ${plan} ${theme}`, async ({ page }) => {
 						// formula1.com pictures are not reachable from CI; shots show the drawn fallbacks.
-						await page.route('https://media.formula1.com/**', (route) => route.abort());
+						await serveTestPictures(page);
 						await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
 						await page.goto(
 							`${screen.path}${screen.path.includes('?') ? '&' : '?'}lap=30&plan=${plan}`
@@ -177,7 +178,7 @@ for (const viewport of VIEWPORTS) {
 				test(`account signed in ${plan} ${theme}`, async ({ page }) => {
 					const output = `shots/output/${viewport.name}`;
 
-					await page.route('https://media.formula1.com/**', (route) => route.abort());
+					await serveTestPictures(page);
 					await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
 					await page.goto('/account?lap=30');
 					await signInWithLink(page, testEmail('shots'));
@@ -228,7 +229,7 @@ for (const viewport of [
 
 		for (const screen of FOUNDATIONS) {
 			test(`${screen.name}`, async ({ page }) => {
-				await page.route('https://media.formula1.com/**', (route) => route.abort());
+				await serveTestPictures(page);
 				await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
 				await page.goto(screen.path);
 				await expect(page.getByTestId(screen.ready)).toBeAttached();

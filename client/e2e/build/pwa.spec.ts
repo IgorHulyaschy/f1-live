@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
 import { seriousViolations } from '../fixtures.ts';
+import { serveTestPictures } from '../pictures';
 
 /**
  * The production build, with the `console` analytics provider so the consent flow runs. These
@@ -8,7 +9,7 @@ import { seriousViolations } from '../fixtures.ts';
  */
 
 async function openApp(page: Page, path: string): Promise<void> {
-	await page.route('https://media.formula1.com/**', (route) => route.abort());
+	await serveTestPictures(page);
 	await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
 	await page.goto(path);
 	await expect(page.getByTestId('lap-counter')).toBeVisible();

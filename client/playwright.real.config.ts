@@ -17,6 +17,8 @@ export const LIVE_PORT = PORTS.liveServer;
 
 const REAL_APP_PORT = PORTS.realApp;
 
+const MEDIA_OFF_APP_PORT = PORTS.mediaOffApp;
+
 export const LIVE_APP_PORT = PORTS.liveApp;
 
 const executablePath = process.env.PW_CHROMIUM_PATH;
@@ -25,7 +27,7 @@ const server = fileURLToPath(new URL('../server', import.meta.url));
 
 export const FIXTURE_DATA_DIR = fileURLToPath(new URL('./e2e/real/data', import.meta.url));
 
-function app(port: number, serverPort: number) {
+function app(port: number, serverPort: number, extra: Record<string, string> = {}) {
 	return {
 		command: `vite --port ${port} --strictPort`,
 		url: `http://localhost:${port}`,
@@ -35,7 +37,8 @@ function app(port: number, serverPort: number) {
 			VITE_API_URL: `http://127.0.0.1:${serverPort}`,
 			VITE_WS_URL: `ws://127.0.0.1:${serverPort}/live`,
 			// The same server, with no accounts: sign-in reads as unavailable.
-			ACCOUNTS_SERVER_URL: `http://127.0.0.1:${serverPort}`
+			ACCOUNTS_SERVER_URL: `http://127.0.0.1:${serverPort}`,
+			...extra
 		}
 	};
 }
@@ -56,6 +59,15 @@ export default defineConfig({
 				...devices['Desktop Chrome'],
 				viewport: { width: 1440, height: 900 },
 				baseURL: `http://localhost:${REAL_APP_PORT}`
+			}
+		},
+		{
+			name: 'media-off',
+			testDir: './e2e/media-off',
+			use: {
+				...devices['Desktop Chrome'],
+				viewport: { width: 1440, height: 900 },
+				baseURL: `http://localhost:${MEDIA_OFF_APP_PORT}`
 			}
 		},
 		{
@@ -93,11 +105,12 @@ export default defineConfig({
 				HOST: '127.0.0.1',
 				PORT: String(SAVED_PORT),
 				DATA_DIR: FIXTURE_DATA_DIR,
-				CORS_ORIGINS: `http://localhost:${REAL_APP_PORT}`,
+				CORS_ORIGINS: `http://localhost:${REAL_APP_PORT},http://localhost:${MEDIA_OFF_APP_PORT}`,
 				LOG_LEVEL: 'warn'
 			}
 		},
 		app(REAL_APP_PORT, SAVED_PORT),
-		app(LIVE_APP_PORT, LIVE_PORT)
+		app(LIVE_APP_PORT, LIVE_PORT),
+		app(MEDIA_OFF_APP_PORT, SAVED_PORT, { VITE_F1_MEDIA: 'off' })
 	]
 });

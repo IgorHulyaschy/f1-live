@@ -29,6 +29,8 @@ export const PORTS = {
 	liveApp: base + 2,
 	/** The production build (playwright.build.config.ts). */
 	buildApp: base + 3,
+	/** The real-data app built with the media host switched off (`VITE_F1_MEDIA=off`). */
+	mediaOffApp: base + 4,
 	realServer: base - SERVER_OFFSET,
 	liveServer: base - SERVER_OFFSET + 1,
 	accountsServer: base - SERVER_OFFSET + 3

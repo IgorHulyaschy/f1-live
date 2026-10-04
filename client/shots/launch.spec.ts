@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+import { serveTestPictures } from '../e2e/pictures';
+
 /**
  * Audit screenshots of the launch screens: legal pages, the install offer and the error screens;
  * the consent question and the shell before scripts are in build.spec.ts. Output goes to
@@ -28,7 +30,7 @@ for (const viewport of VIEWPORTS) {
 			test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
 			test.beforeEach(async ({ page }) => {
-				await page.route('https://media.formula1.com/**', (route) => route.abort());
+				await serveTestPictures(page);
 				await page.addInitScript((saved) => {
 					window.localStorage.setItem('pitwall-welcomed', 'true');
 					window.localStorage.setItem('pitwall-theme', saved);

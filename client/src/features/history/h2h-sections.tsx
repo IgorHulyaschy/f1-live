@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 
 import { KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
+import { CarSide, DriverPortrait } from '@/components/driver-media';
 import { SESSION_PATH } from '@/features/dashboard/paths';
 import { type Evidence, eventLabel, type Fact } from '@/insights/h2h-facts';
 import {
@@ -15,6 +16,7 @@ import {
 	type Side,
 	winnerOf
 } from '@/insights/head-to-head';
+import { hasTeamPictures } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
 import type { Contender } from './h2h-picker';
@@ -123,6 +125,19 @@ function seconds(ms: number | null): string {
 	return ms === null ? '–' : `${ms < 0 ? '−' : '+'}${(Math.abs(ms) / 1000).toFixed(3)}`;
 }
 
+/** A side's picture: a driver's portrait, or a team line's car, turned to face the other side. */
+function Contestant({ contender, mirrored = false }: { contender: Contender; mirrored?: boolean }) {
+	const { picture } = contender;
+
+	if ('face' in picture) {
+		return <DriverPortrait driver={picture.face} size="lg" tinted mirrored={mirrored} />;
+	}
+
+	return hasTeamPictures(picture.team) ? (
+		<CarSide subject={picture.team} size="sm" className={mirrored ? '-scale-x-100' : undefined} />
+	) : null;
+}
+
 /** The totals, headline numbers first and the deeper ones after, readable on a 360 px phone. */
 export function Scoreboard({
 	totals,
@@ -143,19 +158,25 @@ export function Scoreboard({
 				meta={`${totals.events} weekends, ${totals.racesTogether} races together`}
 			/>
 			<div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3 px-4 pt-3">
-				<span
-					className="type-wide text-sm leading-tight font-black wrap-anywhere italic"
-					data-testid="h2h-name-a"
-				>
-					{pair.a.label}
-				</span>
+				<div className="flex min-w-0 flex-col items-start gap-2">
+					<Contestant contender={pair.a} />
+					<span
+						className="type-wide text-sm leading-tight font-black wrap-anywhere italic"
+						data-testid="h2h-name-a"
+					>
+						{pair.a.label}
+					</span>
+				</div>
 				<span className="type-label">vs</span>
-				<span
-					className="type-wide text-right text-sm leading-tight font-black wrap-anywhere italic"
-					data-testid="h2h-name-b"
-				>
-					{pair.b.label}
-				</span>
+				<div className="flex min-w-0 flex-col items-end gap-2">
+					<Contestant contender={pair.b} mirrored />
+					<span
+						className="type-wide text-right text-sm leading-tight font-black wrap-anywhere italic"
+						data-testid="h2h-name-b"
+					>
+						{pair.b.label}
+					</span>
+				</div>
 			</div>
 			<ul className="px-4" data-testid="h2h-totals">
 				<Row

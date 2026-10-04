@@ -1,12 +1,14 @@
 import { expect, type Page, test } from '@playwright/test';
 
+import { serveTestPictures } from '../pictures';
+
 // Ask on the results index of 2018 to 2026 and the saved 2025 Las Vegas sessions.
 
 async function openAsk(
 	page: Page,
 	{ spoilerProtection = false }: { spoilerProtection?: boolean } = {}
 ): Promise<void> {
-	await page.route('https://media.formula1.com/**', (route) => route.abort());
+	await serveTestPictures(page);
 	await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
 
 	if (!spoilerProtection) {
@@ -129,7 +131,7 @@ test.describe('on a phone', () => {
 	test.use({ viewport: { width: 390, height: 844 } });
 
 	test('the header search button opens Ask on the whole screen', async ({ page }) => {
-		await page.route('https://media.formula1.com/**', (route) => route.abort());
+		await serveTestPictures(page);
 		await page.addInitScript(() => {
 			window.localStorage.setItem('pitwall-welcomed', 'true');
 			window.localStorage.setItem('pitwall-spoiler-free', 'false');
@@ -149,4 +151,13 @@ test.describe('on a phone', () => {
 		await page.getByTestId('ask-proof').click();
 		await expect(page).toHaveURL(/\/standings\?season=2021/);
 	});
+});
+
+test('a record answer shows the driver’s portrait, named for them', async ({ page }) => {
+	await openAsk(page);
+	await ask(page, 'norris wins 2025');
+
+	await expect(
+		page.getByTestId('ask-answer').getByRole('img', { name: 'Lando Norris' })
+	).toBeAttached({ timeout: 15_000 });
 });

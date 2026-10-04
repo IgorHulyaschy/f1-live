@@ -3,6 +3,7 @@ import path from 'node:path';
 import { gunzipSync, gzipSync } from 'node:zlib';
 
 import type { RaceSnapshot } from '@f1-live/shared';
+import { driverImageId } from '@f1-live/shared/pictures';
 import { driverIdOf } from '@f1-live/shared/results';
 import type {
 	ResultAdjustment,
@@ -109,6 +110,17 @@ export async function seasonResults(
 
 				if (driver.headshotUrl !== undefined) {
 					info.headshotUrl = driver.headshotUrl;
+				}
+
+				const imageId = driverImageId({
+					season: season.year,
+					team: driver.team,
+					headshotUrl: driver.headshotUrl,
+					publicId: driver.imageId
+				});
+
+				if (imageId !== undefined) {
+					info.imageId = imageId;
 				}
 
 				drivers[driverIdOf(driver.firstName, driver.lastName)] = info;

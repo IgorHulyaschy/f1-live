@@ -121,6 +121,14 @@ describe('answers match the official tables', () => {
 		);
 	});
 
+	it('a record answer carries the driver as the last season of the span names them', () => {
+		const picture = answer('Verstappen wins 2023').picture;
+
+		assert.equal(picture?.kind, 'driver');
+		assert.equal(picture?.kind === 'driver' ? picture.face.lastName : null, 'Verstappen');
+		assert.equal(picture?.kind === 'driver' ? picture.face.season : null, 2023);
+	});
+
 	it('Verstappen: 19 wins in 2023 and 8 in 2025', () => {
 		assert.match(text(answer('Verstappen wins 2023').headline), /19 wins in 2023/);
 		assert.match(text(answer('Verstappen wins 2025').headline), /8 wins in 2025/);

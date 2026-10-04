@@ -6,6 +6,7 @@ import { Digits } from '@/components/console/digits';
 import { EmptyNote } from '@/components/console/empty-note';
 import { KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
+import { DriverPortrait } from '@/components/driver-media';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
 import { useRace } from '@/data/race-context';
@@ -432,7 +433,14 @@ export function TimingTower() {
 											<td>
 												<span className="flex items-center gap-2">
 													<DriverLink driver={row.driver}>
-														<DriverTag driver={row.driver} showName showNumber />
+														<span className="flex items-center gap-2">
+															<DriverPortrait
+																driver={row.driver}
+																size="xs"
+																className="hidden @lg:block"
+															/>
+															<DriverTag driver={row.driver} showName showNumber />
+														</span>
 													</DriverLink>
 													{row.state === 'pit' ? <Chip tone="flag">Pit</Chip> : null}
 													{penalty && !row.out ? <Chip tone="danger">+{penalty}s</Chip> : null}

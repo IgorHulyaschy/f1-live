@@ -1,5 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 
+import { serveTestPictures } from '../pictures';
+
 // The results index of 2018 to 2026 (e2e/real/data/out/results), read from the official timing
 // data. Totals are the ones an independent source (the Jolpica API) gives for the same pair.
 
@@ -8,7 +10,7 @@ async function openHistory(
 	path: string,
 	{ spoilerProtection = false }: { spoilerProtection?: boolean } = {}
 ): Promise<void> {
-	await page.route('https://media.formula1.com/**', (route) => route.abort());
+	await serveTestPictures(page);
 	await page.addInitScript(() => window.localStorage.setItem('pitwall-welcomed', 'true'));
 
 	if (!spoilerProtection) {

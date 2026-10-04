@@ -79,7 +79,9 @@ const driverInfoSchema = z.object({
 	code: z.string(),
 	firstName: z.string(),
 	lastName: z.string(),
-	headshotUrl: z.string().optional()
+	headshotUrl: z.string().optional(),
+	/** The side-on cut-out's media id (`driverImageId`); absent where the host has none. */
+	imageId: z.string().optional()
 });
 
 export type ResultDriver = z.infer<typeof driverInfoSchema>;
