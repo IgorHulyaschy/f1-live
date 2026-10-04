@@ -34,15 +34,15 @@ const source = createRaceSource(raceSourceKindFromEnv(import.meta.env.VITE_DATA_
 	liveUrl: import.meta.env.VITE_WS_URL ?? 'ws://localhost:3000/live'
 });
 
-function handle(meta: RouteMeta): RouteHandle {
-	return { meta };
+function handle(meta: RouteMeta, session = false): RouteHandle {
+	return { meta, session };
 }
 
 /** Dashboards carry the grid and every tile; the home and the library open without them. */
 function dashboard(path: string, meta: RouteMeta, id?: string) {
 	return {
 		path,
-		handle: handle(meta),
+		handle: handle(meta, true),
 		lazy: async () => {
 			const { DashboardPage } = await import('./features/dashboard/dashboard-page');
 
@@ -59,7 +59,7 @@ function library(
 ) {
 	return {
 		path,
-		handle: handle(meta),
+		handle: handle(meta, page !== 'LibraryPage'),
 		lazy: async () => ({ Component: (await import('./features/library/library-page'))[page] })
 	};
 }

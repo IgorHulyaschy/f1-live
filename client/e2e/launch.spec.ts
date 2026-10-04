@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 
-import { openRace, seriousViolations } from './fixtures.ts';
+import { fromMenu, openRace, seriousViolations } from './fixtures.ts';
 
 /** Records wake lock requests and releases, which headless Chromium would refuse. */
 async function stubWakeLock(page: Page): Promise<void> {
@@ -118,7 +118,7 @@ test.describe('page meta', () => {
 	test('names a shared dashboard and keeps it out of search', async ({ page }) => {
 		await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 		await openRace(page, '/d/battle');
-		await page.getByRole('button', { name: 'Copy share link' }).click();
+		await fromMenu(page, 'Copy share link');
 
 		const link = new URL(await page.evaluate(() => navigator.clipboard.readText()));
 
@@ -133,7 +133,7 @@ test.describe('page meta', () => {
 		const themeColour = page.locator('meta[name="theme-color"]');
 
 		await expect(themeColour).toHaveAttribute('content', '#0d0c0a');
-		await page.getByRole('button', { name: 'Switch to light theme' }).click();
+		await fromMenu(page, 'Switch to light theme');
 		await expect(themeColour).toHaveAttribute('content', '#f8f7f3');
 	});
 });

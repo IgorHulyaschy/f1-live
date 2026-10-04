@@ -4,8 +4,10 @@ import {
 	type DrillSection,
 	GRID_COLUMNS,
 	isPresetId,
+	samePlacements,
 	type Tile,
 	type TileKind,
+	type TilePlacement,
 	type TileSettings
 } from '@f1-live/shared/dashboard';
 
@@ -393,15 +395,21 @@ export function tileTitle(tile: Tile): string {
 
 export type TileSpec = [kind: TileKind, x: number, y: number, w: number, h: number, TileSettings?];
 
-/** Builds a dashboard from compact tile specs: kind, x, y, w, h and optional settings. */
+/** A tile's place on an ultrawide screen: x, y, w and h, in the same order as the tiles. */
+export type WideSpec = [x: number, y: number, w: number, h: number];
+
+/**
+ * Builds a dashboard from compact tile specs: kind, x, y, w, h and optional settings, and, when
+ * it has its own ultrawide arrangement, one place per tile for that.
+ */
 export function buildDashboard(
 	id: string,
 	name: string,
 	tiles: readonly TileSpec[],
-	options: { fit?: boolean } = {}
+	wide?: readonly WideSpec[],
+	order?: readonly number[]
 ): Dashboard {
-	return {
-		...options,
+	const dashboard: Dashboard = {
 		id,
 		name,
 		tiles: tiles.map(([kind, , , , , settings], index) =>
@@ -409,103 +417,226 @@ export function buildDashboard(
 		),
 		layout: tiles.map(([, x, y, w, h], index) => ({ i: `${id}-${index}`, x, y, w, h }))
 	};
+
+	if (wide) {
+		dashboard.wide = wide.map(([x, y, w, h], index) => ({ i: `${id}-${index}`, x, y, w, h }));
+	}
+
+	if (order) {
+		dashboard.order = order.map((index) => `${id}-${index}`);
+	}
+
+	return dashboard;
 }
 
 /**
+ * Rows one screen holds. Every ready-made dashboard fills its first screen in this many rows, on
+ * a laptop and an ultrawide alike; the grid stretches them to the window. Tiles below row 21
+ * are a scroll away.
+ */
+export const SCREEN_ROWS = 21;
+
+/**
  * Ready-made dashboards. Each can be edited; edits are saved over it and can be reset. The first
- * three are the session layouts: `/session` opens the one for the session on screen. Each opens with the
- * Replay tile, the session's timeline.
+ * three are the session layouts: `/session` opens the one for the session on screen, and only
+ * they carry the Replay tile, the session's timeline; elsewhere the top bar holds the transport.
+ * The second list of places is the ultrawide arrangement: four columns instead of two.
  */
 export const PRESETS: readonly Dashboard[] = [
 	// Race keeps the Live preset's id, so an edited Live opens as an edited Race.
-	buildDashboard('live', 'Race', [
-		['replay', 0, 0, 24, 4],
-		['timing', 0, 4, 15, 25],
-		['track-map', 15, 4, 9, 13],
-		['focus', 15, 17, 9, 12],
-		['race-control', 0, 29, 10, 14],
-		['stints', 10, 29, 14, 14]
-	]),
-	buildDashboard('quali', 'Quali', [
-		['timing', 0, 0, 15, 25],
-		['replay', 15, 0, 9, 6],
-		['knockout', 15, 6, 9, 12],
-		['race-control', 15, 18, 9, 7],
-		['track-map', 0, 25, 12, 12],
-		['sectors', 12, 25, 12, 12],
-		['gap-distance', 0, 37, 24, 16]
-	]),
-	buildDashboard('practice', 'Practice', [
-		['timing', 0, 0, 15, 25],
-		['replay', 15, 0, 9, 6],
-		['long-runs', 15, 6, 9, 10],
-		['race-control', 15, 16, 9, 9],
-		['track-map', 0, 25, 10, 14],
-		['stints', 10, 25, 14, 14]
-	]),
-	buildDashboard('analysis', 'Analysis', [
-		['replay', 0, 0, 24, 4],
-		['compare', 0, 4, 4, 18],
-		['chart', 4, 4, 20, 18, { metric: 'lapTime' }],
-		['telemetry', 0, 22, 24, 34],
-		['pace', 0, 56, 14, 12],
-		['fastest-laps', 14, 56, 10, 12]
-	]),
-	buildDashboard('strategy', 'Strategy', [
-		['replay', 0, 0, 24, 4],
-		['stints', 0, 4, 24, 16],
-		['degradation', 0, 20, 12, 18],
-		['pit-stops', 12, 20, 12, 18],
-		['undercut', 0, 38, 12, 26],
-		['pit-cost', 12, 38, 12, 13],
-		['pit-crews', 12, 51, 12, 13]
-	]),
-	buildDashboard('battle', 'Battle', [
-		['replay', 0, 0, 24, 4],
-		['timing', 0, 4, 9, 23],
-		['chart', 9, 4, 15, 15, { metric: 'battle' }],
-		['gaps', 9, 19, 7, 8],
-		['box-now', 16, 19, 8, 8]
-	]),
-	buildDashboard('track', 'Track', [
-		['replay', 0, 0, 24, 4],
-		['track-map', 0, 4, 14, 24],
-		['battle-map', 14, 4, 10, 12],
-		['pit-rejoin', 14, 16, 10, 12],
-		['dominance', 0, 28, 8, 16],
-		['flag-map', 8, 28, 8, 16],
-		['speed-map', 16, 28, 8, 16],
-		['gap-distance', 0, 44, 14, 18],
-		['ghost-lap', 14, 44, 10, 18]
-	]),
-	buildDashboard('drivers', 'Drivers', [
-		['session', 0, 0, 24, 3],
-		['replay', 0, 3, 24, 4],
-		['grid', 0, 7, 24, 10],
-		['driver', 0, 17, 8, 16],
-		['chart', 8, 17, 16, 16, { metric: 'position' }]
-	]),
+	buildDashboard(
+		'live',
+		'Race',
+		[
+			['replay', 10, 17, 14, 4],
+			['timing', 0, 0, 10, 21],
+			['track-map', 17, 0, 7, 9],
+			['stints', 17, 9, 7, 8],
+			['focus', 10, 0, 7, 11],
+			['race-control', 10, 11, 7, 6]
+		],
+		[
+			[11, 16, 13, 5],
+			[0, 0, 6, 21],
+			[11, 0, 7, 16],
+			[18, 0, 6, 16],
+			[6, 0, 5, 11],
+			[6, 11, 5, 10]
+		]
+	),
+	buildDashboard(
+		'quali',
+		'Quali',
+		[
+			['replay', 10, 17, 14, 4],
+			['timing', 0, 0, 10, 21],
+			['knockout', 10, 0, 7, 9],
+			['track-map', 10, 9, 7, 8],
+			['sectors', 17, 0, 7, 9],
+			['race-control', 17, 9, 7, 8],
+			['gap-distance', 0, 21, 24, 12]
+		],
+		[
+			[18, 17, 6, 4],
+			[0, 0, 6, 21],
+			[6, 0, 6, 11],
+			[18, 0, 6, 11],
+			[12, 0, 6, 11],
+			[18, 11, 6, 6],
+			[6, 11, 12, 10]
+		]
+	),
+	buildDashboard(
+		'practice',
+		'Practice',
+		[
+			['replay', 10, 17, 14, 4],
+			['timing', 0, 0, 10, 21],
+			['long-runs', 10, 0, 7, 9],
+			['track-map', 10, 9, 7, 8],
+			['stints', 17, 0, 7, 9],
+			['race-control', 17, 9, 7, 8]
+		],
+		[
+			[18, 17, 6, 4],
+			[0, 0, 6, 21],
+			[6, 0, 12, 11],
+			[18, 0, 6, 11],
+			[6, 11, 12, 10],
+			[18, 11, 6, 6]
+		]
+	),
+	buildDashboard(
+		'analysis',
+		'Analysis',
+		[
+			['compare', 20, 0, 4, 21],
+			['chart', 9, 0, 11, 21, { metric: 'lapTime' }],
+			['pace', 0, 0, 9, 13],
+			['fastest-laps', 0, 13, 9, 8],
+			['telemetry', 0, 21, 24, 20]
+		],
+		[
+			[21, 0, 3, 21],
+			[6, 0, 8, 21],
+			[0, 0, 6, 11],
+			[0, 11, 6, 10],
+			[14, 0, 7, 21]
+		],
+		// A phone reads the answers before the chart, which also keeps the chart library off the
+		// first screen and out of the first load.
+		[2, 3, 0, 1, 4]
+	),
+	buildDashboard(
+		'strategy',
+		'Strategy',
+		[
+			['stints', 0, 0, 14, 11],
+			['degradation', 8, 11, 8, 10],
+			['undercut', 14, 0, 10, 11],
+			['pit-stops', 0, 11, 8, 10],
+			['pit-cost', 16, 11, 8, 10],
+			['pit-crews', 0, 21, 24, 12]
+		],
+		[
+			[0, 0, 11, 11],
+			[0, 11, 6, 10],
+			[11, 0, 7, 11],
+			[18, 0, 6, 21],
+			[6, 11, 6, 10],
+			[12, 11, 6, 10]
+		]
+	),
+	buildDashboard(
+		'battle',
+		'Battle',
+		[
+			['timing', 16, 0, 8, 21],
+			['chart', 0, 0, 16, 15, { metric: 'battle' }],
+			['gaps', 0, 15, 8, 6],
+			['box-now', 8, 15, 8, 6]
+		],
+		[
+			[18, 0, 6, 21],
+			[0, 0, 12, 21],
+			[12, 0, 6, 10],
+			[12, 10, 6, 11]
+		]
+	),
+	buildDashboard(
+		'track',
+		'Track',
+		[
+			['track-map', 0, 0, 12, 11],
+			['battle-map', 12, 0, 6, 11],
+			['pit-rejoin', 18, 0, 6, 11],
+			['dominance', 0, 11, 8, 10],
+			['flag-map', 8, 11, 8, 10],
+			['speed-map', 16, 11, 8, 10],
+			['gap-distance', 0, 21, 12, 12],
+			['ghost-lap', 12, 21, 12, 12]
+		],
+		[
+			[0, 0, 6, 11],
+			[6, 0, 6, 11],
+			[12, 0, 6, 10],
+			[0, 11, 6, 10],
+			[18, 12, 6, 9],
+			[6, 11, 6, 10],
+			[12, 10, 6, 11],
+			[18, 0, 6, 12]
+		]
+	),
+	buildDashboard(
+		'drivers',
+		'Drivers',
+		[
+			['grid', 0, 0, 24, 9],
+			['driver', 0, 9, 8, 12],
+			['chart', 8, 9, 16, 12, { metric: 'position' }]
+		],
+		[
+			[6, 0, 18, 9],
+			[0, 0, 6, 21],
+			[6, 9, 18, 12]
+		]
+	),
 	buildDashboard(
 		'wall',
 		'Pit wall',
 		[
-			['timing', 0, 0, 8, 23],
-			['track-map', 8, 0, 9, 14],
-			['chart', 8, 14, 9, 9, { metric: 'gap' }],
-			['focus', 17, 0, 7, 13],
-			['race-control', 17, 13, 7, 10]
+			['timing', 0, 0, 8, 21],
+			['track-map', 8, 0, 9, 12],
+			['chart', 8, 12, 9, 9, { metric: 'gap' }],
+			['focus', 17, 0, 7, 12],
+			['race-control', 17, 12, 7, 9]
 		],
-		{ fit: true }
+		[
+			[0, 0, 6, 21],
+			[6, 0, 9, 13],
+			[6, 13, 9, 8],
+			[15, 0, 9, 10],
+			[15, 10, 9, 11]
+		]
 	),
-	buildDashboard('story', 'Race story', [
-		['session', 0, 0, 24, 3],
-		['replay', 0, 3, 24, 4],
-		['story', 0, 7, 24, 20],
-		['chart', 0, 27, 14, 18, { metric: 'position' }],
-		['championship', 14, 27, 10, 36],
-		['race-control', 0, 45, 14, 18],
-		['conditions', 0, 63, 24, 26]
-	])
+	buildDashboard(
+		'story',
+		'Race story',
+		[
+			['story', 0, 0, 24, 9],
+			['chart', 0, 9, 10, 12, { metric: 'position' }],
+			['championship', 10, 9, 7, 12],
+			['race-control', 17, 9, 7, 12],
+			['conditions', 0, 21, 24, 12]
+		],
+		[
+			[0, 0, 17, 11],
+			[0, 11, 6, 10],
+			[17, 0, 7, 21],
+			[6, 11, 5, 10],
+			[11, 11, 6, 10]
+		]
+	)
 ];
 
 /** Ready-made: saved under a preset id, a dashboard is an edited preset and never counts as own. */
@@ -526,11 +657,16 @@ export function readingOrder(dashboard: Dashboard): Tile[] {
 }
 
 /**
- * The order a phone stacks the tiles in: reading order, with the Replay tile first, since its
- * clock and keys move every other tile. Edit mode keeps plain reading order, so moving a tile up
- * or down does what it says.
+ * The order a phone stacks the tiles in: the order set on a phone when there is one, otherwise
+ * reading order with the Replay tile first, since its clock and keys move every other tile.
  */
-export function phoneOrder(dashboard: Dashboard): Tile[] {
+export function stackOrder(dashboard: Dashboard): Tile[] {
+	if (dashboard.order) {
+		const tiles = new Map(dashboard.tiles.map((tile) => [tile.id, tile]));
+
+		return dashboard.order.flatMap((id) => tiles.get(id) ?? []);
+	}
+
 	const ordered = readingOrder(dashboard);
 
 	return [
@@ -539,21 +675,79 @@ export function phoneOrder(dashboard: Dashboard): Tile[] {
 	];
 }
 
-/** Adds a tile under everything else, at its default size. */
+/** Moves a tile to another's place in the phone stack. The grids on bigger screens stay as they are. */
+export function moveInStack(dashboard: Dashboard, tileId: string, otherId: string): Dashboard {
+	const order = stackOrder(dashboard).map((tile) => tile.id);
+	const from = order.indexOf(tileId);
+	const to = order.indexOf(otherId);
+
+	if (from < 0 || to < 0) {
+		return dashboard;
+	}
+
+	order.splice(to, 0, ...order.splice(from, 1));
+
+	return { ...dashboard, order };
+}
+
+/**
+ * Screens wide enough for four columns of tiles rather than two: ultrawide monitors and the like.
+ * A dashboard can keep its own arrangement for them; otherwise they show the standard one.
+ */
+export type ScreenClass = 'standard' | 'wide';
+
+/** The dashboard as a screen class shows it: `layout` is the arrangement on that screen. */
+export function onScreen(dashboard: Dashboard, screen: ScreenClass): Dashboard {
+	return screen === 'wide' && dashboard.wide ? { ...dashboard, layout: dashboard.wide } : dashboard;
+}
+
+/**
+ * Saves an arrangement made on one screen class, leaving the other's as it was. The first change
+ * on an ultrawide screen gives the dashboard its own ultrawide arrangement.
+ */
+export function withPlacements(
+	dashboard: Dashboard,
+	screen: ScreenClass,
+	layout: readonly TilePlacement[]
+): Dashboard {
+	if (samePlacements(onScreen(dashboard, screen).layout, layout)) {
+		return dashboard;
+	}
+
+	return screen === 'wide'
+		? { ...dashboard, wide: [...layout] }
+		: { ...dashboard, layout: [...layout] };
+}
+
+function placedBelow(layout: readonly TilePlacement[], id: string, kind: TileKind): TilePlacement {
+	const bottom = Math.max(0, ...layout.map((place) => place.y + place.h));
+	const { w, h } = TILE_INFO[kind].size;
+
+	return { i: id, x: 0, y: bottom, w, h };
+}
+
+/** Adds a tile under everything else, at its default size, on every screen class. */
 export function addTile(
 	dashboard: Dashboard,
 	kind: TileKind,
 	id: string,
 	settings?: TileSettings
 ): Dashboard {
-	const bottom = Math.max(0, ...dashboard.layout.map((place) => place.y + place.h));
-	const { w, h } = TILE_INFO[kind].size;
-
-	return {
+	const next: Dashboard = {
 		...dashboard,
 		tiles: [...dashboard.tiles, settings ? { id, kind, settings } : { id, kind }],
-		layout: [...dashboard.layout, { i: id, x: 0, y: bottom, w, h }]
+		layout: [...dashboard.layout, placedBelow(dashboard.layout, id, kind)]
 	};
+
+	if (dashboard.wide) {
+		next.wide = [...dashboard.wide, placedBelow(dashboard.wide, id, kind)];
+	}
+
+	if (dashboard.order) {
+		next.order = kind === 'replay' ? [id, ...dashboard.order] : [...dashboard.order, id];
+	}
+
+	return next;
 }
 
 /**
@@ -579,30 +773,19 @@ export function drillDashboard(name: string, parts: readonly TileSettings[]): Da
 }
 
 export function removeTile(dashboard: Dashboard, tileId: string): Dashboard {
-	return {
+	const next: Dashboard = {
 		...dashboard,
 		tiles: dashboard.tiles.filter((tile) => tile.id !== tileId),
 		layout: dashboard.layout.filter((place) => place.i !== tileId)
 	};
-}
 
-/** Swaps two tiles' places: how phones move a tile up or down the stack. */
-export function swapTiles(dashboard: Dashboard, firstId: string, secondId: string): Dashboard {
-	const first = dashboard.layout.find((place) => place.i === firstId);
-	const second = dashboard.layout.find((place) => place.i === secondId);
-
-	if (!first || !second) {
-		return dashboard;
+	if (dashboard.wide) {
+		next.wide = dashboard.wide.filter((place) => place.i !== tileId);
 	}
 
-	return {
-		...dashboard,
-		layout: dashboard.layout.map((place) =>
-			place.i === firstId
-				? { ...second, i: firstId }
-				: place.i === secondId
-					? { ...first, i: secondId }
-					: place
-		)
-	};
+	if (dashboard.order) {
+		next.order = dashboard.order.filter((id) => id !== tileId);
+	}
+
+	return next;
 }

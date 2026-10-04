@@ -16,9 +16,9 @@ const VIEWPORTS = [
 	{ name: 'qhd', width: 2560, height: 1440 }
 ] as const;
 
-/** Each page with what shows once it is ready: the drop zone at the end of the replay. */
+/** Each page with what shows once it is ready: Knockout's drop zone at the end of the replay. */
 const PAGES = [
-	{ name: 'quali-live', path: '/session', ready: 'strip-drop-zone', text: 'STR' },
+	{ name: 'quali-live', path: '/session', ready: 'drop-zone', text: 'STR' },
 	{
 		name: 'race-while-live',
 		path: '/session?session=9858',

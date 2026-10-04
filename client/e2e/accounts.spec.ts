@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { z } from 'zod';
 
-import { mailedLink, openRace, signInWithLink, testEmail } from './fixtures.ts';
+import { fromMenu, mailedLink, openRace, signInWithLink, testEmail } from './fixtures.ts';
 
 const FAN_DASHBOARDS = ['Second screen', 'TV wall', 'Teammates', 'Driver wall', 'Just the order'];
 
@@ -56,8 +56,8 @@ test('an account syncs dashboards, holds the Free limit, goes Pro and can be del
 
 	await openRace(page, '/library');
 
-	// Sign in with the emailed link, from the bar.
-	await page.getByRole('button', { name: 'Sign in' }).click();
+	// Sign in with the emailed link, from the bar's menu.
+	await fromMenu(page, 'Sign in');
 
 	const dialog = page.getByRole('dialog', { name: 'Sign in' });
 
@@ -67,7 +67,7 @@ test('an account syncs dashboards, holds the Free limit, goes Pro and can be del
 
 	await page.goto(await mailedLink(page, email));
 	await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
-	await expect(page.getByTestId('account-menu')).toBeVisible();
+	await expect(page.getByRole('button', { name: `Menu, signed in as ${email}` })).toBeVisible();
 
 	// Free keeps three of your own; the fourth is refused with the upgrade prompt.
 	for (const name of FAN_DASHBOARDS.slice(0, 3)) {
@@ -87,7 +87,9 @@ test('an account syncs dashboards, holds the Free limit, goes Pro and can be del
 	await expect(page).toHaveURL(/\/account/);
 	await expect(page.getByText('Pro is on')).toBeVisible();
 	await expect(page.getByRole('region', { name: 'Plan' })).toContainText('Renews');
-	await expect(page.getByRole('radiogroup', { name: 'Plan preview' })).toHaveCount(0);
+	await page.getByTestId('app-menu').click();
+	await expect(page.getByRole('menuitemcheckbox', { name: 'Preview Pro' })).toHaveCount(0);
+	await page.keyboard.press('Escape');
 
 	// Pro keeps any number.
 	for (const name of FAN_DASHBOARDS.slice(3)) {
@@ -111,7 +113,7 @@ test('an account syncs dashboards, holds the Free limit, goes Pro and can be del
 
 	// A rename there reaches the first browser.
 	await other.getByRole('link', { name: 'Open' }).first().click();
-	await other.getByRole('button', { name: 'Edit' }).click();
+	await fromMenu(other, 'Edit');
 	await other.getByLabel('Dashboard name').fill('Renamed on the phone');
 	await other.getByLabel('Dashboard name').blur();
 	await expect(other.getByTestId('save-status')).toHaveText('Synced to your account');
@@ -128,10 +130,10 @@ test('an account syncs dashboards, holds the Free limit, goes Pro and can be del
 	await confirm.getByLabel('Email to confirm').fill(email);
 	await confirm.getByRole('button', { name: 'Delete account' }).click();
 	await expect(other.getByText('Account deleted')).toBeVisible();
-	await expect(other.getByRole('button', { name: 'Sign in' })).toBeVisible();
+	await expect(other.getByRole('button', { name: 'Menu', exact: true })).toBeVisible();
 
 	await page.reload();
-	await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+	await expect(page.getByRole('button', { name: 'Menu', exact: true })).toBeVisible();
 	expect(await (await page.request.get('/api/me')).json()).toBeNull();
 
 	await otherContext.close();
@@ -158,7 +160,7 @@ test('a dashboard edit appears on another signed-in device without a reload', as
 	await addFromLibrary(page, 'Second screen');
 	await expect(yours(other).filter({ hasText: 'Second screen' })).toHaveCount(1, quickly);
 
-	await page.getByRole('button', { name: 'Edit' }).click();
+	await fromMenu(page, 'Edit');
 	await page.getByLabel('Dashboard name').fill('Pushed rename');
 	await page.getByLabel('Dashboard name').blur();
 	await expect(yours(other).filter({ hasText: 'Pushed rename' })).toHaveCount(1, quickly);

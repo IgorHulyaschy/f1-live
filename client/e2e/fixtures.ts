@@ -23,7 +23,10 @@ export async function openRace(
 	}
 
 	await page.goto(path);
-	await expect(page.getByTestId('lap-counter')).toBeVisible();
+	// The bar's menu is on every page once the race has loaded; a popped-out tile has only its lap.
+	await expect(
+		page.getByTestId('app-menu').or(page.getByTestId('lap-counter')).first()
+	).toBeVisible();
 }
 
 /** The sign-in link the accounts server would have emailed; the dev mailbox hands it to tests. */
@@ -46,7 +49,13 @@ export async function signInWithLink(page: Page, email: string): Promise<void> {
 
 	expect(asked.ok()).toBe(true);
 	await page.goto(await mailedLink(page, email));
-	await expect(page.getByTestId('account-menu')).toBeAttached();
+	await expect(page.getByRole('button', { name: /^Menu, signed in/ })).toBeAttached();
+}
+
+/** Picks an entry from the bar's menu, where the rarely used actions live. */
+export async function fromMenu(page: Page, item: string): Promise<void> {
+	await page.getByTestId('app-menu').click();
+	await page.getByRole('menuitem', { name: item, exact: true }).click();
 }
 
 /** A fresh address per run, so a reused accounts server never mixes runs. */

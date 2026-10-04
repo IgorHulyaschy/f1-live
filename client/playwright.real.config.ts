@@ -102,6 +102,12 @@ export default defineConfig({
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${REAL_APP_PORT}` }
 		},
 		{
+			name: 'shots-layout',
+			testDir: './shots',
+			testMatch: 'layout.spec.ts',
+			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${REAL_APP_PORT}` }
+		},
+		{
 			name: 'shots-live',
 			testDir: './shots',
 			testMatch: 'live.spec.ts',

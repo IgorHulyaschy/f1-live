@@ -20,10 +20,40 @@ test('a race opens on the Race layout, with the session in the strip', async ({ 
 	await expect(strip.getByTestId('live-key')).toHaveText('Replay');
 	await expect(strip.getByTestId('strip-session')).toContainText('Las Vegas GP');
 	await expect(strip.getByTestId('lap-counter')).toHaveText('Lap 30/50');
-	await expect(strip.getByTestId('strip-leader')).toContainText('VER');
 	await expect(page.getByTestId(/^timing-row-/)).toHaveCount(20);
 	await expect(page.getByTestId('tile-stints')).toBeVisible();
 	await expect(page.getByTestId('tile-away')).toHaveCount(0);
+});
+
+test('the bar carries the session only where a session is on screen', async ({ page }) => {
+	await openRace(page, '/library');
+	await expect(page.getByTestId('live-strip')).toHaveCount(0);
+	await expect(page.getByTestId('lap-counter')).toHaveCount(0);
+	await expect(page.getByTestId('footer-keys')).not.toContainText('Space');
+
+	await page.goto('/library/example-tv-wall?lap=30');
+	await expect(page.getByTestId('live-strip').getByTestId('lap-counter')).toHaveText('Lap 30/50');
+	await expect(page.getByTestId('footer-keys')).toContainText('Space');
+
+	await page.goto('/account');
+	await expect(page.getByTestId('app-menu')).toBeVisible();
+	await expect(page.getByTestId('live-strip')).toHaveCount(0);
+});
+
+test('a phone’s bar keeps the finish key clear of Ask', async ({ page }) => {
+	await page.setViewportSize({ width: 360, height: 800 });
+	await openRace(page, '/analysis', { spoilerProtection: true });
+
+	const finish = await page
+		.getByTestId('live-strip')
+		.getByRole('button', { name: 'Jump to the finish (shows results)' })
+		.boundingBox();
+
+	const ask = await page.getByTestId('ask-button').boundingBox();
+	const menu = await page.getByTestId('app-menu').boundingBox();
+
+	expect(finish && ask && finish.x + finish.width <= ask.x).toBe(true);
+	expect(menu && menu.x + menu.width <= 360).toBe(true);
 });
 
 test('the dashboards a race does not need wait under More', async ({ page }) => {
@@ -75,23 +105,33 @@ test('has no console errors on any page', async ({ page }) => {
 });
 
 for (const width of [360, 390]) {
-	test(`shows every dashboard tab and the new and library keys at ${width}px`, async ({ page }) => {
+	test(`the bar fits one row at ${width}px, with every dashboard one tap away`, async ({
+		page
+	}) => {
 		await page.setViewportSize({ width, height: 800 });
 		await openRace(page);
 
-		const nav = page.getByRole('navigation', { name: 'Main' });
+		const bar = await page.getByRole('banner').boundingBox();
 
-		const keys = [
-			...(await nav.getByRole('link').all()),
-			nav.getByRole('button', { name: 'New dashboard' })
-		];
+		expect(bar?.height).toBeLessThanOrEqual(49);
 
-		for (const key of keys) {
+		for (const key of [
+			page.getByRole('button', { name: 'Dashboard: Race' }),
+			page.getByTestId('strip-session'),
+			page.getByTestId('ask-button'),
+			page.getByTestId('app-menu')
+		]) {
+			// oxlint-disable-next-line no-await-in-loop -- four keys, each checked once.
 			const box = await key.boundingBox();
 
 			expect(box).not.toBeNull();
 			expect(box?.x).toBeGreaterThanOrEqual(0);
 			expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(width);
 		}
+
+		await page.getByRole('button', { name: 'Dashboard: Race' }).click();
+		await page.getByRole('menuitem', { name: 'Strategy' }).click();
+		await expect(page).toHaveURL(/\/strategy/);
+		await expect(page.getByRole('button', { name: 'Dashboard: Strategy' })).toBeVisible();
 	});
 }

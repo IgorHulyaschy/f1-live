@@ -16,7 +16,7 @@ import { DecisionsProvider } from '@/data/decisions-context';
 import { ResultsProvider } from '@/data/results-context';
 import { SnapshotsProvider } from '@/data/snapshots-context';
 import { TelemetryProvider } from '@/data/telemetry-context';
-import { AccountFooterKey, AccountSession } from '@/features/account/account-menu';
+import { AccountSession } from '@/features/account/account-menu';
 import { useAccountPlan } from '@/features/account/account-store';
 import { CompareProvider } from '@/features/analysis/compare-context';
 import { useDashboards } from '@/features/dashboard/dashboard-store';
@@ -25,11 +25,11 @@ import type { RaceSource } from '@/data/race-source';
 import { useRaceAlerts } from '@/hooks/use-race-alerts';
 import { useRaceHotkeys } from '@/hooks/use-race-hotkeys';
 import { useViewTitle } from '@/hooks/use-view-title';
-import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
+import { useDarkTheme } from '@/hooks/use-theme';
 import { ConsentBanner, usePageViews } from '@/platform/consent';
 import { InstallBanner, InstallKey } from '@/platform/install';
 import type { ConsoleOutlet } from '@/features/home/console-outlet';
-import { usePageMeta } from '@/platform/page-meta';
+import { usePageMeta, useSessionOnScreen } from '@/platform/page-meta';
 import { keepAwakeStore, useScreenWakeLock, wakeLockSupported } from '@/platform/wake-lock';
 
 function ErrorState({ message }: { message: string }) {
@@ -173,6 +173,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 	const { snapshot, followedDriver, playing, live } = useRace();
 	const focus = snapshot.drivers.find((driver) => driver.number === followedDriver);
 	const keepAwake = keepAwakeStore.useValue();
+	const session = useSessionOnScreen();
 
 	useRaceHotkeys(ask.openAsk);
 	useRaceAlerts();
@@ -209,7 +210,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 							style={focus ? { '--focus': `#${focus.teamColour}` } : undefined}
 						>
 							<AppHeader onOpenCommand={ask.openAsk} />
-							<main className="px-4 pb-6 md:px-6">
+							<main className="px-4 pb-4 md:px-6">
 								<Outlet context={{ openCommand: ask.openAsk } satisfies ConsoleOutlet} />
 							</main>
 							<SiteFooter
@@ -221,10 +222,6 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 								}
 							>
 								<div className="flex flex-wrap items-center gap-2">
-									<span className="flex gap-2 sm:hidden">
-										<AccountFooterKey />
-										<Key onClick={toggleTheme}>{dark ? 'Light theme' : 'Dark theme'}</Key>
-									</span>
 									{wakeLockSupported() ? (
 										<Key
 											role="switch"
@@ -238,23 +235,27 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 									) : null}
 									<InstallKey />
 								</div>
-								<dl className="type-label hidden gap-4 md:flex">
-									<div className="flex gap-1.5">
-										<dt>Laps</dt>
-										<dd className="text-foreground">← →</dd>
-									</div>
-									<div className="flex gap-1.5">
-										<dt>Play</dt>
-										<dd className="text-foreground">Space</dd>
-									</div>
-									<div className="flex gap-1.5">
-										<dt>Events</dt>
-										<dd className="text-foreground">⇧← →</dd>
-									</div>
-									<div className="flex gap-1.5">
-										<dt>Live</dt>
-										<dd className="text-foreground">L</dd>
-									</div>
+								<dl className="type-label hidden gap-4 md:flex" data-testid="footer-keys">
+									{session ? (
+										<>
+											<div className="flex gap-1.5">
+												<dt>Laps</dt>
+												<dd className="text-foreground">← →</dd>
+											</div>
+											<div className="flex gap-1.5">
+												<dt>Play</dt>
+												<dd className="text-foreground">Space</dd>
+											</div>
+											<div className="flex gap-1.5">
+												<dt>Events</dt>
+												<dd className="text-foreground">⇧← →</dd>
+											</div>
+											<div className="flex gap-1.5">
+												<dt>Live</dt>
+												<dd className="text-foreground">L</dd>
+											</div>
+										</>
+									) : null}
 									<div className="flex gap-1.5">
 										<dt>Dashboards</dt>
 										<dd className="text-foreground">1–9</dd>
@@ -265,7 +266,8 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 									</div>
 								</dl>
 							</SiteFooter>
-							<PitBoard />
+							{/* On a phone the pit board carries the lap, so it goes with the session. */}
+							{session ? <PitBoard /> : null}
 							<AccountSession />
 							<DrillSheet />
 						</div>

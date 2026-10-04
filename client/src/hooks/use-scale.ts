@@ -1,51 +1,81 @@
 import * as React from 'react';
 
-const STORAGE_KEY = 'pitwall-scale';
+import { screenFactor } from '@/lib/screen-factor';
 
-/** Text and spacing size. Everything is sized in rem, so this scales the whole console. */
-export const SCALES = [
-	{ value: 's', label: 'S', factor: 0.875 },
-	{ value: 'm', label: 'M', factor: 1 },
-	{ value: 'l', label: 'L', factor: 1.125 },
-	{ value: 'xl', label: 'XL', factor: 1.25 },
-	{ value: 'tv', label: 'TV', factor: 1.5 }
-] as const;
+const STORAGE_KEY = 'pitwall-larger-text';
 
-export type Scale = (typeof SCALES)[number]['value'];
+/** The S to TV size switch this replaces; its larger sizes carry over as Larger text. */
+const OLD_SCALE_KEY = 'pitwall-scale';
+
+/**
+ * Larger text on top of the screen's own size. A TV across the room reports the same window as
+ * a monitor at arm's length, so only the viewer can say they sit far away.
+ */
+const LARGER_TEXT = 1.25;
 
 const listeners = new Set<() => void>();
 
-let current: Scale = 'm';
+let larger = false;
 
-function apply(scale: Scale): void {
-	const factor = SCALES.find((entry) => entry.value === scale)?.factor ?? 1;
+let factor = 1;
 
-	current = scale;
-	document.documentElement.style.fontSize = factor === 1 ? '' : `${factor * 100}%`;
+/** Everything is sized in rem, so the root font size scales the whole console. */
+function apply(): void {
+	const next = screenFactor(window.innerWidth, window.innerHeight) * (larger ? LARGER_TEXT : 1);
 
+	if (next !== factor) {
+		factor = next;
+		document.documentElement.style.fontSize = factor === 1 ? '' : `${factor * 100}%`;
+		notify();
+	}
+}
+
+function notify(): void {
 	for (const listener of listeners) {
 		listener();
 	}
 }
 
-/** Restores the viewer's saved size before first paint. */
-export function restoreScale(): void {
-	try {
-		const saved = SCALES.find((entry) => entry.value === window.localStorage.getItem(STORAGE_KEY));
+function readLarger(): boolean {
+	const saved = window.localStorage.getItem(STORAGE_KEY);
 
-		if (saved) {
-			apply(saved.value);
-		}
-	} catch {
-		// Storage can be unavailable; the default size stands.
+	if (saved !== null) {
+		return saved === 'true';
 	}
+
+	const old = window.localStorage.getItem(OLD_SCALE_KEY);
+
+	if (old === null) {
+		return false;
+	}
+
+	const migrated = old === 'l' || old === 'xl' || old === 'tv';
+
+	window.localStorage.setItem(STORAGE_KEY, String(migrated));
+	window.localStorage.removeItem(OLD_SCALE_KEY);
+
+	return migrated;
 }
 
-export function setScale(scale: Scale): void {
-	apply(scale);
+/** Sizes the console for this screen before first paint, and again whenever the window changes. */
+export function restoreScale(): void {
+	try {
+		larger = readLarger();
+	} catch {
+		// Storage can be unavailable; the screen's own size stands.
+	}
+
+	apply();
+	window.addEventListener('resize', apply);
+}
+
+export function setLargerText(next: boolean): void {
+	larger = next;
+	apply();
+	notify();
 
 	try {
-		window.localStorage.setItem(STORAGE_KEY, scale);
+		window.localStorage.setItem(STORAGE_KEY, String(next));
 	} catch {
 		// Not persisting is fine: the size still applies to this visit.
 	}
@@ -57,17 +87,22 @@ function subscribe(onChange: () => void): () => void {
 	return () => listeners.delete(onChange);
 }
 
-export function useScale(): Scale {
+export function useLargerText(): boolean {
 	return React.useSyncExternalStore(
 		subscribe,
-		() => current,
-		() => 'm'
+		() => larger,
+		() => false
 	);
 }
 
 /** Pixels in one rem at the current size. */
 export function useRemPixels(): number {
-	const scale = useScale();
-
-	return 16 * (SCALES.find((entry) => entry.value === scale)?.factor ?? 1);
+	return (
+		16 *
+		React.useSyncExternalStore(
+			subscribe,
+			() => factor,
+			() => 1
+		)
+	);
 }

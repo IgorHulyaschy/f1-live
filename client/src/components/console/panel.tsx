@@ -53,10 +53,15 @@ export function PanelHeader({
 		>
 			<h2 className="type-wide text-xs font-bold">{title}</h2>
 			{meta ? <span className="type-label">{meta}</span> : null}
-			{children ? (
-				<div className="ml-auto flex max-w-full items-center gap-2 overflow-x-auto">{children}</div>
+			{children || end ? (
+				// The menu wraps with the controls, never onto a row of its own.
+				<div className="ml-auto flex max-w-full min-w-0 items-center gap-2">
+					{children ? (
+						<div className="flex min-w-0 items-center gap-2 overflow-x-auto">{children}</div>
+					) : null}
+					{end ? <div className="flex shrink-0">{end}</div> : null}
+				</div>
 			) : null}
-			{end ? <div className={cn('flex shrink-0', !children && 'ml-auto')}>{end}</div> : null}
 		</header>
 	);
 }

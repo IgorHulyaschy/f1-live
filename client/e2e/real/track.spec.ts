@@ -28,7 +28,8 @@ test('the race map draws the cars from the replay positions, in their order on t
 });
 
 test('the map runs between laps on the replay clock and follows scrubbing', async ({ page }) => {
-	await openRace(page, '/d/track?session=9858&lap=30');
+	// The Race layout carries the Replay tile with the speed key and the lap jumps.
+	await openRace(page, '/session?session=9858&lap=30');
 
 	const map = page.getByTestId('track-map');
 
@@ -73,7 +74,7 @@ test('every Track tile reads the race', async ({ page }) => {
 		timeout: 15_000
 	});
 
-	await page.getByRole('button', { name: 'Go to lap 2', exact: true }).click();
+	await openRace(page, '/d/track?session=9858&lap=2&plan=pro');
 	await expect(page.getByTestId('flag-list')).toContainText('Double yellow in sector 2');
 });
 

@@ -39,7 +39,11 @@ const STARTS = [
 		title: 'Lap charts',
 		detail: 'Compare any drivers, with fuel and tyres taken out.'
 	},
-	{ id: 'wall', title: 'TV or second monitor', detail: 'Fills the screen; pick text size TV.' }
+	{
+		id: 'wall',
+		title: 'TV or second monitor',
+		detail: 'Fills the screen; Larger text reads from the sofa.'
+	}
 ] as const;
 
 type StartId = (typeof STARTS)[number]['id'];

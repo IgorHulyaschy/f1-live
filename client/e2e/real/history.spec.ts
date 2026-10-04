@@ -38,6 +38,9 @@ test('head to head shows the totals of two teammates and a fact that links to it
 		'1002'
 	);
 
+	// No session is on screen, so the bar has none; the fact's link opens one.
+	await expect(page.getByTestId('live-strip')).toHaveCount(0);
+
 	const link = page.getByTestId('h2h-fact').first().getByRole('link').first();
 
 	await expect(link).toHaveAttribute('href', /session=\d+/);
@@ -82,6 +85,21 @@ test.describe('in Tokyo', () => {
 	});
 });
 
+test('the calendar fills a wide screen with more weekends side by side', async ({ page }) => {
+	const columns = (): Promise<number> =>
+		page
+			.getByTestId('calendar-page')
+			.locator('ol')
+			.first()
+			.evaluate((list) => getComputedStyle(list).gridTemplateColumns.split(' ').length);
+
+	await openHistory(page, '/calendar?season=2026');
+	await expect.poll(columns).toBe(2);
+
+	await page.setViewportSize({ width: 2560, height: 1440 });
+	await expect.poll(columns).toBe(4);
+});
+
 test('the standings show the championship after a chosen round', async ({ page }) => {
 	await openHistory(page, '/standings?season=2025&round=11');
 
@@ -92,6 +110,14 @@ test('the standings show the championship after a chosen round', async ({ page }
 	await expect(rows.nth(0)).toContainText('216');
 	await expect(rows.nth(1)).toContainText('NOR');
 	await expect(rows.nth(1)).toContainText('201');
+	await expect(page.getByTestId('live-strip')).toHaveCount(0);
+
+	// At 1440 px the podium sits beside the table instead of leaving the right half empty.
+	const table = await rows.nth(0).boundingBox();
+	const podium = await page.getByTestId('round-podium').boundingBox();
+
+	expect(podium && table && podium.x >= table.x + table.width).toBe(true);
+	expect(podium && table && podium.y < table.y + table.height).toBe(true);
 });
 
 test('a driver page sums up every season and links each weekend to its session', async ({
@@ -105,6 +131,7 @@ test('a driver page sums up every season and links each weekend to its session',
 	);
 	await expect(page.getByTestId('driver-seasons').getByRole('row')).not.toHaveCount(1);
 	await expect(page.getByTestId('driver-teammates')).toContainText('Oscar Piastri');
+	await expect(page.getByTestId('live-strip')).toHaveCount(0);
 
 	const link = page.getByTestId('driver-weekends').getByRole('link').first();
 

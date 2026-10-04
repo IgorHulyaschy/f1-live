@@ -1,18 +1,10 @@
-import type { Driver } from '@f1-live/shared';
 import { ChevronsUpDownIcon, EyeIcon, SkipBackIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Key } from '@/components/console/keys';
 import { LapCounter, Transport } from '@/components/race-clock';
-import { TeamStripe } from '@/components/driver-tag';
 import { TrackStatusBadge } from '@/components/track-status-badge';
-import {
-	findSession,
-	formatLocalStart,
-	formatUntil,
-	nextSession,
-	SESSION_TYPE_LABEL
-} from '@/data/catalog';
+import { findSession, formatUntil, SESSION_TYPE_LABEL } from '@/data/catalog';
 import type { LiveConnection } from '@/data/live-feed';
 import { useRace } from '@/data/race-context';
 import { sessionKind } from '@/features/dashboard/dashboards';
@@ -22,14 +14,12 @@ import { useShownDashboard } from '@/features/library/shown-dashboard';
 import { useFeedLabel } from '@/features/session/session-tiles';
 import { useNow } from '@/hooks/use-now';
 import { useScreenTime } from '@/hooks/use-screen-time';
-import { type Knockout, knockout, onTrack, stillToRun } from '@/insights/knockout';
+import { type Knockout, knockout } from '@/insights/knockout';
 import { isSessionOver } from '@/insights/qualifying';
 import { clockAt, formatCountdown } from '@/insights/session-clock';
-import type { StandingRow } from '@/insights/standings';
-import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-/** A reading on the strip: its printed label above, the value below; phones drop the label. */
+/** A reading in the bar: one line, its label printed small before the value on wider screens. */
 function Reading({
 	label,
 	children,
@@ -42,12 +32,13 @@ function Reading({
 	testId?: string;
 }) {
 	return (
-		<div className={cn('flex min-w-0 flex-col justify-end', className)} data-testid={testId}>
-			<span className="type-label max-sm:sr-only">{label}</span>
-			<span className="flex min-w-0 items-center gap-2 text-sm leading-6 font-medium">
-				{children}
-			</span>
-		</div>
+		<span
+			className={cn('flex min-w-0 shrink-0 items-baseline gap-1.5', className)}
+			data-testid={testId}
+		>
+			<span className="type-label max-lg:sr-only">{label}</span>
+			<span className="flex min-w-0 items-baseline gap-1 text-sm font-medium">{children}</span>
+		</span>
 	);
 }
 
@@ -80,42 +71,12 @@ function StateMark() {
 				'type-wide inline-flex h-7 shrink-0 items-center self-center border px-2 text-xs font-black italic',
 				lit && 'border-foreground bg-foreground text-background',
 				!lit && live.isLive && 'border-dashed',
-				!live.isLive && 'text-muted-foreground'
+				// A phone's bar has no room for the word; the strip keeps the finish key clear instead.
+				!live.isLive && 'text-muted-foreground max-sm:sr-only'
 			)}
 		>
 			{live.isLive && live.connection !== 'live' ? CONNECTION_LABEL[live.connection] : feed}
 		</output>
-	);
-}
-
-function Codes({ rows, followed }: { rows: readonly StandingRow[]; followed: string }) {
-	return (
-		<span className="flex flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-2.5">
-			{rows.map((row) => (
-				<span
-					key={row.driver.number}
-					className={cn(
-						'flex items-center gap-1',
-						row.out && 'text-muted-foreground',
-						row.driver.number === followed &&
-							'decoration-focus underline decoration-2 underline-offset-4'
-					)}
-				>
-					<TeamStripe driver={row.driver} className="h-3.5" />
-					<span className="type-wide text-xs font-bold">{row.driver.code}</span>
-				</span>
-			))}
-		</span>
-	);
-}
-
-function DriverReading({ driver, children }: { driver: Driver; children?: React.ReactNode }) {
-	return (
-		<>
-			<TeamStripe driver={driver} className="h-3.5" />
-			<span className="type-wide text-xs font-bold">{driver.code}</span>
-			{children}
-		</>
 	);
 }
 
@@ -149,9 +110,7 @@ function ClockReading({ state }: { state: Knockout | null }) {
 
 	return (
 		<Reading label={part ? `${part} left` : 'Time left'} testId="strip-time">
-			<span className="font-mono text-2xl leading-7 font-bold">
-				{formatCountdown(reading.remainingMs)}
-			</span>
+			<span className="font-mono text-base font-bold">{formatCountdown(reading.remainingMs)}</span>
 			{reading.running || reading.remainingMs === 0 ? null : (
 				<span className="type-label">Held</span>
 			)}
@@ -171,177 +130,122 @@ function StripClock() {
 	}
 
 	return (
-		<div className="flex items-center gap-3 max-sm:hidden" data-testid="header-clock">
+		<div className="flex shrink-0 items-center gap-3 max-sm:hidden" data-testid="header-clock">
 			<LapCounter />
 			<Transport />
 		</div>
 	);
 }
 
-/** Where to go when this session is not the one that matters now: the live one, or the next. */
+/** The session that is live, when it is not the one on screen. */
 function Elsewhere() {
 	const { catalog, live, sessionKey, setSession } = useRace();
-	const now = useNow();
 	const liveEntry = catalog && live.liveKey ? findSession(catalog, live.liveKey) : null;
-	const next = catalog && !live.liveKey ? nextSession(catalog, now) : null;
 
-	if (liveEntry && liveEntry.key !== sessionKey) {
-		return (
-			<span className="flex items-center gap-3" data-testid="strip-live-elsewhere">
-				<Reading label="Live now" className="max-sm:hidden">
-					{sessionTitle(liveEntry)}
-				</Reading>
-				<Key pressed onClick={() => setSession(liveEntry.key)}>
-					Watch live
-				</Key>
-			</span>
-		);
-	}
-
-	if (!next || next.key === sessionKey) {
+	if (!liveEntry || liveEntry.key === sessionKey) {
 		return null;
 	}
 
 	return (
-		<span className="flex items-end gap-4" data-testid="strip-next">
-			<Reading label="Next">{sessionTitle(next)}</Reading>
-			<Reading label="Starts" className="max-lg:hidden">
-				{formatLocalStart(next.session.startsAt)}
-			</Reading>
-			<Reading label="In">{formatUntil(now, Date.parse(next.session.startsAt))}</Reading>
-		</span>
+		<Key
+			pressed
+			onClick={() => setSession(liveEntry.key)}
+			title={`Live now: ${sessionTitle(liveEntry)}`}
+			data-testid="strip-live-elsewhere"
+		>
+			Watch live
+			<span className="sr-only">: {sessionTitle(liveEntry)}</span>
+		</Key>
 	);
 }
 
 /**
- * Which session is on screen and how it stands, in one always-visible line under the top bar:
- * live or not, the part and the time left, the flag, and who is in danger or in front. When
- * the session on screen is not live, it points to the one that is, or to the next.
+ * The session on screen, in the top bar: live or not, which session (it opens the picker), the
+ * lap or the time left, and the flag when it is not green. Everything else about the session is
+ * a tile's job.
  */
-export function LiveStrip() {
-	const { race, snapshot, standings, followedDriver, spoilers, live, lap, setLap, sessionError } =
-		useRace();
-
+export function LiveStrip({ compact = false }: { compact?: boolean }) {
+	const { race, snapshot, standings, spoilers, live, lap, setLap, sessionError } = useRace();
 	const [picking, setPicking] = React.useState(false);
-	const time = useScreenTime();
 	const now = useNow();
 	const kind = sessionKind(race.session.type);
 	const state = knockout(snapshot, standings);
 	const upcoming = race.laps.length === 0 && Date.parse(race.session.startsAt) > now;
-	const toRun = state ? stillToRun(state, onTrack(snapshot, standings, time)) : [];
-	const leader = standings.find((row) => row.out === null);
-	const fastest = standings.find((row) => row.bestLapMs !== null);
 	const name = race.session.name ?? SESSION_TYPE_LABEL[race.session.type];
+	const meeting = race.session.meetingName.replace(/ Grand Prix$/, ' GP');
 
 	return (
 		<section
 			aria-label="Session status"
 			data-testid="live-strip"
-			className="flex flex-wrap items-end gap-x-3 gap-y-1.5 border-t px-3 py-1.5 sm:gap-x-5 sm:px-4 md:px-6"
+			className="flex min-w-0 items-center gap-2 sm:gap-3"
 		>
 			<StateMark />
-			<Reading
-				label={race.session.meetingName.replace(/ Grand Prix$/, ' GP')}
-				// A phone shows only the part here; the first tab already names the session.
-				className={state?.part ? undefined : 'max-sm:hidden'}
-				testId="strip-session"
+			<Key
+				onClick={() => setPicking(true)}
+				aria-haspopup="dialog"
+				aria-label={`Sessions: ${meeting}, ${name}`}
+				title="Pick a session"
+				className="min-w-0 normal-case max-sm:px-1.5"
+				data-testid="strip-session"
 			>
-				<span className="type-wide text-xs font-bold max-sm:hidden">{name}</span>
-				{state?.part ? (
-					<span className="type-wide text-sm font-black" data-testid="strip-part">
-						{state.prefix}
-						{state.part}
-					</span>
-				) : null}
-			</Reading>
+				<span className={cn('type-wide truncate font-bold', compact ? 'hidden' : 'max-xl:hidden')}>
+					{meeting} · {name}
+				</span>
+				<ChevronsUpDownIcon aria-hidden />
+			</Key>
+			{state?.part ? (
+				<span className="type-wide shrink-0 text-sm font-black" data-testid="strip-part">
+					{state.prefix}
+					{state.part}
+				</span>
+			) : null}
 			{upcoming ? (
-				<>
-					<Reading label="Starts">{formatLocalStart(race.session.startsAt)}</Reading>
-					<Reading label="In">{formatUntil(now, Date.parse(race.session.startsAt))}</Reading>
-				</>
+				<Reading label="Starts in">{formatUntil(now, Date.parse(race.session.startsAt))}</Reading>
+			) : kind === 'race' ? (
+				<Reading label="Lap">
+					<span className="sr-only" data-testid="lap-counter">
+						Lap {lap}
+						{race.session.totalLaps > 0 ? `/${race.session.totalLaps}` : null}
+					</span>
+					<span aria-hidden className="font-mono text-base font-bold">
+						{lap}
+					</span>
+					{race.session.totalLaps > 0 ? (
+						<span aria-hidden className="text-muted-foreground font-mono text-xs">
+							/{race.session.totalLaps}
+						</span>
+					) : null}
+				</Reading>
 			) : (
-				<>
-					{kind === 'race' ? (
-						<Reading label="Lap">
-							<span className="sr-only" data-testid="lap-counter">
-								Lap {lap}
-								{race.session.totalLaps > 0 ? `/${race.session.totalLaps}` : null}
-							</span>
-							<span aria-hidden className="font-mono text-2xl leading-7 font-bold">
-								{lap}
-							</span>
-							{race.session.totalLaps > 0 ? (
-								<span aria-hidden className="text-muted-foreground font-mono text-sm">
-									/{race.session.totalLaps}
-								</span>
-							) : null}
-						</Reading>
-					) : (
-						<ClockReading state={state} />
-					)}
-					<Reading label="Track">
-						<TrackStatusBadge status={snapshot.trackStatus} />
-					</Reading>
-					{kind === 'race' && leader ? (
-						<Reading label="Leader" className="max-sm:hidden" testId="strip-leader">
-							<DriverReading driver={leader.driver} />
-						</Reading>
-					) : null}
-					{kind === 'practice' && fastest?.bestLapMs ? (
-						<Reading label="Fastest" className="max-sm:hidden">
-							<DriverReading driver={fastest.driver}>
-								<span className="font-mono text-xs">{formatLapTime(fastest.bestLapMs)}</span>
-							</DriverReading>
-						</Reading>
-					) : null}
-					{state?.running ? (
-						<Reading label="To run" className="max-sm:hidden">
-							<span
-								className="font-mono"
-								title="Cars still in this part that are out on track or yet to set a time"
-							>
-								{toRun.length}
-							</span>
-						</Reading>
-					) : null}
-					{state && state.dropZone.length > 0 ? (
-						<Reading
-							label={`${state.prefix}${state.part} drop zone`}
-							className="max-sm:order-last max-sm:basis-full"
-							testId="strip-drop-zone"
-						>
-							<span className="type-label text-danger sm:hidden">Out</span>
-							<Codes rows={state.dropZone} followed={followedDriver} />
-						</Reading>
-					) : null}
-				</>
+				<ClockReading state={state} />
 			)}
-			<div className="ml-auto flex items-end gap-3">
-				<Elsewhere />
-				<StripClock />
-				{spoilers.hidden ? (
-					<Key
-						onClick={spoilers.reveal}
-						aria-label="Jump to the finish (shows results)"
-						title="Results are hidden; this shows them"
-					>
-						<EyeIcon aria-hidden />
-						<span className="max-sm:hidden">Jump to the finish</span>
-					</Key>
-				) : null}
-				{live.isLive && lap > 1 ? (
-					<Key onClick={() => setLap(1)} title="Watch this session from its start">
-						<SkipBackIcon aria-hidden />
-						<span className="max-sm:hidden">From the start</span>
-					</Key>
-				) : null}
-				<Key onClick={() => setPicking(true)} aria-haspopup="dialog" aria-label="Sessions">
-					<span className="max-md:hidden">Sessions</span>
-					<ChevronsUpDownIcon aria-hidden />
+			{snapshot.trackStatus === 'green' || upcoming ? null : (
+				<TrackStatusBadge status={snapshot.trackStatus} labelClassName="max-sm:sr-only" />
+			)}
+			<Elsewhere />
+			<StripClock />
+			{spoilers.hidden ? (
+				<Key
+					onClick={spoilers.reveal}
+					aria-label="Jump to the finish (shows results)"
+					title="Results are hidden; this shows them"
+				>
+					<EyeIcon aria-hidden />
+					<span className="max-2xl:hidden">Jump to the finish</span>
 				</Key>
-			</div>
+			) : null}
+			{live.isLive && lap > 1 ? (
+				<Key
+					onClick={() => setLap(1)}
+					aria-label="From the start"
+					title="Watch this session from its start"
+				>
+					<SkipBackIcon aria-hidden />
+				</Key>
+			) : null}
 			{sessionError ? (
-				<p role="alert" className="text-danger basis-full text-xs">
+				<p role="alert" className="text-danger max-w-48 truncate text-xs" title={sessionError}>
 					{sessionError}
 				</p>
 			) : null}

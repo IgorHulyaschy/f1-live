@@ -10,13 +10,17 @@ import {
 	buildDashboard,
 	drillDashboard,
 	GRID_COLUMNS,
+	moveInStack,
+	onScreen,
 	parseDashboardListText,
 	parseDashboardText,
 	PRESETS,
-	phoneOrder,
 	readingOrder,
-	swapTiles,
-	TILE_INFO
+	removeTile,
+	SCREEN_ROWS,
+	stackOrder,
+	TILE_INFO,
+	withPlacements
 } from './dashboards.ts';
 import { decodeShare, encodeShare } from '../library/share.ts';
 
@@ -35,20 +39,42 @@ describe('presets and library dashboards', () => {
 		);
 	});
 
-	it('fit the grid, respect tile minimums and do not overlap', () => {
+	it('fit the grid, respect tile minimums and do not overlap, on every screen class', () => {
 		for (const dashboard of [...PRESETS, ...SEED_EXAMPLES.map((entry) => entry.dashboard)]) {
-			for (const place of dashboard.layout) {
-				const kind = dashboard.tiles.find((tile) => tile.id === place.i)?.kind;
+			for (const layout of [dashboard.layout, dashboard.wide ?? []]) {
+				for (const place of layout) {
+					const kind = dashboard.tiles.find((tile) => tile.id === place.i)?.kind;
 
-				assert.ok(kind, `${dashboard.id} ${place.i}`);
-				assert.ok(place.x + place.w <= GRID_COLUMNS, `${dashboard.id} ${place.i}`);
-				assert.ok(place.w >= TILE_INFO[kind].min.w, `${dashboard.id} ${place.i} width`);
-				assert.ok(place.h >= TILE_INFO[kind].min.h, `${dashboard.id} ${place.i} height`);
+					assert.ok(kind, `${dashboard.id} ${place.i}`);
+					assert.ok(place.x + place.w <= GRID_COLUMNS, `${dashboard.id} ${place.i}`);
+					assert.ok(place.w >= TILE_INFO[kind].min.w, `${dashboard.id} ${place.i} width`);
+					assert.ok(place.h >= TILE_INFO[kind].min.h, `${dashboard.id} ${place.i} height`);
+				}
+
+				for (const [index, place] of layout.entries()) {
+					for (const other of layout.slice(index + 1)) {
+						assert.equal(overlaps(place, other), false, `${dashboard.id} ${place.i} ${other.i}`);
+					}
+				}
 			}
+		}
+	});
 
-			for (const [index, place] of dashboard.layout.entries()) {
-				for (const other of dashboard.layout.slice(index + 1)) {
-					assert.equal(overlaps(place, other), false, `${dashboard.id} ${place.i} ${other.i}`);
+	it('fill their first screen with no holes, on every screen class', () => {
+		for (const preset of PRESETS) {
+			assert.ok(preset.wide, `${preset.id} has an ultrawide arrangement`);
+			assert.deepEqual(parseDashboardText(JSON.stringify(preset)), preset);
+
+			for (const layout of [preset.layout, preset.wide]) {
+				for (let row = 0; row < SCREEN_ROWS; row++) {
+					for (let column = 0; column < GRID_COLUMNS; column++) {
+						const cell = { x: column, y: row, w: 1, h: 1 };
+
+						assert.ok(
+							layout.some((place) => overlaps(place, cell)),
+							`${preset.id} hole at ${column},${row}`
+						);
+					}
 				}
 			}
 		}
@@ -85,20 +111,57 @@ describe('dashboard edits', () => {
 
 		assert.ok(quali);
 		assert.deepEqual(
-			phoneOrder(quali)
+			stackOrder(quali)
 				.slice(0, 2)
 				.map((tile) => tile.kind),
 			['replay', 'timing']
 		);
 	});
 
-	it('moves a tile by swapping places', () => {
-		const swapped = swapTiles(live, 'live-3', 'live-4');
+	it('stacks Analysis answers before the chart on a phone, and an added Replay first', () => {
+		const analysis = PRESETS.find((preset) => preset.id === 'analysis');
+
+		assert.ok(analysis);
+		assert.deepEqual(
+			stackOrder(addTile(analysis, 'replay', 'new')).map((tile) => tile.kind),
+			['replay', 'pace', 'fastest-laps', 'compare', 'chart', 'telemetry']
+		);
+	});
+
+	it('moves a tile in the phone stack without touching the grids', () => {
+		const moved = moveInStack(live, 'live-4', 'live-3');
 
 		assert.deepEqual(
-			readingOrder(swapped).map((tile) => tile.kind),
-			['session', 'replay', 'lap-strip', 'focus', 'timing', 'race-control']
+			stackOrder(moved).map((tile) => tile.kind),
+			['replay', 'session', 'lap-strip', 'focus', 'timing', 'race-control']
 		);
+		assert.deepEqual(moved.layout, live.layout);
+		assert.deepEqual(
+			stackOrder(removeTile(moved, 'live-4')).map((tile) => tile.kind),
+			['replay', 'session', 'lap-strip', 'timing', 'race-control']
+		);
+	});
+
+	it('keeps an ultrawide edit to the ultrawide screen', () => {
+		const race = PRESETS.find((preset) => preset.id === 'live');
+
+		assert.ok(race?.wide);
+
+		const wide = onScreen(race, 'wide').layout.map((place) =>
+			place.i === 'live-0' ? { ...place, w: place.w + 1 } : place
+		);
+
+		const edited = withPlacements(race, 'wide', wide);
+
+		assert.deepEqual(edited.layout, race.layout);
+		assert.deepEqual(edited.wide, wide);
+		assert.equal(withPlacements(race, 'standard', race.layout), race);
+		assert.deepEqual(onScreen(live, 'wide').layout, live.layout);
+
+		const added = addTile(edited, 'pit-stops', 'new');
+
+		assert.equal(added.wide?.at(-1)?.i, 'new');
+		assert.equal(parseDashboardText(JSON.stringify(added))?.wide?.length, added.tiles.length);
 	});
 });
 
@@ -128,6 +191,19 @@ describe('parsing', () => {
 		);
 
 		assert.deepEqual(parsed?.tiles, [{ id: 'a', kind: 'timing' }]);
+	});
+
+	it('drops the old Fit switch, and a phone order or ultrawide arrangement missing a tile', () => {
+		const parsed = parseDashboardText(
+			JSON.stringify({
+				...live,
+				fit: true,
+				wide: live.layout.slice(1),
+				order: ['live-0', 'live-1']
+			})
+		);
+
+		assert.deepEqual(parsed, live);
 	});
 
 	it('rejects text that is not a dashboard', () => {

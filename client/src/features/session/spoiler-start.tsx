@@ -39,7 +39,7 @@ export function SpoilerStart() {
 				<Key
 					pressed
 					onClick={() => setPlaying(true)}
-					aria-label={`Play from the start at ${speed}×`}
+					aria-label={`Play at ${speed}× from the start`}
 				>
 					<PlayIcon aria-hidden />
 					Play at {speed}×

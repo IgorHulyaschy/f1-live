@@ -6,7 +6,7 @@ Working name only; the product must not use "F1" or "Formula 1" in its brand.
 
 ![Live dashboard: timing tower, followed driver and race control](docs/screenshots/live-desktop-dark.png)
 
-| Pit wall at 2560px, fit to screen                                                                  | Building a dashboard                                                                           |
+| Pit wall at 2560px                                                                                 | Building a dashboard                                                                           |
 | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | ![Pit wall preset on a 2560px monitor](docs/screenshots/pit-wall-2560.png)                         | ![Edit mode with tile bars and resize handles](docs/screenshots/edit-mode.png)                 |
 | **Analysis**                                                                                       | **Strategy**                                                                                   |
@@ -29,8 +29,8 @@ replay keys and lap strip move and resize like timing or a chart.
 - **A home.** `/` asks a question, shows what is live or next, the championship and the latest
   weekend; a returning viewer's start page is kept.
 - **Session-aware.** `/session` opens the layout for the session on screen: Race, Quali or Practice,
-  named in the first tab. A live strip under the top bar says on every page whether a session is
-  live, which part, the time left, the flag and who is in the drop zone, or what starts next.
+  named in the first tab. One slim bar says on every page whether a session is live, which part,
+  the time left or the lap, and the flag; everything else sits in one menu.
 - **One timeline.** The Replay tile plays at 1×, 10× and 60× real time, jumps between events
   (flags, stops, your driver's moments) with Shift and the arrows, and scrubs along the race
   barcode. Track maps move smoothly between laps.
@@ -43,7 +43,7 @@ replay keys and lap strip move and resize like timing or a chart.
   compare two drivers. Each view has its own address; Back and Escape close it.
 - **Ready-made.** The three session layouts, Analysis and Strategy (at `/analysis`,
   `/strategy`), Battle, Track, Drivers, Race story and Pit wall; the ones a session does not need
-  wait under More. Edit any of them and Reset brings it back; **+** starts your own.
+  wait under More. Edit any of them and Reset brings it back; New dashboard starts your own.
 - **38 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
   Drivers (focus, driver, grid, driver view), Timing (with knockout and best sectors), Track (track map,
   battle map, pit rejoin, mini-sector dominance, flag map, speed map, gap distance, ghost lap),
@@ -59,8 +59,9 @@ replay keys and lap strip move and resize like timing or a chart.
 - **Gaps as distance.** Qualifying or the race on one straight, each car behind by the metres
   its gap is worth; the best laps run together as a ghost lap; and a picture of it at social
   sizes to share.
-- **Any monitor.** Panels lay out by their tile's width (container queries). **Fit** stretches
-  rows to the window height; text size runs from S to TV; narrow screens stack tiles.
+- **Any monitor.** Tiles fill the window from a laptop to an ultrawide, which gets its own
+  arrangement; text grows with the screen, Larger text is there for a TV, and narrow screens
+  stack tiles. Panels lay out by their tile's width (container queries).
 - **Windows.** Pop out a tile or a dashboard; lap, driver, plan, compared drivers and play/pause
   stay in sync.
 - **Library and sharing.** `/library` has your dashboards, the ready-made ones and fan

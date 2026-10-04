@@ -109,23 +109,29 @@ export function StandingsPage() {
 				<p className="text-muted-foreground text-sm">No results for {year} yet.</p>
 			) : null}
 			{season && round ? (
-				<RoundPodium season={season} round={round} include={include} className="max-w-3xl" />
-			) : null}
-			{season && round ? (
-				<Panel className="max-w-3xl">
-					<PanelHeader
-						title={view === 'drivers' ? 'Drivers' : 'Constructors'}
-						meta={`${season.season}, after round ${round.round}: ${round.name}`}
+				// A wide screen puts the table first, as the answer, with the podium beside it.
+				<div className="grid items-start gap-6 xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+					<RoundPodium
+						season={season}
+						round={round}
+						include={include}
+						className="max-w-3xl xl:order-last xl:max-w-none"
 					/>
-					<div className="px-4 pb-2">
-						<StandingsTable
-							season={season}
-							view={view}
-							throughRound={round.round}
-							include={include}
+					<Panel className="max-w-3xl xl:max-w-none">
+						<PanelHeader
+							title={view === 'drivers' ? 'Drivers' : 'Constructors'}
+							meta={`${season.season}, after round ${round.round}: ${round.name}`}
 						/>
-					</div>
-				</Panel>
+						<div className="px-4 pb-2">
+							<StandingsTable
+								season={season}
+								view={view}
+								throughRound={round.round}
+								include={include}
+							/>
+						</div>
+					</Panel>
+				</div>
 			) : null}
 		</div>
 	);

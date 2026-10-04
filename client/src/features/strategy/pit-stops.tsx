@@ -5,6 +5,8 @@ import { TyreBadge } from '@/components/tyre-badge';
 import { useRaceView } from '@/data/race-context';
 import { cn } from '@/lib/utils';
 
+import { useTileFill } from '../dashboard/tile-fill';
+
 /** Bars span this much either side of the median green-flag stop. */
 const SCALE_MS = 1500;
 
@@ -24,6 +26,7 @@ function median(values: readonly number[]): number | null {
 /** Every stop against the typical green-flag stop: quicker to the left, slower to the right. */
 export function PitStops() {
 	const { snapshot } = useRaceView();
+	const fill = useTileFill();
 	const drivers = new Map(snapshot.drivers.map((driver) => [driver.number, driver]));
 	const stops = snapshot.pitStops.toReversed();
 
@@ -61,14 +64,17 @@ export function PitStops() {
 							aria-hidden
 							className="type-label grid grid-cols-[2.5rem_3.5rem_2rem_minmax(0,1fr)_4rem] gap-3 border-b px-4 py-1.5"
 						>
-							<span className="col-start-4 flex justify-between">
-								<span>Quicker</span>
+							<span className="col-start-4 flex justify-center @lg:justify-between">
+								<span className="hidden @lg:inline">Quicker</span>
 								<span className="text-foreground">Typical {(typical / 1000).toFixed(1)}s</span>
-								<span>Slower</span>
+								<span className="hidden @lg:inline">Slower</span>
 							</span>
 						</div>
 					)}
-					<ol className="flex max-h-120 flex-col overflow-y-auto px-4 py-1">
+					<ol
+						// In a tile the tile scrolls, as one keyboard stop.
+						className={cn('flex flex-col px-4 py-1', !fill && 'max-h-120 overflow-y-auto')}
+					>
 						{stops.map((stop) => {
 							const driver = drivers.get(stop.driverNumber);
 							const cheap = neutralised.get(`${stop.driverNumber}-${stop.lap}`);

@@ -70,7 +70,6 @@ test.describe('a live race', () => {
 			'data-testid',
 			'timing-row-VER'
 		);
-		await expect(page.getByTestId('strip-leader')).toContainText('VER');
 
 		// Five seconds behind, the delayed screen has not seen the second lap yet.
 		await expect(delayed.getByTestId('lap-counter')).not.toHaveText('Lap 2/50');
@@ -140,10 +139,7 @@ test.describe('a live qualifying session', () => {
 		await expect(strip.getByTestId('strip-time')).toContainText(/Q1 left\s*1?\d:\d\d/);
 
 		// At the end of the replay six of the 22 have no time and would go out.
-		const dropZone = strip.getByTestId('strip-drop-zone');
-
-		await expect(dropZone).toContainText('Q1 drop zone');
-		await expect(dropZone).toContainText('STR', { timeout: 30_000 });
+		await expect(page.getByTestId('drop-zone')).toContainText('STR', { timeout: 30_000 });
 		await expect(page.getByTestId(/^timing-row-/).first()).toHaveAttribute(
 			'data-testid',
 			'timing-row-HAD'
@@ -200,8 +196,8 @@ test.describe('a live qualifying session', () => {
 		const elsewhere = page.getByTestId('strip-live-elsewhere');
 
 		await expect(page.getByTestId('live-key')).toHaveText('Replay');
-		await expect(elsewhere).toContainText('Azerbaijan Qualifying');
-		await elsewhere.getByRole('button', { name: 'Watch live' }).click();
+		await expect(elsewhere).toHaveAccessibleName(/^Watch live.*Azerbaijan Qualifying$/);
+		await elsewhere.click();
 
 		await expect(page).toHaveURL(/session=11373/);
 		await expect(page.getByTestId('live-key')).toHaveText('Live');

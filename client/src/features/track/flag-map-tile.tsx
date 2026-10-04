@@ -123,7 +123,8 @@ function FlagMapBody({ track }: { track: TrackReady }) {
 			<div
 				className={cn(
 					'flex flex-col @3xl:flex-row',
-					fill ? 'min-h-48 flex-1' : '@3xl:aspect-[16/9]'
+					// Never shorter than the map and the list together: a short tile scrolls instead.
+					fill ? 'flex-1' : '@3xl:aspect-[16/9]'
 				)}
 			>
 				<div

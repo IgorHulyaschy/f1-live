@@ -40,8 +40,8 @@ test('the map follows the replay as it plays and as it is scrubbed', async ({ pa
 	const map = page.getByTestId('track-map');
 	const still = await picture(map);
 
-	await page.getByRole('button', { name: 'Go to lap 10' }).click();
-	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 10/50');
+	await page.getByRole('button', { name: 'Previous lap' }).click();
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 29/50');
 	expect(await picture(map)).not.toEqual(still);
 
 	const before = await picture(map);
@@ -49,7 +49,7 @@ test('the map follows the replay as it plays and as it is scrubbed', async ({ pa
 	await page.getByRole('button', { name: 'Play replay' }).click();
 	await page.waitForTimeout(400);
 	expect(await picture(map)).not.toEqual(before);
-	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 11/50', { timeout: 6000 });
+	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 30/50', { timeout: 6000 });
 });
 
 test('with reduced motion the map steps once a second instead of gliding', async ({ page }) => {

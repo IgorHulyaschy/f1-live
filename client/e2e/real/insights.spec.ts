@@ -95,7 +95,9 @@ test.describe('qualifying', () => {
 		// Norris took pole with 1:47.934.
 		await expect(page.getByTestId('telemetry-slot-A')).toContainText('1:47.934');
 		await expect(page.getByTestId('telemetry-charts')).toBeVisible({ timeout: 20_000 });
-		// The timeline marks where each part starts.
+
+		// The timeline, on the session's own layout, marks where each part starts.
+		await openRace(page, '/session?session=9854');
 		await expect(page.getByTestId('timeline')).toContainText('Q2');
 		await expect(page.getByTestId('timeline')).toContainText('Q3');
 

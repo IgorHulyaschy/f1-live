@@ -15,14 +15,20 @@ test('free viewers see a locked pit window they can preview', async ({ page }) =
 	await expect(page.getByTestId('pit-window')).toContainText(/Box now, P\d+/);
 });
 
-test('the plan keys toggle Pro across pages', async ({ page }) => {
+test('Preview Pro in the menu turns Pro on and off', async ({ page }) => {
 	await openRace(page, '/strategy');
 
 	await expect(page.getByText(/is part of Pro/).first()).toBeVisible();
-	await page.getByRole('radio', { name: 'Pro' }).click();
+
+	const preview = page.getByRole('menuitemcheckbox', { name: 'Preview Pro' });
+
+	await page.getByTestId('app-menu').click();
+	await preview.click();
 	await expect(page.getByText(/is part of Pro/)).toHaveCount(0);
 
-	await page.getByRole('radio', { name: 'Free' }).click();
+	await page.getByTestId('app-menu').click();
+	await expect(preview).toBeChecked();
+	await preview.click();
 	await expect(page.getByText(/is part of Pro/).first()).toBeVisible();
 });
 

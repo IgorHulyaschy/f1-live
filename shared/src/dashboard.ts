@@ -117,9 +117,12 @@ export type Dashboard = {
 	id: string;
 	name: string;
 	tiles: Tile[];
+	/** Where the tiles sit on laptop and desktop screens, and on any screen without its own. */
 	layout: TilePlacement[];
-	/** Stretch rows so the whole layout fills the window height: for wall screens and TVs. */
-	fit?: boolean;
+	/** Where the tiles sit on an ultrawide screen, once it has its own arrangement. */
+	wide?: TilePlacement[];
+	/** The order a phone stacks the tiles in, once a viewer moved one there; ids of every tile. */
+	order?: string[];
 	/**
 	 * False once the viewer said not to offer the session's own layout over this dashboard when
 	 * it holds tiles for another kind of session.
@@ -186,12 +189,31 @@ function uniqueBy<Entry>(entries: readonly Entry[], key: (entry: Entry) => strin
 	});
 }
 
-/** Lenient on the parts: a tile or placement that does not parse is dropped, not the dashboard. */
+const placementsSchema = z.array(z.json()).transform((entries) =>
+	entries.flatMap((entry) => {
+		const place = placementSchema.safeParse(entry);
+
+		return place.success ? [place.data] : [];
+	})
+);
+
+/** Exactly one entry for each tile id, in any order. */
+function coversTiles(ids: ReadonlySet<string>, keys: readonly string[]): boolean {
+	return (
+		keys.length === ids.size && new Set(keys).size === ids.size && keys.every((key) => ids.has(key))
+	);
+}
+
+/**
+ * Lenient on the parts: a tile or placement that does not parse is dropped, not the dashboard.
+ * An ultrawide arrangement or phone order that no longer covers every tile is dropped, and the
+ * screen falls back to the main layout. `fit`, from when rows could be stretched by hand, is
+ * left out: every grid now fits its window.
+ */
 export const dashboardSchema = z
 	.object({
 		id: z.string().min(1),
 		name: z.string(),
-		fit: z.boolean().optional(),
 		sessionOffer: z.boolean().optional(),
 		tiles: z.array(z.json()).transform((entries) =>
 			entries.flatMap((entry) => {
@@ -200,13 +222,9 @@ export const dashboardSchema = z
 				return tile.success ? [tile.data] : [];
 			})
 		),
-		layout: z.array(z.json()).transform((entries) =>
-			entries.flatMap((entry) => {
-				const place = placementSchema.safeParse(entry);
-
-				return place.success ? [place.data] : [];
-			})
-		)
+		layout: placementsSchema,
+		wide: placementsSchema.optional(),
+		order: z.array(z.string()).optional()
 	})
 	.transform((parsed): Dashboard => {
 		const placed = new Set(parsed.layout.map((place) => place.i));
@@ -220,8 +238,15 @@ export const dashboardSchema = z
 			layout: uniqueBy(parsed.layout, (place) => place.i).filter((place) => ids.has(place.i))
 		};
 
-		if (parsed.fit) {
-			dashboard.fit = true;
+		const wide = parsed.wide?.filter((place) => ids.has(place.i));
+		const wideIds = wide?.map((place) => place.i) ?? [];
+
+		if (wide && coversTiles(ids, wideIds)) {
+			dashboard.wide = wide;
+		}
+
+		if (parsed.order && coversTiles(ids, parsed.order)) {
+			dashboard.order = parsed.order;
 		}
 
 		if (parsed.sessionOffer === false) {
@@ -278,7 +303,6 @@ export function sameDashboard(a: Dashboard, b: Dashboard): boolean {
 	return (
 		a.id === b.id &&
 		a.name === b.name &&
-		Boolean(a.fit) === Boolean(b.fit) &&
 		a.sessionOffer === b.sessionOffer &&
 		a.tiles.length === b.tiles.length &&
 		a.tiles.every((tile, index) => {
@@ -291,9 +315,20 @@ export function sameDashboard(a: Dashboard, b: Dashboard): boolean {
 				sameSettings(tile.settings, other.settings)
 			);
 		}) &&
-		a.layout.length === b.layout.length &&
-		a.layout.every((place, index) => {
-			const other = b.layout[index];
+		samePlacements(a.layout, b.layout) &&
+		(a.wide === b.wide ||
+			(a.wide !== undefined && b.wide !== undefined && samePlacements(a.wide, b.wide))) &&
+		a.order?.length === b.order?.length &&
+		(a.order ?? []).every((id, index) => id === b.order?.[index])
+	);
+}
+
+/** The same tiles at the same places, in the same order. */
+export function samePlacements(a: readonly TilePlacement[], b: readonly TilePlacement[]): boolean {
+	return (
+		a.length === b.length &&
+		a.every((place, index) => {
+			const other = b[index];
 
 			return (
 				other !== undefined &&

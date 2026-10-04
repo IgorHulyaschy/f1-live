@@ -48,10 +48,10 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
   a purple cap where the fastest lap fell. It is the track of the Replay tile's timeline, with
   the events marked over it as small blocks in the story's colours and each qualifying part's
   start ruled across it.
-- Live strip: one line under the top bar on every page. "Live" is lit like an on-air sign (solid
-  foreground, the only filled key in the strip); the time left is the largest number on it; the
-  drop zone is a row of team-striped codes, labelled, never coloured by team as a block.
-- Flag banner: a full-width band that wipes in under the header when the track status changes.
+- The bar: one 48 px line over every page, with the session in it where one is on screen. "Live" is lit like an on-air sign
+  (solid foreground, the only filled key in the bar); the time left or the lap is its one number.
+  Everything used now and then waits in one menu at its end.
+- Flag band: the bar's lower edge wipes into the flag's colour when the track is not green.
 - Pit board: on phones a sticky bottom bar for the followed driver, like the board held over
   the pit wall.
 - Ghost row (Pro): where the followed driver would rejoin if they boxed now, drawn in the tower.
@@ -90,7 +90,7 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
   (Race, Quali or Practice); Analysis and Strategy are presets at their old addresses; Battle and Pit
   wall are presets for focused and wide screens.
 - One primary reading per screen: on the session layouts it is the time left (or the lap) on the
-  live strip and the tower under it. The Replay tile prints the minute only on the clock, so a
+  bar and the tower under it. The Replay tile prints the minute only on the clock, so a
   race's lap is printed once.
 - Tiles for another kind of session never fill a tile with an apology: they are left out of the
   session layouts and shrink to a dashed line with a `hatch` mark elsewhere.
@@ -99,5 +99,7 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
 - Below 64rem of width the grid stacks tiles in reading order at natural height.
 - Edit mode is quiet: a dashed tile bar to drag, corner ticks to resize. No wiggle, no
   confetti, no gamified empty states.
-- Text size (S to TV) scales rem, so tiles, type and grid rows grow together on wall screens.
+- The screen sets the text size: rem grows past 1080 px tall, and Larger text adds a quarter for
+  a TV across the room, so tiles, type and grid rows grow together. Rows stretch so the first
+  screen of tiles ends at the bottom of the window.
 - Lap, followed driver, plan and compared drivers stay in step across every open window.

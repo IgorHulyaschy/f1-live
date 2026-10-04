@@ -144,7 +144,7 @@ Event in any driver or lap view.
 
 ## F. Alerts for the driver you follow
 
-**Entry.** Alerts in the More menu, ⌘K or the account menu (`/alerts`).
+**Entry.** Alerts in the bar's menu or ⌘K (`/alerts`).
 
 **Steps.**
 

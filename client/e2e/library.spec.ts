@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { z } from 'zod';
 
-import { goPro, openRace, signInWithLink, testEmail } from './fixtures.ts';
+import { fromMenu, goPro, openRace, signInWithLink, testEmail } from './fixtures.ts';
 import { serveTestPictures } from './pictures';
 
 test('a fan dashboard can be previewed and added from the library', async ({ page }) => {
@@ -139,7 +139,7 @@ test('a share link opens the same dashboard in another browser', async ({ page, 
 	await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 	await openRace(page, '/d/battle');
 
-	await page.getByRole('button', { name: 'Copy share link' }).click();
+	await fromMenu(page, 'Copy share link');
 
 	const link = await page.evaluate(() => navigator.clipboard.readText());
 	const other = await browser.newPage();

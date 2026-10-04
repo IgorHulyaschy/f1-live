@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-import { openRace } from './fixtures.ts';
+import { fromMenu, openRace } from './fixtures.ts';
 
 test('presets open as tabs and render their tiles in a grid', async ({ page }) => {
 	await openRace(page, '/d/wall');
@@ -14,7 +14,7 @@ test('presets open as tabs and render their tiles in a grid', async ({ page }) =
 test('a new dashboard keeps its tiles after a reload', async ({ page }) => {
 	await openRace(page, '/session?lap=25');
 
-	await page.getByRole('button', { name: 'New dashboard' }).click();
+	await fromMenu(page, 'New dashboard');
 	await expect(page).toHaveURL(/\/d\/board-.*edit=1/);
 	await page.getByRole('textbox', { name: 'Dashboard name' }).fill('Race engineer');
 
@@ -23,6 +23,7 @@ test('a new dashboard keeps its tiles after a reload', async ({ page }) => {
 	await page.getByRole('button', { name: 'Add tile' }).click();
 	await page.getByRole('button', { name: /^Gaps/ }).click();
 	await page.getByRole('button', { name: 'Done' }).click();
+	await expect(page.getByTestId('app-menu')).toBeFocused();
 
 	await page.reload();
 	await expect(page.getByRole('link', { name: 'Race engineer' })).toBeVisible();
@@ -31,14 +32,17 @@ test('a new dashboard keeps its tiles after a reload', async ({ page }) => {
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 25/50');
 });
 
-test('removing a tile from a preset can be reset', async ({ page }) => {
+test('removing a tile from a preset can be reset, and the reset undone', async ({ page }) => {
 	await openRace(page, '/session?edit=1');
 
 	await page.getByRole('button', { name: 'Remove Race control' }).click();
 	await expect(page.getByTestId('tile-race-control')).toHaveCount(0);
 
-	await page.getByRole('button', { name: 'Reset' }).click();
+	await fromMenu(page, 'Reset');
 	await expect(page.getByTestId('tile-race-control')).toBeVisible();
+
+	await page.getByRole('button', { name: 'Undo' }).click();
+	await expect(page.getByTestId('tile-race-control')).toHaveCount(0);
 });
 
 test('a dashboard exports and imports as a file', async ({ page }) => {
@@ -46,7 +50,7 @@ test('a dashboard exports and imports as a file', async ({ page }) => {
 
 	const download = page.waitForEvent('download');
 
-	await page.getByRole('button', { name: 'Export' }).click();
+	await fromMenu(page, 'Export');
 
 	const file = await (await download).path();
 
@@ -56,7 +60,7 @@ test('a dashboard exports and imports as a file', async ({ page }) => {
 	await expect(page.getByTestId('chart-battle')).toBeVisible();
 });
 
-test('phones stack the tiles in reading order', async ({ page }) => {
+test('phones stack Analysis with the answers before the chart', async ({ page }) => {
 	await page.setViewportSize({ width: 390, height: 844 });
 	await openRace(page, '/analysis');
 
@@ -68,13 +72,13 @@ test('phones stack the tiles in reading order', async ({ page }) => {
 		.evaluateAll((tiles) => tiles.map((tile) => tile.getAttribute('data-testid')));
 
 	expect(kinds).toEqual([
-		'tile-replay',
+		'tile-pace',
+		'tile-fastest-laps',
 		'tile-compare',
 		'tile-chart',
-		'tile-telemetry',
-		'tile-pace',
-		'tile-fastest-laps'
+		'tile-telemetry'
 	]);
+	await expect(page.getByRole('button', { name: 'Next lap' })).toBeVisible();
 });
 
 test('a popped-out tile follows the lap of the window that opened it', async ({ context }) => {
@@ -84,7 +88,7 @@ test('a popped-out tile follows the lap of the window that opened it', async ({ 
 
 	const tile = await context.newPage();
 
-	await openRace(tile, '/tile/analysis/analysis-2?lap=20');
+	await openRace(tile, '/tile/analysis/analysis-1?lap=20');
 	await expect(tile.getByTestId('chart-lapTime')).toBeVisible();
 
 	await main.getByRole('button', { name: 'Next lap' }).click();
@@ -163,7 +167,13 @@ test('a tile’s header ends in its options, the same on every tile', async ({ c
 	const popup = context.waitForEvent('page');
 
 	await page.getByRole('menuitem', { name: 'Open in a new window' }).click();
-	await expect(await popup).toHaveURL(/\/tile\/wall\/[^/?]+\?.*lap=20/);
+
+	const opened = await popup;
+
+	await expect(opened).toHaveURL(/\/tile\/wall\/[^/?]+\?.*lap=20/);
+	// The new window takes focus as it loads; come back to the dashboard as a viewer would.
+	await opened.waitForLoadState();
+	await page.bringToFront();
 
 	await timing.getByTestId('tile-options').click();
 	await page.getByRole('menuitem', { name: 'Edit the dashboard' }).click();

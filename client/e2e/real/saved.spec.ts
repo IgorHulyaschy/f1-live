@@ -198,19 +198,22 @@ test('a session without saved data still opens, with every panel saying why it i
 	await expect(page.getByTestId('timing-table')).toHaveCount(0);
 });
 
-test('with nothing live, the strip counts down to the next session in local time', async ({
+test('with nothing live, the home counts down to the next session in local time', async ({
 	page
 }) => {
 	await page.clock.setFixedTime(new Date('2025-11-21T12:00:00.000Z'));
 	await openRace(page, '/session?session=9852');
 
-	const next = page.getByTestId('strip-next');
-
 	await expect(page.getByTestId('live-key')).toHaveText('Replay');
-	await expect(next).toContainText('Las Vegas Practice 3');
-	await expect(next).toContainText('12 h 30 min');
 	await expect(page.getByTestId('dashboard-practice')).toBeVisible();
 	await expect(page.getByTestId('long-runs')).toBeVisible();
+
+	await page.getByRole('link', { name: 'Pitwall home' }).click();
+
+	const next = page.getByTestId('home-next');
+
+	await expect(next).toContainText('Las Vegas Practice 3');
+	await expect(next).toContainText('12 h 30 min');
 });
 
 test('a qualifying driver view shows their runs and laps, and a lap its telemetry', async ({

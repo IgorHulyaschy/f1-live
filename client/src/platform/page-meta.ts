@@ -10,8 +10,11 @@ import { documentTitle, siteUrl } from './site';
 /** For a page whose route has no meta of its own: the brand's own title and description. */
 const SITE_META: PageMeta = { title: null, description: BRAND.description, indexed: true };
 
-/** Set as a route's `handle`; the deepest route that has one names the page. */
-export type RouteHandle = { meta: RouteMeta };
+/**
+ * Set as a route's `handle`; the deepest route that has one names the page. `session` marks a page
+ * that shows the session, which gets the session's lap, flag and keys in the bar.
+ */
+export type RouteHandle = { meta: RouteMeta; session?: boolean };
 
 function setHeadAttribute(selector: string, attribute: string, value: string): void {
 	document.head.querySelector(selector)?.setAttribute(attribute, value);
@@ -80,6 +83,15 @@ function subscribeViewTitle(listener: () => void): () => void {
 
 function readViewTitle(): string | null {
 	return viewTitle;
+}
+
+/** Whether the page on screen shows the session: a dashboard or a dashboard's preview. */
+export function useSessionOnScreen(): boolean {
+	// SAFETY: every route in main.tsx and every lazy route module sets `handle` to a RouteHandle or
+	// leaves it out.
+	const matches = useMatches() as UIMatch<unknown, RouteHandle | undefined>[];
+
+	return matches.some((entry) => entry.handle?.session === true);
 }
 
 /** Keeps the document title, description, canonical link and share card in step with the route. */

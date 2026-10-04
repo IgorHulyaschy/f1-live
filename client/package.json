@@ -14,6 +14,7 @@
 		"brand-assets": "node scripts/brand-assets.ts",
 		"budgets": "node scripts/budgets.ts",
 		"italic-instances": "node scripts/italic-instances.ts",
+		"shots:layout": "playwright test -c playwright.real.config.ts --project=shots-layout",
 		"shots": "playwright test --project=shots && playwright test -c playwright.build.config.ts --project=shots-build && playwright test -c playwright.real.config.ts --project=shots-real --project=shots-live"
 	},
 	"dependencies": {

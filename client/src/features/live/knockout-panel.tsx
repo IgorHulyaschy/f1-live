@@ -191,7 +191,7 @@ export function KnockoutPanel() {
 	return (
 		<Panel aria-label="Knockout" data-testid="knockout">
 			<PanelHeader title="Knockout" meta={meta} />
-			<div className="grid grid-cols-2 border-b @sm:grid-cols-3 @sm:divide-x">
+			<div className="grid grid-cols-2 border-b @md:grid-cols-3 @md:divide-x">
 				<Field label={part === 3 ? 'Pole' : `${label} fastest`} className="px-4 py-2">
 					{state.pole ? (
 						<span className="flex items-center gap-2">
@@ -217,7 +217,7 @@ export function KnockoutPanel() {
 				{you ? (
 					<Field
 						label={you.out ? 'You' : `You, P${you.position}`}
-						className="col-span-2 border-t px-4 py-2 @sm:col-span-1 @sm:border-t-0"
+						className="col-span-2 border-t px-4 py-2 @md:col-span-1 @md:border-t-0"
 					>
 						<span className="flex items-center gap-2" data-testid="knockout-you">
 							<DriverLink driver={you.driver}>

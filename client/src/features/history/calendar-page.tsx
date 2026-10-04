@@ -183,7 +183,7 @@ export function CalendarPage() {
 					</span>
 				</p>
 			) : null}
-			<ol className="grid gap-6 lg:grid-cols-2">
+			<ol className="grid gap-6 lg:grid-cols-2 2xl:grid-cols-3 min-[150rem]:grid-cols-4">
 				{rounds.map((round) => {
 					const isCurrent = round === current;
 

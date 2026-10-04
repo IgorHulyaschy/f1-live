@@ -19,7 +19,13 @@ const SWATCH: Record<TrackStatus, string> = {
 };
 
 /** Flag state as a square swatch and a printed word, like a marshal panel. */
-export function TrackStatusBadge({ status }: { status: TrackStatus }) {
+export function TrackStatusBadge({
+	status,
+	labelClassName
+}: {
+	status: TrackStatus;
+	labelClassName?: string;
+}) {
 	return (
 		<span
 			className="type-wide inline-flex items-center gap-2 text-xs font-bold"
@@ -29,7 +35,7 @@ export function TrackStatusBadge({ status }: { status: TrackStatus }) {
 				aria-hidden
 				className={cn('size-2.5', SWATCH[status], status !== 'green' && 'animate-live-dot')}
 			/>
-			{TRACK_STATUS_LABEL[status]}
+			<span className={labelClassName}>{TRACK_STATUS_LABEL[status]}</span>
 		</span>
 	);
 }

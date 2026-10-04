@@ -37,10 +37,9 @@ export const SEED_EXAMPLES: readonly {
 	},
 	{
 		id: 'tv-wall',
-		description: 'Stretches to any height. Built on a 4K TV, reads from the sofa at text size TV.',
-		tags: ['TV', 'Fit to screen'],
+		description: 'Built on a 4K TV; reads from the sofa with Larger text on.',
+		tags: ['TV'],
 		dashboard: {
-			fit: true,
 			id: 'tv-wall',
 			name: 'TV wall',
 			tiles: [

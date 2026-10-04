@@ -13,6 +13,7 @@ import 'react-grid-layout/css/styles.css';
 import { useSearchParams } from 'react-router';
 
 import { Key } from '@/components/console/keys';
+import { Transport } from '@/components/race-clock';
 import { PanelMenuContext } from '@/components/console/panel';
 import {
 	DropdownMenu,
@@ -27,15 +28,18 @@ import { cn } from '@/lib/utils';
 import {
 	type Dashboard,
 	GRID_COLUMNS,
-	phoneOrder,
-	readingOrder,
+	moveInStack,
+	onScreen,
 	removeTile,
+	SCREEN_ROWS,
+	type ScreenClass,
 	sessionKind,
-	swapTiles,
+	stackOrder,
 	type Tile,
 	TILE_INFO,
 	type TileKind,
-	tileTitle
+	tileTitle,
+	withPlacements
 } from './dashboards';
 import { tilePath } from './paths';
 import { appliesTo, forSession } from './session-layouts';
@@ -51,44 +55,87 @@ function arrangeKey(key: string): ArrangeKey {
 	return key === 'ArrowUp' || key === 'ArrowDown' || key === 'ArrowLeft' ? key : 'ArrowRight';
 }
 
-/** Window height left below the grid's top edge (minus the footer gap), kept up to date. */
-function useSpaceBelow(
-	ref: React.RefObject<HTMLDivElement | null>,
-	enabled: boolean
-): number | null {
-	const [space, setSpace] = React.useState<number | null>(null);
+/** Narrower than this (in rem) a dashboard stacks its tiles in reading order, at natural height. */
+const STACK_BELOW_REM = 64;
+
+/** The gap between tiles, both ways, in rem. */
+const GAP_REM = 1;
+
+/** The gap between rows while editing: room for a tile bar with full-size (24px) keys. */
+const EDIT_ROW_GAP_REM = 1.5;
+
+/**
+ * One row and the gap under it, in rem, on a window of average height. Rows stretch or shrink so
+ * a screen's worth of them fills the window, but stay within half again and three quarters of
+ * this: a short window scrolls rather than squeeze tiles, and a dashboard of few rows does not
+ * balloon.
+ */
+const ROW_PITCH_REM = 2.5;
+
+/** Windows at least this many times wider than tall are ultrawide, with four columns of tiles. */
+const WIDE_ASPECT = 2.2;
+
+/** A short laptop window is wide by aspect too, but its four columns would be too narrow. */
+const WIDE_MIN_WIDTH = 1600;
+
+/** Room left under the grid, in rem, so the last row does not touch the window's edge. */
+const BOTTOM_REM = 1;
+
+type WindowFit = { height: number; screen: ScreenClass };
+
+function screenClass(): ScreenClass {
+	return window.innerWidth >= WIDE_MIN_WIDTH &&
+		window.innerWidth / window.innerHeight >= WIDE_ASPECT
+		? 'wide'
+		: 'standard';
+}
+
+/**
+ * The window height left below the grid's top edge, and the screen class, kept up to date as the
+ * window resizes and as anything above the grid comes and goes.
+ */
+function useWindowFit(ref: React.RefObject<HTMLDivElement | null>, rem: number): WindowFit {
+	const [fit, setFit] = React.useState<WindowFit>(() => ({
+		height: window.innerHeight,
+		screen: screenClass()
+	}));
 
 	React.useLayoutEffect(() => {
-		if (!enabled) {
-			return;
-		}
-
 		const measure = () => {
 			const top = (ref.current?.getBoundingClientRect().top ?? 0) + window.scrollY;
+			const height = Math.round(window.innerHeight - top - BOTTOM_REM * rem);
+			const screen = screenClass();
 
-			setSpace(window.innerHeight - top - 24);
+			setFit((current) =>
+				current.height === height && current.screen === screen ? current : { height, screen }
+			);
 		};
 
 		measure();
 		window.addEventListener('resize', measure);
 
-		return () => window.removeEventListener('resize', measure);
-	}, [ref, enabled]);
+		const parent = ref.current?.parentElement;
+		const observer = new ResizeObserver(measure);
 
-	return enabled ? space : null;
+		if (parent) {
+			observer.observe(parent);
+		}
+
+		return () => {
+			window.removeEventListener('resize', measure);
+			observer.disconnect();
+		};
+	}, [ref, rem]);
+
+	return fit;
 }
 
-/** Narrower than this (in rem) a dashboard stacks its tiles in reading order, at natural height. */
-const STACK_BELOW_REM = 64;
+/** Pixels from one row's top to the next: a screen's worth of rows fills the window height. */
+function rowPitch(height: number, rows: number, gap: number, rem: number): number {
+	const fill = (height + gap) / Math.min(Math.max(rows, 1), SCREEN_ROWS);
 
-/** One grid row in rem. */
-const ROW_REM = 1.25;
-
-/** The gap between tiles in rem. */
-const GAP_REM = 1.25;
-
-/** The gap between rows while editing: room for a tile bar with full-size (24px) keys. */
-const EDIT_ROW_GAP_REM = 1.5;
+	return Math.min(Math.max(fill, 0.75 * ROW_PITCH_REM * rem), 1.5 * ROW_PITCH_REM * rem);
+}
 
 function sameLayout(dashboard: Dashboard, layout: Layout): boolean {
 	const places = new Map(dashboard.layout.map((place) => [place.i, place]));
@@ -104,13 +151,17 @@ function sameLayout(dashboard: Dashboard, layout: Layout): boolean {
 
 function TileBar({
 	dashboard,
+	screen,
 	tile,
 	editing,
 	neighbours,
 	floating = false,
 	onChange
 }: {
+	/** As saved: every change is made to this, whichever screen it is made on. */
 	dashboard: Dashboard;
+	/** The screen class whose arrangement the arrow keys change. */
+	screen: ScreenClass;
 	tile: Tile;
 	editing: boolean;
 	neighbours?: { up?: string; down?: string };
@@ -153,7 +204,10 @@ function TileBar({
 					if (ARRANGE_KEYS.has(event.key)) {
 						event.preventDefault();
 						event.stopPropagation();
-						onChange(arrangeTile(dashboard, tile.id, arrangeKey(event.key), event.shiftKey));
+						const view = onScreen(dashboard, screen);
+						const arranged = arrangeTile(view, tile.id, arrangeKey(event.key), event.shiftKey);
+
+						onChange(withPlacements(dashboard, screen, arranged.layout));
 						// The tile re-renders in its new place; keep the keyboard on its grip.
 						requestAnimationFrame(() =>
 							document
@@ -173,7 +227,7 @@ function TileBar({
 					<Key
 						aria-label={`Move ${title} up`}
 						className="h-6 sm:h-6"
-						onClick={() => onChange(swapTiles(dashboard, tile.id, neighbours.up ?? ''))}
+						onClick={() => onChange(moveInStack(dashboard, tile.id, neighbours.up ?? ''))}
 					>
 						<ArrowUpIcon />
 					</Key>
@@ -182,7 +236,7 @@ function TileBar({
 					<Key
 						aria-label={`Move ${title} down`}
 						className="-ml-px h-6 sm:h-6"
-						onClick={() => onChange(swapTiles(dashboard, tile.id, neighbours.down ?? ''))}
+						onClick={() => onChange(moveInStack(dashboard, tile.id, neighbours.down ?? ''))}
 					>
 						<ArrowDownIcon />
 					</Key>
@@ -315,6 +369,7 @@ function AwayTile({ tile }: { tile: Tile }) {
 
 function TileBody({
 	dashboard,
+	rows,
 	tile,
 	fill,
 	away,
@@ -322,6 +377,8 @@ function TileBody({
 	onChange
 }: {
 	dashboard: Dashboard;
+	/** The tile's height in grid rows as shown; null on the phone stack. */
+	rows: number | null;
 	tile: Tile;
 	fill: boolean;
 	away: boolean;
@@ -362,7 +419,7 @@ function TileBody({
 			)}
 		>
 			<TileFillContext value={fill}>
-				<TileRowsContext value={dashboard.layout.find((place) => place.i === tile.id)?.h ?? null}>
+				<TileRowsContext value={rows}>
 					<PanelMenuContext
 						value={editing ? null : <TileOptions dashboard={dashboard} tile={tile} />}
 					>
@@ -381,8 +438,9 @@ function TileBody({
 }
 
 /**
- * A dashboard's tiles. Wide screens get a 24-column grid where tiles can be dragged and resized
- * in edit mode; narrow screens stack the same tiles in reading order.
+ * A dashboard's tiles. Wide screens get a 24-column grid that fills the window, where tiles can be
+ * dragged and resized in edit mode; an ultrawide screen shows the dashboard's own arrangement for
+ * it when there is one. Narrow screens stack the same tiles.
  */
 export function DashboardGrid({
 	dashboard: saved,
@@ -395,30 +453,28 @@ export function DashboardGrid({
 }) {
 	const { race } = useRaceView();
 	const shownKind = sessionKind(race.session.type);
-
-	// Editing shows the dashboard as saved; otherwise as this session shows it.
-	const { dashboard, away } = React.useMemo(
-		() => (editing ? { dashboard: saved, away: new Set<string>() } : forSession(saved, shownKind)),
-		[editing, saved, shownKind]
-	);
-
 	const { width, containerRef, mounted } = useContainerWidth({ measureBeforeMount: true });
 	const rem = useRemPixels();
+	const { height, screen } = useWindowFit(containerRef, rem);
+
+	// Editing shows the dashboard as saved; otherwise as this session shows it.
+	const { dashboard, away } = React.useMemo(() => {
+		const view = onScreen(saved, screen);
+
+		return editing ? { dashboard: view, away: new Set<string>() } : forSession(view, shownKind);
+	}, [editing, saved, screen, shownKind]);
+
 	const stacked = width < STACK_BELOW_REM * 16;
-	const space = useSpaceBelow(containerRef, mounted && !stacked && Boolean(dashboard.fit));
 	const rows = Math.max(1, ...dashboard.layout.map((place) => place.y + place.h));
 	const gap = GAP_REM * rem;
 	const rowGap = (editing ? EDIT_ROW_GAP_REM : GAP_REM) * rem;
 	// Editing pads the grid top and bottom so the first row's bars have room.
 	const padding = editing ? rowGap : 0;
-
-	// Fit: share the height left in the window between the rows, but never shrink below half size.
-	const rowHeight =
-		dashboard.fit && space
-			? Math.max((space - 2 * padding - (rows - 1) * rowGap) / rows, (ROW_REM * rem) / 2)
-			: ROW_REM * rem;
+	// Tiles keep their height while editing; only the gaps between rows open up.
+	const rowHeight = rowPitch(height, rows, gap, rem) - gap;
 
 	const tiles = new Map(dashboard.tiles.map((tile) => [tile.id, tile]));
+	const heights = new Map(dashboard.layout.map((place) => [place.i, place.h]));
 
 	// Minimum sizes come from the tile kind, so the grid enforces them while resizing.
 	const layout = React.useMemo<Layout>(() => {
@@ -444,10 +500,13 @@ export function DashboardGrid({
 			return;
 		}
 
-		onChange({
-			...dashboard,
-			layout: next.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }))
-		});
+		onChange(
+			withPlacements(
+				saved,
+				screen,
+				next.map(({ i, x, y, w, h }) => ({ i, x, y, w, h }))
+			)
+		);
 	};
 
 	if (dashboard.tiles.length === 0) {
@@ -455,7 +514,7 @@ export function DashboardGrid({
 			<div ref={containerRef} className="text-muted-foreground border border-dashed p-8 text-sm">
 				{editing
 					? 'This dashboard is empty. Add a tile to start.'
-					: 'This dashboard is empty. Press Edit, then Add tile.'}
+					: 'This dashboard is empty. Open the menu, then Add tile.'}
 			</div>
 		);
 	}
@@ -466,10 +525,14 @@ export function DashboardGrid({
 	}
 
 	if (stacked) {
-		const ordered = editing ? readingOrder(dashboard) : phoneOrder(dashboard);
+		const ordered = stackOrder(dashboard);
 
 		return (
-			<div ref={containerRef} className="flex flex-col gap-6" data-testid="dashboard-stack">
+			<div ref={containerRef} className="flex flex-col gap-4" data-testid="dashboard-stack">
+				{saved.tiles.some((tile) => tile.kind === 'replay') ? null : (
+					// The bar on a phone has no room for the transport; it heads the stack instead.
+					<Transport className="sm:hidden" />
+				)}
 				{ordered.map((tile, index) => (
 					<div
 						key={tile.id}
@@ -478,7 +541,8 @@ export function DashboardGrid({
 						data-testid={`tile-${tile.kind}`}
 					>
 						<TileBar
-							dashboard={dashboard}
+							dashboard={saved}
+							screen={screen}
 							tile={tile}
 							editing={editing}
 							neighbours={{ up: ordered[index - 1]?.id, down: ordered[index + 1]?.id }}
@@ -486,6 +550,7 @@ export function DashboardGrid({
 						/>
 						<TileBody
 							dashboard={saved}
+							rows={null}
 							tile={tile}
 							fill={false}
 							away={away.has(tile.id)}
@@ -499,7 +564,12 @@ export function DashboardGrid({
 	}
 
 	return (
-		<div ref={containerRef} data-testid="dashboard-grid" data-editing={editing || undefined}>
+		<div
+			ref={containerRef}
+			data-testid="dashboard-grid"
+			data-screen={screen}
+			data-editing={editing || undefined}
+		>
 			<ReactGridLayout
 				width={width}
 				layout={layout}
@@ -525,12 +595,15 @@ export function DashboardGrid({
 						? [
 								<div
 									key={tile.id}
-									className="flex min-w-0 flex-col"
+									// Chrome counts a tall tile's scrolled content in the page height; the bar
+									// that floats above a tile in edit mode must not be clipped.
+									className={cn('flex min-w-0 flex-col', !editing && 'overflow-clip')}
 									data-tile-id={tile.id}
 									data-testid={`tile-${tile.kind}`}
 								>
 									<TileBar
-										dashboard={dashboard}
+										dashboard={saved}
+										screen={screen}
 										tile={tile}
 										editing={editing}
 										floating
@@ -538,6 +611,7 @@ export function DashboardGrid({
 									/>
 									<TileBody
 										dashboard={saved}
+										rows={heights.get(tile.id) ?? null}
 										tile={tile}
 										fill
 										away={away.has(tile.id)}

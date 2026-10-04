@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { z } from 'zod';
 
-import { signInWithLink, testEmail } from '../e2e/fixtures.ts';
+import { fromMenu, signInWithLink, testEmail } from '../e2e/fixtures.ts';
 import { serveTestPictures } from '../e2e/pictures';
 
 /**
@@ -40,14 +40,8 @@ const PLANS = ['free', 'pro'] as const;
 const THEMES = ['dark', 'light'] as const;
 
 async function switchToLightTheme(page: Page): Promise<void> {
-	// The header key is hidden on phones, where the footer carries the switch instead.
-	await page
-		.getByRole('button', { name: /^(Switch to light theme|Light theme)$/ })
-		.filter({ visible: true })
-		.click();
+	await fromMenu(page, 'Switch to light theme');
 	await expect(page.locator('html')).not.toHaveClass(/dark/);
-	// Clicking the footer key scrolls; the sticky header would otherwise land mid-shot.
-	await page.evaluate(() => window.scrollTo(0, 0));
 }
 
 async function shoot(page: Page, file: string): Promise<void> {
@@ -96,8 +90,8 @@ for (const viewport of VIEWPORTS) {
 						await page.goto(
 							`${screen.path}${screen.path.includes('?') ? '&' : '?'}lap=30&plan=${plan}`
 						);
-						// Phones keep the lap on the pit board, not in the top bar, so wait for the race, not its view.
-						await expect(page.getByTestId('lap-counter')).toBeAttached();
+						// The lap shows only beside a session; the bar's menu shows once the race has loaded.
+						await expect(page.getByTestId('app-menu')).toBeAttached();
 
 						if (theme === 'light') {
 							await switchToLightTheme(page);
@@ -196,12 +190,8 @@ for (const viewport of VIEWPORTS) {
 						await switchToLightTheme(page);
 					}
 
-					// Phones keep the account in the footer; wider screens show its menu open.
-					const menu = page.getByTestId('account-menu').filter({ visible: true });
-
-					if ((await menu.count()) > 0) {
-						await menu.click();
-					}
+					// The account sits at the end of the bar's menu, shown open.
+					await page.getByTestId('app-menu').click();
 
 					await shoot(page, `${output}/account-signed-in-${plan}-${theme}.png`);
 				});
