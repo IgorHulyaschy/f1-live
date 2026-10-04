@@ -57,6 +57,8 @@ export function testConfig(env: Record<string, string> = {}): Config {
 		PORT: '0',
 		LOG_LEVEL: 'silent',
 		IMPORT_ON_FINISH: 'false',
+		// Nothing listens there: a test never reaches the real archive by accident.
+		ARCHIVE_URL: 'http://127.0.0.1:9/static',
 		DATA_DIR: tempDir(),
 		...env
 	});

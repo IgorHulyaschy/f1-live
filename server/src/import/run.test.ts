@@ -117,7 +117,7 @@ describe('runImport', () => {
 		);
 
 		const catalog: Catalog = JSON.parse(readFileSync(catalogPathOf(options.dataDir), 'utf8'));
-		const sessions = catalog.seasons[0]?.meetings[0]?.sessions;
+		const sessions = catalog.seasons.find((season) => season.year === 2025)?.meetings[0]?.sessions;
 
 		assert.deepEqual(
 			sessions?.map((session) => [session.key, session.status, session.outputs]),
@@ -142,7 +142,11 @@ describe('runImport', () => {
 		const kept: Catalog = JSON.parse(readFileSync(catalogPathOf(options.dataDir), 'utf8'));
 
 		assert.deepEqual(kept, before);
-		assert.equal(kept.seasons[0]?.meetings[0]?.sessions[0]?.outputs.snapshot, true);
+		assert.equal(
+			kept.seasons.find((season) => season.year === 2025)?.meetings[0]?.sessions[0]?.outputs
+				.snapshot,
+			true
+		);
 	});
 
 	it('reports a session whose raw files are missing and still imports the others', async () => {
@@ -226,8 +230,9 @@ describe('runImport', () => {
 				const catalog: Catalog = JSON.parse(readFileSync(catalogPathOf(options.dataDir), 'utf8'));
 
 				assert.equal(
-					catalog.seasons[0]?.meetings[0]?.sessions.find((session) => session.key === 9858)?.outputs
-						.telemetry,
+					catalog.seasons
+						.find((season) => season.year === 2025)
+						?.meetings[0]?.sessions.find((session) => session.key === 9858)?.outputs.telemetry,
 					expected
 				);
 			}

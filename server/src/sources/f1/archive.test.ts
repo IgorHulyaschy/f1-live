@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -131,6 +131,25 @@ describe('readArchive', () => {
 			entries.parse(JSON.parse(inflatePayload(payload))).Entries[0]?.Utc,
 			'2025-11-23T03:06:27.2581019Z'
 		);
+	});
+
+	it('takes a stream from the overlay over the directory’s own, timed by the directory', async () => {
+		const overlay = mkdtempSync(path.join(tmpdir(), 'pitwall-overlay-'));
+
+		roots.push(overlay);
+		copyFileSync(
+			path.join(import.meta.dirname, 'fixtures/2025-las-vegas-telemetry/CarData.z.jsonStream'),
+			path.join(overlay, 'CarData.z.jsonStream')
+		);
+
+		const [own] = await readArchive(FIXTURES, ['CarData.z']);
+		const [overlaid] = await readArchive(FIXTURES, ['CarData.z'], overlay);
+		const sessionInfo = (await readArchive(FIXTURES, ['SessionInfo'], overlay))[0];
+
+		assert.notEqual(overlaid?.data, own?.data);
+		// The overlay's first offset, 01:14:54.263, placed by the directory's own clock lines.
+		assert.equal(new Date(overlaid?.timestamp ?? 0).toISOString(), '2025-11-23T04:21:21.113Z');
+		assert.equal(new Date(sessionInfo?.timestamp ?? 0).toISOString(), '2025-11-23T03:06:26.850Z');
 	});
 });
 

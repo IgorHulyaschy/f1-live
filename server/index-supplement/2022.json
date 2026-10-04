@@ -1,0 +1,49 @@
+{
+	"Year": 2022,
+	"Meetings": [
+		{
+			"Key": 1124,
+			"Name": "Bahrain Grand Prix",
+			"OfficialName": "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2022",
+			"Location": "Sakhir",
+			"Country": {
+				"Key": 36,
+				"Code": "BRN",
+				"Name": "Bahrain"
+			},
+			"Circuit": {
+				"Key": 63,
+				"ShortName": "Sakhir"
+			},
+			"Sessions": [
+				{
+					"Key": 6979,
+					"Type": "Practice",
+					"Name": "Practice 1",
+					"StartDate": "2022-03-18T15:00:00",
+					"EndDate": "2022-03-18T16:00:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2022/2022-03-20_Bahrain_Grand_Prix/2022-03-18_Practice_1/"
+				},
+				{
+					"Key": 6973,
+					"Type": "Practice",
+					"Name": "Practice 2",
+					"StartDate": "2022-03-18T18:00:00",
+					"EndDate": "2022-03-18T19:00:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2022/2022-03-20_Bahrain_Grand_Prix/2022-03-18_Practice_2/"
+				},
+				{
+					"Key": 6978,
+					"Type": "Practice",
+					"Name": "Practice 3",
+					"StartDate": "2022-03-19T15:00:00",
+					"EndDate": "2022-03-19T16:00:00",
+					"GmtOffset": "03:00:00",
+					"Path": "2022/2022-03-20_Bahrain_Grand_Prix/2022-03-19_Practice_3/"
+				}
+			]
+		}
+	]
+}

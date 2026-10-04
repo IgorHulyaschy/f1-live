@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useStableValue } from '../hooks/use-stable-value.ts';
 import { useRaceView } from './race-context.tsx';
 import type { SessionTelemetry, TelemetrySource } from './telemetry-source.ts';
+import { useArchiveFetch } from './use-archive-fetch.ts';
 
 const TelemetryContext = React.createContext<TelemetrySource | null>(null);
 
@@ -34,7 +35,11 @@ function settled(value: SessionTelemetry | null): TelemetryState {
  */
 export function useSessionTelemetry(): TelemetryState {
 	const source = React.useContext(TelemetryContext);
-	const { sessionKey } = useRaceView();
+	const { sessionKey, maps } = useRaceView();
+
+	// Positions fetched from the archive make the source forget the session: drawn again, it loads.
+	useArchiveFetch(maps.archive, sessionKey);
+
 	const known = source?.loadedSession(sessionKey);
 	const [arrived, setArrived] = React.useState<{ key: string; state: TelemetryState } | null>(null);
 

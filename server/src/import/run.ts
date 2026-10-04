@@ -1,9 +1,10 @@
-import { mkdir, stat, statfs } from 'node:fs/promises';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
 
 import { buildCatalog, mergeCatalogs } from '../catalog/catalog.js';
 import type { Catalog } from '../catalog/catalog.js';
 import type { IndexedSeason } from '../catalog/season-index.js';
+import { GB, freeBytes } from '../pkg/disk.js';
 import { mapLimited } from '../pkg/http.js';
 import { fetchMeetingResults } from '../sources/openf1/fetch-result.js';
 import {
@@ -39,8 +40,6 @@ const SESSIONS_AT_ONCE = 3;
 
 /** Seasons before this keep only what results need unless `allTopics` asks for every stream. */
 const ALL_TOPICS_FROM = 2025;
-
-const GB = 1e9;
 
 export interface ImportOptions {
 	dataDir: string;
@@ -114,7 +113,7 @@ async function loadSeasons(selection: Selection, options: ImportOptions): Promis
 		`season indexes: ${files.filter((file) => file !== null).length} of ${years.length} fetched`
 	);
 
-	return readSeasonIndexes(rawDir);
+	return readSeasonIndexes(rawDir, undefined, years);
 }
 
 async function ingestRaw(
@@ -201,15 +200,6 @@ function topicsFor(target: ImportTarget, options: ImportOptions): TopicSet {
 	return options.allTopics === true || Number(target.path.slice(0, 4)) >= ALL_TOPICS_FROM
 		? 'all'
 		: 'results';
-}
-
-async function freeBytes(directory: string): Promise<number> {
-	// A fresh data folder has no raw/ yet; its disk is the nearest folder that exists.
-	await mkdir(directory, { recursive: true });
-
-	const { bavail, bsize } = await statfs(directory);
-
-	return bavail * bsize;
 }
 
 async function fetchTargets(chosen: Chosen, options: ImportOptions): Promise<Map<number, Fetched>> {

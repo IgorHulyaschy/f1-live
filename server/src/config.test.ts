@@ -14,6 +14,28 @@ describe('loadConfig', () => {
 		assert.deepEqual(config.corsOrigins, ['http://localhost:5173', 'http://127.0.0.1:5173']);
 		assert.equal(path.basename(config.dataDir), 'data');
 		assert.equal(config.live.importOnFinish, true);
+		assert.deepEqual(config.telemetryCache, {
+			onDemand: true,
+			archiveUrl: 'https://livetiming.formula1.com/static',
+			capBytes: 5e9,
+			floorBytes: 10e9
+		});
+	});
+
+	it('reads the archive cache settings', () => {
+		const config = loadConfig({
+			TELEMETRY_ON_DEMAND: 'false',
+			ARCHIVE_URL: 'http://127.0.0.1:3913/static/',
+			TELEMETRY_CACHE_GB: '0.5',
+			DISK_FLOOR_GB: '20'
+		});
+
+		assert.deepEqual(config.telemetryCache, {
+			onDemand: false,
+			archiveUrl: 'http://127.0.0.1:3913/static',
+			capBytes: 0.5e9,
+			floorBytes: 20e9
+		});
 	});
 
 	it('reads the cloud split from the environment', () => {

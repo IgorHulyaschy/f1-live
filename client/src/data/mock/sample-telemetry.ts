@@ -89,6 +89,8 @@ export function createSampleTelemetrySource(): TelemetrySource {
 				return lap as LapTelemetry;
 			}),
 		loadedSession: (key) => sessions.loaded(key),
-		loadedLap: (key, entry) => laps.loaded(`${key}/${entry.file}`)
+		loadedLap: (key, entry) => laps.loaded(`${key}/${entry.file}`),
+		// The sample telemetry never changes.
+		forgetSession: () => undefined
 	};
 }

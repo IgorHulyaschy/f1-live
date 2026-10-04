@@ -35,7 +35,8 @@ const RESULT_STREAMS: readonly string[] = [...new Set([...F1_TOPICS, ...CLOCK_TO
 	(topic) => `${topic}.jsonStream`
 );
 
-const TELEMETRY_STREAMS = ['Position.z.jsonStream', 'CarData.z.jsonStream'];
+/** Positions first: a session without them has no telemetry, whatever its car data. */
+export const TELEMETRY_STREAMS = ['Position.z.jsonStream', 'CarData.z.jsonStream'] as const;
 
 const absentSchema = z.object({ absent: z.array(z.string()) });
 

@@ -9,7 +9,7 @@ import { WORKERS } from './playwright.workers.ts';
  * The app on real data. `real` reads the committed fixture (e2e/real/data: the 2025 Las Vegas
  * race and qualifying, 2026 Baku qualifying) through the server; `live` replays a trimmed race and
  * qualifying session through the live path, started by its own spec, and `shots-live` shoots the
- * qualifying one.
+ * qualifying one. `archive` opens a 2019 race whose positions its server fetches on demand.
  */
 
 const SAVED_PORT = PORTS.realServer;
@@ -21,6 +21,11 @@ const REAL_APP_PORT = PORTS.realApp;
 const MEDIA_OFF_APP_PORT = PORTS.mediaOffApp;
 
 export const LIVE_APP_PORT = PORTS.liveApp;
+
+/** `archive` starts its own server here, on a copy of its fixture and a stand-in archive. */
+export const ARCHIVE_PORT = PORTS.archiveServer;
+
+export const ARCHIVE_APP_PORT = PORTS.archiveApp;
 
 const executablePath = process.env.PW_CHROMIUM_PATH;
 
@@ -82,6 +87,15 @@ export default defineConfig({
 			}
 		},
 		{
+			name: 'archive',
+			testDir: './e2e/archive',
+			use: {
+				...devices['Desktop Chrome'],
+				viewport: { width: 1440, height: 900 },
+				baseURL: `http://localhost:${ARCHIVE_APP_PORT}`
+			}
+		},
+		{
 			name: 'shots-real',
 			testDir: './shots',
 			testMatch: 'real.spec.ts',
@@ -113,6 +127,7 @@ export default defineConfig({
 		},
 		app(REAL_APP_PORT, SAVED_PORT),
 		app(LIVE_APP_PORT, LIVE_PORT),
-		app(MEDIA_OFF_APP_PORT, SAVED_PORT, { VITE_F1_MEDIA: 'off' })
+		app(MEDIA_OFF_APP_PORT, SAVED_PORT, { VITE_F1_MEDIA: 'off' }),
+		app(ARCHIVE_APP_PORT, ARCHIVE_PORT)
 	]
 });

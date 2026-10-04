@@ -8,6 +8,8 @@ import type {
 import { TELEMETRY_VERSION } from '@f1-live/shared';
 import { z } from 'zod';
 
+import type { ArchiveFetches } from './archive-fetch.ts';
+
 /**
  * A session's telemetry as the pipeline publishes it (docs/product/telemetry.md), as the track
  * maps read it: `index.json` names the circuit and where the replay and laps are.
@@ -30,6 +32,8 @@ export type MapTelemetry = {
 	loadReplayChunk: (sessionKey: string, file: string) => Promise<ReplayChunk>;
 	loadLapIndex: (sessionKey: string, path: string) => Promise<LapIndex>;
 	loadLap: (sessionKey: string, file: string) => Promise<LapTelemetry>;
+	/** Fetches an older session's positions from the archive on demand; absent offline. */
+	archive?: ArchiveFetches;
 };
 
 const version = z.literal(TELEMETRY_VERSION);

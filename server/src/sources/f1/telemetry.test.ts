@@ -14,11 +14,12 @@ import {
 	decodeTelemetryFrames
 } from './telemetry.js';
 
-const FIXTURES = path.join(import.meta.dirname, 'fixtures/2025-las-vegas-telemetry');
-
 /** Ten seconds of the 2025 Las Vegas race, 04:21:20 to 04:21:30 UTC, as the archive has them. */
-function fixtureFrames(topic: string) {
-	const text = readFileSync(path.join(FIXTURES, `${topic}.jsonStream`), 'utf8');
+function fixtureFrames(topic: string, folder = '2025-las-vegas-telemetry') {
+	const text = readFileSync(
+		path.join(import.meta.dirname, 'fixtures', folder, `${topic}.jsonStream`),
+		'utf8'
+	);
 
 	return parseJsonStream(topic, text).map((line) => ({
 		topic,
@@ -80,6 +81,51 @@ describe('decodeTelemetryFrames on ten seconds of the Las Vegas race', () => {
 	});
 });
 
+/** Three lines of each stream from races of seasons the format changed in, as the archive has them. */
+const OLDER_SEASONS = [
+	{ folder: '2018-austria-telemetry', day: '2018-07-01', positions: 10, carData: 13 },
+	{ folder: '2021-abu-dhabi-telemetry', day: '2021-12-12', positions: 14, carData: 13 },
+	{ folder: '2024-bahrain-telemetry', day: '2024-03-02', positions: 11, carData: 11 }
+];
+
+describe('decodeTelemetryFrames on older seasons', () => {
+	for (const season of OLDER_SEASONS) {
+		it(`reads every sample of ${season.folder}`, () => {
+			const streams = decodeTelemetryFrames([
+				...fixtureFrames(POSITION_TOPIC, season.folder),
+				...fixtureFrames(CAR_DATA_TOPIC, season.folder)
+			]);
+
+			assert.equal(streams.skipped, 0);
+			assert.equal(streams.positions.length, season.positions);
+			assert.equal(streams.carData.length, season.carData);
+
+			const cars = streams.positions.flatMap((sample) => [...sample.cars.values()]);
+			const readings = streams.carData.flatMap((sample) => [...sample.cars.values()]);
+
+			assert.ok(streams.positions.every((sample) => sample.cars.size === 20));
+			assert.ok(cars.every((car) => car.status === 'OnTrack' || car.status === 'OffTrack'));
+			assert.ok(cars.every((car) => Math.abs(car.x) < 2000 && Math.abs(car.y) < 2000));
+			assert.ok(readings.every((reading) => reading.speedKph >= 0 && reading.speedKph < 370));
+			assert.ok(readings.every((reading) => reading.drsOpen !== null));
+			assert.ok(
+				[...streams.positions, ...streams.carData].every((sample) =>
+					new Date(sample.at).toISOString().startsWith(season.day)
+				)
+			);
+		});
+	}
+
+	it('reads the numbered statuses of 2018 as on and off track', () => {
+		const [sample] = decodeTelemetryFrames(
+			fixtureFrames(POSITION_TOPIC, '2018-austria-telemetry')
+		).positions;
+
+		assert.deepEqual(sample?.cars.get('2'), { x: -312.7, y: -222.3, z: 737.2, status: 'OnTrack' });
+		assert.deepEqual(sample?.cars.get('14'), { x: 0, y: 0, z: 0, status: 'OffTrack' });
+	});
+});
+
 describe('decodePositionPayload', () => {
 	it('keeps the timestamp and each car status', () => {
 		const samples = decodePositionPayload(
@@ -100,6 +146,18 @@ describe('decodePositionPayload', () => {
 
 	it('rejects a payload that is not in the feed format', () => {
 		assert.throws(() => decodePositionPayload(compress({ Position: [{ Entries: {} }] })));
+		assert.throws(() =>
+			decodePositionPayload(
+				compress({
+					Position: [
+						{
+							Timestamp: '2018-07-01T13:12:55.1143164Z',
+							Entries: { '14': { Status: 7, X: 0, Y: 0, Z: 0 } }
+						}
+					]
+				})
+			)
+		);
 		assert.throws(() => decodePositionPayload('not deflate'));
 	});
 });

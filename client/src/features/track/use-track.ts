@@ -3,9 +3,10 @@ import { useReducedMotion } from 'motion/react';
 import * as React from 'react';
 
 import { MAX_DELAY_SECONDS } from '@/data/broadcast-delay';
-import { useRace } from '@/data/race-context';
+import { useRace, useRaceView } from '@/data/race-context';
 import { stepTime } from '@/data/session-time';
 import type { MapSession, MapTelemetry } from '@/data/map-telemetry';
+import { useArchiveFetch } from '@/data/use-archive-fetch';
 
 import { type EstimateModel, estimateModel } from './estimate';
 import { LIVE_LAG_MS, LivePositionBuffer } from './live-positions';
@@ -41,14 +42,23 @@ function settledTrack(source: MapTelemetry, key: string): TrackData | undefined 
 	return settled.get(source)?.get(key);
 }
 
+/**
+ * Keys a session's track; one whose positions the server fetched since the page loaded is a new
+ * track, so the one without them is not reused.
+ */
+function trackKey(sessionKey: string, circuitKey: string | undefined, fetched: boolean): string {
+	return `${sessionKey}/${circuitKey ?? ''}${fetched ? '/fetched' : ''}`;
+}
+
 /** A session's circuit and replay, shared by every map on the page and fetched once. */
 function loadTrack(
 	source: MapTelemetry,
 	sessionKey: string,
-	circuitKey: string | undefined
+	circuitKey: string | undefined,
+	fetched: boolean
 ): Promise<TrackReady | null> {
 	const sessions = loaded.get(source) ?? new Map<string, Promise<TrackReady | null>>();
-	const key = `${sessionKey}/${circuitKey ?? ''}`;
+	const key = trackKey(sessionKey, circuitKey, fetched);
 	let pending = sessions.get(key);
 
 	loaded.set(source, sessions);
@@ -116,13 +126,28 @@ function loadTrack(
 	return pending;
 }
 
+/** The track has no positions to replay: the server may fetch them from the archive. */
+function lacksPositions(data: TrackData): boolean {
+	return data.status === 'none' || (data.status === 'ready' && data.telemetry === null);
+}
+
+/** The archive fetch of the session on screen, and a way to try it again after a failure. */
+export function useTrackFetch() {
+	const { maps, sessionKey } = useRaceView();
+	const status = useArchiveFetch(maps.archive, sessionKey);
+	const retry = React.useCallback(() => maps.archive?.start(sessionKey, true), [maps, sessionKey]);
+
+	return { status, retry };
+}
+
 type KeyedTrack = { key: string; data: TrackData };
 
 /** The circuit and replay of the session on screen. */
 export function useTrackData(): TrackData {
-	const { maps, sessionKey, race } = useRace();
+	const { maps, sessionKey, race, live } = useRace();
 	const circuitKey = race.session.circuitKey;
-	const key = `${sessionKey}/${circuitKey ?? ''}`;
+	const fetched = useArchiveFetch(maps.archive, sessionKey)?.state === 'ready';
+	const key = trackKey(sessionKey, circuitKey, fetched);
 	const [state, setState] = React.useState<KeyedTrack | null>(null);
 
 	React.useEffect(() => {
@@ -132,7 +157,7 @@ export function useTrackData(): TrackData {
 			let data: TrackData;
 
 			try {
-				data = (await loadTrack(maps, sessionKey, circuitKey)) ?? { status: 'none' };
+				data = (await loadTrack(maps, sessionKey, circuitKey, fetched)) ?? { status: 'none' };
 			} catch (error) {
 				data = {
 					status: 'error',
@@ -150,9 +175,19 @@ export function useTrackData(): TrackData {
 		return () => {
 			cancelled = true;
 		};
-	}, [maps, sessionKey, circuitKey, key]);
+	}, [maps, sessionKey, circuitKey, key, fetched]);
 
-	return state?.key === key ? state.data : (settledTrack(maps, key) ?? { status: 'loading' });
+	const data = state?.key === key ? state.data : (settledTrack(maps, key) ?? { status: 'loading' });
+
+	const wantsPositions = !live.isLive && lacksPositions(data);
+
+	React.useEffect(() => {
+		if (wantsPositions) {
+			maps.archive?.start(sessionKey);
+		}
+	}, [maps, sessionKey, wantsPositions]);
+
+	return data;
 }
 
 const models = new WeakMap<RaceSnapshot, Map<string, EstimateModel>>();

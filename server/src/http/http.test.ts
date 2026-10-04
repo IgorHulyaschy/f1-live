@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { request } from 'node:http';
 import path from 'node:path';
 import { after, before, describe, it } from 'node:test';
@@ -10,6 +10,13 @@ import type { LiveServer } from '../main.js';
 import { testConfig } from '../live/test-harness.js';
 
 const SNAPSHOT = { session: { id: '9858' } };
+
+const CACHED = {
+	key: 7001,
+	path: '2019/2019-06-30_Austrian_Grand_Prix/2019-06-30_Race',
+	bytes: 1000,
+	openedAt: '2026-01-01T00:00:00.000Z'
+};
 
 const dataDir = testConfig().dataDir;
 
@@ -33,6 +40,13 @@ before(async () => {
 	writeFileSync(path.join(out, 'snapshots', '9858.json.gz'), gzipSync(JSON.stringify(SNAPSHOT)));
 	writeFileSync(path.join(out, 'events', '9858.ndjson.gz'), gzipSync('{"kind":"x"}\n'));
 	writeFileSync(path.join(dataDir, 'secret.txt'), 'not for the web');
+	mkdirSync(path.join(out, 'telemetry', '7001'), { recursive: true });
+	writeFileSync(path.join(out, 'telemetry', '7001', 'index.json'), '{}');
+	mkdirSync(path.join(dataDir, 'cache'), { recursive: true });
+	writeFileSync(
+		path.join(dataDir, 'cache', 'sessions.json'),
+		JSON.stringify({ sessions: [CACHED] })
+	);
 
 	server = await createServer(
 		testConfig({ DATA_DIR: dataDir, CORS_ORIGINS: 'https://app.example.com' })
@@ -168,5 +182,53 @@ describe('saved sessions', () => {
 
 			assert.equal(response.status, 404, route);
 		}
+	});
+});
+
+function openedAt(): number {
+	return Date.parse(
+		JSON.parse(readFileSync(path.join(dataDir, 'cache', 'sessions.json'), 'utf8')).sessions[0]
+			.openedAt
+	);
+}
+
+describe('telemetry on demand', () => {
+	it('says a session with telemetry is ready and one without is idle', async () => {
+		for (const [key, state] of [
+			['7001', 'ready'],
+			['9858', 'idle']
+		]) {
+			// oxlint-disable-next-line no-await-in-loop -- two requests.
+			const response = await get(`/telemetry-fetch/${key}`);
+
+			assert.equal(response.status, 200);
+			assert.equal(response.headers['cache-control'], 'no-store');
+			assert.deepEqual(JSON.parse(response.body.toString()), { state });
+		}
+
+		assert.equal((await get('/telemetry-fetch/abc')).status, 404);
+	});
+
+	it('refuses to fetch a session nothing imported', async () => {
+		const response = await fetch(new URL('/telemetry-fetch/12345', baseUrl), { method: 'POST' });
+
+		assert.deepEqual(await response.json(), {
+			state: 'unavailable',
+			reason: 'No imported session has this key.'
+		});
+	});
+
+	it('marks a cached session as opened when a viewer reads its manifest', async () => {
+		assert.equal((await get('/telemetry/7001/index.json')).status, 200);
+
+		const deadline = Date.now() + 2000;
+
+		// The mark is written once the answer has gone.
+		while (openedAt() === Date.parse(CACHED.openedAt) && Date.now() < deadline) {
+			// oxlint-disable-next-line no-await-in-loop -- polls a file.
+			await new Promise((resolve) => setTimeout(resolve, 10));
+		}
+
+		assert.ok(openedAt() > Date.parse(CACHED.openedAt));
 	});
 });

@@ -12,6 +12,9 @@ import type { IndexedMeeting, IndexedSeason, IndexedSession } from './season-ind
  */
 export const SUPPLEMENT_DIR = path.resolve(import.meta.dirname, '../../index-supplement');
 
+/** Seasons whose `Index.json` the archive refuses (403), so their supplement is the whole season. */
+export const UNINDEXED_SEASONS: readonly number[] = [2022];
+
 /** The first line of a session's `SessionInfo.jsonStream`, which names its meeting too. */
 export const sessionInfoSchema = z.object({
 	Meeting: z.object({

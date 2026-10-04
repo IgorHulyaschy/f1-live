@@ -1,8 +1,10 @@
 import type { Driver } from '@f1-live/shared';
 import * as React from 'react';
 
+import { Key } from '@/components/console/keys';
 import { TeamStripe } from '@/components/driver-tag';
 import { Skeleton } from '@/components/ui/skeleton';
+import { describeFetch, describeStage } from '@/data/archive-fetch';
 import { useRace } from '@/data/race-context';
 import { useDrill } from '@/features/drill/use-drill';
 import { isTimedSession } from '@/insights/qualifying';
@@ -10,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
 import type { CarPlace } from './track-frames';
-import type { Places, PlacesSampler, TrackData } from './use-track';
+import { type Places, type PlacesSampler, type TrackData, useTrackFetch } from './use-track';
 
 const NO_CARS: readonly CarPlace[] = [];
 
@@ -24,9 +26,37 @@ export function useMapBodyClass(): string {
 	return fill ? 'min-h-48 flex-1' : 'aspect-[4/3] @3xl:aspect-[16/9]';
 }
 
+/** The server's progress with the session's positions from the archive, and a retry once it failed. */
+function FetchProgress({ centered = false }: { centered?: boolean }) {
+	const { status, retry } = useTrackFetch();
+	const text = describeFetch(status);
+
+	if (text === null) {
+		return null;
+	}
+
+	const failed = status?.state === 'failed';
+
+	return (
+		<span data-testid="map-fetch" role={failed ? 'alert' : undefined}>
+			{text}
+			{/* Announced once per stage, not on every percent. */}
+			<span className="sr-only" aria-live="polite">
+				{failed ? '' : describeStage(status)}
+			</span>
+			{failed ? (
+				<Key onClick={retry} className={cn('mt-2 flex w-fit', centered && 'mx-auto')}>
+					Try again
+				</Key>
+			) : null}
+		</span>
+	);
+}
+
 /** What a map shows before its circuit is ready: loading, nothing to draw, or a failure. */
 export function MapPending({ data }: { data: Exclude<TrackData, { status: 'ready' }> }) {
 	const bodyClass = useMapBodyClass();
+	const fetching = describeFetch(useTrackFetch().status) !== null;
 
 	if (data.status === 'loading') {
 		return (
@@ -47,9 +77,13 @@ export function MapPending({ data }: { data: Exclude<TrackData, { status: 'ready
 					data.status === 'error' ? 'text-danger' : 'text-muted-foreground'
 				)}
 			>
-				{data.status === 'error'
-					? `The circuit could not be loaded: ${data.message}`
-					: 'No circuit outline for this session yet. It appears once any session here has been saved with car positions.'}
+				{data.status === 'error' ? (
+					`The circuit could not be loaded: ${data.message}`
+				) : fetching ? (
+					<FetchProgress centered />
+				) : (
+					'No circuit outline for this session yet. It appears once any session here has been saved with car positions.'
+				)}
 			</p>
 		</div>
 	);
@@ -83,9 +117,12 @@ export function MapNote({
 	now?: Places | null;
 	children?: React.ReactNode;
 }) {
+	const fetching = describeFetch(useTrackFetch().status) !== null && !places.live;
 	let note: string | null = null;
 
-	if (places.source === 'estimated') {
+	if (places.source === 'estimated' && fetching) {
+		note = 'Estimated from timing until the car positions are in.';
+	} else if (places.source === 'estimated') {
 		note =
 			places.live && places.positionsLive === false
 				? 'Estimated from timing: live car positions need an F1 TV login on the server.'
@@ -94,7 +131,7 @@ export function MapNote({
 		note = 'Estimated from timing: the car positions for this moment did not load.';
 	}
 
-	if (!note && React.Children.toArray(children).length === 0) {
+	if (!note && !fetching && React.Children.toArray(children).length === 0) {
 		return null;
 	}
 
@@ -104,6 +141,7 @@ export function MapNote({
 			data-testid="map-note"
 		>
 			{note ? <span>{note}</span> : null}
+			{fetching ? <FetchProgress /> : null}
 			{children}
 		</p>
 	);

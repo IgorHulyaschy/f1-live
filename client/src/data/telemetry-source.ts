@@ -11,6 +11,8 @@ export type TelemetrySource = {
 	/** What has already loaded, so a tile drawn again shows it at once; undefined until then. */
 	loadedSession: (key: string) => SessionTelemetry | null | undefined;
 	loadedLap: (key: string, entry: LapIndexEntry) => LapTelemetry | undefined;
+	/** Drops what is known of the session, once the server has built telemetry it lacked. */
+	forgetSession: (key: string) => void;
 };
 
 /**
@@ -110,6 +112,10 @@ export function createCache<T>() {
 		},
 		loaded(url: string): T | undefined {
 			return done.get(url);
+		},
+		forget(url: string): void {
+			pending.delete(url);
+			done.delete(url);
 		}
 	};
 }
@@ -150,7 +156,8 @@ export function createTelemetrySource(apiUrl: string): TelemetrySource {
 		loadSession: (key) => sessions.once(sessionUrl(key), () => loadSession(key)),
 		loadLap: (key, entry) => laps.once(lapUrl(key, entry), () => fetchLap(lapUrl(key, entry))),
 		loadedSession: (key) => sessions.loaded(sessionUrl(key)),
-		loadedLap: (key, entry) => laps.loaded(lapUrl(key, entry))
+		loadedLap: (key, entry) => laps.loaded(lapUrl(key, entry)),
+		forgetSession: (key) => sessions.forget(sessionUrl(key))
 	};
 }
 
@@ -181,6 +188,7 @@ export function lazyTelemetrySource(load: () => Promise<TelemetrySource>): Telem
 		loadSession: async (key) => (await ready()).loadSession(key),
 		loadLap: async (key, entry) => (await ready()).loadLap(key, entry),
 		loadedSession: (key) => source?.loadedSession(key),
-		loadedLap: (key, entry) => source?.loadedLap(key, entry)
+		loadedLap: (key, entry) => source?.loadedLap(key, entry),
+		forgetSession: (key) => source?.forgetSession(key)
 	};
 }

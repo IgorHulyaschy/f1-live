@@ -9,6 +9,7 @@ import { type SeasonResults, seasonResultsSchema } from '@f1-live/shared/results
 import { z } from 'zod';
 
 import { isKnockout } from '../insights/qualifying.ts';
+import { ArchiveFetches, apiArchiveFetch } from './archive-fetch.ts';
 import { type Catalog, catalogSchema } from './catalog.ts';
 import { apiMapTelemetry, type MapTelemetry, mockMapTelemetry } from './map-telemetry.ts';
 import {
@@ -153,14 +154,19 @@ export function createRaceSource(
 	urls: { apiUrl: string; liveUrl: string }
 ): RaceSource {
 	if (kind === 'api') {
+		const telemetry = createTelemetrySource(urls.apiUrl);
+		const archive = new ArchiveFetches(apiArchiveFetch(urls.apiUrl));
+
+		archive.onReady((key) => telemetry.forgetSession(key));
+
 		return {
 			kind,
 			loadCatalog: () => fetchCatalog(urls.apiUrl),
 			loadSession: (key) => fetchSnapshot(urls.apiUrl, key),
 			loadResults: (season) => fetchResults(urls.apiUrl, season),
 			liveUrl: urls.liveUrl,
-			telemetry: createTelemetrySource(urls.apiUrl),
-			maps: apiMapTelemetry(urls.apiUrl)
+			telemetry,
+			maps: { ...apiMapTelemetry(urls.apiUrl), archive }
 		};
 	}
 

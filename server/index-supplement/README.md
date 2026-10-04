@@ -12,5 +12,7 @@ npm run index-gaps -w server -- 2024                 # candidates from OpenF1's 
 npm run index-gaps -w server -- 2018 --path 2018/2018-03-25_Australian_Grand_Prix/2018-03-25_Race
 ```
 
-which keeps a candidate only when the archive serves it. 2022 has no season index and no session
-in the archive at all, so it cannot be supplemented from here.
+which keeps a candidate only when the archive serves it. The archive refuses `2022/Index.json`
+(403) and serves only three whole 2022 sessions, Bahrain practice 1 to 3; `2022.json` lists them and
+`UNINDEXED_SEASONS` makes it the whole season. Bahrain qualifying lacks its timing streams and
+every other 2022 path answers 403.

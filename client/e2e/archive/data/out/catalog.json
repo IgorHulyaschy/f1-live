@@ -1,0 +1,36 @@
+{
+	"seasons": [
+		{
+			"year": 2019,
+			"meetings": [
+				{
+					"key": 1008,
+					"name": "Austrian Grand Prix",
+					"officialName": "FORMULA 1 MYWORLD GROSSER PREIS VON ÖSTERREICH 2019",
+					"location": "Spielberg",
+					"sessions": [
+						{
+							"key": 5458,
+							"type": "race",
+							"name": "Race",
+							"startsAt": "2019-06-30T13:10:00.000Z",
+							"endsAt": "2019-06-30T15:10:00.000Z",
+							"status": "finished",
+							"circuit": "Spielberg",
+							"country": {
+								"code": "AUT",
+								"name": "Austria"
+							},
+							"outputs": {
+								"raw": true,
+								"events": true,
+								"snapshot": true,
+								"telemetry": false
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}

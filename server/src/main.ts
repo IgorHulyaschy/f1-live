@@ -16,13 +16,16 @@ import { registerHealth } from './http/health.js';
 import { registerIngest } from './http/ingest.js';
 import { registerLiveSocket } from './http/live-socket.js';
 import { registerStaticData } from './http/static-data.js';
+import { registerTelemetryFetch } from './http/telemetry-fetch.js';
 import { LiveHub } from './live/hub.js';
 import { SessionImporter } from './live/importer.js';
 import { LivePipeline } from './live/pipeline.js';
 import { RelayChannelPusher, RelayPusher } from './live/relay.js';
 import { LiveSession } from './live/session.js';
+import { buildInWorker } from './telemetry/build-worker.js';
 import { LiveTelemetry } from './telemetry/live.js';
 import type { LiveTelemetryOptions } from './telemetry/live.js';
+import { TelemetryOnDemand } from './telemetry/on-demand.js';
 import type { Backoff, EventLog } from './sources/f1/live.js';
 
 const RELAY_BACKOFF: Backoff = { initialMs: 500, maxMs: 15_000 };
@@ -94,13 +97,14 @@ export async function createServer(
 
 	// Accounts run where viewers are; an ingest has none.
 	const accountsConfig = serves ? config.accounts : null;
+	const onDemand = serves && config.telemetryCache.onDemand;
 
 	await app.register(cors, {
 		origin: [...config.corsOrigins],
 		// Accounts write with a session cookie; without them the server is read-only.
 		methods: accountsConfig
 			? ['GET', 'HEAD', 'OPTIONS', 'POST', 'PUT', 'DELETE']
-			: ['GET', 'HEAD', 'OPTIONS'],
+			: ['GET', 'HEAD', 'OPTIONS', ...(onDemand ? ['POST'] : [])],
 		credentials: accountsConfig !== null
 	});
 
@@ -170,6 +174,16 @@ export async function createServer(
 
 	registerHealth(app, { mode: config.mode, session, hub, notReady });
 	registerStaticData(app, config.dataDir);
+
+	if (onDemand) {
+		registerTelemetryFetch(
+			app,
+			new TelemetryOnDemand(
+				{ dataDir: config.dataDir, ...config.telemetryCache, build: buildInWorker },
+				log
+			)
+		);
+	}
 
 	if (config.mode === 'relay' && config.relay.secret && hub) {
 		registerIngest(app, session, hub, config.relay.secret);

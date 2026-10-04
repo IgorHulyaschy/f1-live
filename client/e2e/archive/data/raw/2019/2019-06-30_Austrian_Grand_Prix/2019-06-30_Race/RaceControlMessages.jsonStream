@@ -1,0 +1,4 @@
+﻿00:15:08.741{"Messages":[{"Utc":"2019-06-30T12:55:09","Lap":1,"Category":"Other","Message":"RISK OF RAIN FOR THIS SESSION IS 0%"}]}
+00:27:03.718{"Messages":{"1":{"Utc":"2019-06-30T13:07:03","Lap":1,"Category":"Drs","Status":"DISABLED","Message":"DRS DISABLED"}}}
+00:32:52.486{"Messages":{"2":{"Utc":"2019-06-30T13:12:52","Lap":1,"Category":"Flag","Flag":"GREEN","Scope":"Track","Message":"GREEN LIGHT - PIT EXIT OPEN"}}}
+00:35:11.092{"Messages":{"3":{"Utc":"2019-06-30T13:15:11","Lap":2,"Category":"Drs","Status":"ENABLED","Message":"DRS ENABLED"}}}

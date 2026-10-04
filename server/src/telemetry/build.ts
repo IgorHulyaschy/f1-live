@@ -37,6 +37,8 @@ import { readSegments } from './timing.js';
 export interface BuildOptions {
 	/** The session's raw directory: the `<Topic>.jsonStream` files of one session. */
 	rawDir: string;
+	/** Another folder of the same session whose positions and car data stand in for the raw directory's. */
+	streamsDir?: string;
 	/** The session's archive key, e.g. 9858 for the 2025 Las Vegas race. */
 	key: number;
 	/** Where `out/telemetry` goes. */
@@ -296,8 +298,8 @@ const sum = (values: readonly number[]) => values.reduce((total, value) => total
 
 export async function buildTelemetry(options: BuildOptions): Promise<TelemetryReport> {
 	const started = performance.now();
-	const { rawDir, key, dataDir, log } = options;
-	const frames = await readArchive(rawDir, [...F1_TOPICS, ...TELEMETRY_TOPICS]);
+	const { rawDir, streamsDir, key, dataDir, log } = options;
+	const frames = await readArchive(rawDir, [...F1_TOPICS, ...TELEMETRY_TOPICS], streamsDir);
 	const telemetryTopics = new Set<string>(TELEMETRY_TOPICS);
 	const streams = decodeTelemetryFrames(frames.filter((frame) => telemetryTopics.has(frame.topic)));
 

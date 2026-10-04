@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { after, describe, it } from 'node:test';
 
-import { adoptSession, discoverSessions } from './local.js';
+import { adoptSession, discoverSessions, readSeasonIndexes } from './local.js';
 
 const roots: string[] = [];
 
@@ -93,5 +93,24 @@ describe('adoptSession', () => {
 		writeFileSync(path.join(rawDir, live.path, 'SessionInfo.jsonStream'), 'archive copy');
 
 		assert.equal(await adoptSession(from, rawDir, live), false);
+	});
+});
+
+describe('readSeasonIndexes', () => {
+	it('reads a season the archive publishes no index for from its supplement alone, when asked for', async () => {
+		const root = mkdtempSync(path.join(tmpdir(), 'seasons-'));
+
+		after(() => rmSync(root, { recursive: true, force: true }));
+
+		assert.deepEqual(await readSeasonIndexes(root), []);
+
+		const [season, ...others] = await readSeasonIndexes(root, undefined, [2022]);
+
+		assert.equal(others.length, 0);
+		assert.equal(season?.year, 2022);
+		assert.deepEqual(
+			season?.meetings.flatMap((meeting) => meeting.sessions.map((indexed) => indexed.key)),
+			[6979, 6973, 6978]
+		);
 	});
 });

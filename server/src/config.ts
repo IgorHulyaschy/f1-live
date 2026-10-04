@@ -3,6 +3,8 @@ import path from 'node:path';
 import { z } from 'zod';
 
 import { type AccountsConfig, loadAccountsConfig } from './accounts/config.js';
+import { ARCHIVE_URL } from './import/fetch.js';
+import { GB } from './pkg/disk.js';
 import { LIVE_TIMING_URL } from './sources/f1/live.js';
 
 export const MODES = ['all', 'ingest', 'relay'] as const;
@@ -61,7 +63,14 @@ const envSchema = z
 			.int()
 			.positive()
 			.default(4 * 1024 * 1024),
-		WS_PING_SECONDS: z.coerce.number().positive().default(20)
+		WS_PING_SECONDS: z.coerce.number().positive().default(20),
+		/** Fetch an older session's positions and car data when a viewer opens it. */
+		TELEMETRY_ON_DEMAND: z.stringbool().default(true),
+		ARCHIVE_URL: z.url().default(ARCHIVE_URL),
+		/** The fetched sessions' streams and telemetry; the least recently opened go first. */
+		TELEMETRY_CACHE_GB: z.coerce.number().positive().default(5),
+		/** No download leaves less free space than this on the data volume. */
+		DISK_FLOOR_GB: z.coerce.number().min(0).default(10)
 	})
 	.superRefine((env, context) => {
 		const needs: Partial<Record<Mode, readonly ('RELAY_URL' | 'RELAY_SECRET')[]>> = {
@@ -109,6 +118,8 @@ export interface Config {
 		logEvents: number;
 	};
 	ws: { maxBufferBytes: number; pingMs: number };
+	/** Older sessions' telemetry, fetched from the archive on demand. */
+	telemetryCache: { onDemand: boolean; archiveUrl: string; capBytes: number; floorBytes: number };
 	logLevel: string;
 	/** Sign-in, synced dashboards and billing; null unless a database is chosen. */
 	accounts: AccountsConfig | null;
@@ -145,6 +156,12 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
 			logEvents: values.LIVE_LOG_EVENTS
 		},
 		ws: { maxBufferBytes: values.WS_MAX_BUFFER_BYTES, pingMs: values.WS_PING_SECONDS * 1000 },
+		telemetryCache: {
+			onDemand: values.TELEMETRY_ON_DEMAND,
+			archiveUrl: values.ARCHIVE_URL.replace(/\/+$/, ''),
+			capBytes: values.TELEMETRY_CACHE_GB * GB,
+			floorBytes: values.DISK_FLOOR_GB * GB
+		},
 		logLevel: values.LOG_LEVEL,
 		accounts: loadAccountsConfig(env, {
 			dataDir,

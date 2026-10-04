@@ -29,7 +29,7 @@ export default defineConfig({
 			testDir: './e2e',
 			// Real-data and live specs run from playwright.real.config.ts, the stack's from
 			// playwright.stack.config.ts, the production build's from playwright.build.config.ts.
-			testIgnore: ['real/**', 'live/**', 'stack/**', 'build/**', 'media-off/**'],
+			testIgnore: ['real/**', 'live/**', 'stack/**', 'build/**', 'media-off/**', 'archive/**'],
 			use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }
 		},
 		{

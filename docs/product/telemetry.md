@@ -38,6 +38,34 @@ draws it.
 It is idempotent and rebuilds from raw only. The whole 2025 Las Vegas race takes about 4.5 s.
 Results: [docs/research/telemetry-las-vegas.md](../research/telemetry-las-vegas.md).
 
+## Older sessions, on demand
+
+An import keeps every stream from 2025 on. Sessions from 2018 to 2024 are imported without
+`Position.z` and `CarData.z`, about 17 MB a race that few people open. When a viewer opens one,
+the map asks `POST /telemetry-fetch/<key>` and follows `GET /telemetry-fetch/<key>` every second
+(`queued`, `fetching` with bytes received, `building`, then `ready`, `unavailable` or `failed`).
+Meanwhile the replay runs on timing alone, with the cars estimated, and the map says how far the
+fetch has come. Once it is ready the client forgets the session's telemetry and loads it again.
+
+The server fetches one session at a time (`server/src/telemetry/on-demand.ts`), keeps the two
+streams in archive format under `<DATA_DIR>/cache/raw/<archive path>` and builds the telemetry
+in a worker thread into the usual `out/telemetry/<key>`. `<DATA_DIR>/cache/sessions.json` records
+each session's size and when it was last opened (reading its replay manifest counts). Past
+`TELEMETRY_CACHE_GB` (5 by default) the least recently opened sessions lose their streams and
+telemetry; the one just built and any opened in the last three hours stay. No download starts that would leave less than
+`DISK_FLOOR_GB` (10 by default) free on the data volume; it fails with the shortfall instead.
+`TELEMETRY_ON_DEMAND=false` turns it off, and `ARCHIVE_URL` points it at another archive.
+
+To fill the cache ahead of time, within the same cap and floor:
+
+```sh
+npm run prefetch -w server -- 2021 --type race      # every 2021 race
+npm run prefetch -w server -- --key 1107,9472       # these sessions
+```
+
+It goes in date order, keeps the sessions already cached, prints the size of each session it fetched, and stops with a message
+when the next session would push the cache over its cap or the disk to its floor.
+
 ## Output
 
 Under `<DATA_DIR>/out/telemetry/`, served at `/telemetry/…` with the other saved data:

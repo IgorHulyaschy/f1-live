@@ -131,26 +131,40 @@ function subscribedLines(lines: readonly StreamLine[]): Map<string, StreamLine[]
 /**
  * Reads a session's `<Topic>.jsonStream` files as frames of any topic, the decoder's by default;
  * a topic without a file is skipped. A live recording's subscribe results come first at their
- * offset, and its own origin places it in time.
+ * offset, and its own origin places it in time. A stream in `overlay`, another download of the
+ * same session, stands in for the directory's.
  */
 export async function readArchive(
 	directory: string,
-	topics: readonly string[] = F1_TOPICS
+	topics: readonly string[] = F1_TOPICS,
+	overlay?: string
 ): Promise<TopicFrame[]> {
 	const files = new Set(await readdir(directory));
+	const overlaid = new Set(overlay === undefined ? [] : await readdir(overlay));
+
+	const folderOf = (topic: string): string | null => {
+		const file = `${topic}${STREAM_SUFFIX}`;
+
+		if (overlay !== undefined && overlaid.has(file)) {
+			return overlay;
+		}
+
+		return files.has(file) ? directory : null;
+	};
 
 	const subscribed = files.has(`${SUBSCRIBE_STREAM}${STREAM_SUFFIX}`)
 		? subscribedLines(await readStream(directory, SUBSCRIBE_STREAM))
 		: new Map<string, StreamLine[]>();
 
 	const wanted = [...new Set([...topics, ...CLOCK_TOPICS])].filter(
-		(topic) => files.has(`${topic}${STREAM_SUFFIX}`) || subscribed.has(topic)
+		(topic) => folderOf(topic) !== null || subscribed.has(topic)
 	);
 
 	const streams = new Map(
 		await Promise.all(
 			wanted.map(async (topic) => {
-				const own = files.has(`${topic}${STREAM_SUFFIX}`) ? await readStream(directory, topic) : [];
+				const folder = folderOf(topic);
+				const own = folder === null ? [] : await readStream(folder, topic);
 				const lines = [...(subscribed.get(topic) ?? []), ...own];
 
 				return [topic, lines.toSorted((a, b) => a.offsetMs - b.offsetMs)] as const;

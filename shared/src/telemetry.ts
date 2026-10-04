@@ -143,6 +143,19 @@ export interface ReplayChunk {
 	cars: { [driverNumber: string]: ReplayCar };
 }
 
+/**
+ * Where the server is in fetching an older session's positions and car data from the archive and
+ * building its telemetry: `GET` and `POST /telemetry-fetch/<key>` answer with it.
+ */
+export type TelemetryFetchStatus =
+	| { state: 'idle' }
+	| { state: 'queued'; ahead: number }
+	| { state: 'fetching'; receivedBytes: number; totalBytes: number | null }
+	| { state: 'building' }
+	| { state: 'ready' }
+	| { state: 'unavailable'; reason: string }
+	| { state: 'failed'; message: string };
+
 /** The live position frame: whole metres, and 1 when the car is on the track. */
 export interface LivePositions {
 	/** The time of the samples, ms since the Unix epoch. */

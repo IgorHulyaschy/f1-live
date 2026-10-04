@@ -153,11 +153,11 @@ Shots land in `client/shots/output/<viewport>/<page>-<plan>-<theme>.png` and, on
 `client/shots/output/real/` (not committed); they are meant for design and quality audits. The
 real-data runs (`client/playwright.real.config.ts`) read a committed fixture of the 2025 Las Vegas
 race and qualifying and 2026 Baku qualifying, derived by `client/e2e/real/derive-fixtures.ts`,
-and replay a trimmed race through `replay-live`. If Playwright's own browser is not installed, point it at
-any Chromium with `PW_CHROMIUM_PATH=/path/to/chrome`.
+and replay a trimmed race through `replay-live`. A trimmed 2019 race (`client/e2e/archive`, derived by
+its `derive-fixture.ts`) has its positions fetched from a stand-in archive. If Playwright's own browser
+is not installed, point it at any Chromium with `PW_CHROMIUM_PATH=/path/to/chrome`.
 
-Playwright starts its own servers on fixed ports: the apps on 4173 to 4176, the servers on 3111, 3112
-and 3114. Worktrees that run e2e or shots side by side set `PW_PORT_BASE` to a different number in
+Playwright starts its own servers on fixed ports: the apps on 4173 to 4178, the servers on 3111 to 3114. Worktrees that run e2e or shots side by side set `PW_PORT_BASE` to a different number in
 each, for example `PW_PORT_BASE=4373 CI=1 npm run test:e2e`; it moves every one of those ports
 (`client/playwright.ports.ts` lists them). Run with `CI=1`, so Playwright never reuses a server
 that another run started.

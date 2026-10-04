@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { z } from 'zod';
 
-import { readSupplement, withSupplement } from '../catalog/index-supplement.js';
+import { UNINDEXED_SEASONS, readSupplement, withSupplement } from '../catalog/index-supplement.js';
 import type { IndexedSeason } from '../catalog/season-index.js';
 import { parseSeasonIndex } from '../catalog/season-index.js';
 
@@ -50,29 +50,38 @@ export async function findSessionDirs(root: string, relative = ''): Promise<stri
 
 /**
  * The season indexes saved at `<root>/<year>/Index.json`, oldest first, each with the sessions the
- * committed supplement adds (`server/index-supplement`).
+ * committed supplement adds (`server/index-supplement`). A season the archive publishes no index
+ * for is its supplement alone, once it has a folder under `root` or is among `wanted`.
  */
 export async function readSeasonIndexes(
 	root: string,
-	supplementDir?: string
+	supplementDir?: string,
+	wanted: readonly number[] = []
 ): Promise<IndexedSeason[]> {
 	const names = await readdir(root).catch(() => []);
 
 	const seasons = await Promise.all(
-		names
-			.filter((name) => /^\d{4}$/.test(name))
-			.map(async (name) => {
-				const text = await readFile(path.join(root, name, 'Index.json'), 'utf8').catch(() => null);
+		[
+			...new Set([
+				...names.filter((name) => /^\d{4}$/.test(name)),
+				...UNINDEXED_SEASONS.filter((year) => wanted.includes(year)).map(String)
+			])
+		].map(async (name) => {
+			const text = await readFile(path.join(root, name, 'Index.json'), 'utf8').catch(() => null);
 
-				if (text === null) {
-					return [];
-				}
+			if (text === null) {
+				const alone = UNINDEXED_SEASONS.includes(Number(name))
+					? await readSupplement(Number(name), supplementDir)
+					: null;
 
-				const season = parseSeasonIndex(text);
-				const extra = await readSupplement(season.year, supplementDir);
+				return alone === null ? [] : [alone];
+			}
 
-				return [extra === null ? season : withSupplement(season, extra)];
-			})
+			const season = parseSeasonIndex(text);
+			const extra = await readSupplement(season.year, supplementDir);
+
+			return [extra === null ? season : withSupplement(season, extra)];
+		})
 	);
 
 	return seasons.flat().toSorted((a, b) => a.year - b.year);

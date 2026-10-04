@@ -22,13 +22,26 @@ const PEDAL_MAX = 100;
 /** DRS: 0 and 1 closed, 8 detected, 10, 12 and 14 open. */
 const DRS_OPEN_FROM = 10;
 
+/** Until 2019 the feed numbered a car's status: 0 on track, 1 off it (in the garage, no fix yet). */
+const NUMBERED_STATUS = ['OnTrack', 'OffTrack'] as const;
+
+const statusSchema = z.union([
+	z.string(),
+	z
+		.number()
+		.int()
+		.min(0)
+		.max(NUMBERED_STATUS.length - 1)
+		.transform((status) => NUMBERED_STATUS[status] ?? 'OffTrack')
+]);
+
 const positionPayloadSchema = z.object({
 	Position: z.array(
 		z.object({
 			Timestamp: z.iso.datetime(),
 			Entries: z.record(
 				z.string(),
-				z.object({ Status: z.string(), X: z.number(), Y: z.number(), Z: z.number() })
+				z.object({ Status: statusSchema, X: z.number(), Y: z.number(), Z: z.number() })
 			)
 		})
 	)
@@ -48,7 +61,7 @@ export interface CarPosition {
 	x: number;
 	y: number;
 	z: number;
-	/** As the feed says: "OnTrack" or "OffTrack". */
+	/** As the feed says: "OnTrack" or "OffTrack"; the numbered statuses of 2018 and 2019 are read as these. */
 	status: string;
 }
 
