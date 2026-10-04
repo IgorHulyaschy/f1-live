@@ -27,10 +27,14 @@ The rules the flows share:
    is lit "Live" with the part, the time left or the lap, the flag and the drop zone.
 2. Follow a driver: the Focus tile's picker, ⌘K, or Follow in their driver view. The app tints to
    their team and the pit board on phones shows them.
-3. Something happens (a flag, a lap deleted, a stop): the flag banner wipes in, the story and race
-   control list it. Click the message: the replay moves to that moment, and "Back to live" (or L)
-   returns.
-4. Click the driver it names: their session opens in a side sheet with the laps so far.
+3. See who is racing whom: Fights lists every pair within a second and every car closing, with
+   the laps to catch and why. Point at a row and the pair lights on the map and in the tower;
+   pick it, or Shift and two tower rows, and the Duel says who is faster: "LEC is 0.28 s a lap
+   faster over the last 5 laps and 0.2 s behind". Pace now ranks the whole field.
+4. Something happens (a flag, a lap deleted, a stop): the flag banner wipes in, the story and race
+   control list it. Click the message: the replay moves to that moment, and "Go live" (or L), next to
+   play in the Replay tile, returns.
+5. Click the driver it names: their session opens in a side sheet with the laps so far.
 
 **Exits.** Back to live; another dashboard (1 to 9); the session ends and the screen stays on it,
 revealed, because the viewer watched it.
@@ -44,6 +48,8 @@ live state, to watch it from the beginning and catch up at 10× or 60×.
 | Race-control messages are read-only; seeing an incident again means scrubbing by guess. | Each message is a key that moves the replay to its moment.             |
 | A late joiner has no way to start from the beginning except dragging the barcode to L1. | "From the start" on the live strip while live.                         |
 | Spoiler-free mode (when on) opened a running session at lap 1 instead of live.          | Live stays live; only finished, unrevealed sessions open at the start. |
+| Who is catching whom needed the tower's gaps read twice, a lap apart, and subtracted.   | Fights, Pace now and Duel lead the Race layout.                        |
+| Lap-time charts were twenty colours on an absolute axis flattened by one pit lap.       | Seconds off the quickest car, names at line ends, outliers clipped.    |
 
 ## B. Catch-up later without spoilers
 

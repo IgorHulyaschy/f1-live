@@ -24,6 +24,9 @@ const PAGES = [
 	{ name: 'practice', path: '/session?session=9852' },
 	{ name: 'race-final', path: '/session?session=9858' },
 	{ name: 'race-lap-30', path: '/session?session=9858&lap=30' },
+	// Race watching at the replay's lap: Leclerc closing on Piastri in the duel, the battle chart.
+	{ name: 'race-duel', path: '/session?session=9858&lap=38&duel=PIA,LEC' },
+	{ name: 'battle-race', path: '/d/battle?session=9858&lap=30&driver=16' },
 	{ name: 'strategy', path: '/strategy?session=9858' },
 	{ name: 'qualifying', path: '/session?session=11373' },
 	{ name: 'qualifying-q2', path: '/session?session=9854&lap=40' },

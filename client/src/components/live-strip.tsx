@@ -2,7 +2,7 @@ import { ChevronsUpDownIcon, EyeIcon, SkipBackIcon } from 'lucide-react';
 import * as React from 'react';
 
 import { Key } from '@/components/console/keys';
-import { LapCounter, Transport } from '@/components/race-clock';
+import { LapCounter, LiveKey, Transport } from '@/components/race-clock';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { findSession, formatUntil, SESSION_TYPE_LABEL } from '@/data/catalog';
 import type { LiveConnection } from '@/data/live-feed';
@@ -48,31 +48,29 @@ const CONNECTION_LABEL: Record<Exclude<LiveConnection, 'live'>, string> = {
 	reconnecting: 'Reconnecting'
 };
 
-/** "Live" lit like an on-air sign while the screen follows a running session. */
+/**
+ * Replay, Upcoming or No data, or why a live feed stopped. A live session's key sits with the
+ * transport instead, in the Replay tile or the bar's clock, so going back to live is where play
+ * and the lap are.
+ */
 function StateMark() {
 	const { live } = useRace();
 	const feed = useFeedLabel();
 
-	if (live.isLive && !live.following) {
-		return (
-			<Key onClick={live.backToLive} data-testid="live-key">
-				Back to live
-			</Key>
-		);
+	if (live.isLive && live.connection === 'live') {
+		return null;
 	}
-
-	const lit = live.isLive && live.connection === 'live';
 
 	return (
 		<output
 			aria-live="polite"
-			data-testid="live-key"
+			data-testid={live.isLive ? 'live-connection' : 'live-key'}
 			className={cn(
 				'type-wide inline-flex h-7 shrink-0 items-center self-center border px-2 text-xs font-black italic',
-				lit && 'border-foreground bg-foreground text-background',
-				!lit && live.isLive && 'border-dashed',
-				// A phone's bar has no room for the word; the strip keeps the finish key clear instead.
-				!live.isLive && 'text-muted-foreground max-sm:sr-only'
+				live.isLive
+					? 'border-dashed'
+					: // A phone's bar has no room for the word; the strip keeps the finish key clear instead.
+						'text-muted-foreground max-sm:sr-only'
 			)}
 		>
 			{live.isLive && live.connection !== 'live' ? CONNECTION_LABEL[live.connection] : feed}
@@ -120,7 +118,8 @@ function ClockReading({ state }: { state: Knockout | null }) {
 
 /**
  * The transport, for pages whose dashboard has no Replay tile: on wider screens the session can
- * always be moved, whatever a viewer took off their screen. Phones keep the strip to one line.
+ * always be moved, whatever a viewer took off their screen. Phones keep the strip to one line,
+ * with the live key alone.
  */
 function StripClock() {
 	const dashboard = useShownDashboard();
@@ -130,9 +129,12 @@ function StripClock() {
 	}
 
 	return (
-		<div className="flex shrink-0 items-center gap-3 max-sm:hidden" data-testid="header-clock">
-			<LapCounter />
-			<Transport />
+		<div className="flex shrink-0 items-center gap-2" data-testid="header-clock">
+			<span className="flex items-center gap-3 max-sm:hidden">
+				<LapCounter />
+				<Transport live={false} />
+			</span>
+			<LiveKey />
 		</div>
 	);
 }

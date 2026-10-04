@@ -73,6 +73,16 @@ const COMPOUND_WORD: Record<TyreCompound, string> = {
 
 const MINUTE_MS = 60_000;
 
+/** Up to this many cars passed on one lap are named; more are counted. */
+const NAMED_PASSES = 3;
+
+/** "VER", "VER and NOR", "VER, NOR and LEC". */
+function listText(items: readonly string[]): string {
+	return items.length > 1
+		? `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`
+		: (items[0] ?? '');
+}
+
 /** "CAR 1 (VER) LAP DELETED - TRACK LIMITS AT TURN 14 LAP 2 20:03:28" and its time variant. */
 const DELETED_LAP = /\bDELETED\b(?: - (TRACK LIMITS AT TURN \d+))?/;
 
@@ -102,6 +112,8 @@ export interface ClassifiedPass {
 	onTrack: boolean;
 	/** The car passed, when the order tells exactly one. */
 	passed: string | null;
+	/** Every car still running that fell behind it on the lap, by the order at the line. */
+	beaten: readonly string[];
 }
 
 /**
@@ -127,7 +139,7 @@ export function classifyPasses(snapshot: RaceSnapshot): ClassifiedPass[] {
 		const to = after?.get(pass.driverNumber);
 
 		if (from === undefined || to === undefined || !before || !after) {
-			return { pass, onTrack: true, passed: null };
+			return { pass, onTrack: true, passed: null, beaten: [] };
 		}
 
 		const behindNow = [...before].flatMap(([driverNumber, position]) => {
@@ -145,7 +157,8 @@ export function classifyPasses(snapshot: RaceSnapshot): ClassifiedPass[] {
 		return {
 			pass,
 			onTrack: behindNow.length === 0 || onTrack.length > 0,
-			passed: onTrack.length === 1 && sameLap.length === 1 ? (onTrack[0] ?? null) : null
+			passed: onTrack.length === 1 && sameLap.length === 1 ? (onTrack[0] ?? null) : null,
+			beaten: onTrack
 		};
 	});
 }
@@ -314,18 +327,35 @@ export function storyMarks(snapshot: RaceSnapshot): StoryMark[] {
 	const marks: Mark[] = [...flagMarks(snapshot, clock), ...leadMarks(snapshot, place, code)];
 
 	if (!timed) {
-		for (const { pass, onTrack, passed } of classifyPasses(snapshot)) {
-			if (onTrack) {
-				marks.push({
-					lane: 'passes',
-					step: pass.lap,
-					driverNumber: pass.driverNumber,
-					text: passed
-						? `${code(pass.driverNumber)} passes ${code(passed)}`
-						: `${code(pass.driverNumber)} passes ${pass.count > 1 ? `${pass.count} cars` : 'a car'}`,
-					tone: 'pass'
-				});
+		// The feed can send one car's passes on a lap one by one: they make one mark.
+		const passes = new Map<string, [ClassifiedPass, ...ClassifiedPass[]]>();
+
+		for (const entry of classifyPasses(snapshot)) {
+			const key = `${entry.pass.lap}:${entry.pass.driverNumber}`;
+
+			const kept = passes.get(key);
+
+			if (entry.onTrack) {
+				passes.set(key, kept ? [...kept, entry] : [entry]);
 			}
+		}
+
+		for (const [{ pass, beaten }, ...more] of passes.values()) {
+			const count = more.reduce((total, entry) => total + entry.pass.count, pass.count);
+
+			marks.push({
+				lane: 'passes',
+				step: pass.lap,
+				driverNumber: pass.driverNumber,
+				text: `${code(pass.driverNumber)} passes ${
+					beaten.length > 0 && beaten.length <= NAMED_PASSES
+						? listText(beaten.map(code))
+						: Math.max(count, beaten.length) > 1
+							? `${Math.max(count, beaten.length)} cars`
+							: 'a car'
+				}`,
+				tone: 'pass'
+			});
 		}
 
 		for (const stop of snapshot.pitStops) {

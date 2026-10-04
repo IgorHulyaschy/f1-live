@@ -83,17 +83,19 @@ for (const size of SIZES) {
 	});
 }
 
-test('the Race layout fills a laptop screen under a slim bar, with nothing to scroll in the grid', async ({
+test('the Race layout fills a laptop screen under a slim bar, with no tile cut by the fold', async ({
 	page
 }) => {
 	await openRace(page, '/session?session=9858&lap=30');
 
 	const bar = await page.getByRole('banner').boundingBox();
-	const grid = await page.getByTestId('dashboard-grid').boundingBox();
+	const tiles = await page.getByTestId('dashboard-grid').locator('[data-tile-id]').all();
+	const boxes = await Promise.all(tiles.map((tile) => tile.boundingBox()));
+	// Focus, Race control and Stints sit just below the fold; the tiles above it end inside it.
+	const firstScreen = boxes.flatMap((box) => (box && box.y < 900 ? [box.y + box.height] : []));
 
 	expect(bar?.height).toBeLessThanOrEqual(48);
-	expect(grid).not.toBeNull();
-	// The tiles take at least 90% of the 900 px window, and end inside it.
-	expect(((grid?.height ?? 0) / 900) * 100).toBeGreaterThanOrEqual(90);
-	expect((grid?.y ?? 0) + (grid?.height ?? 0)).toBeLessThanOrEqual(900);
+	expect(firstScreen.length).toBeGreaterThanOrEqual(5);
+	expect(Math.max(...firstScreen)).toBeLessThanOrEqual(900);
+	expect(Math.max(...firstScreen)).toBeGreaterThanOrEqual(0.9 * 900);
 });

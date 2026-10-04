@@ -12,8 +12,10 @@ import { TyreBadge } from '@/components/tyre-badge';
 import { useRace } from '@/data/race-context';
 import { DriverLink } from '@/features/drill/drill-parts';
 import { useDrill } from '@/features/drill/use-drill';
+import { usePair, usePairShown } from '@/features/watch/pair-context';
 import { useScreenTime } from '@/hooks/use-screen-time';
 import { gapToCut, improvements, knockout, recentImprovements } from '@/insights/knockout';
+import { paceNow } from '@/insights/pace-now';
 import { pitPenalties, timePenalties } from '@/insights/penalties';
 import { predictRejoin } from '@/insights/pit-window';
 import { type CutLine, cutLines, isKnockout, isTimedSession } from '@/insights/qualifying';
@@ -23,7 +25,6 @@ import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { formatSignedGap } from './knockout-panel';
-import { LapTrend, recentLaps, TREND_LAPS } from './lap-trend';
 import { MiniSectors } from './mini-sectors';
 
 type GapMode = 'interval' | 'leader';
@@ -48,7 +49,8 @@ const IMPROVED_MS = 60_000;
 
 const FLASH = {
 	gain: ['rgba(74, 222, 128, 0.2)', 'rgba(74, 222, 128, 0)'],
-	loss: ['rgba(248, 113, 113, 0.2)', 'rgba(248, 113, 113, 0)']
+	loss: ['rgba(248, 113, 113, 0.2)', 'rgba(248, 113, 113, 0)'],
+	fastest: ['rgba(168, 85, 247, 0.25)', 'rgba(168, 85, 247, 0)']
 } as const;
 
 function previousPositions(laps: readonly Lap[], lap: number): Map<string, number> {
@@ -117,7 +119,7 @@ function GapReading({ row, mode, timed }: { row: StandingRow; mode: GapMode; tim
 
 	const value = mode === 'leader' ? row.gapToLeaderMs : row.intervalMs;
 
-	return value === null ? <span>-</span> : <Digits value={formatGap(value)} />;
+	return value === null ? <span>-</span> : <Digits value={formatGap(value)} tick />;
 }
 
 /**
@@ -195,9 +197,24 @@ function CutRow({ line }: { line: CutLine }) {
 	);
 }
 
+/** Seconds a lap off the fastest car over the last clean laps; a dash without enough of them. */
+function PaceCell({ seconds }: { seconds: number | undefined }) {
+	if (seconds === undefined) {
+		return <span className="text-muted-foreground">-</span>;
+	}
+
+	return seconds === 0 ? (
+		<span className="type-label text-fastest font-bold">Fastest</span>
+	) : (
+		<Digits value={`+${seconds.toFixed(2)}`} />
+	);
+}
+
 export function TimingTower() {
 	const { snapshot, lap, plan, followedDriver, standings } = useRace();
 	const { open } = useDrill();
+	const { pick } = usePair();
+	const paired = usePairShown();
 	const shownAt = useScreenTime();
 	const knockoutState = knockout(snapshot, standings);
 	// In qualifying the gap that matters is to the top of the part.
@@ -226,7 +243,14 @@ export function TimingTower() {
 	// Rows flash only for a change the viewer saw happen, not on the lap the tower opened on.
 	const [openedOnLap] = React.useState(lap);
 	const flashes = lap !== openedOnLap;
-	const trends = recentLaps(snapshot.laps);
+
+	const pace = React.useMemo(
+		() =>
+			new Map(
+				timed ? [] : paceNow(snapshot, rows).map((entry) => [entry.row.driver.number, entry])
+			),
+		[timed, snapshot, rows]
+	);
 
 	const found = React.useMemo(
 		() => (knockoutSession ? improvements(snapshot) : []),
@@ -311,7 +335,7 @@ export function TimingTower() {
 									scope="col"
 									className="type-label hidden pr-4 text-left font-normal @4xl:table-cell"
 								>
-									{timed ? 'Last lap' : `Last ${TREND_LAPS}`}
+									{timed ? 'Last lap' : 'Pace now'}
 								</th>
 								<th
 									scope="col"
@@ -343,6 +367,13 @@ export function TimingTower() {
 									!flashes || previous === undefined || row.state === 'out'
 										? 0
 										: previous - row.position;
+
+								// A fastest lap set on the lap just run flashes purple, as the timing screens do.
+								const setFastest =
+									flashes &&
+									!timed &&
+									row.lastLap?.lapTimeMs === sessionFastestMs &&
+									row.lastLap.lap >= snapshot.currentLap - 1;
 
 								const penalty = penalties.get(row.driver.number);
 								const line = lines.find((entry) => entry.after === row.position);
@@ -376,13 +407,24 @@ export function TimingTower() {
 											transition={{ type: 'tween', duration: 0.18, ease: 'easeOut' }}
 											initial={false}
 											animate={{
-												backgroundColor:
-													moved > 0 ? [...FLASH.gain] : moved < 0 ? [...FLASH.loss] : FLASH.gain[1]
+												backgroundColor: setFastest
+													? [...FLASH.fastest]
+													: moved > 0
+														? [...FLASH.gain]
+														: moved < 0
+															? [...FLASH.loss]
+															: FLASH.gain[1]
 											}}
 											data-state={followed ? 'selected' : undefined}
 											data-drop-zone={inDropZone || undefined}
 											data-testid={`timing-row-${row.driver.code}`}
-											onClick={() => open({ kind: 'driver', driverNumber: row.driver.number })}
+											data-paired={paired.has(row.driver.number) || undefined}
+											title="Shift-click two rows to compare them in the duel"
+											onClick={(event) =>
+												event.shiftKey
+													? pick(row.driver.number)
+													: open({ kind: 'driver', driverNumber: row.driver.number })
+											}
 											className={cn(
 												'hover:bg-accent/70 data-[state=selected]:bg-accent relative h-10 cursor-pointer border-b',
 												(row.state === 'out' || knockedOut) && 'text-muted-foreground',
@@ -392,6 +434,13 @@ export function TimingTower() {
 											<td className="relative pl-4">
 												{followed ? (
 													<span aria-hidden className="bg-focus absolute inset-y-0 left-0 w-0.75" />
+												) : null}
+												{paired.has(row.driver.number) ? (
+													<span
+														aria-hidden
+														data-testid="paired"
+														className="border-foreground/60 absolute inset-y-1 left-1.5 border-l-2 border-dotted"
+													/>
 												) : null}
 												<span className="flex items-baseline gap-1.5">
 													<span
@@ -511,10 +560,7 @@ export function TimingTower() {
 												{timed ? (
 													<LapTime row={row} lap={row.lastLap} fastestMs={sessionFastestMs} />
 												) : (
-													<LapTrend
-														laps={trends.get(row.driver.number) ?? []}
-														bestLapMs={row.bestLapMs}
-													/>
+													<PaceCell seconds={pace.get(row.driver.number)?.deltaSeconds} />
 												)}
 											</td>
 											<td

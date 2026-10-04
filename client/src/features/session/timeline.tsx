@@ -71,7 +71,7 @@ function EventKeys({ events, compact }: { events: readonly TimelineEvent[]; comp
 
 	return (
 		<div className="flex items-center gap-2">
-			<span className="type-label hidden @md:inline">Events</span>
+			<span className="type-label hidden @5xl:inline">Events</span>
 			<Key
 				aria-label="Previous event"
 				title="Previous event (Shift+←)"
@@ -102,7 +102,7 @@ function EventKeys({ events, compact }: { events: readonly TimelineEvent[]; comp
 
 /** One key that cycles the playback speed, as multiples of real time: 1×, 10×, 60×. */
 function SpeedKey() {
-	const { speed, setSpeed, live } = useRaceView();
+	const { speed, setSpeed } = useRaceView();
 	const next = nextSpeed(speed);
 
 	return (
@@ -110,7 +110,6 @@ function SpeedKey() {
 			aria-label={`Playback speed ${speed}×; press for ${next}×`}
 			title="Playback speed"
 			className="w-11 justify-center font-mono"
-			disabled={live.following}
 			onClick={() => setSpeed(next)}
 			data-testid="speed"
 		>
@@ -154,8 +153,14 @@ function Track({ events, compact }: { events: readonly TimelineEvent[]; compact:
 		setLap(Math.min(Math.max(step, 1), Math.max(done, 1)));
 	};
 
-	const shownStep = hovered ?? lap;
-	const shown = byStep.get(shownStep) ?? [];
+	// With nothing on the replay's own step, the line keeps what happened last before it.
+	const shownStep =
+		hovered ?? (byStep.has(lap) ? lap : ([...byStep.keys()].findLast((step) => step < lap) ?? lap));
+
+	// Flags, cars out and stops before passes, so a cut line loses the least.
+	const shown = (byStep.get(shownStep) ?? []).toSorted(
+		(a, b) => LANE_ORDER.indexOf(a.lane) - LANE_ORDER.indexOf(b.lane)
+	);
 
 	return (
 		<div className="flex min-w-0 flex-col gap-1" data-testid="timeline">
@@ -237,13 +242,7 @@ function Track({ events, compact }: { events: readonly TimelineEvent[]; compact:
 			{compact ? null : (
 				<p className="min-h-4 truncate text-xs" data-testid="timeline-note">
 					<span className="type-label mr-2">{stepWord(stepUnit, shownStep)}</span>
-					{shown.length > 0 ? (
-						shown.map((event) => event.text).join('; ')
-					) : (
-						<span className="text-muted-foreground">
-							Shift + ← → for events, Space plays, L goes live
-						</span>
-					)}
+					{shown.map((event) => event.text).join('; ')}
 				</p>
 			)}
 		</div>

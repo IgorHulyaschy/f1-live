@@ -2,6 +2,7 @@ import { useParams, useSearchParams } from 'react-router';
 
 import { useRaceView } from '@/data/race-context';
 import { SpoilerStart } from '@/features/session/spoiler-start';
+import { PairProvider } from '@/features/watch/pair-context';
 
 import { saveDashboard, useDashboards } from './dashboard-store';
 import { DashboardGrid } from './dashboard-grid';
@@ -35,7 +36,9 @@ export function DashboardPage({ id: fixedId }: { id?: string }) {
 			<SpoilerStart />
 			<SessionOffer dashboard={dashboard} />
 			<h1 className="sr-only">{dashboard.name}</h1>
-			<DashboardGrid dashboard={dashboard} editing={editing} onChange={saveDashboard} />
+			<PairProvider>
+				<DashboardGrid dashboard={dashboard} editing={editing} onChange={saveDashboard} />
+			</PairProvider>
 		</div>
 	);
 }

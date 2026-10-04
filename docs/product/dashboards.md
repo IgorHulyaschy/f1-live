@@ -19,9 +19,9 @@ none, and neither does a phone's pit board.
 - **Home and the dashboards.** Tabs from a laptop up, with the ready-made dashboards the session
   does not need under More; below a laptop, one key named after the dashboard on screen opens
   the same list.
-- **Live or not.** "Live" lit like an on-air sign while the screen follows a running session;
-  "Back to live" after stepping back; "Stale" or "Reconnecting" when the feed stops; "Replay" or
-  "Upcoming" otherwise.
+- **Live or not.** "Replay" or "Upcoming" when the session is not running; "Stale" or
+  "Reconnecting" when a live feed stops. A running session's live key sits with the transport
+  (see The timeline), or in the bar's own clock when the dashboard has no Replay tile.
 - **The session.** The Sessions key opens the picker and names the meeting and the session on a
   wide screen; in qualifying the part (Q2, SQ1) follows it.
 - **The clock.** The time left in the part or session, from the feed's own clock
@@ -73,10 +73,14 @@ ready-made dashboards leave playback to the bar's keys:
   jump to the previous or next event, filtered: All, Flags, Stops, or Mine (the followed driver).
 - **Scrubbing.** The race barcode is the track: click or drag along it to move the replay; the
   line under it says what happened at the lap or minute on screen.
-- **Live.** On a running session it also holds the broadcast delay; "Back to live" is on the
-  bar, always in view.
-- **Keys.** ← → step, Shift with them jumps between events, Space plays, L goes back to live; the
-  footer prints them on desktop.
+- **Live.** On a running session the live key sits right after previous, play and next, one
+  size in every state: "Live" lit like an on-air sign while the screen follows the session,
+  "Go live" after stepping back or pausing, unlit and dashed while the feed is down.
+  Nothing around it moves when the viewer leaves live or returns. Following live counts as
+  playing: pause holds the lap on screen, and play from the newest lap goes back to live. The
+  tile also holds the broadcast delay.
+- **Keys.** ← → step, Shift with them jumps between events, Space plays or pauses (live too), L
+  goes back to live; the footer prints them on desktop, and nothing else does.
 
 A short tile (three rows or fewer) keeps the keys and the barcode and leaves out the speed, the
 filter and the line under it. While results are hidden, only the events already shown are
@@ -138,7 +142,7 @@ to it and its layout.
 
 | Layout   | For                        | Tiles                                                                                            |
 | -------- | -------------------------- | ------------------------------------------------------------------------------------------------ |
-| Race     | The order and the strategy | Replay, Timing, Track map, Stints, Focus, Race control                                           |
+| Race     | Who is racing whom         | Replay, Timing, Fights, Track map, Duel, Pace now; Focus, Race control and Stints below the fold |
 | Quali    | Who is through, who is out | Replay, Timing with the cut lines, Knockout, Track map, Best sectors, Race control, Gap distance |
 | Practice | Pace, race runs and tyres  | Replay, Timing, Long runs, Track map, Stints, Race control                                       |
 
@@ -156,7 +160,9 @@ to it and its layout.
 - **Timing runs the full height** on the left of each session layout, with the tile that answers
   the session's question beside it, so the first screen holds everything from a 1280 × 800
   laptop up. Replay sits at the bottom right, under the data rather than above it. Quali ends with
-  Gap distance, just below the fold: the grid as metres behind pole.
+  Gap distance, just below the fold: the grid as metres behind pole. Race puts Fights and the map
+  beside the tower, Duel and Pace now under them, and Focus, Race control and Stints just below
+  the fold; a phone stacks Replay, Fights, Timing, Duel, Pace now and the map.
 
 ### Where the eyes go
 
@@ -166,18 +172,18 @@ in an F from there along the first row. Colour, size and motion go only to what 
 the flag (the bar's band), a stop, a fastest lap, the followed driver. Controls (Replay, Compare)
 sit at the bottom or the right edge, never between the viewer and the data; the bar holds the rest.
 
-| Layout     | First                       | Second                 | Third                       |
-| ---------- | --------------------------- | ---------------------- | --------------------------- |
-| Race       | Focus: gap to the car ahead | Timing: the order      | Stints: who pits            |
-| Quali      | Timing with the cut lines   | Knockout: who is out   | Best sectors                |
-| Practice   | Timing: who is quickest     | Long runs: race pace   | Stints: tyres               |
-| Analysis   | True pace                   | Lap chart              | Fastest laps                |
-| Strategy   | Stints: tyres and age       | Undercut: will it work | Pit stops: who just came in |
-| Battle     | Battle chart: the gap       | Gaps                   | Box now                     |
-| Track      | Track map                   | Battle map             | Pit rejoin                  |
-| Drivers    | Grid                        | Driver                 | Positions chart             |
-| Pit wall   | Timing                      | Focus                  | Track map                   |
-| Race story | Story ribbon                | Positions chart        | Championship                |
+| Layout     | First                      | Second                 | Third                       |
+| ---------- | -------------------------- | ---------------------- | --------------------------- |
+| Race       | Fights: who is racing whom | Duel: who is faster    | Pace now: the whole field   |
+| Quali      | Timing with the cut lines  | Knockout: who is out   | Best sectors                |
+| Practice   | Timing: who is quickest    | Long runs: race pace   | Stints: tyres               |
+| Analysis   | True pace                  | Lap chart              | Fastest laps                |
+| Strategy   | Stints: tyres and age      | Undercut: will it work | Pit stops: who just came in |
+| Battle     | Battle chart: the gap      | Gaps                   | Box now                     |
+| Track      | Track map                  | Battle map             | Pit rejoin                  |
+| Drivers    | Grid                       | Driver                 | Positions chart             |
+| Pit wall   | Timing                     | Focus                  | Track map                   |
+| Race story | Story ribbon               | Positions chart        | Championship                |
 
 Type and spacing come from the screen: a phone at arm's length, a laptop and a TV at three metres
 get the same layout scaled by the screen's size, and Larger text is the one switch on top.
@@ -187,23 +193,54 @@ session's season after the latest round the viewer has seen; it links to `/stand
 
 ## What ships by default
 
-| Ready-made | For                      | Tiles                                                                         |
-| ---------- | ------------------------ | ----------------------------------------------------------------------------- |
-| Race       | Race day on one screen   | Replay, Timing, Track map, Stints, Focus, Race control                        |
-| Quali      | Qualifying on one screen | Replay, Timing, Knockout, Track map, Best sectors, Race control, Gap distance |
-| Practice   | Practice on one screen   | Replay, Timing, Long runs, Track map, Stints, Race control                    |
-| Analysis   | Lap charts               | Compare, Chart, True pace, Fastest laps, Telemetry                            |
-| Strategy   | Tyres and stops          | Stints, Tyre wear, Undercut ledger, Pit stops, Stop cost, Pit crews           |
-| Battle     | Your driver's fight      | Timing, Battle chart, Gaps, Box now                                           |
-| Track      | The race on the circuit  | The eight Track tiles                                                         |
-| Drivers    | Faces and cars           | Grid, Driver, Positions chart                                                 |
-| Pit wall   | A TV or a second monitor | Timing, Track map, Gap chart, Focus, Race control                             |
-| Race story | What happened, and why   | Story, Positions chart, Championship, Race control, Conditions                |
+| Ready-made | For                      | Tiles                                                                          |
+| ---------- | ------------------------ | ------------------------------------------------------------------------------ |
+| Race       | Race day on one screen   | Replay, Timing, Fights, Track map, Duel, Pace now, Focus, Race control, Stints |
+| Quali      | Qualifying on one screen | Replay, Timing, Knockout, Track map, Best sectors, Race control, Gap distance  |
+| Practice   | Practice on one screen   | Replay, Timing, Long runs, Track map, Stints, Race control                     |
+| Analysis   | Lap charts               | Compare, Chart, True pace, Fastest laps, Telemetry                             |
+| Strategy   | Tyres and stops          | Stints, Tyre wear, Undercut ledger, Pit stops, Stop cost, Pit crews            |
+| Battle     | Your driver's fight      | Timing, Battle chart, Gaps, Box now                                            |
+| Track      | The race on the circuit  | The eight Track tiles                                                          |
+| Drivers    | Faces and cars           | Grid, Driver, Positions chart                                                  |
+| Pit wall   | A TV or a second monitor | Timing, Track map, Gap chart, Focus, Race control                              |
+| Race story | What happened, and why   | Story, Positions chart, Championship, Race control, Conditions                 |
 
 Viewers can edit any of them; Reset puts it back as shipped. Race keeps the id the Live preset
-had (`live`), so an edited Live opens as an edited Race. There are 38 tiles in 6 groups (Race,
+had (`live`), so an edited Live opens as an edited Race. There are 41 tiles in 6 groups (Race,
 Drivers, Timing, Track, Analysis, Strategy). Nine of them are Pro: Box now, True pace, Tyre wear,
 Undercut ledger, Conditions, Pit rejoin, Dominance, Speed map and Ghost lap.
+
+The three race watching tiles, on Race and in the library under Timing. They answer the
+questions a lap-time chart makes a viewer work out: who is racing whom, who is fast, and which of
+two drivers is quicker. Every number comes from the laps up to the replay's lap, so a replay shows
+nothing past it.
+
+- **Fights**: every pair within a second now, then every car closing on the one ahead within ten
+  laps, soonest first. A row shows both cars' pictures and team colours, the gap now, a bar from
+  the gap to the one-second line with an arrow for how fast it closes, "In DRS" ("In OVT",
+  overtake mode, from 2026) or "Within 1 s in 3 to 5 laps", and why the car behind is faster
+  ("Stopped 4 laps ago", "Soft against hard", "Tyres 12 laps newer"). Pace comes from the laps
+  both cars drove clean since either stopped, so pit, SC and VSC laps never count; under a Safety
+  Car, a VSC or a red flag the tile says so ("No fights under the Virtual Safety Car"). Pointing at a row marks the pair on the map and in
+  the tower; picking it puts them in the Duel.
+- **Pace now**: the whole field as seconds a lap off the fastest car over each driver's last five
+  clean laps, with the trend (quicker or slower each lap), the compound and the tyre's age. The
+  tower's Pace now column shows the same number per row. Under a flag its header says "paused",
+  and an empty tile says which flag paused it.
+- **Duel**: any two drivers. It opens on the closest fight that has clean laps to compare (a car
+  that just stopped has none); a fight row, the duel's own pickers or Shift and two tower rows pick
+  another pair, kept in the address (`duel=PIA,LEC`). Over the last 20 laps, bars above and below
+  the line show who was faster on each lap and by how much, a line shows the gap between them,
+  stops and flag laps are marked, and one line says it: "LEC is 0.28 s a lap faster over the last
+  5 laps and 0.2 s behind: in DRS range now." Without laps together it compares each driver's own
+  last clean laps ("HAM is 0.58 s a lap faster over their own last clean laps"), and under a flag
+  it says pace is paused.
+
+The tower and the bar's timeline move with the race: rows slide when the order changes, a pass
+and a fastest lap flash the row (purple for the fastest), gaps tick to their new value, and the
+timeline's line says what just happened ("ALO passes COL and TSU"). With reduced motion, nothing
+slides or flashes; the numbers just change.
 
 The three tiles the session layouts added:
 
@@ -286,17 +323,20 @@ race charts.
 What the analysis tiles show, and what each needs. Each gives its numbers as a table too (its
 Table key, or a table to begin with), and works on a phone and a 2560 px screen alike.
 
-| Visual                   | Tile            | Shows                                                                                                               | Sessions                                         |
-| ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| Telemetry traces         | Telemetry       | Speed, throttle, brake, gear and revs by distance for up to three laps, the delta, mini sectors, corner speeds      | All; saved sessions with telemetry only          |
-| Race trace and lap chart | Chart           | Gap to the leader, positions, the battle and the gap to one driver, with stops and flags marked                     | Races; lap times in every session                |
-| Race story ribbon        | Story           | Flags, the lead, passes made on track, stops, penalties, cars out and radio, per lap; click to jump                 | All, by minute on the clock                      |
-| Undercut ledger          | Undercut ledger | Each stop exchange: in-lap, stop, out-lap and the net place, adding up                                              | Races                                            |
-| Tyre life and crossover  | Tyre wear       | Fuel-corrected loss by tyre age per compound, the cliff, the age a new set of a compound slower when new is quicker | Races; wear only in practice                     |
-| Pit stop cost            | Stop cost       | What a stop costs in race time at this circuit, under green and under a VSC                                         | Races                                            |
-| Pit crew league          | Pit crews       | Each team's stops at a standstill, ranked by their usual stop                                                       | Races                                            |
-| Championship swing       | Championship    | The standings as the race runs, each contender's deficit lap by lap, what every place is worth                      | Races and sprints; live only with an F1 TV login |
-| Weather insight          | Conditions      | Head- or tailwind on each straight, track temperature beside the field's pace                                       | All; the wind map needs telemetry                |
+| Visual                   | Tile            | Shows                                                                                                                                                                                                                                                                                   | Sessions                                         |
+| ------------------------ | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| Telemetry traces         | Telemetry       | Speed, throttle, brake, gear and revs by distance for up to three laps, the delta, mini sectors, corner speeds                                                                                                                                                                          | All; saved sessions with telemetry only          |
+| Race trace and lap chart | Chart           | Lap times as seconds off the quickest car on each lap, the gap to the leader, positions, the battle with the car ahead named, and the gap to one driver; names at the line ends, others greyed behind the followed driver and the duel's pair, outliers clipped, stops and flags marked | Races; lap times in every session                |
+| Fights                   | Fights          | Pairs within a second and cars closing, with the laps to catch and the reason                                                                                                                                                                                                           | Races and sprints                                |
+| Pace now                 | Pace now        | Seconds a lap off the fastest car over the last clean laps, the trend, compound and tyre age                                                                                                                                                                                            | Races and sprints                                |
+| Two-driver duel          | Duel            | Per-lap pace difference as bars, the gap line and a one-line verdict                                                                                                                                                                                                                    | Races and sprints                                |
+| Race story ribbon        | Story           | Flags, the lead, passes made on track, stops, penalties, cars out and radio, per lap; click to jump                                                                                                                                                                                     | All, by minute on the clock                      |
+| Undercut ledger          | Undercut ledger | Each stop exchange: in-lap, stop, out-lap and the net place, adding up                                                                                                                                                                                                                  | Races                                            |
+| Tyre life and crossover  | Tyre wear       | Fuel-corrected loss by tyre age per compound, the cliff, the age a new set of a compound slower when new is quicker                                                                                                                                                                     | Races; wear only in practice                     |
+| Pit stop cost            | Stop cost       | What a stop costs in race time at this circuit, under green and under a VSC                                                                                                                                                                                                             | Races                                            |
+| Pit crew league          | Pit crews       | Each team's stops at a standstill, ranked by their usual stop                                                                                                                                                                                                                           | Races                                            |
+| Championship swing       | Championship    | The standings as the race runs, each contender's deficit lap by lap, what every place is worth                                                                                                                                                                                          | Races and sprints; live only with an F1 TV login |
+| Weather insight          | Conditions      | Head- or tailwind on each straight, track temperature beside the field's pace                                                                                                                                                                                                           | All; the wind map needs telemetry                |
 
 Where the data comes from:
 
@@ -449,7 +489,8 @@ these defaults: `LIBRARY_RESERVED_HANDLES` and `LIBRARY_BLOCKED_WORDS` extend th
 `LIBRARY_REPORTS_TO_HIDE` (3) and `LIBRARY_MAX_PUBLISHED` (25).
 
 Alerts are one set of rules, `diffAlerts` in `shared/src/alerts.ts`, which compares the session
-before and after some events. The app toasts from the snapshot it shows; the server
+before and after some events. The app toasts from the snapshot it shows, top right under the bar on a wide screen and above the
+pit board on a phone, never over the transport or the scrubber; the server
 (`server/src/accounts/alerts/dispatcher.ts`) runs it on the live session after every batch and
 sends Web Push to the devices of accounts that want the alert, about the driver they follow (flags
 and session starts go to everyone). It holds back a push that is off, about someone else, inside

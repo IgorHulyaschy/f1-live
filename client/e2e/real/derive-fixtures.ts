@@ -42,6 +42,12 @@ const MEETINGS = new Map([
 const SESSIONS = ['9852', '9854', '9858', '11373', '11730'];
 
 /**
+ * Sessions only the unit tests read, the 2026 Bahrain race, without the mini-sector segments and
+ * team radio. The catalogue does not list them as saved, so the app never opens them.
+ */
+const UNIT_SESSIONS = ['11731'];
+
+/**
  * Drivers whose laps the telemetry charts open on, per session: the first three at the end and
  * the default followed driver (16), with the McLarens in the race. Each gets its best lap and its
  * last lap that ran line to line.
@@ -70,7 +76,7 @@ const target = path.join(import.meta.dirname, 'data', 'out');
 
 const snapshots = new Map<string, RaceSnapshot>();
 
-for (const key of SESSIONS) {
+for (const key of [...SESSIONS, ...UNIT_SESSIONS]) {
 	const lines = gunzipSync(readFileSync(path.join(out, 'events', `${key}.jsonl.gz`)))
 		.toString('utf8')
 		.split('\n')
@@ -82,9 +88,18 @@ for (const key of SESSIONS) {
 		EMPTY_SNAPSHOT
 	);
 
+	const saved = UNIT_SESSIONS.includes(key)
+		? {
+				...snapshot,
+				miniSectors: EMPTY_SNAPSHOT.miniSectors,
+				miniSectorLeaders: EMPTY_SNAPSHOT.miniSectorLeaders,
+				teamRadio: EMPTY_SNAPSHOT.teamRadio
+			}
+		: snapshot;
+
 	writeFileSync(
 		path.join(target, 'snapshots', `${key}.json.gz`),
-		gzipSync(JSON.stringify(snapshot), { level: 9 })
+		gzipSync(JSON.stringify(saved), { level: 9 })
 	);
 	snapshots.set(key, snapshot);
 }
@@ -138,7 +153,7 @@ const catalog = catalogSchema.parse(
 
 // The history pages list the seasons the catalogue has, so every season with a results index
 // stays, its meetings cut to the ones the tests open. 2026 keeps its whole calendar, with this
-// weekend's race (11731) still to come.
+// weekend's race (11731) still to come in the app.
 const resultYears = new Set(
 	existsSync(path.join(out, 'results'))
 		? readdirSync(path.join(out, 'results')).map((name) => Number.parseInt(name, 10))

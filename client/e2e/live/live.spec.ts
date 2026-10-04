@@ -16,15 +16,40 @@ test.describe('a live race', () => {
 
 		// At this speed a burst of events lands in one update, and a burst shows its latest few.
 		await openRace(page, '/session?driver=22');
-		await expect(
-			page
-				.locator('[data-sonner-toast]')
-				.filter({
-					hasText:
-						/Race has started|Yellow flag|Track clear|Virtual safety car|Green flag|is in the pits/
-				})
-				.first()
-		).toBeVisible({ timeout: 45_000 });
+
+		const toast = page
+			.locator('[data-sonner-toast]')
+			.filter({
+				hasText:
+					/Race has started|Yellow flag|Track clear|Virtual safety car|Green flag|is in the pits/
+			})
+			.first();
+
+		await expect(toast).toBeVisible({ timeout: 45_000 });
+
+		// Toasts keep off the transport and the scrubber.
+		const replay = page.getByTestId('tile-replay');
+
+		const [over, ...controls] = await Promise.all(
+			[toast, replay.getByTestId('live-key'), replay.getByTestId('timeline')].map((box) =>
+				box.boundingBox()
+			)
+		);
+
+		expect(over).not.toBeNull();
+
+		for (const control of controls) {
+			if (!over || !control) {
+				throw new Error('The toast and the controls are on screen');
+			}
+
+			expect(
+				over.x + over.width <= control.x ||
+					control.x + control.width <= over.x ||
+					over.y + over.height <= control.y ||
+					control.y + control.height <= over.y
+			).toBe(true);
+		}
 	});
 
 	test('without car positions estimates the map from timing, and says why', async ({ page }) => {
@@ -39,6 +64,63 @@ test.describe('a live race', () => {
 			'live car positions need an F1 TV login'
 		);
 		await expect(map.getByTestId('map-car-list').getByRole('listitem')).not.toHaveCount(0);
+	});
+
+	test('shows one live key on a phone, in the bar, over a stack that heads with the transport', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await openRace(page, '/d/track');
+
+		await expect(page.getByTestId('dashboard-stack')).toBeVisible();
+		await expect(page.getByTestId('live-key')).toHaveCount(1);
+		await expect(page.getByTestId('live-strip').getByTestId('live-key')).toHaveText('Live');
+		await expect(
+			page.getByTestId('dashboard-stack').getByRole('button', { name: 'Pause live' })
+		).toBeVisible();
+	});
+
+	test('keeps the live key, play and the scrubber in place when leaving live and returning', async ({
+		page
+	}) => {
+		await openRace(page, '/session');
+
+		const replay = page.getByTestId('tile-replay');
+		const live = replay.getByTestId('live-key');
+		const play = replay.getByRole('button', { name: /^(Pause live|Play replay)$/ });
+
+		await expect(live).toHaveText('Live');
+
+		const controls = [
+			live,
+			play,
+			replay.getByRole('button', { name: 'Previous lap' }),
+			replay.getByTestId('speed'),
+			replay.getByTestId('timeline'),
+			page.getByTestId('strip-session')
+		];
+
+		const boxes = () => Promise.all(controls.map((control) => control.boundingBox()));
+		const atLive = await boxes();
+
+		// Pausing holds the lap; the same key, in the same place, goes back.
+		await play.click();
+		await expect(live).toHaveText('Go live');
+		await expect(play).toHaveAccessibleName('Play replay');
+		expect(await boxes()).toEqual(atLive);
+
+		await live.click();
+		await expect(live).toHaveText('Live');
+		expect(await boxes()).toEqual(atLive);
+
+		// Space pauses live too, with the lit live key still focused, and plays back into it.
+		await expect(live).toBeFocused();
+		await page.keyboard.press(' ');
+		await expect(live).toHaveText('Go live');
+		expect(await boxes()).toEqual(atLive);
+		await page.keyboard.press(' ');
+		await expect(live).toHaveText('Live');
+		expect(await boxes()).toEqual(atLive);
 	});
 
 	test('updates the tower, steps back and returns, and runs behind with a delay', async ({
@@ -79,14 +161,14 @@ test.describe('a live race', () => {
 		await expect(page.getByTestId('lap-counter')).toHaveText('Lap 1/50');
 		await expect(page).toHaveURL(/lap=1/);
 
-		await page.getByRole('button', { name: 'Back to live' }).click();
+		await page.getByRole('button', { name: 'Go live' }).click();
 		await expect(page.getByTestId('live-key')).toHaveText('Live');
 		await expect(page.getByTestId('lap-counter')).toHaveText('Lap 2/50');
 		await expect(page).not.toHaveURL(/lap=/);
 
 		// L goes back to live from the keyboard too.
 		await page.keyboard.press('ArrowLeft');
-		await expect(page.getByTestId('live-key')).toHaveText('Back to live');
+		await expect(page.getByTestId('live-key')).toHaveText('Go live');
 		await page.keyboard.press('l');
 		await expect(page.getByTestId('live-key')).toHaveText('Live');
 
@@ -126,7 +208,7 @@ test.describe('a live qualifying session', () => {
 		const nav = page.getByRole('navigation', { name: 'Main' });
 		const strip = page.getByTestId('live-strip');
 
-		await expect(strip.getByTestId('live-key')).toHaveText('Live');
+		await expect(page.getByTestId('live-key')).toHaveText('Live');
 		await expect(page.getByTestId('dashboard-quali')).toBeVisible();
 		await expect(nav.getByRole('link').first()).toHaveText('Quali');
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Quali');

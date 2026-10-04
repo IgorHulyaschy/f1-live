@@ -7,12 +7,30 @@ export type LapPoint = Record<string, number>;
 
 export type Metric = 'lapTime' | 'gap' | 'position' | 'battle' | 'versus';
 
+/** The quickest clean lap anyone drove on each lap, in ms, so lap times read as seconds off it. */
+function quickestByLap(snapshot: RaceSnapshot): Map<number, number> {
+	const quickest = new Map<number, number>();
+
+	for (const lap of snapshot.laps) {
+		if (isCleanLap(lap)) {
+			quickest.set(lap.lap, Math.min(quickest.get(lap.lap) ?? Infinity, lap.lapTimeMs));
+		}
+	}
+
+	return quickest;
+}
+
+/**
+ * One value per driver per lap. Lap times are seconds off the quickest car on that lap, clean laps
+ * only: the fuel and tyre slope every car shares drops out and the differences between them stay.
+ */
 export function toPoints(
 	snapshot: RaceSnapshot,
 	drivers: readonly Driver[],
 	metric: Exclude<Metric, 'battle' | 'versus'>
 ): LapPoint[] {
 	const codes = new Map(drivers.map((driver) => [driver.number, driver.code]));
+	const quickest = metric === 'lapTime' ? quickestByLap(snapshot) : null;
 	const points = new Map<number, LapPoint>();
 
 	for (const lap of snapshot.laps) {
@@ -26,7 +44,7 @@ export function toPoints(
 
 		point[code] =
 			metric === 'lapTime'
-				? lap.lapTimeMs / 1000
+				? (lap.lapTimeMs - (quickest?.get(lap.lap) ?? lap.lapTimeMs)) / 1000
 				: metric === 'gap'
 					? lap.gapToLeaderMs / 1000
 					: lap.position;
@@ -36,11 +54,75 @@ export function toPoints(
 	return [...points.values()].toSorted((a, b) => (a.lap ?? 0) - (b.lap ?? 0));
 }
 
-/** The followed driver's interval to whoever was directly ahead, lap by lap. */
-export function battlePoints(snapshot: RaceSnapshot, driverNumber: string): LapPoint[] {
-	return snapshot.laps
-		.filter((lap) => lap.driverNumber === driverNumber && lap.position > 1)
-		.map((lap) => ({ lap: lap.lap, interval: lap.intervalMs / 1000 }));
+export type Battle = {
+	points: LapPoint[];
+	/** The car ahead from each lap on, for its name above the line. */
+	ahead: { lap: number; code: string }[];
+};
+
+/**
+ * The driver's interval to whoever was directly ahead, lap by lap. The line breaks where that car
+ * changes and on laps either car stopped, so a pass or a stop never reads as a gap won or lost.
+ */
+export function battlePoints(snapshot: RaceSnapshot, driverNumber: string): Battle {
+	const byPlace = new Map(snapshot.laps.map((lap) => [`${lap.lap}:${lap.position}`, lap]));
+	const codes = new Map(snapshot.drivers.map((driver) => [driver.number, driver.code]));
+	const points: LapPoint[] = [];
+	const ahead: Battle['ahead'] = [];
+
+	for (const lap of snapshot.laps) {
+		if (lap.driverNumber !== driverNumber || lap.position <= 1) {
+			continue;
+		}
+
+		const other = byPlace.get(`${lap.lap}:${lap.position - 1}`);
+		const code = other ? codes.get(other.driverNumber) : undefined;
+		const changed = code !== undefined && code !== ahead.at(-1)?.code;
+		const stopped = lap.pitIn || lap.pitOut || other?.pitIn || other?.pitOut;
+
+		if (changed) {
+			ahead.push({ lap: lap.lap, code });
+		}
+
+		points.push(
+			(changed && ahead.length > 1) || stopped
+				? { lap: lap.lap }
+				: { lap: lap.lap, interval: lap.intervalMs / 1000 }
+		);
+	}
+
+	return { points, ahead };
+}
+
+export type AxisRange = { domain: [number, number]; ticks: number[] };
+
+/** Steps an axis may take, in seconds: a whole number of tenths, halves or seconds. */
+const NICE_STEPS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 30, 60] as const;
+
+/** To a tenth, so steps of 0.1 s land on 0.3 and not 0.30000000000000004. */
+function round(seconds: number): number {
+	return Math.round(seconds * 10) / 10;
+}
+
+function quantile(sorted: readonly number[], share: number): number {
+	return sorted[Math.floor(share * (sorted.length - 1))] ?? 0;
+}
+
+/**
+ * An axis range that leaves out the outliers, a stop or a spin, so they do not flatten every other
+ * lap: from the low to the high `share` of the values, always through 0, in about four nice steps.
+ * Values past it are clipped at the edge.
+ */
+export function robustRange(values: readonly number[], share = 0.95): AxisRange {
+	const sorted = values.toSorted((a, b) => a - b);
+	const low = Math.min(0, quantile(sorted, 1 - share));
+	const high = Math.max(0, quantile(sorted, share));
+	const step = NICE_STEPS.find((candidate) => (high - low) / candidate <= 4) ?? 60;
+	const first = Math.floor(low / step);
+	const count = Math.max(Math.ceil(high / step) - first, 1);
+	const ticks = Array.from({ length: count + 1 }, (_, index) => round((first + index) * step));
+
+	return { domain: [ticks[0] ?? 0, ticks.at(-1) ?? step], ticks };
 }
 
 /**

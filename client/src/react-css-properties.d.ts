@@ -12,6 +12,8 @@ declare module 'react' {
 		/** Series colours set by the shadcn chart components. */
 		'--color-bg'?: string;
 		'--color-border'?: string;
+		/** Corner radius of the toasts, which sonner reads from its own variable. */
+		'--border-radius'?: string;
 	}
 }
 

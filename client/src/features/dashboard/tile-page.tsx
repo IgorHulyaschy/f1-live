@@ -1,5 +1,7 @@
 import { useParams } from 'react-router';
 
+import { PairProvider } from '@/features/watch/pair-context';
+
 import { useDashboards } from './dashboard-store';
 import { TileFillContext } from './tile-fill';
 import { TileContent } from './tiles';
@@ -30,7 +32,9 @@ export function TilePage() {
 			data-testid={`tile-${tile.kind}`}
 		>
 			<TileFillContext value>
-				<TileContent tile={tile} />
+				<PairProvider>
+					<TileContent tile={tile} />
+				</PairProvider>
 			</TileFillContext>
 		</div>
 	);

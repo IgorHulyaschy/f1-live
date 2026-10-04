@@ -282,7 +282,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 							/>
 						</React.Suspense>
 					) : null}
-					<Toaster theme={dark ? 'dark' : 'light'} position="bottom-right" />
+					<Toaster theme={dark ? 'dark' : 'light'} />
 				</TooltipProvider>
 			</MotionConfig>
 		</LazyMotion>

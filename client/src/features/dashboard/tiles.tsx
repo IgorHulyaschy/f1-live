@@ -113,6 +113,19 @@ const DrillTile = React.lazy(async () => ({
 	default: (await import('@/features/drill/drill-tile')).DrillTile
 }));
 
+// The race watching tiles load with the first one, after the first route.
+const FightsTile = React.lazy(async () => ({
+	default: (await import('@/features/watch/fights-tile')).FightsTile
+}));
+
+const PaceNowTile = React.lazy(async () => ({
+	default: (await import('@/features/watch/pace-now-tile')).PaceNowTile
+}));
+
+const DuelTile = React.lazy(async () => ({
+	default: (await import('@/features/watch/duel-tile')).DuelTile
+}));
+
 const TrackMapTile = React.lazy(async () => ({
 	default: (await import('@/features/track/track-map-tile')).TrackMapTile
 }));
@@ -198,6 +211,30 @@ export function TileContent({
 			return (
 				<LazyTile tile={tile}>
 					<BoxNowPanel />
+				</LazyTile>
+			);
+		}
+
+		case 'fights': {
+			return (
+				<LazyTile tile={tile}>
+					<FightsTile />
+				</LazyTile>
+			);
+		}
+
+		case 'pace-now': {
+			return (
+				<LazyTile tile={tile}>
+					<PaceNowTile />
+				</LazyTile>
+			);
+		}
+
+		case 'duel': {
+			return (
+				<LazyTile tile={tile}>
+					<DuelTile />
 				</LazyTile>
 			);
 		}

@@ -107,6 +107,31 @@ export const TILE_INFO: Record<TileKind, TileInfo> = {
 		min: { w: 4, h: 4 },
 		sessions: ['race']
 	},
+	fights: {
+		group: 'Timing',
+		title: 'Fights',
+		description: 'Every pair within a second now, and every car closing on one, soonest first.',
+		size: { w: 7, h: 8 },
+		min: { w: 5, h: 4 },
+		sessions: ['race']
+	},
+	'pace-now': {
+		group: 'Timing',
+		title: 'Pace now',
+		description:
+			'Who is fast right now: the last clean laps, as seconds a lap off the fastest car.',
+		size: { w: 7, h: 9 },
+		min: { w: 5, h: 4 },
+		sessions: ['race']
+	},
+	duel: {
+		group: 'Timing',
+		title: 'Duel',
+		description: 'Any two drivers: who is faster, by how much, and when the gap closes.',
+		size: { w: 10, h: 9 },
+		min: { w: 6, h: 6 },
+		sessions: ['race']
+	},
 	'box-now': {
 		group: 'Strategy',
 		title: 'Box now',
@@ -450,19 +475,27 @@ export const PRESETS: readonly Dashboard[] = [
 		[
 			['replay', 10, 17, 14, 4],
 			['timing', 0, 0, 10, 21],
+			['fights', 10, 0, 7, 9],
 			['track-map', 17, 0, 7, 9],
-			['stints', 17, 9, 7, 8],
-			['focus', 10, 0, 7, 11],
-			['race-control', 10, 11, 7, 6]
+			['duel', 10, 9, 8, 8],
+			['pace-now', 18, 9, 6, 8],
+			['focus', 0, 21, 8, 9],
+			['race-control', 8, 21, 8, 9],
+			['stints', 16, 21, 8, 9]
 		],
 		[
-			[11, 16, 13, 5],
+			[12, 17, 12, 4],
 			[0, 0, 6, 21],
-			[11, 0, 7, 16],
-			[18, 0, 6, 16],
-			[6, 0, 5, 11],
-			[6, 11, 5, 10]
-		]
+			[6, 0, 6, 10],
+			[12, 0, 6, 11],
+			[6, 10, 6, 11],
+			[18, 0, 6, 11],
+			[0, 21, 8, 9],
+			[12, 11, 6, 6],
+			[18, 11, 6, 6]
+		],
+		// A phone stacks the fights before the tower: who is racing whom is the first question.
+		[0, 2, 1, 4, 5, 3, 6, 7, 8]
 	),
 	buildDashboard(
 		'quali',

@@ -4,6 +4,7 @@ import { Key, KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { useRace } from '@/data/race-context';
+import { usePairShown } from '@/features/watch/pair-context';
 import { hasDrs } from '@/insights/rules';
 import type { SectorMark } from '@/insights/standings';
 import { cn } from '@/lib/utils';
@@ -205,9 +206,15 @@ function TrackMapBody({
 		onSettingsChange?.(merged);
 	};
 
+	const paired = usePairShown();
+
+	// The cars of the fight pointed at, or the duel's pair, stand out.
 	const look = React.useCallback<CarLook>(
-		(driver) => ({ label: labels === 'number' ? driver.number : driver.code }),
-		[labels]
+		(driver) => ({
+			label: labels === 'number' ? driver.number : driver.code,
+			emphasis: paired.has(driver.number)
+		}),
+		[labels, paired]
 	);
 
 	return (

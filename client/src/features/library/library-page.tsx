@@ -13,6 +13,7 @@ import { useGoPro } from '@/features/account/go-pro';
 import { SignInDialog } from '@/features/account/sign-in';
 import { useAddDashboard } from '@/features/dashboard/use-add-dashboard';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
+import { PairProvider } from '@/features/watch/pair-context';
 
 import { FansSection } from './fans-section';
 import { countLibraryAdd, unpublishFromLibrary } from './library-api';
@@ -234,7 +235,9 @@ function DashboardPreview({
 					</Key>
 				</span>
 			</section>
-			<DashboardGrid dashboard={dashboard} editing={false} onChange={() => undefined} />
+			<PairProvider>
+				<DashboardGrid dashboard={dashboard} editing={false} onChange={() => undefined} />
+			</PairProvider>
 			<ReportDialog
 				entry={reporting && id ? { id, name: dashboard.name } : null}
 				onOpenChange={(open) => (open ? undefined : setReporting(false))}

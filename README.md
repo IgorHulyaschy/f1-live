@@ -44,8 +44,9 @@ replay keys and lap strip move and resize like timing or a chart.
 - **Ready-made.** The three session layouts, Analysis and Strategy (at `/analysis`,
   `/strategy`), Battle, Track, Drivers, Race story and Pit wall; the ones a session does not need
   wait under More. Edit any of them and Reset brings it back; New dashboard starts your own.
-- **38 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
-  Drivers (focus, driver, grid, driver view), Timing (with knockout and best sectors), Track (track map,
+- **41 tiles in 6 groups.** Race (session, replay, lap strip, story, weather, race control),
+  Drivers (focus, driver, grid, driver view), Timing (with knockout, best sectors, fights, pace now
+  and the two-driver duel), Track (track map,
   battle map, pit rejoin, mini-sector dominance, flag map, speed map, gap distance, ghost lap),
   Analysis (charts, telemetry traces, long runs, championship, conditions) and Strategy (stints,
   tyre wear, stops, undercut ledger, stop cost, pit crews). Tiles for another kind of session

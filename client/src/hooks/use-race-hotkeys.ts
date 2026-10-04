@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useNavigate } from 'react-router';
 
+import { usePlayAction } from '@/components/race-clock';
 import { useRace } from '@/data/race-context';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
@@ -13,20 +14,28 @@ function isTyping(target: EventTarget | null): boolean {
 	);
 }
 
+/** A button Space presses by itself; the lit live key does nothing, so Space still plays. */
+function isPressable(target: EventTarget | null): boolean {
+	return target instanceof HTMLButtonElement && target.getAttribute('aria-disabled') !== 'true';
+}
+
 /**
- * ← → step laps, Shift with them jumps between events, Space plays, L goes back to live, 1–9
- * switch dashboards in the top bar's order, ⌘K or / opens the palette.
+ * ← → step laps, Shift with them jumps between events, Space plays or pauses (live too), L goes
+ * back to live, 1–9 switch dashboards in the top bar's order, ⌘K or / opens the palette.
  */
 export function useRaceHotkeys(openCommand: () => void): void {
-	const { stepLap, playing, setPlaying, live } = useRace();
+	const { stepLap, live } = useRace();
 	const navigate = useNavigate();
 	const search = useCarriedSearch();
 	const { all: pages } = useDashboardNav();
 	const jump = useEventJump();
 	const jumpRef = React.useRef(jump);
+	const play = usePlayAction();
+	const playRef = React.useRef(play);
 
 	React.useEffect(() => {
 		jumpRef.current = jump;
+		playRef.current = play;
 	});
 
 	React.useEffect(() => {
@@ -65,9 +74,12 @@ export function useRaceHotkeys(openCommand: () => void): void {
 				stepLap(-1);
 			} else if (event.key.toLowerCase() === 'l' && live.isLive) {
 				live.backToLive();
-			} else if (event.key === ' ' && !(event.target instanceof HTMLButtonElement)) {
+			} else if (event.key === ' ' && !isPressable(event.target)) {
 				event.preventDefault();
-				setPlaying(!playing);
+
+				if (!playRef.current.disabled) {
+					playRef.current.press();
+				}
 			} else if (event.key === '/') {
 				event.preventDefault();
 				openCommand();
@@ -77,5 +89,5 @@ export function useRaceHotkeys(openCommand: () => void): void {
 		window.addEventListener('keydown', onKeyDown);
 
 		return () => window.removeEventListener('keydown', onKeyDown);
-	}, [navigate, search, pages, stepLap, playing, setPlaying, openCommand, live]);
+	}, [navigate, search, pages, stepLap, openCommand, live]);
 }

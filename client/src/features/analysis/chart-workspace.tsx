@@ -1,3 +1,4 @@
+import type { Driver } from '@f1-live/shared';
 import * as React from 'react';
 import {
 	Area,
@@ -25,16 +26,23 @@ import {
 import { RaceOnly } from '@/components/race-only';
 import { useRaceView } from '@/data/race-context';
 import { DriverLink, useJumpTo } from '@/features/drill/drill-parts';
-import { isCleanLap } from '@/insights/clean-laps';
+import { usePair } from '@/features/watch/pair-context';
 import { isKnockout, isTimedSession } from '@/insights/qualifying';
 import { hasDrs } from '@/insights/rules';
-import { formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
 
 import { driverChartConfig, isSecondTeamCar } from './chart-drivers';
-import { flagBands, MarksLegend, pitDot } from './chart-marks';
+import {
+	EndLabels,
+	type EndMark,
+	flagBands,
+	MarksLegend,
+	type OverMark,
+	OverMarks,
+	pitDot
+} from './chart-marks';
 import { useComparedDrivers } from './compare-context';
 import { QUALI_NOTE, QualiChart } from './quali-chart';
 import {
@@ -43,6 +51,7 @@ import {
 	type LapPoint,
 	type Metric,
 	pitLaps,
+	robustRange,
 	toPoints,
 	versusPoints
 } from './lap-series';
@@ -76,17 +85,24 @@ const METRIC_KEYS = METRICS.map((entry) => ({
 
 const METRIC_NOTE: Record<Exclude<Metric, 'versus'>, string> = {
 	lapTime:
-		'Green-flag laps only. In-laps, out-laps and VSC laps are left out. The purple rule is the fastest lap; dashed rules are stops.',
-	gap: 'The race trace: seconds behind the leader at each line crossing. Squares are stops.',
+		'Seconds off the quickest car on each lap, green-flag laps only: in-laps, out-laps and VSC laps are left out. Dashed rules are stops; an arrow at the top is a lap too far off the pace to plot.',
+	gap: 'The race trace: seconds behind the leader at each line crossing. Squares are stops; a stop that runs off the bottom is cut.',
 	position: 'The lap chart: running order at the end of every lap. Squares are stops.',
-	battle: 'Gap to the car directly ahead. The band is the one-second DRS window.'
+	battle:
+		'Gap to the car directly ahead, named where it changes. The line breaks at a pass and a stop. The band is the one-second DRS window.'
 };
 
 const DIMMED_OPACITY = 0.12;
 
+/** The dash of a team's second car: team-mates share a colour. */
+const SECOND_CAR_DASH = '5 3';
+
+/** Lap times keep 90% of laps in range: the rest are traffic, a lock-up or a spin. */
+const LAP_TIME_SHARE = 0.9;
+
 function formatMetric(metric: Metric, value: number): string {
 	if (metric === 'lapTime') {
-		return formatLapTime(Math.round(value * 1000));
+		return `+${value.toFixed(value < 1 ? 2 : 1)}s`;
 	}
 
 	if (metric === 'position') {
@@ -142,32 +158,36 @@ export function ChartWorkspace({
 	const flags = flagRanges(snapshot);
 	const stops = pitLaps(snapshot);
 
-	const lapTicks = [
-		1,
-		...Array.from({ length: Math.floor(snapshot.currentLap / 5) }, (_, index) => (index + 1) * 5)
-	];
-
 	const followed = snapshot.drivers.find((driver) => driver.number === followedDriver);
 	// Versus measures every compared car against the followed driver, or the first compared car.
 	const reference = drivers.find((driver) => driver.number === followedDriver) ?? drivers[0];
 	const opacity = (code: string) => (highlighted && highlighted !== code ? DIMMED_OPACITY : 1);
 
-	const fastestLap = Math.min(
-		...snapshot.laps
-			.filter((lap) => lap.lap > 1 && isCleanLap(lap))
-			.map((lap) => lap.lapTimeMs / 1000)
+	// With more than two lines, the followed driver and a duel pair the viewer picked keep their
+	// colour and the rest go grey, so the eye lands on the cars that matter.
+	const { picked } = usePair();
+	const paired = new Set(picked);
+
+	const lead = drivers.filter(
+		(driver) => driver.number === followedDriver || paired.has(driver.number)
 	);
+
+	const muted = (driver: Driver) =>
+		highlighted === null && drivers.length > 2 && lead.length > 0 && !lead.includes(driver);
+
+	const lineColour = (driver: Driver) =>
+		muted(driver) ? 'var(--muted-foreground)' : `var(--color-${driver.code})`;
 
 	const config: ChartConfig =
 		metric === 'battle' && followed
 			? { interval: { label: `${followed.code} gap ahead`, color: `#${followed.teamColour}` } }
 			: driverChartConfig(drivers);
 
+	const battle = metric === 'battle' && followed ? battlePoints(snapshot, followed.number) : null;
+
 	const points: LapPoint[] =
 		metric === 'battle'
-			? followed
-				? battlePoints(snapshot, followed.number)
-				: []
+			? (battle?.points ?? [])
 			: metric === 'versus'
 				? reference
 					? versusPoints(snapshot, drivers, reference.number)
@@ -178,6 +198,48 @@ export function ChartWorkspace({
 		metric === 'battle' && followed
 			? [{ key: 'interval', label: `${followed.code} gap ahead` }]
 			: drivers.map((driver) => ({ key: driver.code, label: driver.code }));
+
+	const lastLap = points.at(-1)?.lap ?? snapshot.currentLap;
+
+	// Every fifth lap and the last one, which is now, unless it would sit on a fifth.
+	const lapTicks = [
+		1,
+		...Array.from({ length: Math.floor((lastLap - 2) / 5) }, (_, index) => (index + 1) * 5),
+		...(lastLap > 1 ? [lastLap] : [])
+	];
+
+	const range = robustRange(
+		points.flatMap((point) =>
+			series.flatMap((entry) => {
+				const value = point[entry.key];
+
+				return value === undefined ? [] : [value];
+			})
+		),
+		metric === 'lapTime' ? LAP_TIME_SHARE : undefined
+	);
+
+	// A lap time past the top of the scale leaves the line, which joins its neighbours, and shows as
+	// an arrow at the edge instead.
+	const over: OverMark[] = [];
+
+	const plotted =
+		metric === 'lapTime'
+			? points.map((point) => {
+					const kept = { ...point };
+
+					for (const driver of drivers) {
+						const value = point[driver.code];
+
+						if (value !== undefined && point.lap !== undefined && value > range.domain[1]) {
+							delete kept[driver.code];
+							over.push({ code: driver.code, lap: point.lap, fill: lineColour(driver) });
+						}
+					}
+
+					return kept;
+				})
+			: points;
 
 	// A race's charts run lap by lap, so a click on one moves the replay to that lap.
 	const onChartClick = isTimedSession(snapshot.session.type)
@@ -218,13 +280,15 @@ export function ChartWorkspace({
 	);
 
 	const lines = drivers.map((driver) => {
-		const colour = `var(--color-${driver.code})`;
+		const grey = muted(driver);
+		const colour = lineColour(driver);
+		const second = isSecondTeamCar(driver, drivers);
 
 		const shared = {
 			dataKey: driver.code,
 			stroke: colour,
-			strokeOpacity: opacity(driver.code),
-			strokeDasharray: isSecondTeamCar(driver, drivers) ? '5 3' : undefined,
+			strokeOpacity: grey ? 0.5 : opacity(driver.code),
+			strokeDasharray: second ? SECOND_CAR_DASH : undefined,
 			connectNulls: true,
 			isAnimationActive: false
 		};
@@ -234,7 +298,7 @@ export function ChartWorkspace({
 				key={driver.number}
 				{...shared}
 				type="linear"
-				strokeWidth={2}
+				strokeWidth={grey ? 1.5 : 2}
 				fill="none"
 				dot={pitDot(stops.get(driver.number), colour)}
 			/>
@@ -243,16 +307,42 @@ export function ChartWorkspace({
 				key={driver.number}
 				{...shared}
 				type={metric === 'position' ? 'stepAfter' : 'linear'}
-				strokeWidth={highlighted === driver.code ? 3 : 2}
+				strokeWidth={highlighted === driver.code ? 3 : grey ? 1.5 : 2}
 				dot={
 					metric === 'lapTime'
-						? { r: 2, strokeWidth: 0, fill: colour }
+						? second
+							? { r: 2, strokeWidth: 1.5, stroke: colour, fill: 'var(--panel)' }
+							: { r: 2, strokeWidth: 0, fill: colour }
 						: pitDot(stops.get(driver.number), colour)
 				}
 				activeDot={{ r: 3 }}
 			/>
 		);
 	});
+
+	const endMarks: EndMark[] =
+		metric === 'position'
+			? []
+			: drivers.flatMap((driver) => {
+					const last = plotted.findLast((point) => point[driver.code] !== undefined);
+					const value = last?.[driver.code];
+
+					return last?.lap === undefined || value === undefined
+						? []
+						: [
+								{
+									code: driver.code,
+									lap: last.lap,
+									// A last point past the axis is clipped; its code stays at the edge.
+									value: Math.min(Math.max(value, range.domain[0]), range.domain[1]),
+									fill:
+										highlighted && highlighted !== driver.code
+											? 'var(--muted-foreground)'
+											: lineColour(driver),
+									dash: isSecondTeamCar(driver, drivers) ? SECOND_CAR_DASH : undefined
+								}
+							];
+				});
 
 	// Lap times leave in-laps out, so their stops are rules across the plot instead of marks.
 	const stopRules =
@@ -270,9 +360,11 @@ export function ChartWorkspace({
 				)
 			: [];
 
+	const aheadNow = battle?.ahead.at(-1)?.code;
+
 	const title =
 		metric === 'battle' && followed
-			? `${followed.code} to car ahead`
+			? `${followed.code} to ${aheadNow ?? 'car'} ahead`
 			: metric === 'versus' && reference
 				? `Gap to ${reference.code}`
 				: 'Trace';
@@ -282,10 +374,11 @@ export function ChartWorkspace({
 		: metric === 'versus'
 			? `Seconds behind ${reference?.code ?? 'the first car'} at each line crossing; above its line is ahead. Squares are stops.`
 			: metric === 'battle' && !hasDrs(snapshot.session)
-				? 'Gap to the car directly ahead. The band is the one-second overtake-mode window.'
+				? METRIC_NOTE.battle.replace('DRS', 'overtake-mode')
 				: METRIC_NOTE[metric];
 
-	const margin = { left: 4, right: 12, top: 18 };
+	// Room on the right for the names at the ends of the lines.
+	const margin = { left: 4, right: metric === 'position' ? 12 : 52, top: 18 };
 
 	const legend = (
 		<div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
@@ -300,7 +393,9 @@ export function ChartWorkspace({
 										? 'border-team w-4 border-t-2 border-dashed'
 										: 'bg-team h-0.5 w-4'
 								}
-								style={{ '--team': `#${driver.teamColour}` }}
+								style={{
+									'--team': muted(driver) ? 'var(--muted-foreground)' : `#${driver.teamColour}`
+								}}
 							/>
 							<span className="type-wide font-bold">{driver.code}</span>
 						</DriverLink>
@@ -385,9 +480,24 @@ export function ChartWorkspace({
 											tickLine={false}
 											axisLine={false}
 											width={44}
-											domain={[0, 'auto']}
+											domain={range.domain}
+											ticks={range.ticks}
+											allowDataOverflow
 											tickFormatter={(value: number) => `${value.toFixed(1)}s`}
 										/>
+										{battle?.ahead.map((entry) => (
+											<ReferenceLine
+												key={entry.lap}
+												x={entry.lap - 0.5}
+												stroke="var(--rule-strong)"
+												strokeDasharray="2 3"
+												label={{
+													value: entry.code,
+													position: 'insideTopLeft',
+													className: 'fill-muted-foreground font-mono text-[10px]'
+												}}
+											/>
+										))}
 										<ReferenceArea
 											y1={0}
 											y2={1}
@@ -418,6 +528,9 @@ export function ChartWorkspace({
 											axisLine={false}
 											width={48}
 											reversed
+											domain={range.domain}
+											ticks={range.ticks}
+											allowDataOverflow
 											tickFormatter={(value: number) => formatMetric(metric, value)}
 										/>
 										{metric === 'versus' ? (
@@ -425,29 +538,31 @@ export function ChartWorkspace({
 										) : null}
 										{tooltip}
 										{lines}
+										<EndLabels marks={endMarks} />
 									</AreaChart>
 								) : (
-									<LineChart data={points} margin={margin} onClick={onChartClick}>
+									<LineChart data={plotted} margin={margin} onClick={onChartClick}>
 										{axes}
 										{flagBands(flags)}
 										{stopRules}
 										<YAxis
 											tickLine={false}
 											axisLine={false}
-											width={metric === 'lapTime' ? 64 : 36}
+											width={metric === 'lapTime' ? 48 : 36}
 											reversed={metric === 'position'}
-											domain={
-												metric === 'position' ? [1, snapshot.drivers.length] : ['auto', 'auto']
-											}
-											ticks={metric === 'position' ? [1, 5, 10, 15, 20] : undefined}
+											domain={metric === 'position' ? [1, snapshot.drivers.length] : range.domain}
+											ticks={metric === 'position' ? [1, 5, 10, 15, 20] : range.ticks}
+											allowDataOverflow={metric === 'lapTime'}
 											allowDecimals={metric !== 'position'}
 											tickFormatter={(value: number) => formatMetric(metric, value)}
 										/>
-										{metric === 'lapTime' && Number.isFinite(fastestLap) ? (
-											<ReferenceLine y={fastestLap} stroke="var(--fastest)" strokeDasharray="4 4" />
+										{metric === 'lapTime' ? (
+											<ReferenceLine y={0} stroke="var(--rule-strong)" />
 										) : null}
 										{tooltip}
 										{lines}
+										<OverMarks marks={over} edge={range.domain[1]} />
+										<EndLabels marks={endMarks} />
 									</LineChart>
 								)}
 							</ChartContainer>

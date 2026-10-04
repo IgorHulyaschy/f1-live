@@ -203,6 +203,7 @@ const syncMessageSchema = z.object({
 	driver: z.string().optional(),
 	plan: z.enum(['free', 'pro']).optional(),
 	compare: z.string().optional(),
+	duel: z.string().optional(),
 	playing: z.boolean().optional(),
 	session: z.string().optional(),
 	live: z.literal(true).optional()

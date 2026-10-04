@@ -56,6 +56,27 @@ export function isNeutralised(lap: Pick<Lap, 'trackStatus'> | undefined): boolea
 	return lap?.trackStatus === 'vsc' || lap?.trackStatus === 'safety_car';
 }
 
+/** The flag pausing racing now, as a sentence names it after "the". */
+export function pausingFlag(lap: Pick<Lap, 'trackStatus'> | undefined): string | null {
+	switch (lap?.trackStatus) {
+		case 'vsc': {
+			return 'Virtual Safety Car';
+		}
+
+		case 'safety_car': {
+			return 'Safety Car';
+		}
+
+		case 'red': {
+			return 'red flag';
+		}
+
+		default: {
+			return null;
+		}
+	}
+}
+
 /** Clean laps this close to a lap set a driver's normal pace around it. */
 const PACE_WINDOW_LAPS = 4;
 

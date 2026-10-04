@@ -48,8 +48,10 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
   a purple cap where the fastest lap fell. It is the track of the Replay tile's timeline, with
   the events marked over it as small blocks in the story's colours and each qualifying part's
   start ruled across it.
-- The bar: one 48 px line over every page, with the session in it where one is on screen. "Live" is lit like an on-air sign
-  (solid foreground, the only filled key in the bar); the time left or the lap is its one number.
+- The bar: one 48 px line over every page, with the session in it where one is on screen. The live key sits after previous, play and
+  next, lit like an on-air sign (solid foreground) while the screen follows the session and
+  "Go live" in the same place and size once it does not; the time left or the lap is its one
+  number.
   Everything used now and then waits in one menu at its end.
 - Flag band: the bar's lower edge wipes into the flag's colour when the track is not green.
 - Pit board: on phones a sticky bottom bar for the followed driver, like the board held over

@@ -6,9 +6,79 @@ import { stepDelay } from '@/data/viewer-settings';
 import { sessionMinutes } from '@/insights/qualifying';
 import { cn } from '@/lib/utils';
 
-/** Previous lap, play or pause, next lap. On a live session, stepping back pauses live. */
-export function Transport({ className }: { className?: string }) {
-	const { lap, steps, stepUnit, stepLap, playing, setPlaying, live } = useRaceView();
+/** What the play key does now, for the key and for Space. */
+type PlayAction = { label: string; playing: boolean; disabled: boolean; press: () => void };
+
+/**
+ * Play and pause, live included: following a live session counts as playing, so pausing holds the
+ * lap on screen, and playing from the newest lap goes back to live.
+ */
+export function usePlayAction(): PlayAction {
+	const { lap, steps, setLap, playing, setPlaying, live } = useRaceView();
+
+	if (live.isLive && live.following) {
+		return { label: 'Pause live', playing: true, disabled: false, press: () => setLap(lap) };
+	}
+
+	if (live.isLive && lap >= steps) {
+		return { label: 'Play replay', playing: false, disabled: false, press: live.backToLive };
+	}
+
+	return {
+		label: playing ? 'Pause replay' : 'Play replay',
+		playing,
+		disabled: lap >= steps,
+		press: () => setPlaying(!playing)
+	};
+}
+
+/**
+ * Live or not, in one key that keeps its place and its size: lit while the screen follows the
+ * session, and the way back to it once the viewer steps back. A feed that drops leaves it unlit
+ * and dashed; the bar says why.
+ */
+export function LiveKey({ className }: { className?: string }) {
+	const { live } = useRaceView();
+
+	if (!live.isLive) {
+		return null;
+	}
+
+	const connected = live.connection === 'live';
+
+	return (
+		<Key
+			pressed={live.following && connected}
+			aria-disabled={live.following}
+			onClick={live.following ? undefined : live.backToLive}
+			title={live.following ? 'Following the session live' : 'Back to live (L)'}
+			data-testid="live-key"
+			className={cn(
+				'w-20 justify-center font-black italic',
+				live.following && 'cursor-default',
+				live.following && !connected && 'border-dashed',
+				className
+			)}
+		>
+			{live.following ? 'Live' : 'Go live'}
+		</Key>
+	);
+}
+
+/**
+ * Previous lap, play or pause, next lap and, on a live session, the live key, in one group that
+ * keeps its place whether the screen follows live or not.
+ */
+export function Transport({
+	className,
+	live: withLive = true
+}: {
+	className?: string;
+	/** Leaves the live key out, for a bar that places it itself. */
+	live?: boolean;
+}) {
+	const { lap, steps, stepUnit, stepLap, live } = useRaceView();
+	const play = usePlayAction();
 	const atEnd = lap >= steps || live.following;
 	const unit = stepUnit === 'lap' ? 'lap' : 'minute';
 
@@ -18,13 +88,14 @@ export function Transport({ className }: { className?: string }) {
 				<SkipBackIcon />
 			</Key>
 			<Key
-				aria-label={playing ? 'Pause replay' : 'Play replay'}
-				disabled={atEnd}
-				pressed={playing}
-				onClick={() => setPlaying(!playing)}
+				aria-label={play.label}
+				title={`${play.label} (Space)`}
+				disabled={play.disabled}
+				pressed={play.playing}
+				onClick={play.press}
 				className="-ml-px"
 			>
-				{playing ? <PauseIcon /> : <PlayIcon />}
+				{play.playing ? <PauseIcon /> : <PlayIcon />}
 			</Key>
 			<Key
 				aria-label={`Next ${unit}`}
@@ -34,6 +105,7 @@ export function Transport({ className }: { className?: string }) {
 			>
 				<SkipForwardIcon />
 			</Key>
+			{withLive ? <LiveKey className="ml-2" /> : null}
 		</div>
 	);
 }

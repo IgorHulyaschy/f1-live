@@ -530,8 +530,9 @@ export function DashboardGrid({
 		return (
 			<div ref={containerRef} className="flex flex-col gap-4" data-testid="dashboard-stack">
 				{saved.tiles.some((tile) => tile.kind === 'replay') ? null : (
-					// The bar on a phone has no room for the transport; it heads the stack instead.
-					<Transport className="sm:hidden" />
+					// The bar on a phone has no room for the transport; it heads the stack instead, and the
+					// bar keeps the live key.
+					<Transport className="sm:hidden" live={false} />
 				)}
 				{ordered.map((tile, index) => (
 					<div
