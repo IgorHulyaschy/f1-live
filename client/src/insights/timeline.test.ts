@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import { fixtureSession } from './test-fixtures.ts';
-import { adjacentEventStep, matchesFilter, timelineEvents } from './timeline.ts';
+import { adjacentEventStep, markKind, matchesFilter, timelineEvents } from './timeline.ts';
 
 describe('timeline events', () => {
 	const race = timelineEvents(fixtureSession('9858'));
@@ -13,6 +13,22 @@ describe('timeline events', () => {
 				.filter((event) => event.lane === 'start' || event.lane === 'flags')
 				.map((event) => `${event.step} ${event.text}`),
 			['1 Start', '1 Yellow flag', '2 Virtual Safety Car', '15 Virtual Safety Car']
+		);
+	});
+
+	it('give each marker one meaning a legend can name, and leave passes off the track', () => {
+		const kinds = new Set(race.map(markKind));
+
+		assert.deepEqual(
+			[...kinds].toSorted(),
+			['fastest', 'flag', 'lead', 'red', 'start', 'stop', null].toSorted()
+		);
+		assert.ok(
+			race.filter((event) => event.lane === 'passes').every((event) => markKind(event) === null)
+		);
+		assert.equal(
+			markKind({ id: 'f', step: 3, lane: 'flags', tone: 'red', text: 'Red flag' }),
+			'red'
 		);
 	});
 

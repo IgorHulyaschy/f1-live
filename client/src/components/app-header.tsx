@@ -6,6 +6,8 @@ import {
 	LayoutDashboardIcon,
 	LibraryIcon,
 	LogOutIcon,
+	MaximizeIcon,
+	MinimizeIcon,
 	MoonIcon,
 	PlusIcon,
 	SearchIcon,
@@ -48,7 +50,9 @@ import { useGoPro } from '@/features/account/go-pro';
 import { setLargerText, useLargerText } from '@/hooks/use-scale';
 import { toggleTheme, useDarkTheme } from '@/hooks/use-theme';
 import { cn } from '@/lib/utils';
+import { toggleFullScreen, useFullScreen, useFullScreenEvents } from '@/platform/full-screen';
 import { useSessionOnScreen } from '@/platform/page-meta';
+import { keepAwakeStore, wakeLockSupported } from '@/platform/wake-lock';
 
 const SignInDialog = React.lazy(async () => ({
 	default: (await import('@/features/account/sign-in')).SignInDialog
@@ -223,6 +227,12 @@ function FlagBand() {
  * Everything used now and then, in one menu: the dashboard on screen, the library and season
  * pages, the theme and text size, the plan preview and the account.
  */
+const ABOUT_LINKS = [
+	{ path: '/legal/terms', label: 'Terms' },
+	{ path: '/legal/privacy', label: 'Privacy' },
+	{ path: '/legal/cookies', label: 'Cookies' }
+] as const;
+
 function AppMenu({ tools }: { tools: DashboardTools | null }) {
 	const navigate = useNavigate();
 	const search = useCarriedSearch();
@@ -233,6 +243,7 @@ function AppMenu({ tools }: { tools: DashboardTools | null }) {
 	const goPro = useGoPro();
 	const dark = useDarkTheme();
 	const larger = useLargerText();
+	const keepAwake = keepAwakeStore.useValue();
 	const [signingIn, setSigningIn] = React.useState(false);
 	const signedIn = account.status === 'signed-in' ? account.me : null;
 
@@ -325,6 +336,26 @@ function AppMenu({ tools }: { tools: DashboardTools | null }) {
 							Sign in
 						</DropdownMenuItem>
 					)}
+					{/* A session fits one screen on a laptop, so the page footer's notice and links live here. */}
+					<div className="hidden lg:contents" data-testid="menu-about">
+						<DropdownMenuSeparator />
+						{wakeLockSupported() ? (
+							<DropdownMenuCheckboxItem
+								checked={keepAwake}
+								onCheckedChange={(checked) => keepAwakeStore.set(checked)}
+							>
+								Keep the screen on
+							</DropdownMenuCheckboxItem>
+						) : null}
+						{ABOUT_LINKS.map((link) => (
+							<DropdownMenuItem key={link.path} onSelect={() => void navigate(link.path)}>
+								{link.label}
+							</DropdownMenuItem>
+						))}
+						<DropdownMenuLabel>
+							Unofficial. Not associated in any way with the Formula 1 companies.
+						</DropdownMenuLabel>
+					</div>
 				</DropdownMenuContent>
 			</DropdownMenu>
 			{signingIn ? (
@@ -345,9 +376,23 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 	const editing = Boolean(tools?.editing);
 	// The home has its own panel for the session on now; other pages without a session show none.
 	const session = useSessionOnScreen();
+	const bar = React.useRef<HTMLElement>(null);
+	const { active, reveal } = useFullScreen();
+
+	useFullScreenEvents(bar);
 
 	return (
-		<header className="bg-background/90 sticky top-0 z-40 mb-4 h-[max(48px,2.5rem)] border-b backdrop-blur-sm">
+		<header
+			ref={bar}
+			data-testid="app-bar"
+			data-hidden={active && reveal === null ? '' : undefined}
+			// In full screen the bar floats over the tiles and slides away; Tab into it brings it back.
+			className={cn(
+				'bg-background/90 sticky top-0 z-40 mb-4 h-[max(48px,2.5rem)] border-b backdrop-blur-sm',
+				active &&
+					'fixed inset-x-0 mb-0 transition-transform duration-200 data-hidden:not-focus-within:-translate-y-full'
+			)}
+		>
 			<div className="flex h-full items-center gap-2 px-3 sm:gap-3 sm:px-4 md:px-6 lg:gap-4">
 				<NavLink
 					to={{ pathname: '/' }}
@@ -392,6 +437,18 @@ export function AppHeader({ onOpenCommand }: { onOpenCommand: () => void }) {
 				>
 					<SearchIcon />
 				</Key>
+				{session ? (
+					<Key
+						onClick={() => void toggleFullScreen()}
+						pressed={active}
+						aria-label={active ? 'Leave full screen' : 'Full screen'}
+						title={active ? 'Leave full screen (F or Esc)' : 'Full screen (F)'}
+						className="hidden lg:inline-flex"
+						data-testid="fullscreen-toggle"
+					>
+						{active ? <MinimizeIcon /> : <MaximizeIcon />}
+					</Key>
+				) : null}
 				<AppMenu tools={tools} />
 			</div>
 			{session ? <FlagBand /> : null}

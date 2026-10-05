@@ -20,7 +20,7 @@ test('the race map draws the cars from the replay positions, in their order on t
 
 	await expect(map.getByText('Replay', { exact: true })).toBeVisible();
 	// 2025 cars have DRS: its zones come from where the flap opened on the fixture's laps.
-	await expect(map.getByTestId('map-note')).toHaveText('Bands: DRS zones');
+	await expect(map.getByTestId('map-note')).toContainText('Bands: DRS zones');
 	// 18 cars on the circuit in their order, then the two out of the race.
 	await expect(cars).toHaveCount(20);
 	await expect(cars.first()).toContainText('VER');

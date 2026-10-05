@@ -42,7 +42,7 @@ export function KeyGroup<Value extends string>({
 	role = 'radiogroup',
 	controls
 }: {
-	options: readonly { value: Value; label: React.ReactNode }[];
+	options: readonly { value: Value; label: React.ReactNode; title?: string }[];
 	value: Value;
 	onChange: (value: Value) => void;
 	label: string;
@@ -93,6 +93,7 @@ export function KeyGroup<Value extends string>({
 						aria-controls={role === 'tablist' ? controls : undefined}
 						tabIndex={active ? 0 : -1}
 						pressed={active}
+						title={option.title}
 						onClick={() => onChange(option.value)}
 						onKeyDown={onKeyDown}
 						className={cn(index > 0 && '-ml-px')}

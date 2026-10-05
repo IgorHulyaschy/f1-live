@@ -125,7 +125,7 @@ export function MapNote({
 	} else if (places.source === 'estimated') {
 		note =
 			places.live && places.positionsLive === false
-				? 'Estimated from timing: live car positions need an F1 TV login on the server.'
+				? 'Estimated from timing: the live feed sends no car positions.'
 				: 'Estimated from timing: this session has no car positions.';
 	} else if (positionsMissing(now)) {
 		note = 'Estimated from timing: the car positions for this moment did not load.';

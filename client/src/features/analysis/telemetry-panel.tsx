@@ -216,7 +216,7 @@ const ChannelChart = React.memo(function ChannelChart({
 	const end = rows.at(-1)?.d ?? circuit.lengthM;
 
 	return (
-		<div className={cn('flex min-h-0 flex-col', fill ? cn(spec.grow, 'min-h-12') : spec.height)}>
+		<div className={cn('flex min-h-0 flex-col', fill ? cn(spec.grow, 'min-h-16') : spec.height)}>
 			<span className="type-label">{spec.label}</span>
 			<ChartContainer config={config} className="aspect-auto min-h-0 w-full flex-1">
 				<LineChart
@@ -601,7 +601,7 @@ export function LapTraces({
 			) : (
 				<>
 					<div
-						className={cn('flex flex-col gap-1', fill && 'min-h-0 flex-1')}
+						className={cn('flex flex-col gap-1', fill && 'min-h-104 flex-1')}
 						data-testid="telemetry-charts"
 					>
 						{specs.map((spec, specIndex) => (

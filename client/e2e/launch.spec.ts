@@ -76,6 +76,8 @@ test.describe('legal pages', () => {
 	}
 
 	test('open from the console footer without loading the race again', async ({ page }) => {
+		// A laptop's session is one screen with no footer; a tablet keeps it.
+		await page.setViewportSize({ width: 900, height: 800 });
 		await openRace(page);
 
 		await page
@@ -189,6 +191,7 @@ test.describe('error screen', () => {
 test.describe('install and screen wake', () => {
 	test('offers the install after a minute, once, and keeps the footer key', async ({ page }) => {
 		await page.clock.install();
+		await page.setViewportSize({ width: 900, height: 800 });
 		await openRace(page);
 		await offerInstall(page);
 
@@ -219,6 +222,7 @@ test.describe('install and screen wake', () => {
 		// than the default 30 seconds.
 		test.slow();
 		await stubWakeLock(page);
+		await page.setViewportSize({ width: 900, height: 800 });
 		await openRace(page, '/session?lap=2');
 
 		const wakeLog = () => page.locator('html').getAttribute('data-wake-log');

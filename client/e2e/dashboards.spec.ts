@@ -99,9 +99,9 @@ test('a popped-out tile follows the lap of the window that opened it', async ({ 
 test('tiles can be arranged from the keyboard', async ({ page }) => {
 	await openRace(page, '/session?edit=1');
 
-	await page.getByRole('button', { name: 'Arrange Duel' }).focus();
+	await page.getByRole('button', { name: 'Arrange Race control' }).focus();
 	await page.keyboard.press('ArrowUp');
-	await expect(page.getByRole('button', { name: 'Arrange Duel' })).toBeFocused();
+	await expect(page.getByRole('button', { name: 'Arrange Race control' })).toBeFocused();
 
 	// Tiles glide to their new place, so wait for the order to settle.
 	await expect
@@ -112,12 +112,12 @@ test('tiles can be arranged from the keyboard', async ({ page }) => {
 						id: tile.getAttribute('data-testid'),
 						top: tile.getBoundingClientRect().top
 					}))
-					.filter((tile) => tile.id === 'tile-fights' || tile.id === 'tile-duel')
+					.filter((tile) => tile.id === 'tile-fights' || tile.id === 'tile-race-control')
 					.toSorted((a, b) => a.top - b.top)
 					.map((tile) => tile.id)
 			)
 		)
-		.toEqual(['tile-duel', 'tile-fights']);
+		.toEqual(['tile-race-control', 'tile-fights']);
 });
 
 test('opening another window does not move the windows already open', async ({ context }) => {

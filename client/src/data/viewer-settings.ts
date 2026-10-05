@@ -71,6 +71,19 @@ export const eventFilterStore = createLocalStore(
 	'all'
 );
 
+/**
+ * Tiles the viewer collapsed to their header, with the height in rows to give back, by
+ * `dashboard:screen:tile`.
+ */
+export const collapsedTilesStore = createLocalStore(
+	'pitwall-collapsed-tiles',
+	z.record(z.string(), z.number()),
+	{}
+);
+
+/** Whether the replay's timeline still shows its first-visit hint on how to move through it. */
+export const timelineHintStore = createLocalStore('pitwall-timeline-hint', z.boolean(), true);
+
 /** Delay steps of a tenth, without the float drift of adding 0.1 repeatedly. */
 export function stepDelay(seconds: number, step: number): number {
 	return Math.min(Math.max(Math.round((seconds + step) * 10) / 10, 0), MAX_DELAY_SECONDS);

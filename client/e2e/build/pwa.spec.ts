@@ -63,10 +63,8 @@ test('asks about usage counting once, and counts only after a yes', async ({ pag
 	await expect(banner).toHaveCount(0);
 	expect(counted).toEqual([]);
 
-	await page
-		.getByRole('navigation', { name: 'Site' })
-		.getByRole('link', { name: 'Cookies' })
-		.click();
+	await page.getByTestId('app-menu').click();
+	await page.getByRole('menuitem', { name: 'Cookies' }).click();
 	await page.getByTestId('consent-settings').getByRole('radio', { name: 'Allow' }).click();
 	await expect.poll(() => counted).toEqual(['[analytics] page /legal/cookies']);
 });

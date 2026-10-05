@@ -6,6 +6,7 @@ import { useRace } from '@/data/race-context';
 import { useCarriedSearch } from '@/features/dashboard/use-carried-search';
 import { useDashboardNav } from '@/features/dashboard/use-dashboard-nav';
 import { useEventJump } from '@/features/session/timeline';
+import { toggleBar, toggleFullScreen } from '@/platform/full-screen';
 
 function isTyping(target: EventTarget | null): boolean {
 	return (
@@ -21,7 +22,7 @@ function isPressable(target: EventTarget | null): boolean {
 
 /**
  * ← → step laps, Shift with them jumps between events, Space plays or pauses (live too), L goes
- * back to live, 1–9 switch dashboards in the top bar's order, ⌘K or / opens the palette.
+ * back to live, F goes full screen and leaves it (B brings the bar back there), 1–9 switch dashboards in the top bar's order, ⌘K or / opens the palette.
  */
 export function useRaceHotkeys(openCommand: () => void): void {
 	const { stepLap, live } = useRace();
@@ -79,6 +80,14 @@ export function useRaceHotkeys(openCommand: () => void): void {
 
 				if (!playRef.current.disabled) {
 					playRef.current.press();
+				}
+			} else if (event.key.toLowerCase() === 'f') {
+				if (!event.repeat) {
+					void toggleFullScreen();
+				}
+			} else if (event.key.toLowerCase() === 'b') {
+				if (!event.repeat) {
+					toggleBar();
 				}
 			} else if (event.key === '/') {
 				event.preventDefault();

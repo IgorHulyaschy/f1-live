@@ -16,6 +16,14 @@ export const EVENT_FILTER_LABEL: Record<EventFilter, string> = {
 	mine: 'Mine'
 };
 
+/** What each filter keeps, for the tooltip on its key. */
+export const EVENT_FILTER_TITLE: Record<EventFilter, string> = {
+	all: 'Every event',
+	flags: 'Flags, safety cars and red flags',
+	stops: 'Pit stops',
+	mine: 'Only the events of the driver you follow'
+};
+
 /** A moment worth jumping to: the start of the session or a part, or one of the story's marks. */
 export type TimelineEvent = {
 	id: string;
@@ -72,6 +80,36 @@ export function timelineEvents(snapshot: RaceSnapshot): TimelineEvent[] {
 	);
 
 	return [...starts(snapshot), ...flagStarts, ...moments].toSorted((a, b) => a.step - b.step);
+}
+
+/**
+ * What a marker over the timeline stands for, one meaning per colour so a legend can name it.
+ * Passes are too many to draw; they stay in the line under the track and in the event keys.
+ */
+export type MarkKind = 'start' | 'flag' | 'red' | 'stop' | 'lead' | 'fastest';
+
+export function markKind(event: TimelineEvent): MarkKind | null {
+	if (event.lane === 'start') {
+		return 'start';
+	}
+
+	if (event.tone === 'red' || event.lane === 'penalties' || event.lane === 'out') {
+		return 'red';
+	}
+
+	if (event.lane === 'flags') {
+		return 'flag';
+	}
+
+	if (event.lane === 'stops') {
+		return 'stop';
+	}
+
+	if (event.tone === 'fastest') {
+		return 'fastest';
+	}
+
+	return event.tone === 'lead' ? 'lead' : null;
 }
 
 export function matchesFilter(

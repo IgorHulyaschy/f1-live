@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { openRace, test } from './fixtures.ts';
 
 test('free viewers see a locked pit window they can preview', async ({ page }) => {
-	await openRace(page);
+	await openRace(page, '/d/battle');
 
 	const followed = page.getByTestId('followed-driver');
 	await expect(followed.getByText('Pit stop prediction is part of Pro')).toBeVisible();
@@ -12,7 +12,7 @@ test('free viewers see a locked pit window they can preview', async ({ page }) =
 
 	await expect(page).toHaveURL(/plan=pro/);
 	await expect(followed.getByText('is part of Pro')).toHaveCount(0);
-	await expect(page.getByTestId('pit-window')).toContainText(/Box now, P\d+/);
+	await expect(followed.getByTestId('pit-window')).toContainText(/Box now, P\d+/);
 });
 
 test('Preview Pro in the menu turns Pro on and off', async ({ page }) => {

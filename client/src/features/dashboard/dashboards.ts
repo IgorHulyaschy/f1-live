@@ -473,70 +473,60 @@ export const PRESETS: readonly Dashboard[] = [
 		'live',
 		'Race',
 		[
-			['replay', 10, 17, 14, 4],
-			['timing', 0, 0, 10, 21],
-			['fights', 10, 0, 7, 9],
-			['track-map', 17, 0, 7, 9],
-			['duel', 10, 9, 8, 8],
-			['pace-now', 18, 9, 6, 8],
-			['focus', 0, 21, 8, 9],
-			['race-control', 8, 21, 8, 9],
-			['stints', 16, 21, 8, 9]
+			['replay', 6, 14, 12, 7],
+			['timing', 0, 0, 6, 21],
+			['fights', 18, 0, 6, 10],
+			['track-map', 6, 0, 12, 14],
+			['race-control', 18, 10, 6, 11]
 		],
 		[
-			[12, 17, 12, 4],
-			[0, 0, 6, 21],
-			[6, 0, 6, 10],
-			[12, 0, 6, 11],
-			[6, 10, 6, 11],
-			[18, 0, 6, 11],
-			[0, 21, 8, 9],
-			[12, 11, 6, 6],
-			[18, 11, 6, 6]
+			[5, 14, 11, 7],
+			[0, 0, 5, 21],
+			[16, 0, 8, 10],
+			[5, 0, 11, 14],
+			[16, 10, 8, 11]
 		],
-		// A phone stacks the fights before the tower: who is racing whom is the first question.
-		[0, 2, 1, 4, 5, 3, 6, 7, 8]
+		// A phone stacks the replay, the map and the fights before the tower: who is racing whom is the first question.
+		[0, 3, 2, 1, 4]
 	),
 	buildDashboard(
 		'quali',
 		'Quali',
 		[
-			['replay', 10, 17, 14, 4],
-			['timing', 0, 0, 10, 21],
-			['knockout', 10, 0, 7, 9],
-			['track-map', 10, 9, 7, 8],
-			['sectors', 17, 0, 7, 9],
-			['race-control', 17, 9, 7, 8],
-			['gap-distance', 0, 21, 24, 12]
+			['replay', 18, 11, 6, 10],
+			['timing', 0, 0, 6, 21],
+			['knockout', 6, 0, 6, 10],
+			['track-map', 18, 0, 6, 11],
+			['sectors', 12, 0, 6, 10],
+			['gap-distance', 6, 10, 12, 11]
 		],
 		[
-			[18, 17, 6, 4],
+			[18, 11, 6, 10],
 			[0, 0, 6, 21],
-			[6, 0, 6, 11],
+			[6, 0, 6, 10],
 			[18, 0, 6, 11],
-			[12, 0, 6, 11],
-			[18, 11, 6, 6],
-			[6, 11, 12, 10]
+			[12, 0, 6, 10],
+			[6, 10, 12, 11]
 		]
 	),
 	buildDashboard(
 		'practice',
 		'Practice',
 		[
-			['replay', 10, 17, 14, 4],
+			['replay', 10, 16, 14, 5],
 			['timing', 0, 0, 10, 21],
-			['long-runs', 10, 0, 7, 9],
-			['track-map', 10, 9, 7, 8],
-			['stints', 17, 0, 7, 9],
-			['race-control', 17, 9, 7, 8]
+			['long-runs', 10, 0, 7, 8],
+			['track-map', 10, 8, 7, 8],
+			['stints', 17, 0, 7, 8],
+			['race-control', 17, 8, 7, 8]
 		],
 		[
-			[18, 17, 6, 4],
+			[18, 13, 6, 8],
 			[0, 0, 6, 21],
 			[6, 0, 12, 11],
-			[18, 0, 6, 11],
+			[18, 0, 6, 8],
 			[6, 11, 12, 10],
-			[18, 11, 6, 6]
+			[18, 8, 6, 5]
 		]
 	),
 	buildDashboard(
@@ -544,17 +534,17 @@ export const PRESETS: readonly Dashboard[] = [
 		'Analysis',
 		[
 			['compare', 20, 0, 4, 21],
-			['chart', 9, 0, 11, 21, { metric: 'lapTime' }],
-			['pace', 0, 0, 9, 13],
-			['fastest-laps', 0, 13, 9, 8],
-			['telemetry', 0, 21, 24, 20]
+			['chart', 6, 0, 7, 21, { metric: 'lapTime' }],
+			['pace', 0, 0, 6, 11],
+			['fastest-laps', 0, 11, 6, 10],
+			['telemetry', 13, 0, 7, 21]
 		],
 		[
-			[21, 0, 3, 21],
-			[6, 0, 8, 21],
+			[20, 0, 4, 21],
+			[6, 0, 7, 21],
 			[0, 0, 6, 11],
 			[0, 11, 6, 10],
-			[14, 0, 7, 21]
+			[13, 0, 7, 21]
 		],
 		// A phone reads the answers before the chart, which also keeps the chart library off the
 		// first screen and out of the first load.
@@ -564,50 +554,56 @@ export const PRESETS: readonly Dashboard[] = [
 		'strategy',
 		'Strategy',
 		[
-			['stints', 0, 0, 14, 11],
-			['degradation', 8, 11, 8, 10],
-			['undercut', 14, 0, 10, 11],
-			['pit-stops', 0, 11, 8, 10],
-			['pit-cost', 16, 11, 8, 10],
-			['pit-crews', 0, 21, 24, 12]
+			['stints', 0, 0, 8, 21],
+			['degradation', 8, 10, 9, 11],
+			['undercut', 8, 0, 9, 10],
+			['pit-stops', 17, 8, 7, 7],
+			['pit-cost', 17, 0, 7, 8],
+			['pit-crews', 17, 15, 7, 6]
 		],
 		[
-			[0, 0, 11, 11],
-			[0, 11, 6, 10],
-			[11, 0, 7, 11],
-			[18, 0, 6, 21],
-			[6, 11, 6, 10],
-			[12, 11, 6, 10]
+			[0, 0, 8, 21],
+			[8, 10, 9, 11],
+			[8, 0, 9, 10],
+			[17, 8, 7, 7],
+			[17, 0, 7, 8],
+			[17, 15, 7, 6]
 		]
 	),
 	buildDashboard(
 		'battle',
 		'Battle',
 		[
-			['timing', 16, 0, 8, 21],
-			['chart', 0, 0, 16, 15, { metric: 'battle' }],
-			['gaps', 0, 15, 8, 6],
-			['box-now', 8, 15, 8, 6]
+			['duel', 0, 0, 6, 12],
+			['pace', 6, 0, 6, 12],
+			['pace-now', 12, 0, 6, 12],
+			['focus', 18, 0, 6, 12],
+			['chart', 0, 12, 12, 9, { metric: 'battle' }],
+			['gaps', 12, 12, 6, 9],
+			['box-now', 18, 12, 6, 9]
 		],
 		[
-			[18, 0, 6, 21],
-			[0, 0, 12, 21],
-			[12, 0, 6, 10],
-			[12, 10, 6, 11]
+			[0, 0, 6, 12],
+			[6, 0, 6, 12],
+			[12, 0, 6, 12],
+			[18, 0, 6, 11],
+			[0, 12, 12, 9],
+			[12, 12, 6, 9],
+			[18, 11, 6, 10]
 		]
 	),
 	buildDashboard(
 		'track',
 		'Track',
 		[
-			['track-map', 0, 0, 12, 11],
-			['battle-map', 12, 0, 6, 11],
-			['pit-rejoin', 18, 0, 6, 11],
-			['dominance', 0, 11, 8, 10],
-			['flag-map', 8, 11, 8, 10],
-			['speed-map', 16, 11, 8, 10],
-			['gap-distance', 0, 21, 12, 12],
-			['ghost-lap', 12, 21, 12, 12]
+			['track-map', 0, 0, 6, 11],
+			['battle-map', 6, 0, 6, 11],
+			['pit-rejoin', 12, 0, 6, 10],
+			['dominance', 0, 11, 6, 10],
+			['flag-map', 18, 12, 6, 9],
+			['speed-map', 6, 11, 6, 10],
+			['gap-distance', 12, 10, 6, 11],
+			['ghost-lap', 18, 0, 6, 12]
 		],
 		[
 			[0, 0, 6, 11],
@@ -656,11 +652,11 @@ export const PRESETS: readonly Dashboard[] = [
 		'story',
 		'Race story',
 		[
-			['story', 0, 0, 24, 9],
-			['chart', 0, 9, 10, 12, { metric: 'position' }],
-			['championship', 10, 9, 7, 12],
-			['race-control', 17, 9, 7, 12],
-			['conditions', 0, 21, 24, 12]
+			['story', 0, 0, 17, 11],
+			['chart', 0, 11, 6, 10, { metric: 'position' }],
+			['championship', 17, 0, 7, 21],
+			['race-control', 6, 11, 5, 10],
+			['conditions', 11, 11, 6, 10]
 		],
 		[
 			[0, 0, 17, 11],
@@ -750,6 +746,23 @@ export function withPlacements(
 	return screen === 'wide'
 		? { ...dashboard, wide: [...layout] }
 		: { ...dashboard, layout: [...layout] };
+}
+
+/** Rows a collapsed tile keeps: its header. */
+export const COLLAPSED_ROWS = 2;
+
+/** One tile's height on one screen class, the rest of the arrangement as it was. */
+export function withTileHeight(
+	dashboard: Dashboard,
+	screen: ScreenClass,
+	id: string,
+	h: number
+): Dashboard {
+	return withPlacements(
+		dashboard,
+		screen,
+		onScreen(dashboard, screen).layout.map((place) => (place.i === id ? { ...place, h } : place))
+	);
 }
 
 function placedBelow(layout: readonly TilePlacement[], id: string, kind: TileKind): TilePlacement {

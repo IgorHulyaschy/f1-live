@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Digits } from '@/components/console/digits';
 import { EmptyNote } from '@/components/console/empty-note';
 import { Panel, PanelHeader } from '@/components/console/panel';
+import { WholeRows } from '@/components/console/whole-rows';
 import { DriverPortrait } from '@/components/driver-media';
 import { DriverTag } from '@/components/driver-tag';
 import { RaceOnly } from '@/components/race-only';
@@ -11,6 +12,7 @@ import { compoundName } from '@/components/tyre-badge';
 import { useRace } from '@/data/race-context';
 import { FIGHT_GAP_SECONDS, type Fight, fights } from '@/insights/battle';
 import { pausingFlag } from '@/insights/clean-laps';
+import { fightsHeadline } from '@/insights/headlines';
 import { lapRangeText } from '@/insights/duel';
 import { oneSecondAid } from '@/insights/rules';
 import { cn } from '@/lib/utils';
@@ -116,7 +118,7 @@ function FightRow({
 	const why = [paceText(fight), reasonText(fight)].filter(Boolean).join('. ');
 
 	return (
-		<m.li layout="position" transition={{ duration: 0.25, ease: 'easeOut' }}>
+		<m.li layout="position" className="snap-start" transition={{ duration: 0.25, ease: 'easeOut' }}>
 			<button
 				type="button"
 				aria-pressed={active}
@@ -199,6 +201,13 @@ export function FightsTile() {
 		<Panel aria-label="Fights" data-testid="fights" className="h-full min-h-0">
 			<PanelHeader
 				title="Fights"
+				headline={fightsHeadline(
+					list.map((fight) => ({
+						ahead: fight.ahead.driver.code,
+						behind: fight.behind.driver.code,
+						gapSeconds: fight.gapSeconds
+					}))
+				)}
 				meta={list.length === 0 ? undefined : `${close} now, ${list.length - close} coming`}
 			/>
 			<RaceOnly what="Fights">
@@ -211,24 +220,26 @@ export function FightsTile() {
 							: 'No car is within a second of the one ahead, or closing on one.'}
 					</EmptyNote>
 				) : (
-					<ol className="min-h-0 flex-1 overflow-y-auto" onPointerLeave={() => setHovered(null)}>
-						{list.map((fight) => (
-							<FightRow
-								key={`${fight.ahead.driver.number}-${fight.behind.driver.number}`}
-								fight={fight}
-								scale={scale}
-								aidCode={aid.code}
-								lapsLeft={lapsLeft}
-								active={isPair(fight, pair)}
-								onPick={() => setPair([fight.ahead.driver.number, fight.behind.driver.number])}
-								onPoint={(pointed) =>
-									setHovered(
-										pointed ? [fight.ahead.driver.number, fight.behind.driver.number] : null
-									)
-								}
-							/>
-						))}
-					</ol>
+					<WholeRows rows="li" className="snap-y snap-mandatory">
+						<ol onPointerLeave={() => setHovered(null)}>
+							{list.map((fight) => (
+								<FightRow
+									key={`${fight.ahead.driver.number}-${fight.behind.driver.number}`}
+									fight={fight}
+									scale={scale}
+									aidCode={aid.code}
+									lapsLeft={lapsLeft}
+									active={isPair(fight, pair)}
+									onPick={() => setPair([fight.ahead.driver.number, fight.behind.driver.number])}
+									onPoint={(pointed) =>
+										setHovered(
+											pointed ? [fight.ahead.driver.number, fight.behind.driver.number] : null
+										)
+									}
+								/>
+							))}
+						</ol>
+					</WholeRows>
 				)}
 			</RaceOnly>
 		</Panel>

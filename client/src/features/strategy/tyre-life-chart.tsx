@@ -18,7 +18,7 @@ import { type CompoundLife, lossAt, tyreLife } from '@/insights/tyre-life';
 import { formatDeltaSeconds } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
-import { useTileFill } from '../dashboard/tile-fill';
+import { useTileFill, useTileRows } from '../dashboard/tile-fill';
 
 const COMPOUND_COLOUR: Record<TyreCompound, string> = {
 	SOFT: 'var(--tyre-soft)',
@@ -70,6 +70,9 @@ function ageRows(compounds: readonly CompoundLife[]): AgeRow[] {
 export function TyreLifeChart({ table }: { table: boolean }) {
 	const { snapshot } = useRaceView();
 	const fill = useTileFill();
+	const tileRows = useTileRows();
+	// The footnote needs room; in a short tile it would be cut mid-sentence.
+	const roomy = tileRows === null || tileRows >= 14;
 	const life = React.useMemo(() => tyreLife(snapshot), [snapshot]);
 	const rows = React.useMemo(() => ageRows(life.compounds), [life]);
 	// A compound whose pace when new is not compared keeps its numbers above, off the chart.
@@ -254,13 +257,15 @@ export function TyreLifeChart({ table }: { table: boolean }) {
 					</LineChart>
 				</ChartContainer>
 			)}
-			<p className="text-muted-foreground text-xs">
-				Each point is the median lap at that tyre age over every run of five or more clean laps,
-				with the fuel effect taken out and each run’s own pace too; dashed, the fitted wear.
-				{life.comparable
-					? ' Compounds compare through the drivers who ran both.'
-					: ' Practice runs start on their own fuel loads, so only the wear compares.'}
-			</p>
+			{roomy ? (
+				<p className="text-muted-foreground text-xs">
+					Each point is the median lap at that tyre age over every run of five or more clean laps,
+					with the fuel effect taken out and each run’s own pace too; dashed, the fitted wear.
+					{life.comparable
+						? ' Compounds compare through the drivers who ran both.'
+						: ' Practice runs start on their own fuel loads, so only the wear compares.'}
+				</p>
+			) : null}
 		</div>
 	);
 }

@@ -166,7 +166,7 @@ export function ChampionshipSwing() {
 					{!standings ? (
 						<p className="text-muted-foreground text-sm" data-testid="championship-unavailable">
 							{live.isLive
-								? 'The live feed sends the championship only with an F1 TV login (F1TV_TOKEN on the server); it fills in after the session from the archive.'
+								? 'The live feed sends no championship standings; they fill in after the session from the archive.'
 								: 'This session was saved without the championship standings.'}
 						</p>
 					) : (

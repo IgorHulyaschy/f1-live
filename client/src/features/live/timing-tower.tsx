@@ -4,8 +4,9 @@ import * as React from 'react';
 
 import { Digits } from '@/components/console/digits';
 import { EmptyNote } from '@/components/console/empty-note';
-import { KeyGroup } from '@/components/console/keys';
+import { Key, KeyGroup } from '@/components/console/keys';
 import { Panel, PanelHeader } from '@/components/console/panel';
+import { WholeRows } from '@/components/console/whole-rows';
 import { DriverPortrait } from '@/components/driver-media';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
@@ -14,6 +15,7 @@ import { DriverLink } from '@/features/drill/drill-parts';
 import { useDrill } from '@/features/drill/use-drill';
 import { usePair, usePairShown } from '@/features/watch/pair-context';
 import { useScreenTime } from '@/hooks/use-screen-time';
+import { leaderHeadline } from '@/insights/headlines';
 import { gapToCut, improvements, knockout, recentImprovements } from '@/insights/knockout';
 import { paceNow } from '@/insights/pace-now';
 import { pitPenalties, timePenalties } from '@/insights/penalties';
@@ -220,6 +222,8 @@ export function TimingTower() {
 	// In qualifying the gap that matters is to the top of the part.
 	const [mode, setMode] = React.useState<GapMode>(knockoutState ? 'leader' : 'interval');
 	const [view, setView] = React.useState<View>('full');
+	// A narrow tile is a compact tower; one click opens every column, scrolling sideways.
+	const [expanded, setExpanded] = React.useState(false);
 	const rows = standings;
 	const timed = isTimedSession(snapshot.session.type);
 	const knockoutSession = isKnockout(snapshot.session.type);
@@ -278,9 +282,20 @@ export function TimingTower() {
 	const running = rows.filter((row) => row.state !== 'out').length;
 
 	return (
-		<Panel aria-label="Timing">
+		<Panel
+			aria-label="Timing"
+			className="group/tower h-full min-h-0"
+			data-full={expanded ? '' : undefined}
+		>
 			<PanelHeader
 				title="Timing"
+				headline={
+					timed
+						? undefined
+						: leaderHeadline(
+								rows.map((row) => ({ code: row.driver.code, gapToLeaderMs: row.gapToLeaderMs }))
+							)
+				}
 				meta={
 					rows.length === 0
 						? 'No cars yet'
@@ -291,27 +306,35 @@ export function TimingTower() {
 			>
 				<KeyGroup label="Rows shown" options={VIEW_OPTIONS} value={view} onChange={setView} />
 				<KeyGroup label="Gap shown" options={GAP_OPTIONS} value={mode} onChange={setMode} />
+				<Key
+					pressed={expanded}
+					title="Show every column"
+					onClick={() => setExpanded(!expanded)}
+					className="@2xl:hidden"
+				>
+					All
+				</Key>
 			</PanelHeader>
 			{rows.length === 0 ? (
 				<EmptyNote />
 			) : (
-				<div className="overflow-x-auto">
+				<WholeRows rows="tbody > tr" className="snap-y snap-mandatory">
 					<table className="w-full text-sm" data-testid="timing-table">
-						<thead>
+						<thead className="bg-panel sticky top-0 z-10">
 							<tr className="h-8 border-b">
-								<th scope="col" className="type-label pl-4 text-left font-normal">
+								<th scope="col" className="type-label pl-3 @lg:pl-4 text-left font-normal">
 									Pos
 								</th>
 								<th scope="col" className="type-label text-left font-normal">
 									Driver
 								</th>
-								<th scope="col" className="type-label pr-4 text-right font-normal">
+								<th scope="col" className="type-label pr-2 @lg:pr-4 text-right font-normal">
 									{mode === 'interval' ? 'Interval' : 'Gap'}
 								</th>
 								{cutShown ? (
 									<th
 										scope="col"
-										className="type-label hidden pr-4 text-right font-normal @lg:table-cell"
+										className="type-label hidden pr-2 @lg:pr-4 text-right font-normal @lg:table-cell group-data-full/tower:table-cell"
 									>
 										To cut
 									</th>
@@ -319,39 +342,44 @@ export function TimingTower() {
 								<th
 									scope="col"
 									className={cn(
-										'type-label hidden pr-4 text-right font-normal',
-										timed ? '@lg:table-cell' : '@2xl:table-cell'
+										'type-label hidden pr-2 @lg:pr-4 text-right font-normal',
+										timed
+											? '@lg:table-cell group-data-full/tower:table-cell'
+											: '@2xl:table-cell group-data-full/tower:table-cell'
 									)}
 								>
 									{timed ? 'Best lap' : 'Last lap'}
 								</th>
 								<th
 									scope="col"
-									className="type-label hidden w-28 pr-4 text-right font-normal @2xl:table-cell xl:w-56"
+									className="type-label hidden w-28 pr-2 @lg:pr-4 text-right font-normal @2xl:table-cell group-data-full/tower:table-cell xl:w-56"
 								>
 									S1 S2 S3
 								</th>
 								<th
 									scope="col"
-									className="type-label hidden pr-4 text-left font-normal @4xl:table-cell"
+									className="type-label hidden pr-2 @lg:pr-4 text-left font-normal @4xl:table-cell group-data-full/tower:table-cell"
 								>
 									{timed ? 'Last lap' : 'Pace now'}
 								</th>
 								<th
 									scope="col"
 									className={cn(
-										'type-label hidden pr-4 text-right font-normal',
-										hasTraps && (timed ? '@3xl:table-cell' : '@5xl:table-cell')
+										'type-label hidden pr-2 @lg:pr-4 text-right font-normal',
+										hasTraps &&
+											(timed
+												? '@3xl:table-cell group-data-full/tower:table-cell'
+												: '@5xl:table-cell group-data-full/tower:table-cell')
 									)}
 								>
 									Trap
 								</th>
-								<th scope="col" className="type-label pr-4 text-left font-normal">
+								<th scope="col" className="type-label pr-2 @lg:pr-4 text-left font-normal">
 									Tyre
 								</th>
 								<th
 									scope="col"
-									className="type-label hidden pr-4 text-right font-normal @lg:table-cell"
+									className="type-label hidden pr-2 @lg:pr-4 text-right font-normal @lg:table-cell group-data-full/tower:table-cell"
 								>
 									{timed ? 'Laps' : 'Stops'}
 								</th>
@@ -426,12 +454,12 @@ export function TimingTower() {
 													: open({ kind: 'driver', driverNumber: row.driver.number })
 											}
 											className={cn(
-												'hover:bg-accent/70 data-[state=selected]:bg-accent relative h-10 cursor-pointer border-b',
+												'hover:bg-accent/70 data-[state=selected]:bg-accent relative h-10 cursor-pointer snap-start border-b',
 												(row.state === 'out' || knockedOut) && 'text-muted-foreground',
 												inDropZone && 'bg-danger/6'
 											)}
 										>
-											<td className="relative pl-4">
+											<td className="relative pl-3 @lg:pl-4">
 												{followed ? (
 													<span aria-hidden className="bg-focus absolute inset-y-0 left-0 w-0.75" />
 												) : null}
@@ -486,7 +514,7 @@ export function TimingTower() {
 															<DriverPortrait
 																driver={row.driver}
 																size="xs"
-																className="hidden @lg:block"
+																className="hidden @lg:block group-data-full/tower:block"
 															/>
 															<DriverTag driver={row.driver} showName showNumber />
 														</span>
@@ -506,13 +534,13 @@ export function TimingTower() {
 														</Chip>
 													) : null}
 													{row.outReason ? (
-														<span className="text-muted-foreground hidden max-w-56 truncate text-xs @4xl:inline">
+														<span className="text-muted-foreground hidden max-w-56 truncate text-xs @4xl:inline group-data-full/tower:inline">
 															{row.outReason}
 														</span>
 													) : null}
 												</span>
 											</td>
-											<td className="pr-4 text-right whitespace-nowrap">
+											<td className="pr-2 @lg:pr-4 text-right whitespace-nowrap">
 												<span className="flex items-center justify-end gap-2">
 													{withinOneSecond ? (
 														<Chip tone="outline" title={`Within a second: ${aid.name}`}>
@@ -523,7 +551,7 @@ export function TimingTower() {
 												</span>
 											</td>
 											{cutShown ? (
-												<td className="hidden pr-4 text-right whitespace-nowrap @lg:table-cell">
+												<td className="hidden pr-2 @lg:pr-4 text-right whitespace-nowrap @lg:table-cell group-data-full/tower:table-cell">
 													{cutGap === null ? (
 														<span className="text-muted-foreground">-</span>
 													) : (
@@ -533,8 +561,10 @@ export function TimingTower() {
 											) : null}
 											<td
 												className={cn(
-													'hidden pr-4 text-right',
-													timed ? '@lg:table-cell' : '@2xl:table-cell'
+													'hidden pr-2 @lg:pr-4 text-right',
+													timed
+														? '@lg:table-cell group-data-full/tower:table-cell'
+														: '@2xl:table-cell group-data-full/tower:table-cell'
 												)}
 											>
 												{timed ? (
@@ -553,10 +583,10 @@ export function TimingTower() {
 													<LapTime row={row} lap={row.lastLap} fastestMs={sessionFastestMs} />
 												)}
 											</td>
-											<td className="hidden pr-4 @2xl:table-cell">
+											<td className="hidden pr-2 @lg:pr-4 @2xl:table-cell group-data-full/tower:table-cell">
 												<MiniSectors lap={row.lastLap} marks={row.sectorMarks} timed={timed} />
 											</td>
-											<td className="hidden pr-4 @4xl:table-cell">
+											<td className="hidden pr-2 @lg:pr-4 @4xl:table-cell group-data-full/tower:table-cell">
 												{timed ? (
 													<LapTime row={row} lap={row.lastLap} fastestMs={sessionFastestMs} />
 												) : (
@@ -565,18 +595,21 @@ export function TimingTower() {
 											</td>
 											<td
 												className={cn(
-													'hidden pr-4 text-right font-mono',
-													hasTraps && (timed ? '@3xl:table-cell' : '@5xl:table-cell')
+													'hidden pr-2 @lg:pr-4 text-right font-mono',
+													hasTraps &&
+														(timed
+															? '@3xl:table-cell group-data-full/tower:table-cell'
+															: '@5xl:table-cell group-data-full/tower:table-cell')
 												)}
 											>
 												{row.speedTrapKph ?? '-'}
 											</td>
-											<td className="pr-4">
+											<td className="pr-2 @lg:pr-4">
 												{row.compound ? (
 													<TyreBadge compound={row.compound} age={row.tyreAge} />
 												) : null}
 											</td>
-											<td className="hidden pr-4 text-right font-mono @lg:table-cell">
+											<td className="hidden pr-2 @lg:pr-4 text-right font-mono @lg:table-cell group-data-full/tower:table-cell">
 												{timed ? row.lapsCompleted : row.pitStops}
 											</td>
 										</m.tr>
@@ -587,7 +620,7 @@ export function TimingTower() {
 							})}
 						</tbody>
 					</table>
-				</div>
+				</WholeRows>
 			)}
 		</Panel>
 	);

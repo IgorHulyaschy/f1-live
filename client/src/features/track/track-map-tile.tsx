@@ -5,6 +5,7 @@ import { Panel, PanelHeader } from '@/components/console/panel';
 import { TrackStatusBadge } from '@/components/track-status-badge';
 import { useRace } from '@/data/race-context';
 import { usePairShown } from '@/features/watch/pair-context';
+import { fights } from '@/insights/battle';
 import { hasDrs } from '@/insights/rules';
 import type { SectorMark } from '@/insights/standings';
 import { cn } from '@/lib/utils';
@@ -186,7 +187,7 @@ function TrackMapBody({
 	settings: TrackMapSettings;
 	onSettingsChange?: (settings: TrackMapSettings) => void;
 }) {
-	const { race, snapshot, followedDriver } = useRace();
+	const { race, snapshot, standings, followedDriver } = useRace();
 	const places = usePlaces(track);
 	const now = usePlacesNow(places, SOURCE_EVERY_MS);
 	const bodyClass = useMapBodyClass();
@@ -208,18 +209,36 @@ function TrackMapBody({
 
 	const paired = usePairShown();
 
-	// The cars of the fight pointed at, or the duel's pair, stand out.
+	// Cars within a second of the one ahead stand out, and so do the fight pointed at and the duel's pair.
+	const fighting = React.useMemo(
+		() =>
+			new Set(
+				fights(snapshot, standings).flatMap((fight) =>
+					fight.within[0] === 0 ? [fight.ahead.driver.number, fight.behind.driver.number] : []
+				)
+			),
+		[snapshot, standings]
+	);
+
 	const look = React.useCallback<CarLook>(
 		(driver) => ({
 			label: labels === 'number' ? driver.number : driver.code,
-			emphasis: paired.has(driver.number)
+			emphasis: paired.has(driver.number) || fighting.has(driver.number)
 		}),
-		[labels, paired]
+		[labels, paired, fighting]
 	);
 
 	return (
 		<>
-			<PanelHeader title="Track map" meta={placesLabel(places, now)}>
+			<PanelHeader
+				title="Track map"
+				headline={
+					fighting.size > 0
+						? `${fighting.size} cars in a fight, marked`
+						: 'No car within a second of another'
+				}
+				meta={placesLabel(places, now)}
+			>
 				{/* A narrow tile keeps only the camera and colours keys. */}
 				{snapshot.trackStatus === 'green' ? null : (
 					<span className="hidden @xl:inline-flex">
@@ -272,6 +291,7 @@ function TrackMapBody({
 			</div>
 			<MapNote places={places} now={now}>
 				{paint === 'sectors' && sectors.note ? <span>{sectors.note}</span> : null}
+				{fighting.size > 0 ? <span>Marked: cars in a fight</span> : null}
 				{showZones ? <span>Bands: DRS zones</span> : null}
 			</MapNote>
 		</>

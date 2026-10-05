@@ -5,6 +5,7 @@ import { Panel, PanelHeader } from '@/components/console/panel';
 import { DriverTag } from '@/components/driver-tag';
 import { compoundName } from '@/components/tyre-badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { stintsHeadline } from '@/insights/headlines';
 import { useRaceView } from '@/data/race-context';
 import { DriverLink } from '@/features/drill/drill-parts';
 import { useDrill } from '@/features/drill/use-drill';
@@ -22,7 +23,9 @@ const BAR_CLASS: Record<Stint['compound'], string> = {
 	UNKNOWN: 'bg-muted-foreground text-background'
 };
 
-/** Wide enough to print the compound letter and lap count inside the bar. */
+/** Wide enough to print the compound letter, and the letter with the lap count, inside the bar. */
+const LETTER_MIN_LAPS = 3;
+
 const LABEL_MIN_LAPS = 5;
 
 const LETTER = { SOFT: 'S', MEDIUM: 'M', HARD: 'H', INTERMEDIATE: 'I', WET: 'W', UNKNOWN: '?' };
@@ -63,10 +66,12 @@ function StintBar({
 						'--size': percent(laps, totalLaps)
 					}}
 				>
-					<span className="absolute inset-y-0 left-1 flex items-center font-mono text-xs font-bold">
-						{LETTER[stint.compound]}
-						{laps >= LABEL_MIN_LAPS ? <span className="ml-1 font-normal">{laps}</span> : null}
-					</span>
+					{laps >= LETTER_MIN_LAPS ? (
+						<span className="absolute inset-y-0 left-1 flex items-center font-mono text-xs font-bold">
+							{LETTER[stint.compound]}
+							{laps >= LABEL_MIN_LAPS ? <span className="ml-1 font-normal">{laps}</span> : null}
+						</span>
+					) : null}
 				</button>
 			</TooltipTrigger>
 			<TooltipContent>
@@ -99,7 +104,15 @@ export function StintChart() {
 
 	return (
 		<Panel aria-label="Tyre strategies" data-testid="stint-timeline">
-			<PanelHeader title="Stints" meta={now > 0 ? `L${now} of ${totalLaps}` : undefined}>
+			<PanelHeader
+				title="Stints"
+				headline={stintsHeadline(
+					snapshot.stints,
+					(number) => drivers.get(number)?.code,
+					compoundName
+				)}
+				meta={now > 0 ? `L${now} of ${totalLaps}` : undefined}
+			>
 				<span className="type-label hidden items-center gap-3 @xl:flex">
 					{LEGEND.map((compound) => (
 						<span key={compound} className="flex items-center gap-1.5">
@@ -136,6 +149,7 @@ export function StintChart() {
 						return (
 							<div
 								key={row.driver.number}
+								data-row
 								className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-3"
 							>
 								<DriverLink driver={row.driver}>

@@ -123,8 +123,11 @@ const HEIGHT = ['h-px', 'h-2', 'h-3.5', 'h-5'] as const;
  * The race barcode: one bar per lap. Height carries pit-stop traffic, colour carries the flag,
  * a purple cap marks a new fastest lap. Practice and qualifying get one bar per minute, its
  * height the laps completed in it. Click a bar to jump the replay there.
+ *
+ * `plain` keeps colour for flags and shade for what has been played only: the Replay tile draws
+ * its own playhead and marks, with a legend, over it.
  */
-export function LapStrip() {
+export function LapStrip({ plain = false }: { plain?: boolean }) {
 	const { race, lap, setLap, stepUnit, steps, spoilers } = useRaceView();
 	const timed = stepUnit === 'minute';
 	// A live session's strip spans its planned length from the start, and fills as it runs.
@@ -142,14 +145,14 @@ export function LapStrip() {
 	}
 
 	return (
-		<fieldset className="flex min-w-0 flex-col gap-1">
+		<fieldset className={cn('flex min-w-0 flex-col gap-1', plain && 'flex-1')}>
 			<legend className="sr-only">{timed ? 'Session minutes' : 'Race laps'}</legend>
-			<div className="flex h-8 items-end gap-px">
+			<div className={cn('flex items-end gap-px', plain ? 'min-h-4 flex-1' : 'h-8')}>
 				{slots.map((entry) => {
 					// Spoiler-free, laps ahead keep their flags and fastest laps to themselves.
 					const raced = entry.step <= (spoilers.hidesAhead ? lap : done);
-					const selected = entry.step === lap;
-					const passed = entry.step < lap;
+					const selected = !plain && entry.step === lap;
+					const passed = plain ? entry.step <= lap : entry.step < lap;
 
 					return (
 						<button
@@ -162,7 +165,7 @@ export function LapStrip() {
 							title={`${timed ? 'Minute' : 'Lap'} ${entry.step}${raced ? `${STATUS_LABEL[entry.status]}${entry.note}` : ''}`}
 							className="group relative flex h-full flex-1 cursor-pointer flex-col justify-end disabled:cursor-default"
 						>
-							{entry.fastest && entry.step <= lap ? (
+							{!plain && entry.fastest && entry.step <= lap ? (
 								<span aria-hidden className="bg-fastest block h-0.5 w-full" />
 							) : null}
 							<span
@@ -170,7 +173,7 @@ export function LapStrip() {
 								className={cn(
 									'block w-full transition-all duration-200',
 									!raced && 'bg-foreground/25 h-px',
-									raced && (selected ? 'h-full' : HEIGHT[entry.traffic]),
+									raced && (plain ? 'h-full' : selected ? 'h-full' : HEIGHT[entry.traffic]),
 									raced && entry.status === 'red' && 'bg-danger',
 									raced && entry.status !== 'green' && entry.status !== 'red' && 'bg-flag',
 									raced && entry.status === 'green' && selected && 'bg-focus',

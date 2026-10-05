@@ -40,14 +40,17 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
 
 - Switches, tabs, toggles and pills are replaced by hardware-style keys (`Key`, `KeyGroup`):
   square, mono caps, thicker bottom edge, solid fill when pressed.
-- Every primary action has a keyboard shortcut; the footer prints them on desktop.
+- Every primary action has a keyboard shortcut; the menu's About block and the timeline's hover print them.
+- A tile's header says what it is in one small title and, where there is one, a headline in words
+  (plain, not uppercase) before the numbers. Headers have a hairline below, no heavy rule above.
 
 ## Signature elements
 
 - Race barcode (`LapStrip`): one bar per lap; height is pit traffic, yellow for flag laps,
   a purple cap where the fastest lap fell. It is the track of the Replay tile's timeline, with
   the events marked over it as small blocks in the story's colours and each qualifying part's
-  start ruled across it.
+  start ruled across it. A playhead with a handle and its lap marks the position, and a legend
+  in 14 px text says what the marks mean; a pit stop is a blue bar, never grey.
 - The bar: one 48 px line over every page, with the session in it where one is on screen. The live key sits after previous, play and
   next, lit like an on-air sign (solid foreground) while the screen follows the session and
   "Go live" in the same place and size once it does not; the time left or the lap is its one
@@ -99,6 +102,8 @@ These rules keep it that way. Tokens live in `client/src/index.css`.
 - Panels size themselves to their tile with container queries (`@container` on `Panel`), never
   to the screen, so a narrow tile on a 4K monitor looks like a phone-width panel.
 - Below 64rem of width the grid stacks tiles in reading order at natural height.
+- Resize and collapse are findable without edit mode: a diagonal grip on the bottom right corner
+  and a collapse key in the header appear on hover and keyboard focus. Lists end on a whole row.
 - Edit mode is quiet: a dashed tile bar to drag, corner ticks to resize. No wiggle, no
   confetti, no gamified empty states.
 - The screen sets the text size: rem grows past 1080 px tall, and Larger text adds a quarter for

@@ -1,6 +1,8 @@
 import {
 	ArrowDownIcon,
 	ArrowUpIcon,
+	ChevronsDownUpIcon,
+	ChevronsUpDownIcon,
 	EllipsisIcon,
 	ExternalLinkIcon,
 	GripVerticalIcon,
@@ -19,13 +21,17 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { useRaceView } from '@/data/race-context';
+import { collapsedTilesStore } from '@/data/viewer-settings';
 import { useRemPixels } from '@/hooks/use-scale';
 import { cn } from '@/lib/utils';
+import { useFullScreen } from '@/platform/full-screen';
 
 import {
+	COLLAPSED_ROWS,
 	type Dashboard,
 	GRID_COLUMNS,
 	moveInStack,
@@ -39,7 +45,8 @@ import {
 	TILE_INFO,
 	type TileKind,
 	tileTitle,
-	withPlacements
+	withPlacements,
+	withTileHeight
 } from './dashboards';
 import { tilePath } from './paths';
 import { appliesTo, forSession } from './session-layouts';
@@ -48,6 +55,7 @@ import { NearViewport } from './near-viewport';
 import { TileFillContext, TileRowsContext } from './tile-fill';
 import { TileContent } from './tiles';
 import { useCarriedSearch } from './use-carried-search';
+import { useWholeRows } from './use-whole-rows';
 
 const ARRANGE_KEYS = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
 
@@ -95,6 +103,9 @@ function screenClass(): ScreenClass {
  * window resizes and as anything above the grid comes and goes.
  */
 function useWindowFit(ref: React.RefObject<HTMLDivElement | null>, rem: number): WindowFit {
+	// The bar leaves the page flow in full screen, which moves the grid up without resizing it.
+	const { active: fullScreen } = useFullScreen();
+
 	const [fit, setFit] = React.useState<WindowFit>(() => ({
 		height: window.innerHeight,
 		screen: screenClass()
@@ -121,11 +132,15 @@ function useWindowFit(ref: React.RefObject<HTMLDivElement | null>, rem: number):
 			observer.observe(parent);
 		}
 
+		// A line that appears above the grid after it has mounted pushes it down without resizing its parent.
+		observer.observe(document.body);
+
 		return () => {
 			window.removeEventListener('resize', measure);
 			observer.disconnect();
 		};
-	}, [ref, rem]);
+		// oxlint-disable-next-line react/exhaustive-effect-dependencies -- `fullScreen` only says when to measure again.
+	}, [ref, rem, fullScreen]);
 
 	return fit;
 }
@@ -134,7 +149,7 @@ function useWindowFit(ref: React.RefObject<HTMLDivElement | null>, rem: number):
 function rowPitch(height: number, rows: number, gap: number, rem: number): number {
 	const fill = (height + gap) / Math.min(Math.max(rows, 1), SCREEN_ROWS);
 
-	return Math.min(Math.max(fill, 0.75 * ROW_PITCH_REM * rem), 1.5 * ROW_PITCH_REM * rem);
+	return Math.min(Math.max(fill, 0.6 * ROW_PITCH_REM * rem), 1.5 * ROW_PITCH_REM * rem);
 }
 
 function sameLayout(dashboard: Dashboard, layout: Layout): boolean {
@@ -267,44 +282,109 @@ function TileBar({
 }
 
 /** The rest of a tile's actions, at the end of its header, when the dashboard is not being edited. */
-function TileOptions({ dashboard, tile }: { dashboard: Dashboard; tile: Tile }) {
+function TileOptions({
+	dashboard,
+	tile,
+	screen,
+	rows,
+	onChange
+}: {
+	dashboard: Dashboard;
+	tile: Tile;
+	/** The screen class whose arrangement a collapse changes; null where tiles stack. */
+	screen: ScreenClass | null;
+	rows: number | null;
+	onChange: (dashboard: Dashboard) => void;
+}) {
 	const search = useCarriedSearch();
 	const [searchParams, setSearchParams] = useSearchParams();
+	const collapsed = collapsedTilesStore.useValue();
+	const key = screen ? collapsedKey(dashboard, screen, tile) : null;
+	const isCollapsed = key !== null && key in collapsed && rows !== null && rows <= COLLAPSED_ROWS;
+
+	const toggleCollapsed = () => {
+		if (!screen || !key) {
+			return;
+		}
+
+		if (isCollapsed) {
+			const { [key]: height = TILE_INFO[tile.kind].size.h, ...rest } = collapsed;
+
+			collapsedTilesStore.set(rest);
+			onChange(withTileHeight(dashboard, screen, tile.id, height));
+		} else if (rows !== null) {
+			collapsedTilesStore.set({ ...collapsed, [key]: rows });
+			onChange(withTileHeight(dashboard, screen, tile.id, COLLAPSED_ROWS));
+		}
+	};
 
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
+		<>
+			{screen ? (
+				// Shown while the pointer or the keyboard is in the tile, and always on a touch screen.
 				<Key
-					aria-label={`Options for ${tileTitle(tile)}`}
-					className="px-1.5 sm:px-1.5"
-					data-testid="tile-options"
+					aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} ${tileTitle(tile)}`}
+					title={isCollapsed ? 'Expand the tile' : 'Collapse to its header'}
+					className="mr-1 px-1.5 opacity-0 group-focus-within/tile:opacity-100 group-hover/tile:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100 sm:px-1.5"
+					data-testid="tile-collapse-key"
+					onClick={toggleCollapsed}
 				>
-					<EllipsisIcon aria-hidden />
+					{isCollapsed ? <ChevronsUpDownIcon aria-hidden /> : <ChevronsDownUpIcon aria-hidden />}
 				</Key>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-56">
-				<DropdownMenuItem
-					onSelect={() =>
-						window.open(`${tilePath(dashboard.id, tile.id)}?${search}`, '_blank', 'noopener')
-					}
-				>
-					<ExternalLinkIcon aria-hidden />
-					Open in a new window
-				</DropdownMenuItem>
-				<DropdownMenuItem
-					onSelect={() => {
-						const params = new URLSearchParams(searchParams);
+			) : null}
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>
+					<Key
+						aria-label={`Options for ${tileTitle(tile)}`}
+						className="px-1.5 sm:px-1.5"
+						data-testid="tile-options"
+					>
+						<EllipsisIcon aria-hidden />
+					</Key>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end" className="w-56">
+					<DropdownMenuItem
+						onSelect={() =>
+							window.open(`${tilePath(dashboard.id, tile.id)}?${search}`, '_blank', 'noopener')
+						}
+					>
+						<ExternalLinkIcon aria-hidden />
+						Open in a new window
+					</DropdownMenuItem>
+					{screen ? (
+						<DropdownMenuItem onSelect={toggleCollapsed} data-testid="tile-collapse">
+							{isCollapsed ? (
+								<ChevronsUpDownIcon aria-hidden />
+							) : (
+								<ChevronsDownUpIcon aria-hidden />
+							)}
+							{isCollapsed ? 'Expand the tile' : 'Collapse to its header'}
+						</DropdownMenuItem>
+					) : null}
+					<DropdownMenuItem
+						onSelect={() => {
+							const params = new URLSearchParams(searchParams);
 
-						params.set('edit', '1');
-						setSearchParams(params);
-					}}
-				>
-					<PencilIcon aria-hidden />
-					Edit the dashboard
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+							params.set('edit', '1');
+							setSearchParams(params);
+						}}
+					>
+						<PencilIcon aria-hidden />
+						Edit the dashboard
+					</DropdownMenuItem>
+					{screen ? (
+						<DropdownMenuLabel>
+							Resize a tile by dragging its bottom right corner.
+						</DropdownMenuLabel>
+					) : null}
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</>
 	);
+}
+
+function collapsedKey(dashboard: Dashboard, screen: ScreenClass, tile: Tile): string {
+	return `${dashboard.id}:${screen}:${tile.id}`;
 }
 
 const FOCUSABLE = 'a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])';
@@ -374,9 +454,12 @@ function TileBody({
 	fill,
 	away,
 	editing,
+	screen,
 	onChange
 }: {
 	dashboard: Dashboard;
+	/** The screen class whose arrangement the tile's options change; null on the phone stack. */
+	screen: ScreenClass | null;
 	/** The tile's height in grid rows as shown; null on the phone stack. */
 	rows: number | null;
 	tile: Tile;
@@ -387,6 +470,8 @@ function TileBody({
 }) {
 	const body = React.useRef<HTMLDivElement>(null);
 	const scrollStop = useScrollStop(body, fill);
+
+	useWholeRows(body, fill && !away);
 
 	const content = (
 		<TileContent
@@ -421,7 +506,17 @@ function TileBody({
 			<TileFillContext value={fill}>
 				<TileRowsContext value={rows}>
 					<PanelMenuContext
-						value={editing ? null : <TileOptions dashboard={dashboard} tile={tile} />}
+						value={
+							editing ? null : (
+								<TileOptions
+									dashboard={dashboard}
+									tile={tile}
+									screen={screen}
+									rows={rows}
+									onChange={onChange}
+								/>
+							)
+						}
 					>
 						{DEFERRED_TILES.has(tile.kind) ? (
 							<NearViewport title={tileTitle(tile)} fill={fill}>
@@ -495,8 +590,9 @@ export function DashboardGrid({
 		});
 	}, [dashboard, away]);
 
-	const onLayoutChange = (next: Layout) => {
-		if (!editing || sameLayout(dashboard, next)) {
+	// Editing saves every move; otherwise only a resize the viewer made is kept.
+	const commitLayout = (next: Layout) => {
+		if (sameLayout(dashboard, next)) {
 			return;
 		}
 
@@ -552,6 +648,7 @@ export function DashboardGrid({
 						<TileBody
 							dashboard={saved}
 							rows={null}
+							screen={null}
 							tile={tile}
 							fill={false}
 							away={away.has(tile.id)}
@@ -579,15 +676,18 @@ export function DashboardGrid({
 					rowHeight,
 					margin: [gap, rowGap],
 					// Room above the first row for the tile bars, which sit in the gaps.
-					containerPadding: [0, padding]
+					containerPadding: [0, padding],
+					// Resizing a tile never pushes the dashboard past its one screen.
+					maxRows: editing ? Infinity : Math.max(SCREEN_ROWS, rows)
 				}}
 				dragConfig={{
 					enabled: editing,
 					handle: '[data-tile-handle]',
 					cancel: 'button:not([data-tile-grip])'
 				}}
-				resizeConfig={{ enabled: editing, handles: ['se', 'e', 's'] }}
-				onLayoutChange={onLayoutChange}
+				resizeConfig={{ enabled: true, handles: ['se', 'e', 's'] }}
+				onLayoutChange={(next) => (editing ? commitLayout(next) : undefined)}
+				onResizeStop={(next) => (editing || away.size > 0 ? undefined : commitLayout(next))}
 			>
 				{dashboard.layout.flatMap((place) => {
 					const tile = tiles.get(place.i);
@@ -598,7 +698,7 @@ export function DashboardGrid({
 									key={tile.id}
 									// Chrome counts a tall tile's scrolled content in the page height; the bar
 									// that floats above a tile in edit mode must not be clipped.
-									className={cn('flex min-w-0 flex-col', !editing && 'overflow-clip')}
+									className={cn('group/tile flex min-w-0 flex-col', !editing && 'overflow-clip')}
 									data-tile-id={tile.id}
 									data-testid={`tile-${tile.kind}`}
 								>
@@ -613,6 +713,7 @@ export function DashboardGrid({
 									<TileBody
 										dashboard={saved}
 										rows={heights.get(tile.id) ?? null}
+										screen={screen}
 										tile={tile}
 										fill
 										away={away.has(tile.id)}

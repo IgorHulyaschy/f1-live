@@ -9,6 +9,8 @@ import { useRaceView } from '@/data/race-context';
 import { pitStopCost, type StopCost } from '@/insights/pit-cost';
 import { cn } from '@/lib/utils';
 
+import { useTileRows } from '../dashboard/tile-fill';
+
 /** The cost axis runs this far either side of the typical green stop. */
 const AXIS_SPAN_MS = 12_000;
 
@@ -37,6 +39,9 @@ function describe(entry: StopCost): string {
  */
 export function PitCost() {
 	const { snapshot } = useRaceView();
+	const rows = useTileRows();
+	// The footnote needs room; in a short tile it would be cut mid-sentence.
+	const roomy = rows === null || rows >= 14;
 	const [table, setTable] = React.useState(false);
 	const cost = React.useMemo(() => pitStopCost(snapshot), [snapshot]);
 	const drivers = new Map(snapshot.drivers.map((driver) => [driver.number, driver]));
@@ -124,12 +129,14 @@ export function PitCost() {
 							</figcaption>
 						</figure>
 					)}
-					<p className="text-muted-foreground text-xs">
-						Race time each stop took: its in-lap and out-lap against the driver’s own clean laps
-						around it, or under a VSC or Safety Car against the cars that stayed out. Yellow marks
-						are stops under a neutralisation; hatched ones, on the opening lap or slow in the box,
-						are left out of the typical cost.
-					</p>
+					{roomy ? (
+						<p className="text-muted-foreground text-xs">
+							Race time each stop took: its in-lap and out-lap against the driver’s own clean laps
+							around it, or under a VSC or Safety Car against the cars that stayed out. Yellow marks
+							are stops under a neutralisation; hatched ones, on the opening lap or slow in the box,
+							are left out of the typical cost.
+						</p>
+					) : null}
 				</RaceOnly>
 			</div>
 		</Panel>

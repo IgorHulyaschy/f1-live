@@ -60,9 +60,7 @@ test.describe('a live race', () => {
 		const map = page.getByTestId('track-map');
 
 		await expect(map.getByText('Estimated', { exact: true })).toBeVisible();
-		await expect(map.getByTestId('map-note')).toContainText(
-			'live car positions need an F1 TV login'
-		);
+		await expect(map.getByTestId('map-note')).toContainText('the live feed sends no car positions');
 		await expect(map.getByTestId('map-car-list').getByRole('listitem')).not.toHaveCount(0);
 	});
 

@@ -20,7 +20,8 @@ import {
 	SCREEN_ROWS,
 	stackOrder,
 	TILE_INFO,
-	withPlacements
+	withPlacements,
+	withTileHeight
 } from './dashboards.ts';
 import { decodeShare, encodeShare } from '../library/share.ts';
 
@@ -55,6 +56,16 @@ describe('presets and library dashboards', () => {
 					for (const other of layout.slice(index + 1)) {
 						assert.equal(overlaps(place, other), false, `${dashboard.id} ${place.i} ${other.i}`);
 					}
+				}
+			}
+		}
+	});
+
+	it('never reach below the first screen, on every screen class', () => {
+		for (const preset of PRESETS) {
+			for (const layout of [preset.layout, preset.wide ?? []]) {
+				for (const place of layout) {
+					assert.ok(place.y + place.h <= SCREEN_ROWS, `${preset.id} ${place.i}`);
 				}
 			}
 		}
@@ -265,6 +276,20 @@ describe('share links', () => {
 	it('read a broken link as nothing', () => {
 		assert.equal(decodeShare('not-a-dashboard'), null);
 		assert.equal(decodeShare('%%%'), null);
+	});
+});
+
+describe('collapsing a tile', () => {
+	it('changes one tile’s height on one screen class only', () => {
+		const race = PRESETS.find((preset) => preset.id === 'live');
+
+		assert.ok(race);
+
+		const folded = withTileHeight(race, 'standard', 'live-4', 2);
+
+		assert.equal(folded.layout.find((place) => place.i === 'live-4')?.h, 2);
+		assert.equal(folded.layout.find((place) => place.i === 'live-3')?.h, 14);
+		assert.deepEqual(folded.wide, race.wide);
 	});
 });
 

@@ -9,6 +9,9 @@ declare module 'react' {
 		/** Fractional size or offset of a data mark, as a CSS length or percentage. */
 		'--size'?: string;
 		'--offset'?: string;
+		/** Pixel height a list is snapped to, so it ends on a whole row. */
+		'--rows-height'?: string;
+		'--rows-start'?: string;
 		/** Series colours set by the shadcn chart components. */
 		'--color-bg'?: string;
 		'--color-border'?: string;

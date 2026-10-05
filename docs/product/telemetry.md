@@ -56,6 +56,13 @@ telemetry; the one just built and any opened in the last three hours stay. No do
 `DISK_FLOOR_GB` (10 by default) free on the data volume; it fails with the shortfall instead.
 `TELEMETRY_ON_DEMAND=false` turns it off, and `ARCHIVE_URL` points it at another archive.
 
+A session recorded live from 2025 on has no positions of its own: the live feed is kept as it
+came, and the archive publishes `Position.z` and `CarData.z` a little after the session ends.
+Such a session is fetched on demand like an older one, as long as its raw folder holds no
+`Position.z.jsonStream` yet. When the archive does not have them yet the fetch says
+`unavailable` and is asked again after half an hour. For a demo, `TELEMETRY_ON_DEMAND` stays on
+(its default) and the server needs network access to `ARCHIVE_URL`.
+
 To fill the cache ahead of time, within the same cap and floor:
 
 ```sh

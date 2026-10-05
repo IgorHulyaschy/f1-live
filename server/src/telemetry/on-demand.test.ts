@@ -333,6 +333,32 @@ describe('TelemetryOnDemand', () => {
 		assert.equal(calls.length, 0);
 	});
 
+	it('asks the archive again half an hour after it had no positions', async () => {
+		archive = await startTestArchive(new Map());
+
+		let now = new Date('2026-10-04T12:00:00Z');
+		const onDemand = new TelemetryOnDemand(settings({ now: () => now }), () => undefined);
+
+		await onDemand.request(RACE.key);
+		await onDemand.idle();
+		assert.equal((await onDemand.status(RACE.key)).state, 'unavailable');
+
+		now = new Date('2026-10-04T12:31:00Z');
+		assert.equal((await onDemand.status(RACE.key)).state, 'idle');
+	});
+
+	it('fetches positions for a recent session that was recorded live without them', async () => {
+		archive = await startTestArchive(archiveFiles(RACE, STORED));
+
+		const { build } = fakeBuild();
+		const onDemand = new TelemetryOnDemand({ ...settings(), build }, () => undefined);
+
+		await onDemand.request(STORED.key);
+		await onDemand.idle();
+
+		assert.equal((await onDemand.status(STORED.key)).state, 'ready');
+	});
+
 	it('says when the archive holds no positions for the session, and asks only once', async () => {
 		archive = await startTestArchive(new Map());
 
@@ -354,6 +380,7 @@ describe('TelemetryOnDemand', () => {
 
 	it('fetches nothing for a stored season, an unknown key or a session not imported', async () => {
 		archive = await startTestArchive(archiveFiles(RACE, STORED));
+		writeFileSync(path.join(rawDirOf(dataDir), STORED.path, 'Position.z.jsonStream'), '');
 		rmSync(path.join(rawDirOf(dataDir), QUALIFYING.path), { recursive: true });
 
 		const onDemand = new TelemetryOnDemand(settings(), () => undefined);

@@ -36,9 +36,12 @@ export default function StewardsDocuments() {
 	return (
 		<section aria-label="Stewards’ documents" className="border-t" data-testid="stewards-documents">
 			<h3 className="type-label px-4 pt-2">Stewards’ documents</h3>
-			<ul className="max-h-48 overflow-y-auto px-4 pb-1">
+			<ul className="px-4 pb-1">
 				{list.map((decision) => (
-					<li key={decision.id} className="flex flex-col gap-0.5 border-b py-2 last:border-b-0">
+					<li
+						key={decision.id}
+						className="flex snap-start flex-col gap-0.5 border-b py-2 last:border-b-0"
+					>
 						<span className="text-sm">
 							{decision.driverName ?? decision.team ?? 'Stewards'}: {describeDecision(decision)}
 						</span>

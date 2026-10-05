@@ -21,7 +21,7 @@ test('a race opens on the Race layout, with the session in the strip', async ({ 
 	await expect(strip.getByTestId('strip-session')).toContainText('Las Vegas GP');
 	await expect(strip.getByTestId('lap-counter')).toHaveText('Lap 30/50');
 	await expect(page.getByTestId(/^timing-row-/)).toHaveCount(20);
-	await expect(page.getByTestId('tile-stints')).toBeVisible();
+	await expect(page.getByTestId('tile-track-map')).toBeVisible();
 	await expect(page.getByTestId('tile-away')).toHaveCount(0);
 });
 

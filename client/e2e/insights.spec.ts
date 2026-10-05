@@ -94,3 +94,53 @@ test('free viewers get a teaser for the ledger', async ({ page }) => {
 	await expect(page.getByTestId('undercut')).toContainText('The undercut ledger is part of Pro');
 	await expect(page.getByTestId('undercut-exchange')).toHaveCount(0);
 });
+
+test('the timeline hint is read whole on a phone', async ({ page }) => {
+	await page.setViewportSize({ width: 390, height: 844 });
+	await openRace(page, '/session?lap=10');
+
+	const hint = page.getByTestId('timeline-hint');
+
+	await expect(hint).toBeVisible();
+
+	// Wrapped, not clipped: the text is as wide as its own box.
+	const clipped = await hint.evaluate((node) => {
+		const note = node.parentElement;
+
+		return note ? note.scrollWidth > note.clientWidth : true;
+	});
+
+	expect(clipped).toBe(false);
+});
+
+test('the timeline has a playhead to drag, and its hint goes after first use', async ({ page }) => {
+	await openRace(page, '/session?lap=10');
+
+	const track = page.getByTestId('timeline-track');
+	const lap = page.getByTestId('lap-counter');
+
+	await expect(page.getByTestId('timeline-hint')).toContainText('Drag or click');
+	await expect(page.getByTestId('timeline-legend')).toBeVisible();
+	await expect(page.getByTestId('timeline-playhead')).toContainText('L10');
+
+	// Dragging the playhead to a point on the track lands on the lap under it.
+	const box = await track.boundingBox();
+	const head = await page.getByTestId('timeline-playhead').boundingBox();
+
+	if (!box || !head) {
+		throw new Error('The track and the playhead should be on screen.');
+	}
+
+	await page.mouse.move(head.x + head.width / 2, head.y + head.height / 2);
+	await page.mouse.down();
+	await page.mouse.move(box.x + box.width * 0.5, head.y + head.height / 2, { steps: 5 });
+	await page.mouse.up();
+	await expect(lap).not.toHaveText('Lap 10/50');
+	await expect(page.getByTestId('timeline-playhead')).toContainText(/L2\d/);
+
+	// Moving once is use: the hint is gone and stays gone after a reload.
+	await expect(page.getByTestId('timeline-hint')).toHaveCount(0);
+	await page.reload();
+	await expect(page.getByTestId('timeline-track')).toBeVisible();
+	await expect(page.getByTestId('timeline-hint')).toHaveCount(0);
+});

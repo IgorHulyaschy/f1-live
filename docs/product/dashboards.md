@@ -42,9 +42,11 @@ with the session, Ask and the menu as icons; Replay is left unsaid there, so the
 
 ## Screens
 
-Tiles fill the window: the grid's rows stretch so a ready-made dashboard's first 21 rows end at
-the bottom of the window, from a 1280 × 800 laptop to a 3440 × 1440 ultrawide. Tiles that come
-after them start just below the fold. Text and spacing grow with the screen past 1080 px tall
+A dashboard is exactly one screen on a tablet-wide window and up: the page never scrolls. The
+grid's 21 rows stretch to end at the bottom of the window, from a 1280 × 720 laptop to a
+3440 × 1440 ultrawide, and what does not fit is on another tab, never below the fold. Only
+phones (under 1024 px) stack the tiles and scroll. A table that is longer than its tile scrolls
+inside the tile, and a tile with no room left collapses to its header. Text and spacing grow with the screen past 1080 px tall
 (19 px on a 1440 px tall screen), so a big monitor is not a sea of small type. **Larger text**
 in the menu adds a quarter on top, for a TV across the room, which a window cannot tell from a
 monitor; it is the one size switch.
@@ -71,8 +73,15 @@ ready-made dashboards leave playback to the bar's keys:
   and fastest laps, passes made on track, stops, penalties and cars out, as markers over the
   barcode in their own colours. Hover one for what happened; click it to go there. The event keys
   jump to the previous or next event, filtered: All, Flags, Stops, or Mine (the followed driver).
-- **Scrubbing.** The race barcode is the track: click or drag along it to move the replay; the
-  line under it says what happened at the lap or minute on screen.
+- **Scrubbing.** The race barcode is the track: click or drag anywhere along it to move the
+  replay. A playhead (a line with a handle and its lap) shows where it is; hovering shows a ghost
+  line with the lap under the pointer and what is marked there. Played laps are dark, laps to
+  come are light. The line under it says what happened at the lap or minute on screen.
+- **Legend and hint.** A legend under the barcode, in readable text, says what height, colour
+  (a pit stop is a blue bar) and each block mean; the MINE filter says on hover that it shows
+  only the followed driver's events. The keys are printed on hover. The first time a viewer opens a session, a hint says "Drag
+  or click to move through the race, Space plays"; it goes away after the first use and is not
+  shown again.
 - **Live.** On a running session the live key sits right after previous, play and next, one
   size in every state: "Live" lit like an on-air sign while the screen follows the session,
   "Go live" after stepping back or pausing, unlit and dashed while the feed is down.
@@ -80,7 +89,29 @@ ready-made dashboards leave playback to the bar's keys:
   playing: pause holds the lap on screen, and play from the newest lap goes back to live. The
   tile also holds the broadcast delay.
 - **Keys.** ← → step, Shift with them jumps between events, Space plays or pauses (live too), L
-  goes back to live; the footer prints them on desktop, and nothing else does.
+  goes back to live, F goes full screen, B shows or hides the bar in full screen; they are
+  printed on hover over the timeline and in the menu's About block.
+
+### Full screen
+
+The bar's full-screen key (or F) gives the tiles the whole window: the browser goes full screen
+where it can (an iPhone gets the bare page), the bar hides and the tiles grow into its place.
+The pointer at the top edge slides the bar back, and it hides again when the pointer leaves it.
+Without a pointer, B shows or hides it. Esc leaves (the browser takes it in real full screen).
+The live key and the controls stay where they are in both states.
+
+### Resizing and collapsing tiles
+
+Every tile resizes by its edge or by a grip on its bottom right corner, with no edit mode; the
+grip and a collapse key in the tile header show on hover and with keyboard focus (always on touch).
+The tile's content adapts to its width. The collapse key and the tile menu's Collapse fold it to
+its header (and Expand); the menu also says "Resize a tile by dragging its bottom right corner".
+Sizes and collapsed tiles are saved with the dashboard on that screen class.
+
+Lists in tiles show whole rows only: the row count fits the tile's height and the rest scrolls
+inside it. Every other tile body ends above the first row or line of text it would cut, so a
+footnote shows only where it fits, and no tile overlaps another. `e2e/tile-layout.spec.ts` checks
+this on every tab at four screen sizes.
 
 A short tile (three rows or fewer) keeps the keys and the barcode and leaves out the speed, the
 filter and the line under it. While results are hidden, only the events already shown are
@@ -140,29 +171,32 @@ and sprints), Quali (qualifying and sprint qualifying) or Practice. Opening the 
 session runs lands on it; when a session goes live with nothing in the address, the screen moves
 to it and its layout.
 
-| Layout   | For                        | Tiles                                                                                            |
-| -------- | -------------------------- | ------------------------------------------------------------------------------------------------ |
-| Race     | Who is racing whom         | Replay, Timing, Fights, Track map, Duel, Pace now; Focus, Race control and Stints below the fold |
-| Quali    | Who is through, who is out | Replay, Timing with the cut lines, Knockout, Track map, Best sectors, Race control, Gap distance |
-| Practice | Pace, race runs and tyres  | Replay, Timing, Long runs, Track map, Stints, Race control                                       |
+| Layout   | For                        | Tiles                                                                                                   |
+| -------- | -------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Race     | Who is racing whom         | Track map (the largest tile, fights marked on it), a compact Timing tower, Fights, Replay, Race control |
+| Quali    | Who is through, who is out | Replay, Timing with the cut lines, Knockout, Track map, Best sectors, Gap distance                      |
+| Practice | Pace, race runs and tyres  | Replay, Timing, Long runs, Track map, Stints, Race control                                              |
 
 - **Tiles for another kind of session** are left out of the session layouts. On the viewer's
   own dashboards and the other ready-made ones they shrink to one line saying what they are
   for, such as "Box now, races only"; editing shows them as saved, and nothing is changed.
 - **Tabs follow the session.** Next to the session's layout come the ready-made dashboards that
-  suit it (Strategy, Battle and Analysis on race day; Analysis in qualifying; Analysis and
+  suit it (Strategy: Stints and Pit stops; Battle: Duel, Race pace, Pace now, Focus, Battle chart, Gaps and
+  Box now; Analysis on race day; Analysis in qualifying; Analysis and
   Strategy in practice), then the viewer's own. Every other ready-made dashboard is under More,
   and all of them are in ⌘K and the Library. Number keys follow the same order.
 - **The viewer's own dashboards are never replaced.** On one built for another kind of session
   (it holds tiles that mean nothing in this one), a line offers "Switch to the Quali layout", Not
   now, or Don't ask again. The answer is saved on that dashboard (`sessionOffer: false`), so it
   syncs with the account like the rest of it.
-- **Timing runs the full height** on the left of each session layout, with the tile that answers
-  the session's question beside it, so the first screen holds everything from a 1280 × 800
-  laptop up. Replay sits at the bottom right, under the data rather than above it. Quali ends with
-  Gap distance, just below the fold: the grid as metres behind pole. Race puts Fights and the map
-  beside the tower, Duel and Pace now under them, and Focus, Race control and Stints just below
-  the fold; a phone stacks Replay, Fights, Timing, Duel, Pace now and the map.
+- **Timing runs the full height** on the left of Quali and Practice, with the tile that answers
+  the session's question beside it. Race is map-first: the track map is the largest tile with the
+  cars in a fight marked on it, the tower beside it is compact (position, driver, gap, tyre) and
+  opens to the full table with one key or when the tile is wide, Fights and Race control sit
+  to the right, and Replay is at the bottom. A phone stacks Replay, Fights, Timing and the map.
+- **Each Race tile leads with a headline in words** before its numbers: "VER leads NOR by 3.2 s"
+  on Timing, "NOR is 0.4 s behind PIA" on Fights, the latest message on Race control, and
+  "HAM ran the longest stint so far, 43 laps on mediums" on Stints.
 
 ### Where the eyes go
 
@@ -172,18 +206,18 @@ in an F from there along the first row. Colour, size and motion go only to what 
 the flag (the bar's band), a stop, a fastest lap, the followed driver. Controls (Replay, Compare)
 sit at the bottom or the right edge, never between the viewer and the data; the bar holds the rest.
 
-| Layout     | First                      | Second                 | Third                       |
-| ---------- | -------------------------- | ---------------------- | --------------------------- |
-| Race       | Fights: who is racing whom | Duel: who is faster    | Pace now: the whole field   |
-| Quali      | Timing with the cut lines  | Knockout: who is out   | Best sectors                |
-| Practice   | Timing: who is quickest    | Long runs: race pace   | Stints: tyres               |
-| Analysis   | Race pace                  | Lap chart              | Fastest laps                |
-| Strategy   | Stints: tyres and age      | Undercut: will it work | Pit stops: who just came in |
-| Battle     | Battle chart: the gap      | Gaps                   | Box now                     |
-| Track      | Track map                  | Battle map             | Pit rejoin                  |
-| Drivers    | Grid                       | Driver                 | Positions chart             |
-| Pit wall   | Timing                     | Focus                  | Track map                   |
-| Race story | Story ribbon               | Positions chart        | Championship                |
+| Layout     | First                     | Second                     | Third                       |
+| ---------- | ------------------------- | -------------------------- | --------------------------- |
+| Race       | Track map: where it is on | Fights: who is racing whom | Timing: the order           |
+| Quali      | Timing with the cut lines | Knockout: who is out       | Best sectors                |
+| Practice   | Timing: who is quickest   | Long runs: race pace       | Stints: tyres               |
+| Analysis   | Race pace                 | Lap chart                  | Fastest laps                |
+| Strategy   | Stints: tyres and age     | Undercut: will it work     | Pit stops: who just came in |
+| Battle     | Battle chart: the gap     | Gaps                       | Box now                     |
+| Track      | Track map                 | Battle map                 | Pit rejoin                  |
+| Drivers    | Grid                      | Driver                     | Positions chart             |
+| Pit wall   | Timing                    | Focus                      | Track map                   |
+| Race story | Story ribbon              | Positions chart            | Championship                |
 
 Type and spacing come from the screen: a phone at arm's length, a laptop and a TV at three metres
 get the same layout scaled by the screen's size, and Larger text is the one switch on top.
@@ -193,18 +227,18 @@ session's season after the latest round the viewer has seen; it links to `/stand
 
 ## What ships by default
 
-| Ready-made | For                      | Tiles                                                                          |
-| ---------- | ------------------------ | ------------------------------------------------------------------------------ |
-| Race       | Race day on one screen   | Replay, Timing, Fights, Track map, Duel, Pace now, Focus, Race control, Stints |
-| Quali      | Qualifying on one screen | Replay, Timing, Knockout, Track map, Best sectors, Race control, Gap distance  |
-| Practice   | Practice on one screen   | Replay, Timing, Long runs, Track map, Stints, Race control                     |
-| Analysis   | Lap charts               | Compare, Chart, Race pace, Fastest laps, Telemetry                             |
-| Strategy   | Tyres and stops          | Stints, Tyre wear, Undercut ledger, Pit stops, Stop cost, Pit crews            |
-| Battle     | Your driver's fight      | Timing, Battle chart, Gaps, Box now                                            |
-| Track      | The race on the circuit  | The eight Track tiles                                                          |
-| Drivers    | Faces and cars           | Grid, Driver, Positions chart                                                  |
-| Pit wall   | A TV or a second monitor | Timing, Track map, Gap chart, Focus, Race control                              |
-| Race story | What happened, and why   | Story, Positions chart, Championship, Race control, Conditions                 |
+| Ready-made | For                      | Tiles                                                                                                               |
+| ---------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Race       | Race day on one screen   | Track map, Timing, Fights, Replay, Race control (Duel, Race pace, Pace now and Focus on Battle, Stints on Strategy) |
+| Quali      | Qualifying on one screen | Replay, Timing, Knockout, Track map, Best sectors, Gap distance                                                     |
+| Practice   | Practice on one screen   | Replay, Timing, Long runs, Track map, Stints, Race control                                                          |
+| Analysis   | Lap charts               | Compare, Chart, Race pace, Fastest laps, Telemetry                                                                  |
+| Strategy   | Tyres and stops          | Stints, Tyre wear, Undercut ledger, Pit stops, Stop cost, Pit crews                                                 |
+| Battle     | Your driver's fight      | Timing, Battle chart, Gaps, Box now                                                                                 |
+| Track      | The race on the circuit  | The eight Track tiles                                                                                               |
+| Drivers    | Faces and cars           | Grid, Driver, Positions chart                                                                                       |
+| Pit wall   | A TV or a second monitor | Timing, Track map, Gap chart, Focus, Race control                                                                   |
+| Race story | What happened, and why   | Story, Positions chart, Championship, Race control, Conditions                                                      |
 
 Viewers can edit any of them; Reset puts it back as shipped. Race keeps the id the Live preset
 had (`live`), so an edited Live opens as an edited Race. There are 41 tiles in 6 groups (Race,

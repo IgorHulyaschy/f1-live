@@ -15,7 +15,10 @@ import type { CachedSession } from './cache.js';
 import { sessionTelemetryDir } from './files.js';
 import { fetchTelemetryStreams } from './fetch-streams.js';
 
-/** From this season on an import keeps every stream, so nothing is fetched on demand. */
+/**
+ * From this season on an import keeps every stream, so nothing is fetched on demand, unless the
+ * session was recorded live and finished without its position streams (the archive had them later).
+ */
 export const FIRST_STORED_SEASON = 2025;
 
 /** A session's telemetry takes about this share of its raw streams again; the floor counts both. */
@@ -23,6 +26,9 @@ const OUTPUT_SHARE = 0.6;
 
 /** Without a length from the archive, a race's two streams are about this big. */
 const UNKNOWN_STREAMS_BYTES = 40e6;
+
+/** A session the archive had no positions for is asked again after this long: it may publish them later. */
+const RETRY_UNAVAILABLE_MS = 30 * 60_000;
 
 const NO_POSITIONS = 'The archive holds no car positions for this session.';
 
@@ -271,12 +277,17 @@ export async function refusal(
 		return 'No imported session has this key.';
 	}
 
-	if (Number(session.path.slice(0, 4)) >= FIRST_STORED_SEASON) {
-		return 'This session was stored without car positions.';
+	const folder = path.join(rawDirOf(dataDir), session.path);
+
+	if (!(await exists(path.join(folder, 'SessionInfo.jsonStream')))) {
+		return 'This session is not imported yet.';
 	}
 
-	if (!(await exists(path.join(rawDirOf(dataDir), session.path, 'SessionInfo.jsonStream')))) {
-		return 'This session is not imported yet.';
+	if (
+		Number(session.path.slice(0, 4)) >= FIRST_STORED_SEASON &&
+		(await exists(path.join(folder, TELEMETRY_STREAMS[0])))
+	) {
+		return 'This session was stored without car positions.';
 	}
 
 	return null;
@@ -290,6 +301,7 @@ export class TelemetryOnDemand {
 	private readonly settings: CacheSettings;
 	private readonly log: EventLog;
 	private readonly states = new Map<number, TelemetryFetchStatus>();
+	private readonly unavailableSince = new Map<number, number>();
 	private readonly queue: number[] = [];
 	private readonly requests = new Map<number, Promise<TelemetryFetchStatus>>();
 	private readonly lastOpened = new Map<number, number>();
@@ -303,6 +315,18 @@ export class TelemetryOnDemand {
 
 	async status(key: number): Promise<TelemetryFetchStatus> {
 		const state = this.states.get(key);
+		const since = this.unavailableSince.get(key);
+
+		if (
+			state?.state === 'unavailable' &&
+			since !== undefined &&
+			this.now().getTime() - since >= RETRY_UNAVAILABLE_MS
+		) {
+			this.states.delete(key);
+			this.unavailableSince.delete(key);
+
+			return this.status(key);
+		}
 
 		if (state?.state === 'queued') {
 			return { state: 'queued', ahead: this.queue.indexOf(key) };
@@ -413,6 +437,11 @@ export class TelemetryOnDemand {
 		const { status } = outcome;
 
 		this.states.set(session.key, status);
+
+		if (status.state === 'unavailable') {
+			this.unavailableSince.set(session.key, this.now().getTime());
+		}
+
 		this.log('telemetry-on-demand', {
 			key: session.key,
 			state: status.state,

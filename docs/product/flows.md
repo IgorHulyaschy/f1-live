@@ -63,8 +63,10 @@ skipping the quiet parts.
 1. The session opens at its start: qualifying at the start of Q1, a race at lap 1, practice at its
    start. It is paused. A start card says results are hidden and offers **Play** and, apart from
    it, **Jump to the finish (shows results)**.
-2. Play at 10× or 60×; Shift and the arrows skip to the next event (part starts, flags, deleted
-   laps, improvements). The barcode and event markers show only what has happened so far.
+2. Play at 10× or 60×, or drag or click the timeline to a lap (the first visit shows a hint, and
+   the legend says what the marks mean); Shift and the arrows skip to the next event (part
+   starts, flags, deleted laps, improvements). F goes full screen: the bar hides, the pointer at
+   the top edge or B brings it back, Esc leaves. The barcode and event markers show only what has happened so far.
 3. Tiles show the session as it stood at the replay position: no pole in the knockout tile before
    Q3 ends, no winner in the strip before the flag.
 4. Reaching the end reveals the session. So does Jump to the finish. Either way it is remembered

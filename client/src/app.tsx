@@ -29,6 +29,8 @@ import { useDarkTheme } from '@/hooks/use-theme';
 import { ConsentBanner, usePageViews } from '@/platform/consent';
 import { InstallBanner, InstallKey } from '@/platform/install';
 import type { ConsoleOutlet } from '@/features/home/console-outlet';
+import { useFullScreen } from '@/platform/full-screen';
+import { cn } from '@/lib/utils';
 import { usePageMeta, useSessionOnScreen } from '@/platform/page-meta';
 import { keepAwakeStore, useScreenWakeLock, wakeLockSupported } from '@/platform/wake-lock';
 
@@ -174,6 +176,7 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 	const focus = snapshot.drivers.find((driver) => driver.number === followedDriver);
 	const keepAwake = keepAwakeStore.useValue();
 	const session = useSessionOnScreen();
+	const { active: fullScreen } = useFullScreen();
 
 	useRaceHotkeys(ask.openAsk);
 	useRaceAlerts();
@@ -210,11 +213,12 @@ function Console({ sourceKind, bare }: { sourceKind: RaceSource['kind']; bare: b
 							style={focus ? { '--focus': `#${focus.teamColour}` } : undefined}
 						>
 							<AppHeader onOpenCommand={ask.openAsk} />
-							<main className="px-4 pb-4 md:px-6">
+							<main className={cn('px-4 pb-4 md:px-6', fullScreen && 'lg:pt-4')}>
 								<Outlet context={{ openCommand: ask.openAsk } satisfies ConsoleOutlet} />
 							</main>
 							<SiteFooter
-								className="pb-24 md:pb-8"
+								// A session fits one screen on a laptop; the notice and links are in the bar's menu.
+								className={cn('pb-24 md:pb-8', session && 'lg:hidden')}
 								note={
 									sourceKind === 'mock'
 										? 'This replay uses the real grid, strategies, race control and result; lap times are modelled from them.'

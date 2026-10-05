@@ -94,13 +94,13 @@ test('a race-control message moves the replay to its lap', async ({ page }) => {
 });
 
 test('the driver picker follows the chosen driver', async ({ page }) => {
-	await openRace(page);
+	await openRace(page, '/d/battle');
 
 	await page.getByRole('combobox', { name: 'Followed driver' }).click();
 	await page.getByRole('option', { name: /PIA/ }).click();
 
 	await expect(page).toHaveURL(/driver=81/);
-	await expect(page.getByTestId('battle-summary')).toBeVisible();
+	await expect(page.getByTestId('followed-driver').getByTestId('battle-summary')).toBeVisible();
 });
 
 test('playback advances the replay and stops at the last lap', async ({ page }) => {

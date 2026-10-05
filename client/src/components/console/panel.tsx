@@ -31,11 +31,14 @@ export function Panel({ className, children, ...props }: React.ComponentProps<'s
 export function PanelHeader({
 	title,
 	meta,
+	headline,
 	children,
 	className
 }: {
 	title: React.ReactNode;
 	meta?: React.ReactNode;
+	/** One line in words that says what the tile shows right now, before its numbers. */
+	headline?: React.ReactNode;
 	children?: React.ReactNode;
 	className?: string;
 }) {
@@ -47,17 +50,25 @@ export function PanelHeader({
 		<header
 			data-slot="panel-header"
 			className={cn(
-				'border-rule-strong bg-panel flex min-h-10 flex-wrap items-center gap-x-4 gap-y-2 border-t-2 border-b px-4 py-1.5',
+				'border-rule-strong bg-panel flex min-h-10 shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b px-4 py-1.5',
 				className
 			)}
 		>
 			<h2 className="type-wide text-xs font-bold">{title}</h2>
+			{headline ? (
+				<p
+					data-testid="headline"
+					className="line-clamp-2 min-w-48 flex-1 text-sm leading-tight font-medium"
+				>
+					{headline}
+				</p>
+			) : null}
 			{meta ? <span className="type-label">{meta}</span> : null}
 			{children || end ? (
 				// The menu wraps with the controls, never onto a row of its own.
 				<div className="ml-auto flex max-w-full min-w-0 items-center gap-2">
 					{children ? (
-						<div className="flex min-w-0 items-center gap-2 overflow-x-auto">{children}</div>
+						<div className="flex min-w-0 flex-wrap items-center gap-2">{children}</div>
 					) : null}
 					{end ? <div className="flex shrink-0">{end}</div> : null}
 				</div>

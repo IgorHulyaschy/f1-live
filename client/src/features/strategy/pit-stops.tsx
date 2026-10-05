@@ -1,5 +1,6 @@
 import { Digits } from '@/components/console/digits';
 import { Panel, PanelHeader } from '@/components/console/panel';
+import { WholeRows } from '@/components/console/whole-rows';
 import { DriverTag } from '@/components/driver-tag';
 import { TyreBadge } from '@/components/tyre-badge';
 import { useRaceView } from '@/data/race-context';
@@ -45,8 +46,61 @@ export function PitStops() {
 		)
 	);
 
+	const list = (
+		<ol
+			// In a tile the list scrolls inside whole rows.
+			className={cn('flex flex-col px-4 py-1', !fill && 'max-h-120 overflow-y-auto')}
+		>
+			{stops.map((stop) => {
+				const driver = drivers.get(stop.driverNumber);
+				const cheap = neutralised.get(`${stop.driverNumber}-${stop.lap}`);
+				const delta = stop.laneTimeMs - (typical ?? stop.laneTimeMs);
+				const share = Math.min(Math.abs(delta) / SCALE_MS, 1) * 50;
+
+				const fitted = snapshot.stints.find(
+					(stint) => stint.driverNumber === stop.driverNumber && stint.startLap === stop.lap + 1
+				);
+
+				return (
+					<li
+						key={`${stop.driverNumber}-${stop.lap}`}
+						className="grid h-9 snap-start grid-cols-[2.5rem_3.5rem_2rem_minmax(0,1fr)_4rem] items-center gap-3 border-b last:border-b-0"
+					>
+						<span className="text-muted-foreground font-mono text-xs">L{stop.lap}</span>
+						{driver ? <DriverTag driver={driver} /> : <span />}
+						{fitted ? (
+							<TyreBadge compound={fitted.compound} />
+						) : (
+							<span className="type-label">Lane</span>
+						)}
+						{cheap ? (
+							<span className="type-label text-flag-ink font-bold">
+								{cheap} stop<span className="hidden @lg:inline">, nearly free</span>
+							</span>
+						) : (
+							<span aria-hidden className="relative h-2">
+								<span className="bg-rule-strong absolute inset-y-0 left-1/2 w-px" />
+								<span
+									className={cn(
+										'absolute inset-y-0 w-(--size)',
+										delta < 0 ? 'bg-personal-best right-1/2' : 'bg-foreground/50 left-1/2'
+									)}
+									style={{ '--size': `${share}%` }}
+								/>
+							</span>
+						)}
+						<Digits
+							className="text-right text-sm"
+							value={`${(stop.laneTimeMs / 1000).toFixed(1)}s`}
+						/>
+					</li>
+				);
+			})}
+		</ol>
+	);
+
 	return (
-		<Panel aria-label="Pit stops" data-testid="pit-stops">
+		<Panel aria-label="Pit stops" data-testid="pit-stops" className="h-full min-h-0">
 			<PanelHeader
 				title="Pit stops"
 				meta={
@@ -71,57 +125,13 @@ export function PitStops() {
 							</span>
 						</div>
 					)}
-					<ol
-						// In a tile the tile scrolls, as one keyboard stop.
-						className={cn('flex flex-col px-4 py-1', !fill && 'max-h-120 overflow-y-auto')}
-					>
-						{stops.map((stop) => {
-							const driver = drivers.get(stop.driverNumber);
-							const cheap = neutralised.get(`${stop.driverNumber}-${stop.lap}`);
-							const delta = stop.laneTimeMs - (typical ?? stop.laneTimeMs);
-							const share = Math.min(Math.abs(delta) / SCALE_MS, 1) * 50;
-
-							const fitted = snapshot.stints.find(
-								(stint) =>
-									stint.driverNumber === stop.driverNumber && stint.startLap === stop.lap + 1
-							);
-
-							return (
-								<li
-									key={`${stop.driverNumber}-${stop.lap}`}
-									className="grid h-9 grid-cols-[2.5rem_3.5rem_2rem_minmax(0,1fr)_4rem] items-center gap-3 border-b last:border-b-0"
-								>
-									<span className="text-muted-foreground font-mono text-xs">L{stop.lap}</span>
-									{driver ? <DriverTag driver={driver} /> : <span />}
-									{fitted ? (
-										<TyreBadge compound={fitted.compound} />
-									) : (
-										<span className="type-label">Lane</span>
-									)}
-									{cheap ? (
-										<span className="type-label text-flag-ink font-bold">
-											{cheap} stop, nearly free
-										</span>
-									) : (
-										<span aria-hidden className="relative h-2">
-											<span className="bg-rule-strong absolute inset-y-0 left-1/2 w-px" />
-											<span
-												className={cn(
-													'absolute inset-y-0 w-(--size)',
-													delta < 0 ? 'bg-personal-best right-1/2' : 'bg-foreground/50 left-1/2'
-												)}
-												style={{ '--size': `${share}%` }}
-											/>
-										</span>
-									)}
-									<Digits
-										className="text-right text-sm"
-										value={`${(stop.laneTimeMs / 1000).toFixed(1)}s`}
-									/>
-								</li>
-							);
-						})}
-					</ol>
+					{fill ? (
+						<WholeRows rows="li" className="snap-y snap-mandatory">
+							{list}
+						</WholeRows>
+					) : (
+						list
+					)}
 				</>
 			)}
 		</Panel>
