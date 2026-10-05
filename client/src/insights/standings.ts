@@ -16,6 +16,13 @@ export const OUT_LABEL: Record<OutReason, string> = {
 	disqualified: 'DSQ'
 };
 
+/** What a car that is out reads as: "DNF L50" for a retirement with its lap, as the results print it. */
+export function outLabel(row: { out: OutReason; retiredLap: number | null }): string {
+	return row.out === 'retired' && row.retiredLap !== null
+		? `${OUT_LABEL.retired} L${row.retiredLap}`
+		: OUT_LABEL[row.out];
+}
+
 export interface StandingRow {
 	driver: Driver;
 	position: number;
@@ -43,6 +50,8 @@ export interface StandingRow {
 	pitStops: number;
 	state: DriverState;
 	out: OutReason | null;
+	/** The lap a retired car stopped on, where the feed said. */
+	retiredLap: number | null;
 	/** The stewards' reason, for a disqualification. */
 	outReason: string | null;
 	/** Best speed through the speed trap, km/h. */
@@ -207,6 +216,10 @@ function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[]
 		])
 	);
 
+	const retiredLaps = new Map(
+		snapshot.retirements.map((retirement) => [retirement.driverNumber, retirement.lap])
+	);
+
 	const disqualified = new Map(
 		(snapshot.corrections ?? []).flatMap((correction) =>
 			correction.kind === 'disqualified'
@@ -287,6 +300,7 @@ function rowFacts(snapshot: RaceSnapshot, starts: readonly string[]): RowFacts[]
 			pitStops: snapshot.pitStops.filter((stop) => stop.driverNumber === driver.number).length,
 			state: out ? 'out' : lastLap?.pitIn ? 'pit' : 'running',
 			out,
+			retiredLap: out === 'retired' ? (retiredLaps.get(driver.number) ?? null) : null,
 			outReason: dsqReason ?? null,
 			speedTrapKph: speedTraps.get(driver.number) ?? null
 		};

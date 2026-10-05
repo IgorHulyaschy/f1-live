@@ -22,7 +22,7 @@ import { pitPenalties, timePenalties } from '@/insights/penalties';
 import { predictRejoin } from '@/insights/pit-window';
 import { type CutLine, cutLines, isKnockout, isTimedSession } from '@/insights/qualifying';
 import { ONE_SECOND_MS, oneSecondAid } from '@/insights/rules';
-import { lastTimedPart, OUT_LABEL, type StandingRow } from '@/insights/standings';
+import { lastTimedPart, outLabel, type StandingRow } from '@/insights/standings';
 import { formatGap, formatLapTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -91,7 +91,7 @@ function GapReading({ row, mode, timed }: { row: StandingRow; mode: GapMode; tim
 	if (row.out) {
 		return (
 			<span className="type-label text-danger font-bold" title={row.outReason ?? undefined}>
-				{OUT_LABEL[row.out]}
+				{outLabel({ out: row.out, retiredLap: row.retiredLap })}
 			</span>
 		);
 	}

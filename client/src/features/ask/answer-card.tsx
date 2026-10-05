@@ -4,6 +4,7 @@ import { Link } from 'react-router';
 import { Key } from '@/components/console/keys';
 import { DriverPortrait, TeamLogo } from '@/components/driver-media';
 import { revealSession } from '@/data/viewer-settings';
+import { plural } from '@/lib/format';
 import { hasTeamPictures } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
@@ -150,8 +151,8 @@ function HeldNote({ sessions }: { sessions: readonly HeldSession[] }) {
 		>
 			<EyeOffIcon aria-hidden className="size-4 shrink-0" />
 			<span className="bg-background px-1">
-				{sessions.length === 1 ? sessions[0]?.label : `${sessions.length} sessions`} left out: you
-				have not seen {sessions.length === 1 ? 'it' : 'them'} yet.
+				{sessions.length === 1 ? sessions[0]?.label : plural(sessions.length, 'session')} left out:
+				you have not seen {sessions.length === 1 ? 'it' : 'them'} yet.
 			</span>
 			<Key className="bg-background text-foreground ml-auto" onClick={() => revealAll(sessions)}>
 				Reveal to include

@@ -234,6 +234,10 @@ describe('stints, teams and spans', () => {
 			paceSpanText({ span: { kind: 'last', laps: 10 }, compound: 'MEDIUM' }),
 			'over the last 10 laps on Medium tyres'
 		);
+		assert.equal(
+			paceSpanText({ span: { kind: 'last', laps: 1 }, compound: null }),
+			'over the last 1 lap'
+		);
 	});
 });
 

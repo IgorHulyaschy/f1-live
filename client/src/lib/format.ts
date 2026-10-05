@@ -22,3 +22,8 @@ export function formatDeltaSeconds(seconds: number, digits = 1): string {
 
 	return `${sign}${Math.abs(seconds).toFixed(digits)}s`;
 }
+
+/** A count with its unit, in the singular for exactly one: "1 lap", "12 laps", "1,204 laps". */
+export function plural(count: number, one: string, many = `${one}s`): string {
+	return `${count.toLocaleString('en-GB')} ${count === 1 ? one : many}`;
+}

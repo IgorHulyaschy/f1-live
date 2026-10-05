@@ -23,7 +23,7 @@ import {
 import { formatLocalStart, formatUntil, sessionEntries } from '../../data/catalog.ts';
 import { scoredRounds } from '../../insights/season-results.ts';
 import { teamIdOf } from '../../insights/teams.ts';
-import { formatGap, formatLapTime } from '../../lib/format.ts';
+import { formatGap, formatLapTime, plural } from '../../lib/format.ts';
 import { eventIdOf, eventShortName, labelOf } from './ask-context.ts';
 import {
 	type AskData,
@@ -36,7 +36,6 @@ import {
 	type HeldSession,
 	heldOf,
 	pictureOf,
-	plural,
 	practiceOf,
 	type Rich,
 	sessionHref,
@@ -232,6 +231,9 @@ function finishVerb(info: AskSessionInfo): string {
 	return info.type === 'qualifying' || info.type === 'sprint_qualifying' ? 'qualified' : 'finished';
 }
 
+/** The statuses of a car that did not take the flag. */
+const OUT_STATUSES: ReadonlySet<ResultRow['status']> = new Set(['dnf', 'dns', 'dsq']);
+
 function resultAnswer(
 	data: AskData,
 	info: AskSessionInfo,
@@ -285,6 +287,11 @@ function resultAnswer(
 
 	const rows = results.rows.slice(0, 10);
 
+	// Races show who stopped as well as the top ten: the table is where retirements are read.
+	if (subject === null && (info.type === 'race' || info.type === 'sprint')) {
+		rows.push(...results.rows.slice(10).filter((row) => OUT_STATUSES.has(row.status)));
+	}
+
 	for (const row of mine) {
 		if (!rows.includes(row)) {
 			rows.push(row);
@@ -292,20 +299,29 @@ function resultAnswer(
 	}
 
 	const points = mine.reduce((sum, row) => sum + row.points, 0);
+	const omitted = results.rows.length - rows.length;
+
+	const detail: Rich[number][] =
+		subject !== null && points > 0
+			? [`${plural(points, 'point')} scored.`]
+			: info.type === 'race' && results.rows[1]
+				? [
+						car(results.rows[1]),
+						' second, ',
+						...(results.rows[2] ? [car(results.rows[2]), ' third.'] : [])
+					]
+				: [];
+
+	if (omitted > 0) {
+		detail.push(
+			`${detail.length > 0 ? ' ' : ''}${plural(omitted, 'more car')} in the full result.`
+		);
+	}
 
 	return {
 		kind: 'answer',
 		headline: subject === null ? headline : [...headline, ` in the ${label}`],
-		detail:
-			subject !== null && points > 0
-				? [`${plural(points, 'point')} scored.`]
-				: info.type === 'race' && results.rows[1]
-					? [
-							car(results.rows[1]),
-							' second, ',
-							...(results.rows[2] ? [car(results.rows[2]), ' third.'] : [])
-						]
-					: null,
+		detail: detail.length > 0 ? detail : null,
 		visual: {
 			kind: 'table',
 			columns: ['Pos', 'Driver', 'Team', info.type.includes('qualifying') ? 'Time' : 'Gap'],

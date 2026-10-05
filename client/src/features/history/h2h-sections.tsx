@@ -16,6 +16,7 @@ import {
 	type Side,
 	winnerOf
 } from '@/insights/head-to-head';
+import { plural } from '@/lib/format';
 import { hasTeamPictures } from '@/lib/media';
 import { cn } from '@/lib/utils';
 
@@ -155,7 +156,7 @@ export function Scoreboard({
 		<Panel>
 			<PanelHeader
 				title="Totals"
-				meta={`${totals.events} weekends, ${totals.racesTogether} races together`}
+				meta={`${plural(totals.events, 'weekend')}, ${plural(totals.racesTogether, 'race')} together`}
 			/>
 			<div className="grid grid-cols-[1fr_auto_1fr] items-end gap-3 px-4 pt-3">
 				<div className="flex min-w-0 flex-col items-start gap-2">
@@ -234,7 +235,7 @@ export function Scoreboard({
 						<Row
 							pair={pair}
 							label="Qualifying gap"
-							note={`average, ${totals.gaps.length} sessions`}
+							note={`average, ${plural(totals.gaps.length, 'session')}`}
 							a={seconds(totals.averageGapMs)}
 							b={seconds(totals.averageGapMs === null ? null : -totals.averageGapMs)}
 							better="less"
@@ -359,7 +360,7 @@ export function GapTrend({ totals, pair }: { totals: H2HTotals; pair: Pair }) {
 			<PanelHeader title="Qualifying gap" meta="each session, and the average of the last five" />
 			<figure className="px-4 py-3">
 				<figcaption className="sr-only">
-					{`Qualifying gap over ${points.length} sessions; below the line ${pair.a.label} was quicker`}
+					{`Qualifying gap over ${plural(points.length, 'session')}; below the line ${pair.a.label} was quicker`}
 				</figcaption>
 				<svg viewBox={`0 0 ${width} ${height}`} className="h-40 w-full" aria-hidden>
 					<line

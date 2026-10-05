@@ -10,7 +10,7 @@ import { DriverLink } from '@/features/drill/drill-parts';
 import { battleAhead } from '@/insights/battle';
 import { isTimedSession } from '@/insights/qualifying';
 import { ONE_SECOND_MS, oneSecondAid } from '@/insights/rules';
-import { formatDeltaSeconds } from '@/lib/format';
+import { formatDeltaSeconds, plural } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
@@ -129,7 +129,7 @@ function rangeText(
 	}
 
 	if (laps !== null) {
-		return `In range in ${laps} ${laps === 1 ? 'lap' : 'laps'}`;
+		return `In range in ${plural(laps, 'lap')}`;
 	}
 
 	if (closing !== null && closing < -0.05) {

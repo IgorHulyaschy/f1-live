@@ -5,6 +5,7 @@ import { useRaceView } from '@/data/race-context';
 import { minuteTime, sessionClock } from '@/data/snapshot-at-time';
 import { isCleanLap } from '@/insights/clean-laps';
 import { sessionMinutes } from '@/insights/qualifying';
+import { plural } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const STATUS_LABEL: Record<TrackStatus, string> = {
@@ -56,7 +57,7 @@ function lapSlots(race: RaceSnapshot): Slot[] {
 			status: status.get(index + 1) ?? 'green',
 			traffic: count > 2 ? 3 : count > 0 ? 2 : 1,
 			fastest: fastestLaps.has(index + 1),
-			note: count ? `, ${count} pit ${count === 1 ? 'stop' : 'stops'}` : ''
+			note: count ? `, ${plural(count, 'pit stop')}` : ''
 		};
 	});
 }
@@ -112,7 +113,7 @@ function minuteSlots(race: RaceSnapshot, minutes: number): Slot[] {
 			status,
 			traffic: laps > 8 ? 3 : laps > 3 ? 2 : laps > 0 ? 1 : 0,
 			fastest: fastest.has(index + 1),
-			note: laps ? `, ${laps} ${laps === 1 ? 'lap' : 'laps'} done` : ''
+			note: laps ? `, ${plural(laps, 'lap')} done` : ''
 		};
 	});
 }

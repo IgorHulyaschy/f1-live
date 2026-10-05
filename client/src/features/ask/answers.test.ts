@@ -106,6 +106,27 @@ describe('the tyres answer', () => {
 	});
 });
 
+describe('the race result answer', () => {
+	const reply = answer('bahrain race results', [], AFTER_BAHRAIN);
+	const rows = reply.visual?.kind === 'table' ? reply.visual.rows : [];
+
+	it('lists the top ten and then every car that stopped', () => {
+		const gaps = rows.map((row) => row.cells[3]);
+
+		assert.deepEqual(
+			rows.slice(0, 10).map((row) => row.cells[0]),
+			['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+		);
+		assert.ok(rows.length > 10, 'retirements follow the top ten');
+		assert.ok(rows.slice(10).every((row) => /^(DNF|DNS|DSQ)/.test(row.cells[3] ?? '')));
+		assert.ok(gaps.some((gap) => /^DNF L\d+$/.test(gap ?? '')));
+	});
+
+	it('says how many cars the table leaves out', () => {
+		assert.match(text(reply.detail), /\d+ more cars? in the full result\./);
+	});
+});
+
 describe('answers match the official tables', () => {
 	it('2021: Verstappen champion on 395.5, Hamilton 8 behind', () => {
 		const reply = answer('Drivers standings 2021');

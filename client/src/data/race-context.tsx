@@ -740,8 +740,16 @@ export function RaceProvider({
 			return;
 		}
 
+		const scheduledAt = lastEpoch.current;
+
 		const timer = window.setTimeout(
 			() => {
+				// This fires before React commits a pause that just arrived. A newer play or pause, or
+				// another window now driving, means the step belongs to a play that is over.
+				if (followingPlayback.current || lastEpoch.current !== scheduledAt) {
+					return;
+				}
+
 				const onScreen = openAt(new URLSearchParams(window.location.search).get('lap'));
 
 				if (isLive && onScreen + 1 >= maxLap) {

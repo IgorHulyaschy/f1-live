@@ -63,4 +63,19 @@ describe('stintsHeadline', () => {
 			'BBB ran the longest stint so far, 43 laps on medium tyres'
 		);
 	});
+
+	it('says "1 lap" for a one-lap stint', () => {
+		const stints = [
+			{ driverNumber: '2', stint: 1, compound: 'MEDIUM', startLap: 5, endLap: 5 }
+		] as const;
+
+		assert.equal(
+			stintsHeadline(
+				stints,
+				() => 'BBB',
+				() => 'Medium'
+			),
+			'BBB ran the longest stint so far, 1 lap on medium tyres'
+		);
+	});
 });

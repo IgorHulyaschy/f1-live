@@ -36,8 +36,15 @@ export default defineConfig({
 			name: 'shots',
 			testDir: './shots',
 			// Real-data, live and layout shots run from playwright.real.config.ts, the production
-			// build's from playwright.build.config.ts.
-			testIgnore: ['real.spec.ts', 'live.spec.ts', 'build.spec.ts', 'layout.spec.ts'],
+			// build's from playwright.build.config.ts, the docs pictures from
+			// playwright.docs.config.ts (`npm run docs:shots`), which rewrites docs/tour.
+			testIgnore: [
+				'real.spec.ts',
+				'live.spec.ts',
+				'build.spec.ts',
+				'layout.spec.ts',
+				'docs-*.spec.ts'
+			],
 			// Shots are an audit artefact, not a gate: they always write fresh files.
 			use: { ...devices['Desktop Chrome'] }
 		}

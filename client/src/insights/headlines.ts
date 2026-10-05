@@ -1,4 +1,5 @@
 import type { RaceControlMessage, Stint } from '@f1-live/shared';
+import { plural } from '../lib/format.ts';
 
 /** One line in words that a tile leads with, before its numbers. */
 
@@ -30,7 +31,7 @@ export function fightsHeadline(
 	const others = fights.length - 1;
 
 	return `${closest.behind} is ${closest.gapSeconds.toFixed(1)} s behind ${closest.ahead}${
-		others > 0 ? `, and ${others} more ${others === 1 ? 'fight' : 'fights'}` : ''
+		others > 0 ? `, and ${plural(others, 'more fight', 'more fights')}` : ''
 	}`;
 }
 
@@ -59,7 +60,7 @@ export function stintsHeadline(
 		return null;
 	}
 
-	return `${code} ran the longest stint so far, ${length(longest)} laps on ${compoundName(longest.compound).toLowerCase()} tyres`;
+	return `${code} ran the longest stint so far, ${plural(length(longest), 'lap')} on ${compoundName(longest.compound).toLowerCase()} tyres`;
 }
 
 function length(stint: Stint): number {

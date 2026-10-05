@@ -15,7 +15,7 @@ import { useRace } from '@/data/race-context';
 import { DriverLink } from '@/features/drill/drill-parts';
 import { isTimedSession } from '@/insights/qualifying';
 import { OUT_LABEL } from '@/insights/standings';
-import { formatLapTime } from '@/lib/format';
+import { formatLapTime, plural } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { BoxNow } from './box-now';
@@ -76,7 +76,7 @@ export function FocusPanel() {
 						#{row.driver.number} {row.driver.team}
 					</span>
 					<span className="type-label">
-						{timed ? `${row.lapsCompleted} laps` : `Grid P${row.gridPosition ?? '-'}`}
+						{timed ? plural(row.lapsCompleted, 'lap') : `Grid P${row.gridPosition ?? '-'}`}
 						{gained === 0 || timed ? null : (
 							<span className={cn('ml-2', gained > 0 ? 'text-personal-best' : 'text-danger')}>
 								{gained > 0 ? `+${gained}` : gained}

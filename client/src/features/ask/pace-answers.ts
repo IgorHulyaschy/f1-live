@@ -15,15 +15,9 @@ import {
 	teammateGaps
 } from '../../insights/pace.ts';
 import { teamIdOf } from '../../insights/teams.ts';
-import { formatLapTime } from '../../lib/format.ts';
+import { formatLapTime, plural } from '../../lib/format.ts';
 import { labelOf } from './ask-context.ts';
-import {
-	type AskData,
-	type AskSessionInfo,
-	plural,
-	sessionHref,
-	sessionLabel
-} from './ask-data.ts';
+import { type AskData, type AskSessionInfo, sessionHref, sessionLabel } from './ask-data.ts';
 import type { Answer, AskOutcome, Bar, TableRow } from './answers.ts';
 
 type PaceQuery = Extract<Query, { kind: 'pace' }>;
@@ -152,10 +146,10 @@ function versusAnswer(
 				`Stint ${stint}`,
 				one && two ? aheadText(one, two, gainSeconds) : '–',
 				one
-					? `${one.laps.length} laps, ${one.compounds.map((c) => COMPOUND_NAME[c]).join('/')}`
+					? `${plural(one.laps.length, 'lap')}, ${one.compounds.map((c) => COMPOUND_NAME[c]).join('/')}`
 					: '–',
 				two
-					? `${two.laps.length} laps, ${two.compounds.map((c) => COMPOUND_NAME[c]).join('/')}`
+					? `${plural(two.laps.length, 'lap')}, ${two.compounds.map((c) => COMPOUND_NAME[c]).join('/')}`
 					: '–'
 			],
 			href: sessionHref(info.key, (two ?? one)?.driver.number, (two ?? one)?.laps[0]?.lap),
@@ -275,7 +269,7 @@ function longRunAnswer(info: AskSessionInfo, snapshot: RaceSnapshot, query: Pace
 				text: top.driver.lastName,
 				href: sessionHref(info.key, top.driver.number, top.fromLap)
 			},
-			` had the best long run: ${formatLapTime(top.averageMs)} a lap over ${top.laps} laps on ${COMPOUND_NAME[top.compound]}`
+			` had the best long run: ${formatLapTime(top.averageMs)} a lap over ${plural(top.laps, 'lap')} on ${COMPOUND_NAME[top.compound]}`
 		],
 		detail: ['Quickest average first. Compounds and fuel differ, so read it as a first guide.'],
 		visual: {

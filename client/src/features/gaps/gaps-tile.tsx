@@ -16,6 +16,7 @@ import {
 import { useRace } from '@/data/race-context';
 import { useGoPro } from '@/features/account/go-pro';
 import type { GapField } from '@/insights/gap-distance';
+import { plural } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
@@ -130,7 +131,7 @@ function GapsBody({
 
 	const estimated = field.cars.some((car) => car.estimated && car.position > 1);
 	const bodyClass = fill ? 'min-h-64 flex-1' : 'h-[36rem] @3xl:h-[28rem]';
-	const label = `${cardTitle(snapshot, view)}: ${field.cars.length} cars on a straight`;
+	const label = `${cardTitle(snapshot, view)}: ${plural(field.cars.length, 'car')} on a straight`;
 
 	return (
 		<>

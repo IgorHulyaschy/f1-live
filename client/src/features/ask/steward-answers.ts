@@ -4,6 +4,7 @@ import { type Decision, describeDecision, type SeasonDecisions } from '@f1-live/
 import type { Facts } from '@f1-live/shared/facts';
 import type { SeasonResults } from '@f1-live/shared/results';
 
+import { plural } from '../../lib/format.ts';
 import type { AskOutcome } from './answers.ts';
 import { eventIdOf, eventShortName, labelOf } from './ask-context.ts';
 import {
@@ -11,7 +12,6 @@ import {
 	driverHref,
 	endWithStop,
 	type HeldSession,
-	plural,
 	type Rich,
 	spanOf
 } from './ask-data.ts';

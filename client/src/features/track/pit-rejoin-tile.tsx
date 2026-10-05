@@ -10,6 +10,7 @@ import { RaceOnly } from '@/components/race-only';
 import { useRace } from '@/data/race-context';
 import { pitLossOf } from '@/insights/pit-window';
 import { isTimedSession } from '@/insights/qualifying';
+import { plural } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
@@ -282,7 +283,7 @@ function PitRejoinBody({ track }: { track: TrackReady }) {
 			<MapNote places={places} now={now}>
 				<span data-testid="pit-loss">
 					{loss.stops > 0
-						? `A stop costs ${(lossMs / 1000).toFixed(1)}s here${neutralised ? ' under the VSC or Safety Car' : ''}: measured from ${loss.stops} ${loss.stops === 1 ? 'stop' : 'stops'} this session.`
+						? `A stop costs ${(lossMs / 1000).toFixed(1)}s here${neutralised ? ' under the VSC or Safety Car' : ''}: measured from ${plural(loss.stops, 'stop')} this session.`
 						: `Assumes a typical ${(lossMs / 1000).toFixed(1)}s stop${neutralised ? ' under the VSC or Safety Car' : ''} until this session’s stops measure one here.`}
 				</span>
 			</MapNote>

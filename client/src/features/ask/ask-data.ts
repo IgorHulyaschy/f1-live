@@ -241,10 +241,6 @@ export function endWithStop(text: string): string {
 	return /[.!?]$/.test(trimmed) ? trimmed : `${trimmed}.`;
 }
 
-export function plural(count: number, one: string, many = `${one}s`): string {
-	return `${count.toLocaleString('en-GB')} ${count === 1 ? one : many}`;
-}
-
 /** Whose picture sits beside an answer about one driver or team. */
 export type AnswerPicture = { kind: 'driver'; face: Face } | { kind: 'team'; team: TeamSubject };
 

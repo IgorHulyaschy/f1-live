@@ -8,6 +8,7 @@ import { useRace } from '@/data/race-context';
 import { heldFromHistory } from '@/data/spoilers';
 import { revealSession, useSpoilerSettings } from '@/data/viewer-settings';
 import { useNow } from '@/hooks/use-now';
+import { plural } from '@/lib/format';
 
 /** The seasons the catalog lists, oldest first. */
 export function useYears(): number[] {
@@ -105,8 +106,8 @@ export function HiddenNote({ sessions }: { sessions: readonly SessionResults[] }
 		>
 			<EyeOffIcon aria-hidden className="size-4 shrink-0" />
 			<span>
-				{sessions.length === 1 ? '1 session' : `${sessions.length} sessions`} hidden: results you
-				have not seen yet are left out.
+				{sessions.length === 1 ? '1 session' : plural(sessions.length, 'session')} hidden: results
+				you have not seen yet are left out.
 			</span>
 			<Key
 				className="ml-auto"

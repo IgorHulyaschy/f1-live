@@ -1,5 +1,6 @@
 import type { Lap, RaceSnapshot } from '@f1-live/shared';
 
+import { plural } from '../lib/format.ts';
 import { type LapRange, lapsToReach, type PairPace, pairPace } from './battle.ts';
 import { isCleanLap } from './clean-laps.ts';
 import { paceNow } from './pace-now.ts';
@@ -136,10 +137,12 @@ export function lapRangeText([low, high]: LapRange, lapsLeft: number): string {
 	}
 
 	if (high === low) {
-		return `in about ${low} ${low === 1 ? 'lap' : 'laps'}`;
+		return `in about ${plural(low, 'lap')}`;
 	}
 
-	return high === null || high > lapsLeft ? `in ${low} laps or more` : `in ${low} to ${high} laps`;
+	return high === null || high > lapsLeft
+		? `in ${plural(low, 'lap')} or more`
+		: `in ${low} to ${high} laps`;
 }
 
 /**
@@ -182,7 +185,7 @@ export function duelVerdict(
 	}
 
 	const closing = swapped ? -pace.secondsPerLap : pace.secondsPerLap;
-	const over = `over the last ${pace.laps.length} laps`;
+	const over = `over the last ${plural(pace.laps.length, 'lap')}`;
 	const within = lapsToReach(gap, { ...pace, secondsPerLap: closing });
 
 	if (Math.abs(closing) < MATCHED_SECONDS_PER_LAP) {

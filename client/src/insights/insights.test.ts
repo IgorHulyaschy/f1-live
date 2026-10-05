@@ -7,7 +7,7 @@ import { battleAhead } from './battle.ts';
 import { pitPenalties, timePenalties } from './penalties.ts';
 import { PIT_LOSS_MS, pitLossOf, predictRejoin } from './pit-window.ts';
 import { oneSecondAid } from './rules.ts';
-import { standingsAt } from './standings.ts';
+import { outLabel, standingsAt } from './standings.ts';
 import { stintPaces } from './tyre-pace.ts';
 
 const race = simulateLasVegas2025();
@@ -28,6 +28,21 @@ describe('standingsAt', () => {
 			['ALB', 'BOR', 'STR']
 		);
 		assert.ok(rows.slice(0, 17).every((row) => row.state !== 'out'));
+	});
+
+	it('names the lap a retired car stopped on', () => {
+		const snapshot = snapshotAtLap(race, 40);
+		const [retirement] = snapshot.retirements;
+		const row = standingsAt(snapshot).find((candidate) => candidate.out === 'retired');
+
+		assert.ok(retirement && row, 'a car has retired by lap 40');
+		assert.equal(
+			row.retiredLap,
+			snapshot.retirements.find((r) => r.driverNumber === row.driver.number)?.lap
+		);
+		assert.match(outLabel({ out: 'retired', retiredLap: row.retiredLap }), /^DNF L\d+$/);
+		assert.equal(outLabel({ out: 'retired', retiredLap: null }), 'DNF');
+		assert.equal(outLabel({ out: 'disqualified', retiredLap: null }), 'DSQ');
 	});
 
 	describe('after a disqualification', () => {

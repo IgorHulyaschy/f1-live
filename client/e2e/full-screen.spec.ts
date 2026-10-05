@@ -87,6 +87,14 @@ test('F and the bar control enter and leave full screen; the bar hides and comes
 	await expect(bar.locator(':focus')).toHaveCount(1);
 	await expect.poll(async () => (await box(bar)).y).toBeGreaterThanOrEqual(0);
 
+	// The bar floats over the tiles: bringing it back must not make the page scroll.
+	const scroll = await page.evaluate(() => ({
+		overflow: document.documentElement.scrollHeight - window.innerHeight,
+		top: window.scrollY
+	}));
+
+	expect(scroll).toEqual({ overflow: 0, top: 0 });
+
 	await page.keyboard.press('f');
 	await expect.poll(() => page.evaluate(() => document.fullscreenElement !== null)).toBe(false);
 	await expect(bar).not.toHaveAttribute('data-hidden', '');
@@ -95,6 +103,22 @@ test('F and the bar control enter and leave full screen; the bar hides and comes
 	await expect.poll(() => page.evaluate(() => document.fullscreenElement !== null)).toBe(true);
 	await page.evaluate(() => document.exitFullscreen());
 	await expect(bar).not.toHaveAttribute('data-hidden', '');
+});
+
+test('Tab after F brings the bar back without making the page scroll', async ({ page }) => {
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await openRace(page, '/session');
+	await page.keyboard.press('f');
+	await expect(page.getByTestId('app-bar')).toHaveAttribute('data-hidden', '');
+	await page.keyboard.press('Tab');
+	await expect(page.getByTestId('app-bar').locator(':focus')).toHaveCount(1);
+
+	const scroll = await page.evaluate(() => ({
+		overflow: document.documentElement.scrollHeight - window.innerHeight,
+		top: window.scrollY
+	}));
+
+	expect(scroll).toEqual({ overflow: 0, top: 0 });
 });
 
 test('a tile resizes by its edge and collapses to its header, with no edit mode', async ({

@@ -402,6 +402,10 @@ const KEYWORDS: readonly (readonly [string, Keyword])[] = [
 	['second stint', { kind: 'stint-number', stint: 2 }],
 	['third stint', { kind: 'stint-number', stint: 3 }],
 	['fourth stint', { kind: 'stint-number', stint: 4 }],
+	['1st stint', { kind: 'stint-number', stint: 1 }],
+	['2nd stint', { kind: 'stint-number', stint: 2 }],
+	['3rd stint', { kind: 'stint-number', stint: 3 }],
+	['4th stint', { kind: 'stint-number', stint: 4 }],
 	['laps', { kind: 'laps' }],
 	['team mate', { kind: 'teammates' }],
 	['chance', { kind: 'gap' }],
@@ -426,8 +430,13 @@ const KEYWORD_TABLE = new Map<string, Keyword>([
 
 const LONGEST_PHRASE = 4;
 
-/** Codes that are also words a question uses; typed in lower case they read as the word. */
+/**
+ * Codes that are also words a question uses; typed in lower case they read as the word, unless
+ * a driver stands on the other side of "or", "vs" or "and".
+ */
 const CODES_NEEDING_CAPS = new Set(['per', 'law', 'gas', 'van', 'dev', 'had', 'lat']);
+
+const PAIR_WORDS = new Set(['or', 'vs', 'v', 'versus', 'and', 'against']);
 
 /** Words that never name anything, so no typo match turns them into a driver. */
 const STOPWORDS = new Set([
@@ -580,6 +589,17 @@ function pieces(text: string, context: AskContext): Piece[] {
 	const codes = codeTable(context);
 	const fuzzy = [...entities].map(([phrase, entity]) => ({ text: phrase, entity }));
 	const result: Piece[] = [];
+
+	const isDriver = (token: Token | undefined) =>
+		token !== undefined &&
+		(entities.get(token.word)?.kind === 'driver' ||
+			(codes.get(token.word)?.kind === 'driver' &&
+				(token.upper || !CODES_NEEDING_CAPS.has(token.word))));
+
+	const pairedWithDriver = (at: number) =>
+		(PAIR_WORDS.has(tokens[at - 1]?.word ?? '') && isDriver(tokens[at - 2])) ||
+		(PAIR_WORDS.has(tokens[at + 1]?.word ?? '') && isDriver(tokens[at + 2]));
+
 	let index = 0;
 
 	while (index < tokens.length) {
@@ -609,7 +629,10 @@ function pieces(text: string, context: AskContext): Piece[] {
 
 			if (/^\d+$/.test(token.word)) {
 				found = { piece: { kind: 'number', value: Number(token.word) }, length: 1 };
-			} else if (code && (token.upper || !CODES_NEEDING_CAPS.has(token.word))) {
+			} else if (
+				code &&
+				(token.upper || !CODES_NEEDING_CAPS.has(token.word) || pairedWithDriver(index))
+			) {
 				found = { piece: { kind: 'entity', entity: code }, length: 1 };
 			} else if (!STOPWORDS.has(token.word)) {
 				for (let length = Math.min(3, tokens.length - index); length > 0 && !found; length--) {

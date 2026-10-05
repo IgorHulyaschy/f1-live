@@ -1,5 +1,6 @@
 import type { Driver, Lap, RaceSnapshot, Stint, TyreCompound } from '@f1-live/shared';
 
+import { plural } from '../lib/format.ts';
 import { average, fuelCorrectedSeconds, isCleanLap, median } from './clean-laps.ts';
 import { compoundShifter, stintPaces } from './tyre-pace.ts';
 
@@ -79,7 +80,7 @@ export function paceSpanText({ span, compound }: PaceFilter): string {
 		}
 
 		case 'last': {
-			return `over the last ${span.laps} laps${tyre}`;
+			return `over the last ${plural(span.laps, 'lap')}${tyre}`;
 		}
 	}
 }
@@ -380,8 +381,8 @@ function versusText({
 
 	const like =
 		Math.abs(sameLaps.gainSeconds) < MATCHED_SECONDS
-			? `${first.code} and ${second.code} were level ${where} on the ${sameLaps.laps} laps both drove clean`
-			: `${front.code} was ${Math.abs(sameLaps.gainSeconds).toFixed(2)} s a lap quicker than ${back.code} ${where} on the ${sameLaps.laps} laps both drove clean`;
+			? `${first.code} and ${second.code} were level ${where} on the ${plural(sameLaps.laps, 'lap')} both drove clean`
+			: `${front.code} was ${Math.abs(sameLaps.gainSeconds).toFixed(2)} s a lap quicker than ${back.code} ${where} on the ${plural(sameLaps.laps, 'lap')} both drove clean`;
 
 	const corrected =
 		Math.abs(gain) < MATCHED_SECONDS

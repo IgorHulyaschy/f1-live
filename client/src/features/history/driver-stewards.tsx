@@ -8,6 +8,7 @@ import { Field, Panel, PanelHeader } from '@/components/console/panel';
 import { useFacts, useSeasonDecisions } from '@/data/decisions-context';
 import { splitDecisions } from '@/data/decisions-view';
 import { useNow } from '@/hooks/use-now';
+import { plural } from '@/lib/format';
 
 const WIKIDATA = 'https://www.wikidata.org/wiki/';
 
@@ -140,8 +141,10 @@ export function DriverPenaltiesPanel({
 			})}
 			{split.held.length === 0 ? null : (
 				<p className="text-muted-foreground px-4 py-2 text-xs" data-testid="held-penalties">
-					{split.held.length === 1 ? '1 penalty' : `${split.held.length} penalties`} held back until
-					you reveal the session.
+					{split.held.length === 1
+						? '1 penalty'
+						: plural(split.held.length, 'penalty', 'penalties')}{' '}
+					held back until you reveal the session.
 				</p>
 			)}
 		</Panel>

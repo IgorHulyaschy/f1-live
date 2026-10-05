@@ -15,6 +15,7 @@ import { pausingFlag } from '@/insights/clean-laps';
 import { fightsHeadline } from '@/insights/headlines';
 import { lapRangeText } from '@/insights/duel';
 import { oneSecondAid } from '@/insights/rules';
+import { plural } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { type Pair, usePair } from './pair-context';
@@ -30,7 +31,7 @@ function reasonText(fight: Fight): string | null {
 
 	switch (reason?.kind) {
 		case 'fresh-tyres': {
-			return `Stopped ${reason.lapsSinceStop} ${reason.lapsSinceStop === 1 ? 'lap' : 'laps'} ago`;
+			return `Stopped ${plural(reason.lapsSinceStop, 'lap')} ago`;
 		}
 
 		case 'compound': {
@@ -38,7 +39,7 @@ function reasonText(fight: Fight): string | null {
 		}
 
 		case 'tyre-age': {
-			return `Tyres ${reason.newerLaps} laps newer`;
+			return `Tyres ${plural(reason.newerLaps, 'lap')} newer`;
 		}
 
 		default: {

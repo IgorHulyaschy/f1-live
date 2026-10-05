@@ -13,6 +13,7 @@ import { useChosenDriver, useRace } from '@/data/race-context';
 import { useAccount, useAccountsConfig } from '@/features/account/account-store';
 import { AccountsError } from '@/features/account/api';
 import { SignInDialog } from '@/features/account/sign-in';
+import { plural } from '@/lib/format';
 
 import { alertSettingsStore, changeAlertSettings } from './alert-settings';
 import { type Device, fetchAlerts, registerDevice, removeDevice, sendTestPush } from './alerts-api';
@@ -183,9 +184,7 @@ function PushDevice({ onNeedSignIn }: { onNeedSignIn: () => void }) {
 			const result = await sendTestPush();
 
 			toast(
-				result.sent > 0
-					? `Sent to ${result.sent} ${result.sent === 1 ? 'device' : 'devices'}`
-					: 'Nothing was delivered',
+				result.sent > 0 ? `Sent to ${plural(result.sent, 'device')}` : 'Nothing was delivered',
 				{
 					description:
 						result.sent > 0

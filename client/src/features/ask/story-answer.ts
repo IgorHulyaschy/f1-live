@@ -3,13 +3,12 @@ import type { RaceSnapshot, TrackStatus } from '@f1-live/shared';
 import type { ResultRow, SessionResults } from '@f1-live/shared/results';
 
 import { type StoryMark, storyMarks } from '../../insights/race-story.ts';
-import { formatLapTime } from '../../lib/format.ts';
+import { formatLapTime, plural } from '../../lib/format.ts';
 import { type FlagRange, flagRanges } from '../analysis/lap-series.ts';
 import { labelOf } from './ask-context.ts';
 import {
 	type AskData,
 	type AskSessionInfo,
-	plural,
 	type Rich,
 	sessionHref,
 	sessionLabel

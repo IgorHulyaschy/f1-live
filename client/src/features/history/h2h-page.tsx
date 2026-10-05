@@ -29,6 +29,7 @@ import {
 	sharedEvents,
 	type Side
 } from '@/insights/head-to-head';
+import { plural } from '@/lib/format';
 
 import { Breakdown, EventList, Facts, GapTrend, Scoreboard } from './h2h-sections';
 import {
@@ -244,7 +245,7 @@ export function HeadToHeadPage() {
 		const blob = await h2hCardBlob(size, {
 			a: { name: a.label, colour: a.colour },
 			b: { name: b.label, colour: b.colour },
-			subtitle: `${writeRef(range.from)} to ${writeRef(range.to)}, ${totals.racesTogether} races together`,
+			subtitle: `${writeRef(range.from)} to ${writeRef(range.to)}, ${plural(totals.racesTogether, 'race')} together`,
 			rows: [
 				{ label: 'Qualifying', ...tally(totals.qualifying) },
 				{ label: 'Race', ...tally(totals.race) },

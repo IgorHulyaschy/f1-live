@@ -9,6 +9,7 @@ import { stintsHeadline } from '@/insights/headlines';
 import { useRaceView } from '@/data/race-context';
 import { DriverLink } from '@/features/drill/drill-parts';
 import { useDrill } from '@/features/drill/use-drill';
+import { plural } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 const LEGEND = ['SOFT', 'MEDIUM', 'HARD'] as const;
@@ -75,7 +76,7 @@ function StintBar({
 				</button>
 			</TooltipTrigger>
 			<TooltipContent>
-				{compoundName(stint.compound)}, laps {stint.startLap}–{stint.endLap}, {laps} laps
+				{compoundName(stint.compound)}, laps {stint.startLap}–{stint.endLap}, {plural(laps, 'lap')}
 				{ongoing ? ' so far' : ''}
 			</TooltipContent>
 		</Tooltip>

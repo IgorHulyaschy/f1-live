@@ -8,6 +8,7 @@ import { usePairShown } from '@/features/watch/pair-context';
 import { fights } from '@/insights/battle';
 import { hasDrs } from '@/insights/rules';
 import type { SectorMark } from '@/insights/standings';
+import { plural } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 import { useTileFill } from '../dashboard/tile-fill';
@@ -234,7 +235,7 @@ function TrackMapBody({
 				title="Track map"
 				headline={
 					fighting.size > 0
-						? `${fighting.size} cars in a fight, marked`
+						? `${plural(fighting.size, 'car')} in a fight, marked`
 						: 'No car within a second of another'
 				}
 				meta={placesLabel(places, now)}

@@ -25,6 +25,7 @@ import {
 	paceVersus,
 	WHOLE_RACE
 } from '@/insights/pace';
+import { plural } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { usePair } from '@/features/watch/pair-context';
 
@@ -40,7 +41,7 @@ const spanName = (span: PaceSpan) =>
 		? 'Whole race'
 		: span.kind === 'stint'
 			? `Stint ${span.stint}`
-			: `Last ${span.laps} laps`;
+			: `Last ${plural(span.laps, 'lap')}`;
 
 /**
  * Who is quickest over the race, one stint or the last laps, with fuel, tyre age and compound

@@ -1,5 +1,6 @@
 import type { TelemetryFetchStatus } from '@f1-live/shared';
 import { z } from 'zod';
+import { plural } from '../lib/format.ts';
 
 const statusSchema: z.ZodType<TelemetryFetchStatus> = z.discriminatedUnion('state', [
 	z.object({ state: z.literal('idle') }),
@@ -164,7 +165,7 @@ export function describeFetch(status: TelemetryFetchStatus | null): string | nul
 		case 'queued':
 			return status.ahead === 0
 				? 'Car positions requested from the archive.'
-				: `Car positions queued behind ${status.ahead} other ${status.ahead === 1 ? 'session' : 'sessions'}.`;
+				: `Car positions queued behind ${plural(status.ahead, 'other session')}.`;
 		case 'fetching':
 			if (status.receivedBytes === 0) {
 				return 'Fetching car positions from the archive.';

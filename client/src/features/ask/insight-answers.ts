@@ -7,15 +7,9 @@ import { crewLeague } from '../../insights/pit-cost.ts';
 import { bestSectors } from '../../insights/sectors.ts';
 import { countedLaps } from '../../insights/standings.ts';
 import { teamIdOf } from '../../insights/teams.ts';
-import { formatGap, formatLapTime, formatSectorTime } from '../../lib/format.ts';
+import { formatGap, formatLapTime, formatSectorTime, plural } from '../../lib/format.ts';
 import { labelOf } from './ask-context.ts';
-import {
-	type AskData,
-	type AskSessionInfo,
-	plural,
-	sessionHref,
-	sessionLabel
-} from './ask-data.ts';
+import { type AskData, type AskSessionInfo, sessionHref, sessionLabel } from './ask-data.ts';
 import type { AskOutcome, TableRow } from './answers.ts';
 
 const STOPS_NAME = ['No-stop', 'One-stop', 'Two-stop', 'Three-stop'];

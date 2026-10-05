@@ -22,6 +22,7 @@ describe('lapRangeText', () => {
 		assert.equal(lapRangeText([1, 1], 10), 'in about 1 lap');
 		assert.equal(lapRangeText([3, 5], 10), 'in 3 to 5 laps');
 		assert.equal(lapRangeText([3, null], 10), 'in 3 laps or more');
+		assert.equal(lapRangeText([1, null], 10), 'in 1 lap or more');
 		assert.equal(lapRangeText([8, 14], 10), 'in 8 laps or more');
 		assert.equal(lapRangeText([12, 14], 10), 'not before the flag');
 	});
