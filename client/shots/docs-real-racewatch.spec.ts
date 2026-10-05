@@ -20,20 +20,25 @@ const FIGHT_LAP = 22;
 /** Leclerc right behind Piastri. */
 const DUEL_LAP = 38;
 
-async function openRaceWatching(page: Page, lap: number, theme: Theme = 'dark', extra = '') {
-	await openDocs(page, `${RACE}&lap=${lap}${extra}`, { theme, now: AFTER_VEGAS });
+async function openRaceWatching(page: Page, lap: number, theme: Theme = 'dark') {
+	await openDocs(page, `${RACE}&lap=${lap}`, { theme, now: AFTER_VEGAS });
 	await expect(page.getByTestId('lap-counter')).toHaveText(`Lap ${lap}/50`);
 	await expect(page.getByTestId('timing-row-VER')).toBeVisible();
-
 	await expect(page.getByTestId('fights').getByTestId('fight-row').first()).toBeVisible({
 		timeout: 20_000
 	});
+}
+
+/** The Battle tab: the Duel, Race pace and Pace now side by side. */
+async function openBattle(page: Page, lap: number, pair = '') {
+	await openDocs(page, `/d/battle?session=9858&lap=${lap}${pair}&plan=pro`, { now: AFTER_VEGAS });
+	await expect(page.getByTestId('lap-counter')).toHaveText(`Lap ${lap}/50`);
 	await expect(
 		page
 			.getByTestId('pace-now')
 			.getByTestId(/^pace-row-/)
 			.first()
-	).toBeVisible();
+	).toBeVisible({ timeout: 20_000 });
 	await expect(page.getByTestId('duel-verdict')).toBeVisible();
 	// The duel chart draws its last lap label once the bars are in.
 	await expect(
@@ -41,14 +46,16 @@ async function openRaceWatching(page: Page, lap: number, theme: Theme = 'dark', 
 	).toBeVisible();
 }
 
-test('the Race layout leads with fights, duel and pace now', async ({ page }) => {
+test('the Race layout leads with the map, the tower and the fights', async ({ page }) => {
 	await openRaceWatching(page, FIGHT_LAP);
 	await expect(page.getByTestId('fights')).toContainText('Stopped 4 laps ago');
+	await page.mouse.move(2, 2);
 	await docShot(page, 'racewatch', 'race-layout');
 });
 
 test('the Race layout, light', async ({ page }) => {
 	await openRaceWatching(page, FIGHT_LAP, 'light');
+	await page.mouse.move(2, 2);
 	await docShot(page, 'racewatch', 'race-layout-light');
 });
 
@@ -63,20 +70,15 @@ test('Fights ranks the pairs racing now and the ones coming', async ({ page }) =
 });
 
 test('Pace now ranks the whole field', async ({ page }) => {
-	await openRaceWatching(page, FIGHT_LAP);
+	await openBattle(page, FIGHT_LAP);
 	await expect(page.getByTestId('pace-now')).toContainText('Fastest');
+	await page.mouse.move(2, 2);
 	await docShot(page, 'racewatch', 'pace-now', page.getByTestId('tile-pace-now'), 8);
 });
 
-test('the Duel with two drivers picked in the tower', async ({ page }) => {
-	await openRaceWatching(page, DUEL_LAP);
-
-	// Shift and two tower rows pick the pair, the way a viewer does.
-	await page.getByTestId('timing-row-PIA').click({ modifiers: ['Shift'] });
-	await page.getByTestId('timing-row-LEC').click({ modifiers: ['Shift'] });
-	await expect(page).toHaveURL(/duel=PIA%2CLEC|duel=PIA,LEC/);
+test('the Duel with two drivers picked', async ({ page }) => {
+	await openBattle(page, DUEL_LAP, '&duel=PIA,LEC');
 	await expect(page.getByTestId('duel-verdict')).toContainText(/LEC .*faster.*behind/);
-	await expect(page.getByTestId('timing-row-LEC')).toHaveAttribute('data-paired', 'true');
 
 	// Away from the rows, so no hover colours a row.
 	await page.mouse.move(2, 2);

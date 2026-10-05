@@ -16,6 +16,12 @@ What happened in any session since 2018, without the result given away before I 
 
 ![The 2025 Las Vegas race at lap 30.](replay/race-lap-30.png)
 
+## [The race page](race-page.md)
+
+Where do I look first in a race, and how do I get to the rest without scrolling?
+
+![The Race tab: the map first.](racewatch/race-layout.png)
+
 ## [Ask](ask.md)
 
 Who won, who was fastest, what was the penalty: ask in plain words, get the answer with its proof.
@@ -36,9 +42,9 @@ How did a season go, and who beat whom over a range of rounds?
 
 ## [Watching a race closely](racewatch.md)
 
-Who is racing whom right now, and who is really faster?
+Who is racing whom right now, and who is really faster? The Race tab marks the fights on the map; the Battle tab says who is quicker.
 
-![Fights, Duel and Pace now beside the timing tower.](racewatch/race-layout.png)
+![The Race tab with the fights marked on the map.](racewatch/race-layout.png)
 
 ## [Drivers and teams](drivers.md)
 

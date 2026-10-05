@@ -92,7 +92,7 @@ test('the Battle dashboard prices a stop in places', async ({ page }) => {
 	await expect(page.getByTestId('lap-counter')).toHaveText('Lap 30/50');
 	await expect(page.getByTestId('tile-gaps')).toContainText('PIA');
 	await expect(page.getByTestId('tile-box-now')).toContainText(/Box now, P\d+/);
-	await expect(page.getByTestId('timing-row-VER')).toBeVisible();
+	await expect(page.getByTestId('tile-duel')).toBeVisible();
 
 	await docShot(
 		page,
@@ -100,7 +100,12 @@ test('the Battle dashboard prices a stop in places', async ({ page }) => {
 		'battle-gaps-and-box-now',
 		await around(page.getByTestId('tile-gaps'), page.getByTestId('tile-box-now'))
 	);
-	await docShot(page, 'strategy', 'battle-timing-box-now', page.getByTestId('tile-timing'));
+	await docShot(
+		page,
+		'strategy',
+		'battle-duel-and-pace',
+		await around(page.getByTestId('tile-duel'), page.getByTestId('tile-focus'))
+	);
 });
 
 test('Analysis ranks the race pace and charts every lap', async ({ page }) => {

@@ -4,7 +4,7 @@ How do I get the screen I want, from a phone to a wall monitor, and share it?
 
 ![Battle at lap 30, a ready-made dashboard.](dashboards/battle-lap-30.png)
 
-_Ready-made dashboards: pick one and it is already live._
+_Ready-made dashboards: pick one and it is already live. Each is one screen: what does not fit is on another tab. Resize a tile by the grip at its corner, no edit mode needed: see [the race page](race-page.md)._
 
 ![The same dashboard in the light theme.](dashboards/battle-lap-30-light.png)
 

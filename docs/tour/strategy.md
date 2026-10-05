@@ -38,9 +38,9 @@ _Both tiles in the light theme._
 
 _Battle: who is ahead and behind my driver, and is the gap closing or opening?_
 
-![Battle timing and Box now.](strategy/battle-timing-box-now.png)
+![The Battle tab's top row: the Duel, Race pace, Pace now and Focus.](strategy/battle-duel-and-pace.png)
 
-_Box now: what happens to my driver's position if they pit this lap?_
+_The top of the Battle tab: the Duel between two cars, Race pace, Pace now and your driver in Focus. More on each in [Watching a race closely](racewatch.md). Below, Gaps and Box now: what happens to my driver's position if they pit this lap?_
 
 ![Race pace.](strategy/race-pace.png)
 

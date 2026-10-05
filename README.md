@@ -10,19 +10,20 @@ Working name only; the product must not use "F1" or "Formula 1" in its brand.
 
 Every screen in pictures, one page per area. [All of it, in one index](docs/tour/README.md).
 
-| Area                                              | What it answers                              |
-| ------------------------------------------------- | -------------------------------------------- |
-| [Live race](docs/tour/live.md)                    | What is happening on track right now         |
-| [Replay](docs/tour/replay.md)                     | Any session since 2018, without spoilers     |
-| [Watching a race closely](docs/tour/racewatch.md) | Who is racing whom, and who is faster        |
-| [Ask](docs/tour/ask.md)                           | Plain-words questions, answered with proof   |
-| [What you can ask](docs/tour/ask-kinds.md)        | Every kind of question, with its answer      |
-| [History](docs/tour/history.md)                   | Seasons, standings and head to head          |
-| [Drivers](docs/tour/drivers.md)                   | One driver up close, or against another      |
-| [Dashboards](docs/tour/dashboards.md)             | Tiles you arrange, from a phone to a wall    |
-| [Track](docs/tour/track.md)                       | Where everyone is, and who gains where       |
-| [Strategy](docs/tour/strategy.md)                 | Tyres, stops, undercuts and true pace        |
-| [Accounts and library](docs/tour/accounts.md)     | Sync, Pro, and publishing dashboards to fans |
+| Area                                              | What it answers                                |
+| ------------------------------------------------- | ---------------------------------------------- |
+| [Live race](docs/tour/live.md)                    | What is happening on track right now           |
+| [Replay](docs/tour/replay.md)                     | Any session since 2018, without spoilers       |
+| [The race page](docs/tour/race-page.md)           | The map-first Race tab, the tabs, the timeline |
+| [Watching a race closely](docs/tour/racewatch.md) | Who is racing whom, and who is faster          |
+| [Ask](docs/tour/ask.md)                           | Plain-words questions, answered with proof     |
+| [What you can ask](docs/tour/ask-kinds.md)        | Every kind of question, with its answer        |
+| [History](docs/tour/history.md)                   | Seasons, standings and head to head            |
+| [Drivers](docs/tour/drivers.md)                   | One driver up close, or against another        |
+| [Dashboards](docs/tour/dashboards.md)             | Tiles you arrange, from a phone to a wall      |
+| [Track](docs/tour/track.md)                       | Where everyone is, and who gains where         |
+| [Strategy](docs/tour/strategy.md)                 | Tyres, stops, undercuts and true pace          |
+| [Accounts and library](docs/tour/accounts.md)     | Sync, Pro, and publishing dashboards to fans   |
 
 ## How it works
 

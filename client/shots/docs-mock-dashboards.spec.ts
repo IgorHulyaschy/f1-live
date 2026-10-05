@@ -253,7 +253,7 @@ test.describe('phone', () => {
 	test('tiles stack in one column', async ({ page }) => {
 		await openAt30(page, '/d/battle?lap=30');
 		await expect(page.getByTestId('dashboard-stack')).toBeVisible();
-		await expect(page.getByTestId('chart-battle')).toBeVisible();
+		await expect(page.getByTestId('pace-now')).toBeVisible();
 		await docShot(page, AREA, 'battle-phone');
 	});
 });
