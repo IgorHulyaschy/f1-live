@@ -4,6 +4,9 @@ A hub of Formula 1 knowledge: ask any question and get the answer with its proof
 stats, and follow any session live or replay it later without spoilers.
 Working name only; the product must not use "F1" or "Formula 1" in its brand.
 
+**Status:** built and running on localhost; what is left waits on the owner's accounts and
+decisions. See [what is built and what is next](docs/plans/README.md).
+
 ![The 2025 Las Vegas race at lap 30: timing, stints, race control and the track.](docs/tour/replay/race-lap-30.png)
 
 ## Tour

@@ -31,7 +31,7 @@ can show a result goes through it.
 ## Size and speed
 
 `npm run budgets` caps the first route at 310 kB scripts and 16 kB styles (gzip) and needs
-Lighthouse mobile 0.9 or better. New features load after the first route. Raise a cap only on
+Lighthouse mobile 0.9 or better (on CI mobile performance only warns). New features load after the first route. Raise a cap only on
 purpose, in `client/scripts/budgets.ts`, with the reason.
 
 ## Pictures

@@ -1,6 +1,11 @@
 # Plan 4: Launch readiness
 
-Everything a paid launch needs that is not code. Most items are owner decisions, and several take weeks, so this plan runs alongside plans 1 to 3.
+Everything a paid launch needs that is not code.
+
+**Status.** The code side is done: every decision below has a slot with a working default (see
+[Ready in code](#ready-in-code)). What is left is the owner's decisions, listed in
+[the plans index](README.md#decisions-the-owner-holds). Name research is in
+[docs/research/naming.md](../research/naming.md). Most items are owner decisions, and several take weeks, so this plan runs alongside plans 1 to 3.
 
 ## Name and brand
 

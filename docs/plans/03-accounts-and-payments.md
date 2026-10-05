@@ -17,45 +17,32 @@ Built, and running on localhost with no outside account (`ACCOUNTS_DB=pglite`):
 
 - sign-in with Better Auth on our own server: email magic link, Google and Apple when their keys
   are set, no passwords;
-- dashboard sync per document with versions, local-first, newest edit wins;
-- the Free limit enforced by the API, from `PLAN_ENTITLEMENTS` in `shared/src/plans.ts`;
+- dashboard sync per document with versions, local-first, newest edit wins. A change reaches the
+  account's other devices through a WebSocket nudge and a pull; a device that missed it catches up
+  when the tab returns, or within 30 seconds;
+- the library server: publish, unpublish, add counts, reports that hold an entry back, handles,
+  moderation settings (`LIBRARY_*`), all in [dashboards.md](../product/dashboards.md#library-alerts-and-push);
+- alerts and Web Push, in the same API;
+- the Free limit and the Pro tiles enforced by the API, from `PLAN_ENTITLEMENTS` in
+  `shared/src/plans.ts`;
 - payments behind one `PaymentProvider` interface: Stripe Checkout, portal and webhooks, and a fake
   provider with its own checkout page and signed webhooks for development and tests;
-- the account page: plan, billing, export my data, delete my account.
+- the account page: plan, billing, export my data, delete my account (entries and handles go too).
 
-Still open: the library server (step 3), pushing dashboard changes over the live socket (devices
-pull every 30 seconds and when they come back to the tab), and the owner items below.
+Nothing in this plan is left to code. A published entry is a copy: the author's later edits
+change it only when they publish again, by design.
 
-## Before starting
+## Still open
 
-- Confirm the Free/Pro split. The current default:
-  - Free: every ready-made dashboard, 3 of your own, share links;
-  - Pro: any number of dashboards, Pro tiles, publishing.
-- Read the analytics from [plan 2](02-hosted-preview.md). If nobody uses a Pro tile, it should not be what Pro is sold on.
-
-## Steps
-
-1. **Sign-in.**
-   - Email magic link plus Google and Apple, through a maintained auth library on our own server (Better Auth or Auth.js), or a hosted service (Clerk).
-   - No passwords.
-   - The demo account in `features/library/account.tsx` becomes the real dialog.
-2. **Dashboard sync.**
-   - `GET` and `PUT /me/dashboards`, validated with the same rules as `parseDashboardText`.
-   - The browser store stays the offline copy. On sign-in, local dashboards merge into the account, with the last edit winning per dashboard.
-   - Other devices pick up changes over the live socket.
-3. **Library.**
-   - `GET /library`, `POST /library` and `DELETE /library/:id` replace the sample entries in `community.ts`.
-   - Count adds on the server.
-   - Basic moderation: report an entry, and owner-only removal.
-   - Published entries update when their dashboard does, which fixes the current snapshot-only mock.
-4. **Payments.**
-   - Stripe Checkout for monthly and yearly Pro, and the Stripe customer portal for cancelling and changing plan.
-   - A webhook sets `plan` on the account.
-   - The Free/Pro keys become a real plan read from the account. A "Preview Pro" trial of a few laps can stay as the upsell.
-5. **Server-side limits.**
-   - The Free limit of 3 dashboards and the Pro tiles are enforced by the API, not only hidden in the UI.
-6. **Account page.**
-   - Plan, billing portal, export all dashboards, and delete the account (removes everything).
+- **Test-mode Stripe run.** The fake provider covers the flows. A purchase and a cancel through Stripe's
+  test mode need the owner's account and keys.
+- **Sign-in providers.** Google and Apple stay off until their client ids exist (owner), and mail
+  needs an SMTP account.
+- **The split and prices.** Free is every ready-made dashboard, 3 of your own and share links; Pro
+  is any number, Pro tiles and publishing. It stays a default until the owner confirms it, and
+  [plan 2](02-hosted-preview.md)'s analytics should inform it.
+- **VAT and sales tax** for digital goods across the EU, UK and US. Stripe Tax, or a merchant of
+  record (Paddle or Lemon Squeezy), avoids registering everywhere. Owner decision.
 
 ## Done when
 
@@ -72,5 +59,5 @@ pull every 30 seconds and when they come back to the tab), and the owner items b
 ## Needs from the owner
 
 - A confirmed Free/Pro split and prices.
-- A Stripe account (or a merchant of record) in the business's name.
-- A choice between our own auth and a hosted provider (cost against control).
+- A Stripe account (or a merchant of record) in the business's name, and an email service.
+- A choice between our own auth and a hosted provider. Our own is what is built.

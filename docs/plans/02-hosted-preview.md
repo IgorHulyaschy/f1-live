@@ -19,29 +19,33 @@ It should tell us which dashboards and tiles people actually keep.
 
 These are recommendations; any host that runs a Node container and serves static files works.
 
-## Steps
+## Status
 
-1. **Build and config.**
-   - Add a production `Dockerfile` for the server.
-   - Client environment variables for the API URL and data source.
-   - Restrict CORS to the preview origin; `main.ts` already has the TODO.
-2. **Deploy pipeline.**
-   - GitHub Actions on Fybex/f1-live-private runs the existing checks: format, lint, typecheck, unit
-     and e2e.
-   - Then it deploys `master` to production and pull requests to preview URLs.
-3. **Access.**
-   - A shared invite code, or the host's own password protection, while the preview is private.
-   - Pages carry `noindex`.
-4. **Analytics without tracking people.**
-   - Use a privacy-friendly counter (Plausible or self-hosted Umami).
-   - Count events, not people: dashboards opened, tiles added or removed, presets reset, share links opened, Pro previewed, text size and Fit used.
-   - These answer what goes in Pro.
-5. **Feedback.**
-   - A "Send feedback" key in the footer, carrying the page, dashboard JSON and lap. It opens an email draft or a form, so no backend is needed.
-6. **Race-weekend checklist** (in this folder once the first weekend runs):
-   - Warm the server before the session.
-   - Watch the upstream connection.
-   - Note what broke.
+Everything that needs no account is built ([deploy.md](../deploy.md)):
+
+- `server/Dockerfile` and `client/Dockerfile`, and `docker compose up` for the whole stack on
+  localhost, with a `replay` profile that plays a saved race through ingest, relay and browser;
+- client settings for the API, socket and accounts URLs, and `CORS_ORIGINS` on the server;
+- CI on every push: checks, unit tests, e2e, the image builds, the compose stack and the launch
+  budgets. It has no deploy job and needs no secrets;
+- host templates for Fly.io, Render, Cloudflare Pages with R2, and Netlify; a home ingest machine
+  for the feed, which blocks cloud hosts; the upload script for saved sessions;
+- `VITE_SITE_NOINDEX=true` for a private preview, and an analytics slot (`platform/analytics.ts`)
+  that sends page paths only after the viewer consents, with no provider chosen.
+
+## Still open
+
+1. **Deploy pipeline.** A CI job that deploys `master` and pull requests. It needs the host
+   accounts and their tokens as GitHub secrets (owner).
+2. **Access.** A shared invite code or the host's own password protection while the preview is
+   private. The host's feature is the cheaper route, so it waits for the host (owner).
+3. **Analytics events.** Only page views are sent. The events that answer "what goes in Pro"
+   (dashboards opened, tiles added or removed, presets reset, share links opened, Pro previewed,
+   text size and Fit used) are not wired, and a provider (Plausible or Umami) is not chosen.
+4. **Feedback.** The footer has a Support mail link. A "Send feedback" key carrying the page,
+   dashboard JSON and lap is not built.
+5. **Race-weekend runbook.** Written after the first weekend runs: warm the server before the
+   session, watch the upstream connection, note what broke.
 
 ## Done when
 

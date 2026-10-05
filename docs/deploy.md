@@ -60,14 +60,13 @@ fake checkout, because the app is on localhost. `npm run test:stack -w client` c
 `.github/workflows/ci.yml` runs on every push to `master` or `m1` and every pull request. It has no
 deploy job and needs no secrets.
 
-| Job     | Runs                                                                                            |
-| ------- | ----------------------------------------------------------------------------------------------- |
-| `check` | `npm ci` (cached), `npm run check`, `npm run test:unit`                                         |
-| `e2e`   | Playwright: mock replay, real-data fixtures, live replay. Report and traces upload on failure   |
-| `build` | The client production build, then both images (layer cache), with their sizes                   |
-| `stack` | `docker compose --profile replay up`, then `test:stack`: saved session, sign-in, checkout, live |
-
-The marked block at the end of the file is where the Lighthouse and accessibility budget job goes.
+| Job       | Runs                                                                                            |
+| --------- | ----------------------------------------------------------------------------------------------- |
+| `check`   | `npm ci` (cached), `npm run check`, `npm run test:unit`                                         |
+| `e2e`     | Playwright: mock replay, real-data fixtures, live replay. Report and traces upload on failure   |
+| `build`   | The client production build, then both images (layer cache), with their sizes                   |
+| `stack`   | `docker compose --profile replay up`, then `test:stack`: saved session, sign-in, checkout, live |
+| `budgets` | `npm run budgets`: bundle size and Lighthouse; on CI mobile performance only warns              |
 
 ## Environment
 

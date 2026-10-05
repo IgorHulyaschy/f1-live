@@ -4,7 +4,7 @@
 
 The app stops running only on the modelled Las Vegas replay. Instead:
 
-- any 2025 or 2026 session can be picked and replayed from the official timing data;
+- any session since 2018 can be picked and replayed from the official timing data;
 - during a live session, every screen updates within about a second of the feed.
 
 Every tile works unchanged, because the server serves the same `RaceSnapshot` contract
@@ -50,77 +50,43 @@ Every tile works unchanged, because the server serves the same `RaceSnapshot` co
 - `data/` is gitignored. Tests use small trimmed fixtures in the repository, and the full-session
   tests skip with a message when `data/raw` is missing.
 
-## Where we are
+## Status
 
-- **Server** (`server/src`): the first version subscribes to three topics, stores lap times and
-  raw frames in Postgres, and serves `GET /onLoad` with lap times only. The steps below replace it.
-- **Client** (`api-source.ts`): it rebuilds positions from summed lap times, so
-  tyres, stops, race control and weather are blank on the API source.
-- **Network:** `livetiming.formula1.com` (live and the static archive) and `api.openf1.org` are
-  reachable from the development machine.
+Built, and running on this machine with no outside account:
 
-## Steps
+- **Any session since 2018 replays from real data** (2022: see below), with the map and car data. The importer
+  fetches whole seasons (`npm run import -w server -- 2018,2019`, or `--key 9858`) and
+  `npm run rebuild -w server` derives every output again from `data/raw` with no network.
+  Practice, qualifying, sprints and races all go through one path.
+- **Live uses the same decoder.** `live.ts` records the feed in archive format, `WS /live` pushes
+  to viewers, and `ingestSession` imports the session when it ends. A dropped connection reconnects
+  with backoff, and a watchdog catches a stalled feed. `npm run replay-live -w server` replays a
+  saved session through the same path when nothing is live.
+- **Ingest and relay are split** for cloud hosts, because the feed answers 403 to them
+  ([deploy.md](../deploy.md)).
+- **Corrections.** OpenF1 supplies disqualifications and whole-second penalties, and
+  `server/corrections/<key>.json` holds the rest, each citing its FIA document. The FIA stewards'
+  decisions and Wikidata facts are fetched too, and Ask answers from them.
+- **The client reads `RaceSnapshot` directly.** The session picker, ⌘K, "Live" and "Back to live"
+  work, and a finished session stays spoiler-free until the viewer reveals it. The mock replay
+  stays the default for tests and screenshots, and the real-data e2e project runs on committed
+  fixtures.
 
-1. **Event model and reducer** in `shared/`.
-   - `RaceEvent` covers session info and status, driver entries, the grid, completed laps with
-     sectors, positions and gaps, tyres, pit lane in and out with lane time, track status,
-     race control, weather, retirements, penalties, personal bests and classification
-     corrections.
-   - `applyEvent` builds the `RaceSnapshot`, extended with the session status, live standings
-     between lap crossings, the track status log, penalties and corrections.
-2. **F1 decoder and archive reader** in `server/src/sources/f1/`.
-   - `decode.ts` turns topic frames into events. It keeps a merged state per topic, because the
-     feed sends partial updates, and it is the same for live frames.
-   - `archive.ts` reads `<Topic>.jsonStream` files and merges them into one time-ordered stream.
-   - `npm run fetch:f1 -w server -- 9858` downloads a session into `data/raw`.
-   - A full-session test replays the 2025 Las Vegas race and checks it against the official result.
-3. **Live recorder.**
-   - `live.ts` subscribes to every topic the decoder reads and writes the frames to `data/raw` in
-     the archive format, while feeding the decoder.
-   - It reconnects with backoff and resubscribes, and a heartbeat watchdog catches a stalled feed.
-4. **Import and outputs** in `server/src/import/`, `server/src/sinks/files.ts` and `server/src/catalog/`.
-   - `npm run import -w server -- 2025 "Las Vegas"`, `-- 2025,2026` (whole seasons), `-- --key 9858`
-     or `-- --from-dir <raw root> [--key <k>]` for live recordings. `--data-dir` (or `DATA_DIR`)
-     moves `data/`; `--offline` uses no network.
-   - It saves each session's `Index.json` and topic files to `data/raw/<archive path>/`. A session
-     that ended more than three hours ago and has every file is skipped without a request, a
-     missing file is fetched alone, and requests retry with backoff and a concurrency limit.
-   - Per session: raw, then the decoder, then `RaceEvent[]`, then `applyEvent`, then
-     `data/out/events/<key>.jsonl.gz` and `data/out/snapshots/<key>.json.gz`. A topic that fails to
-     decode goes to `data/out/errors/<key>.json` and the batch goes on. The same raw files give
-     the same bytes.
-   - `data/out/catalog.json` lists seasons, meetings and sessions from the seasons' `Index.json`,
-     upcoming sessions too, with each session's status and the outputs it has.
-   - `npm run rebuild -w server` derives every output again from `data/raw` with no network. It is
-     the way to ship a decoder fix.
-   - `ingestSession({ rawDir, key, dataDir })` (`server/src/import/ingest.ts`) is the one function
-     the live server calls when a session ends.
-5. **Corrections.** Decisions taken after the feed ends, such as the McLaren disqualifications at
-   the 2025 Las Vegas race, are added as classification correction events after the session's own
-   events. Two sources, the later winning a conflict for the same driver and kind:
-   - OpenF1 (`server/src/sources/openf1/`): the session result's disqualifications, and the
-     whole-second time penalties, applied or withdrawn, found by comparing its race times with the
-     feed's final gaps. The responses are saved to `data/openf1/` so a rebuild needs no network.
-     Cars a lap down have no gap to compare, so their reclassification is not found.
-   - A committed file `server/corrections/<key>.json` (format in its README) for anything else.
-6. **Client data source.**
-   - The API source reads `RaceSnapshot` directly, and the hand mapping is deleted.
-   - A session picker in the Session tile and the ⌘K palette lets you choose a meeting and session.
-   - In live mode the Replay tile shows "Live", stepping back pauses live, and a "Back to live" key
-     returns to it.
-   - The mock replay stays as the default for tests, screenshots and offline development.
-7. **Sessions other than races.**
-   - Practice and qualifying show the same timing order by best lap, with the gap to pole.
-   - Race-only tiles (Box now, Battle) say they apply to races.
-   - Sprints use the race path.
-8. **OpenF1 source.** It maps onto the same events if the archive is missing a session or a topic.
+## Still open
 
-## Done when
+- **2022 and before 2018.** The archive's 2022 `Index.json` answers 403, so the season is built
+  from a supplement (`server/src/catalog/index-supplement.ts`); every 2022 session still needs a
+  check that it replays. The importer rejects years before 2018: that data needs another source
+  (owner item).
+- **Reclassifications of cars a lap down** are not found, because they have no gap to compare.
+- **Import hardening** (T23 leftovers): free disk is checked once per session, not during its
+  download; one request timeout (120 s) fits every file; the catalog's telemetry flag can lag
+  behind an on-demand telemetry build.
+- **A race weekend on the real feed.** Live has been proved on replays and recordings. The first
+  real weekend is the test of "a lap shows within about a second" and of recovery from a dropped
+  connection.
 
-- `npm run import -w server -- 2025 "Las Vegas"` produces a snapshot whose classification, stints and penalties match the real result. The test runs on saved files with no network.
-- Any 2025 race picked in the app replays from real data, with every tile filled.
-- During a live session, a lap completed on track shows on screen within about a second, and a dropped connection recovers on its own.
-- The e2e suite still runs on the mock. A second e2e project runs against a saved real session.
+The rest of this list is in [What's next](README.md#whats-next).
 
 ## Risks
 
@@ -135,5 +101,4 @@ Every tile works unchanged, because the server serves the same `RaceSnapshot` co
 ## Needs from the owner
 
 - The data-rights decision in [plan 4](04-launch-readiness.md) before charging.
-- For cloud runs only: allow `livetiming.formula1.com`, `api.openf1.org` and `media.formula1.com`
-  in the cloud environment's network access.
+- A source for 2022 and for seasons before 2018.
